@@ -220,7 +220,8 @@ export default function Home() {
           }, 6000);
         }
 
-        // 1. Student Registration OTP autofill
+        // 1. Student Registration OTP autofill - DISABLED FOR MANUAL VERIFICATION
+        /*
         if (studentOtpSentRef.current && !studentOtpRef.current && studentOtpEmailRef.current) {
           const matchingEmail = emails.find((email: any) => 
             email.to.trim().toLowerCase() === studentOtpEmailRef.current.trim().toLowerCase() && 
@@ -232,8 +233,10 @@ export default function Home() {
             showToast(`📬 Inbox Sync: Verification email received! OTP (${matchingEmail.otp}) automatically filled.`, 'success');
           }
         }
+        */
 
-        // 1b. Mentor Registration OTP autofill
+        // 1b. Mentor Registration OTP autofill - DISABLED FOR MANUAL VERIFICATION
+        /*
         if (mentorOtpSentRef.current && !mentorOtpRef.current && mentorOtpEmailRef.current) {
           const matchingEmail = emails.find((email: any) => 
             email.to.trim().toLowerCase() === mentorOtpEmailRef.current.trim().toLowerCase() && 
@@ -245,8 +248,10 @@ export default function Home() {
             showToast(`📬 Inbox Sync: Verification email received! OTP (${matchingEmail.otp}) automatically filled.`, 'success');
           }
         }
+        */
 
-        // 1c. Admin Registration OTP autofill
+        // 1c. Admin Registration OTP autofill - DISABLED FOR MANUAL VERIFICATION
+        /*
         if (adminOtpSentRef.current && !adminOtpRef.current && adminOtpEmailRef.current) {
           const matchingEmail = emails.find((email: any) => 
             email.to.trim().toLowerCase() === adminOtpEmailRef.current.trim().toLowerCase() && 
@@ -258,8 +263,10 @@ export default function Home() {
             showToast(`📬 Inbox Sync: Verification email received! OTP (${matchingEmail.otp}) automatically filled.`, 'success');
           }
         }
+        */
         
-        // 2. Forgot Password OTP autofill
+        // 2. Forgot Password OTP autofill - DISABLED FOR MANUAL VERIFICATION
+        /*
         if (forgotOtpSentRef.current && !forgotOtpRef.current && forgotOtpEmailRef.current) {
           const matchingEmail = emails.find((email: any) => 
             email.to.trim().toLowerCase() === forgotOtpEmailRef.current.trim().toLowerCase() && 
@@ -271,6 +278,7 @@ export default function Home() {
             showToast(`📬 Inbox Sync: Password reset email received! OTP (${matchingEmail.otp}) automatically filled.`, 'success');
           }
         }
+        */
       }
     } catch (err) {
       console.error('Error fetching mock inbox:', err);
