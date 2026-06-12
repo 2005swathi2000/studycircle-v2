@@ -1273,12 +1273,6 @@ export default function Home() {
                             type="text"
                             value={studentContact}
                             onChange={(e) => setStudentContact(e.target.value)}
-                            onBlur={() => {
-                              const trimmed = studentContact.trim().toLowerCase();
-                              if (isValidEmailOrPhone(trimmed) && trimmed !== lastSentStudentEmail) {
-                                sendRegOtp('student');
-                              }
-                            }}
                             placeholder="e.g. student@gmail.com"
                             className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
                           />
@@ -1384,12 +1378,6 @@ export default function Home() {
                             type="text"
                             value={mentorContact}
                             onChange={(e) => setMentorContact(e.target.value)}
-                            onBlur={() => {
-                              const trimmed = mentorContact.trim().toLowerCase();
-                              if (isValidEmailOrPhone(trimmed) && trimmed !== lastSentMentorEmail) {
-                                sendRegOtp('mentor');
-                              }
-                            }}
                             placeholder="e.g. mentor@vrsec.ac.in"
                             className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
                           />
@@ -1509,12 +1497,6 @@ export default function Home() {
                             type="text"
                             value={adminContact}
                             onChange={(e) => setAdminContact(e.target.value)}
-                            onBlur={() => {
-                              const trimmed = adminContact.trim().toLowerCase();
-                              if (isValidEmailOrPhone(trimmed) && trimmed !== lastSentAdminEmail) {
-                                sendRegOtp('admin');
-                              }
-                            }}
                             placeholder="e.g. admin@gitam.edu"
                             className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
                           />
@@ -1603,12 +1585,6 @@ export default function Home() {
                         type="text"
                         value={forgotUser}
                         onChange={(e) => setForgotUser(e.target.value)}
-                        onBlur={() => {
-                          const trimmed = forgotUser.trim().toLowerCase();
-                          if (trimmed && trimmed !== lastSentForgotUser) {
-                            sendResetOtp();
-                          }
-                        }}
                         placeholder="e.g. charan_stud"
                         className="flex-1 px-4 py-3 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs text-white outline-none"
                       />
