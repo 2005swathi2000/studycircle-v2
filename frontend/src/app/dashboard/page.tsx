@@ -79,6 +79,47 @@ type TabType =
   | 'settings' 
   | 'admin';
 
+// Helper to determine gender-based profile picture dynamically
+const getAvatarByName = (fullName: string | null | undefined): string => {
+  if (!fullName) return '/charan-avatar.png'; // default
+  
+  const firstName = fullName.trim().split(' ')[0].toLowerCase();
+  
+  // Specific name lists for StudyCircle
+  const femaleNames = ['swathi', 'bhagya', 'rathna', 'rathnamma', 'swetha', 'priya', 'geetha', 'divya', 'kavya', 'lakshmi', 'anusha', 'saritha', 'radha', 'sravani', 'bindu', 'anoohya', 'kavitha', 'lavanya', 'swarna', 'siri', 'sneha', 'jyothi'];
+  const maleNames = ['charan', 'karthik', 'prasad', 'ramesh', 'kalyan', 'sai', 'rahul', 'amit', 'vijay', 'kumar', 'sanjay', 'anil', 'suresh', 'harish', 'rajesh', 'kiran', 'ravi', 'vivek', 'arjun', 'vikram', 'hanumanthu'];
+
+  if (femaleNames.includes(firstName)) {
+    if (firstName === 'bhagya') return '/bhagya-avatar.png';
+    if (firstName === 'rathna' || firstName === 'rathnamma') return '/rathna-avatar.png';
+    return '/swathi-avatar.png';
+  }
+  
+  if (maleNames.includes(firstName)) {
+    if (firstName === 'karthik') return '/karthik-avatar.png';
+    return '/charan-avatar.png';
+  }
+
+  // Heuristics for typical Indian/Western name endings
+  const commonMaleSuffixes = ['kumar', 'prasad', 'raj', 'rao', 'babu', 'nath', 'singh', 'dev', 'lal', 'sen', 'paul'];
+  if (commonMaleSuffixes.some(suffix => firstName.endsWith(suffix))) {
+    return '/charan-avatar.png';
+  }
+  
+  // Standard female name endings (e.g., -a, -i, -ee, -ya, -na, -ma, -thi, -tha, -ha)
+  const femaleEndings = ['a', 'i', 'ee', 'ya', 'na', 'ma', 'thi', 'tha', 'ha', 'shri', 'mathi'];
+  if (femaleEndings.some(ending => firstName.endsWith(ending))) {
+    // Distribute female names across the 3 female avatars consistently using a simple hash
+    const charCodeSum = firstName.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    const mod = charCodeSum % 3;
+    if (mod === 0) return '/swathi-avatar.png';
+    if (mod === 1) return '/bhagya-avatar.png';
+    return '/rathna-avatar.png';
+  }
+
+  return '/charan-avatar.png'; // Fallback default male
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const { showToast } = useToast();
@@ -978,7 +1019,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
             <div className="p-5 bg-gradient-to-b from-[#5227EB] to-[#6366f1] rounded-[24px] text-center text-white flex flex-col justify-center items-center gap-3 shadow-md relative overflow-hidden">
               <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-xl" />
               <div className="h-16 w-16 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center text-3xl font-black text-white shadow-inner relative overflow-hidden">
-                <img src="/swathi-avatar.png" className="absolute inset-0 h-full w-full object-cover" alt="Swathi" />
+                <img src={getAvatarByName(user?.fullName)} className="absolute inset-0 h-full w-full object-cover" alt="Avatar" />
               </div>
               <div className="text-center">
                 <h3 className="text-sm font-black truncate max-w-[150px]">{user.fullName}</h3>
@@ -1057,7 +1098,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
               <div className="space-y-2.5">
                 {[
                   { name: 'Charan', hours: 18.2, streak: 8, avatar: '/charan-avatar.png' },
-                  { name: 'Swathi (You)', hours: 15.5, streak: 7, avatar: '/swathi-avatar.png' },
+                  { name: user?.fullName ? `${user.fullName} (You)` : 'Swathi (You)', hours: 15.5, streak: 7, avatar: getAvatarByName(user?.fullName || 'Swathi') },
                   { name: 'Bhagya', hours: 12.0, streak: 6, avatar: '/bhagya-avatar.png' }
                 ].map((student, rank) => (
                   <div key={rank} className="flex items-center justify-between gap-2 border-b border-white/5 pb-2 last:border-0 last:pb-0">
@@ -1452,7 +1493,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 </thead>
                 <tbody className="font-extrabold text-zinc-300">
                   {[
-                    { name: 'Swathi Vijayawada', hours: 18.2, streak: 8, avatar: '/swathi-avatar.png' },
+                    { name: user?.fullName ? `${user.fullName} Vijayawada` : 'Swathi Vijayawada', hours: 18.2, streak: 8, avatar: getAvatarByName(user?.fullName || 'Swathi') },
                     { name: 'Bhagya Guntur', hours: 15.0, streak: 6, avatar: '/bhagya-avatar.png' },
                     { name: 'Rathna Visakhapatnam', hours: 13.5, streak: 5, avatar: '/rathna-avatar.png' }
                   ].map((student, idx) => (
@@ -1625,13 +1666,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
           <div className="flex items-center gap-3 min-w-0">
             <div className="h-10 w-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden">
               <img 
-                src={
-                  user.role === 'admin' 
-                    ? '/charan-avatar.png' 
-                    : user.role === 'mentor' 
-                      ? '/bhagya-avatar.png' 
-                      : '/swathi-avatar.png'
-                } 
+                src={getAvatarByName(user?.fullName)} 
                 className="absolute inset-0 h-full w-full object-cover" 
                 alt="Avatar" 
               />
@@ -2678,9 +2713,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-slate-900 flex items-center justify-center">
                   <div className="text-center space-y-2 relative z-10">
                     <div className="h-16 w-16 rounded-full overflow-hidden bg-white/10 border border-white/20 mx-auto shadow-inner relative">
-                      <img src="/swathi-avatar.png" className="absolute inset-0 h-full w-full object-cover" alt="Swathi" />
+                      <img src={getAvatarByName(user?.fullName)} className="absolute inset-0 h-full w-full object-cover" alt="Avatar" />
                     </div>
-                    <span className="text-[10px] font-bold text-indigo-200">Swathi (You)</span>
+                    <span className="text-[10px] font-bold text-indigo-200">{user?.fullName || 'Swathi'} (You)</span>
                   </div>
                 </div>
               )}
