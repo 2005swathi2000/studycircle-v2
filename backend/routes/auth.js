@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 const { authMiddleware } = require('../middleware/auth');
 const BloomFilter = require('../utils/bloom');
-const { sendMail, sendSMS } = require('../utils/notifier');
+const { sendMail, sendSMS, hasSmtpConfig } = require('../utils/notifier');
 
 const router = express.Router();
 const bloomFilter = new BloomFilter(2048);
@@ -116,10 +116,16 @@ router.post('/send-otp', async (req, res) => {
       });
     }
 
+    let successMessage = isRealSent
+      ? `OTP sent successfully to ${trimmedValue}!`
+      : `OTP sent successfully to mock inbox for ${trimmedValue}!`;
+
+    if (isRealSent && isEmail && !hasSmtpConfig()) {
+      successMessage = `OTP sent to ${trimmedValue}! First time? Please check your email (and spam folder) to 'Activate' FormSubmit.co to receive the code.`;
+    }
+
     return res.json({
-      message: isRealSent
-        ? `OTP sent successfully to ${trimmedValue}!`
-        : `OTP sent successfully to mock inbox for ${trimmedValue}!`,
+      message: successMessage,
       debugOtp: isMocked ? otp : undefined,
       email: trimmedValue,
       isMocked

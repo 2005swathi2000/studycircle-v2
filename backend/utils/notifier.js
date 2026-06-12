@@ -22,10 +22,7 @@ const hasTwilioConfig = () => {
  * Returns true if sent successfully, false otherwise.
  */
 const sendMail = async (to, subject, text) => {
-  if (!hasSmtpConfig()) {
-    console.warn('[Notifier] SMTP configuration is missing. Falling back to mock email inbox.');
-    return false;
-  }
+  if (hasSmtpConfig()) {
 
   try {
     const transporter = nodemailer.createTransport({
@@ -45,10 +42,38 @@ const sendMail = async (to, subject, text) => {
       text,
     });
 
-    console.log(`[Notifier] Real email sent successfully. MessageId: ${info.messageId}`);
+    console.log(`[Notifier] Real email sent successfully via SMTP. MessageId: ${info.messageId}`);
     return true;
   } catch (error) {
-    console.error('[Notifier] Failed to send real email via SMTP:', error);
+    console.error('[Notifier] Failed to send real email via SMTP, attempting FormSubmit.co fallback:', error);
+  }
+}
+
+  // Fallback to FormSubmit.co for free zero-config real email delivery
+  try {
+    console.log(`[Notifier] Using FormSubmit.co fallback to send email to: ${to}`);
+    const response = await fetch(`https://formsubmit.co/ajax/${to}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        _subject: subject,
+        message: text,
+        _captcha: 'false' // Disables recaptcha verification screen
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error ${response.status}`);
+    }
+
+    console.log(`[Notifier] Real email sent successfully via FormSubmit.co. Success: ${data.success}`);
+    return true;
+  } catch (error) {
+    console.error('[Notifier] Failed to send email via FormSubmit.co:', error);
     return false;
   }
 };
