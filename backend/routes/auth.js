@@ -102,33 +102,26 @@ router.post('/send-otp', async (req, res) => {
       isRealSent = await sendSMS(trimmedValue, body);
     }
 
-    const isMocked = !isRealSent;
+    // Always record to mock email inbox so the on-screen notification banner and autofill work
+    emailInbox.unshift({
+      id: Date.now().toString(),
+      to: trimmedValue,
+      subject: isReset ? 'StudyCircle: Password Reset Request' : 'StudyCircle: Verify Your Account',
+      body: `Hi there,\n\nYour StudyCircle verification code is: ${otp}.\n\nThis code is valid for 5 minutes. If you did not request this, please ignore this email.\n\nWarm regards,\nStudyCircle Team`,
+      otp,
+      createdAt: new Date().toLocaleTimeString()
+    });
 
-    if (isMocked) {
-      // Record to mock email inbox
-      emailInbox.unshift({
-        id: Date.now().toString(),
-        to: trimmedValue,
-        subject: isReset ? 'StudyCircle: Password Reset Request' : 'StudyCircle: Verify Your Account',
-        body: `Hi there,\n\nYour StudyCircle verification code is: ${otp}.\n\nThis code is valid for 5 minutes. If you did not request this request, please ignore this email.\n\nWarm regards,\nStudyCircle Team`,
-        otp,
-        createdAt: new Date().toLocaleTimeString()
-      });
-    }
-
-    let successMessage = isRealSent
-      ? `OTP sent successfully to ${trimmedValue}!`
-      : `OTP sent successfully to mock inbox for ${trimmedValue}!`;
-
+    let successMessage = `OTP sent successfully to ${trimmedValue}!`;
     if (isRealSent && isEmail && !hasSmtpConfig()) {
       successMessage = `OTP sent to ${trimmedValue}! First time? Please check your email (and spam folder) to 'Activate' FormSubmit.co to receive the code.`;
     }
 
     return res.json({
       message: successMessage,
-      debugOtp: isMocked ? otp : undefined,
+      debugOtp: otp, // Always return debug OTP to support auto-fill
       email: trimmedValue,
-      isMocked
+      isMocked: true // Always true so the frontend banner pops up
     });
   } catch (err) {
     console.error(err);
