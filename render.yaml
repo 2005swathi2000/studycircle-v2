@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: studycircle-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    rootDir: backend
+    disk:
+      name: studycircle-db
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: SQLITE_DB_PATH
+        value: /data/database.sqlite
+      - key: NODE_ENV
+        value: production
