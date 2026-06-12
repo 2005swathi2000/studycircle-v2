@@ -56,7 +56,9 @@ const sendMail = async (to, subject, text) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Origin': 'https://studycircle-v2-frontend-standalone.vercel.app',
+        'Referer': 'https://studycircle-v2-frontend-standalone.vercel.app/'
       },
       body: JSON.stringify({
         _subject: subject,
@@ -66,8 +68,8 @@ const sendMail = async (to, subject, text) => {
     });
 
     const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || `HTTP error ${response.status}`);
+    if (!response.ok || data.success === 'false' || data.success === false) {
+      throw new Error(data.message || `FormSubmit returned success false`);
     }
 
     console.log(`[Notifier] Real email sent successfully via FormSubmit.co. Success: ${data.success}`);
