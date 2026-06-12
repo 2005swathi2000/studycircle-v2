@@ -1649,8 +1649,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
         {/* Sidebar Bottom illustration */}
         <div className="p-4 border-t border-slate-100 bg-[#F8FAFC]/50 m-4 rounded-[20px] border border-slate-200/60 text-center space-y-3 shadow-sm shrink-0">
-          <div className="h-20 w-full rounded-xl overflow-hidden bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center border border-indigo-100/50 relative">
-            <img src="/students-illustration.png" className="absolute inset-0 h-full w-full object-cover" alt="Study illustration" />
+          <div className="h-20 w-full rounded-xl overflow-hidden bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center border border-indigo-100/50">
+            <img src="/students-illustration.png" className="h-16 w-auto object-contain" alt="Study illustration" />
           </div>
           <div>
             <h4 className="text-[11px] font-extrabold text-slate-800">Focus Together.</h4>

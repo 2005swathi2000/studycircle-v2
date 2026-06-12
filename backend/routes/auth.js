@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 const { authMiddleware } = require('../middleware/auth');
 const BloomFilter = require('../utils/bloom');
+const { sendMail, sendSMS } = require('../utils/notifier');
 
 const router = express.Router();
 const bloomFilter = new BloomFilter(2048);
@@ -88,20 +89,40 @@ router.post('/send-otp', async (req, res) => {
     otpCache.set(trimmedValue, { otp, expiresAt });
     console.log(`[OTP DEBUG] Sent ${type || 'Verification'} OTP: ${otp} to: ${trimmedValue}`);
 
-    // Record to mock email inbox
-    emailInbox.unshift({
-      id: Date.now().toString(),
-      to: trimmedValue,
-      subject: isReset ? 'StudyCircle: Password Reset Request' : 'StudyCircle: Verify Your Account',
-      body: `Hi there,\n\nYour StudyCircle verification code is: ${otp}.\n\nThis code is valid for 5 minutes. If you did not request this request, please ignore this email.\n\nWarm regards,\nStudyCircle Team`,
-      otp,
-      createdAt: new Date().toLocaleTimeString()
-    });
+    // Check target type (Email or Phone)
+    const isEmail = trimmedValue.includes('@');
+    let isRealSent = false;
+
+    if (isEmail) {
+      const subject = isReset ? 'StudyCircle: Password Reset Request' : 'StudyCircle: Verify Your Account';
+      const body = `Hi there,\n\nYour StudyCircle verification code is: ${otp}.\n\nThis code is valid for 5 minutes. If you did not request this, please ignore this email.\n\nWarm regards,\nStudyCircle Team`;
+      isRealSent = await sendMail(trimmedValue, subject, body);
+    } else {
+      const body = `Your StudyCircle verification code is: ${otp}. Valid for 5 minutes.`;
+      isRealSent = await sendSMS(trimmedValue, body);
+    }
+
+    const isMocked = !isRealSent;
+
+    if (isMocked) {
+      // Record to mock email inbox
+      emailInbox.unshift({
+        id: Date.now().toString(),
+        to: trimmedValue,
+        subject: isReset ? 'StudyCircle: Password Reset Request' : 'StudyCircle: Verify Your Account',
+        body: `Hi there,\n\nYour StudyCircle verification code is: ${otp}.\n\nThis code is valid for 5 minutes. If you did not request this request, please ignore this email.\n\nWarm regards,\nStudyCircle Team`,
+        otp,
+        createdAt: new Date().toLocaleTimeString()
+      });
+    }
 
     return res.json({
-      message: `OTP sent successfully to ${trimmedValue}!`,
-      debugOtp: otp, // Returned directly for easy copy-paste during review/demo
-      email: trimmedValue
+      message: isRealSent
+        ? `OTP sent successfully to ${trimmedValue}!`
+        : `OTP sent successfully to mock inbox for ${trimmedValue}!`,
+      debugOtp: isMocked ? otp : undefined,
+      email: trimmedValue,
+      isMocked
     });
   } catch (err) {
     console.error(err);
