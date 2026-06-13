@@ -1,4 +1,12 @@
 require('dotenv').config();
+
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'super_secret_study_circle_token_2026_key_ap_telangana') {
+    console.error('CRITICAL STARTUP ERROR: A secure, unique JWT_SECRET environment variable is required in production mode.');
+    process.exit(1);
+  }
+}
+
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');

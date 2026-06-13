@@ -8,6 +8,7 @@ const Progress = require('./Progress');
 const Doubt = require('./Doubt');
 const Answer = require('./Answer');
 const SharedNote = require('./SharedNote');
+const Otp = require('./Otp');
 
 // M-M relations
 User.belongsToMany(Group, { through: GroupMember, foreignKey: 'userId' });
@@ -58,5 +59,6 @@ module.exports = {
   Progress,
   Doubt,
   Answer,
-  SharedNote
+  SharedNote,
+  Otp
 };

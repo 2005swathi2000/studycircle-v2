@@ -1,13 +1,21 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User, Otp } = require('../models');
 const { authMiddleware } = require('../middleware/auth');
 const BloomFilter = require('../utils/bloom');
 const { sendMail, sendSMS, hasSmtpConfig } = require('../utils/notifier');
+const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
 const bloomFilter = new BloomFilter(2048);
-const otpCache = new Map(); // value -> { otp, expiresAt }
+
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP or contact to 5 send-otp requests per windowMs
+  message: { error: 'Too many OTP requests from this IP. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const emailInbox = [];
 
 // Seed Bloom Filter function called from server after database sync
@@ -60,8 +68,36 @@ router.get('/validate-username', async (req, res) => {
   }
 });
 
+const isRealContact = (val) => {
+  const trimmed = val.trim().toLowerCase();
+  
+  // Check for mock domains or explicit mock emails
+  if (
+    trimmed.endsWith('@test.com') ||
+    trimmed.endsWith('@example.com') ||
+    trimmed.endsWith('@mock.com') ||
+    trimmed.endsWith('@studycircle.com') ||
+    trimmed.endsWith('.test') ||
+    trimmed.endsWith('.example')
+  ) {
+    return false;
+  }
+  
+  // Check for mock phone numbers
+  if (
+    trimmed === '1234567890' ||
+    trimmed === '9876543210' ||
+    trimmed.startsWith('555') ||
+    trimmed.length < 10
+  ) {
+    return false;
+  }
+  
+  return true;
+};
+
 // Route: Send OTP (Mock SMS/Email gateway)
-router.post('/send-otp', async (req, res) => {
+router.post('/send-otp', otpLimiter, async (req, res) => {
   try {
     const { type, value, username, isReset } = req.body;
     let targetValue = value;
@@ -86,20 +122,35 @@ router.post('/send-otp', async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 min expiry
 
-    otpCache.set(trimmedValue, { otp, expiresAt });
+    await Otp.destroy({ where: { phoneOrEmail: trimmedValue } });
+    await Otp.create({
+      phoneOrEmail: trimmedValue,
+      otp,
+      expiresAt: new Date(expiresAt)
+    });
     console.log(`[OTP DEBUG] Sent ${type || 'Verification'} OTP: ${otp} to: ${trimmedValue}`);
 
     // Check target type (Email or Phone)
     const isEmail = trimmedValue.includes('@');
     let isRealSent = false;
+    let deliveryMethod = 'mock';
 
-    if (isEmail) {
-      const subject = isReset ? 'StudyCircle: Password Reset Request' : 'StudyCircle: Verify Your Account';
-      const body = `Hi there,\n\nYour StudyCircle verification code is: ${otp}.\n\nThis code is valid for 5 minutes. If you did not request this, please ignore this email.\n\nWarm regards,\nStudyCircle Team`;
-      isRealSent = await sendMail(trimmedValue, subject, body);
-    } else {
-      const body = `Your StudyCircle verification code is: ${otp}. Valid for 5 minutes.`;
-      isRealSent = await sendSMS(trimmedValue, body);
+    const isMockOtp = process.env.MOCK_OTP !== 'false';
+    const isReal = isRealContact(trimmedValue);
+
+    // Send in real if MOCK_OTP is false OR if the contact is a real email/phone
+    if (!isMockOtp || isReal) {
+      if (isEmail) {
+        const subject = isReset ? 'StudyCircle: Password Reset Request' : 'StudyCircle: Verify Your Account';
+        const body = `Hi there,\n\nYour StudyCircle verification code is: ${otp}.\n\nThis code is valid for 5 minutes. If you did not request this, please ignore this email.\n\nWarm regards,\nStudyCircle Team`;
+        const mailResult = await sendMail(trimmedValue, subject, body);
+        isRealSent = mailResult.success;
+        deliveryMethod = mailResult.method || 'mock';
+      } else {
+        const body = `Your StudyCircle verification code is: ${otp}. Valid for 5 minutes.`;
+        isRealSent = await sendSMS(trimmedValue, body);
+        deliveryMethod = isRealSent ? 'sms' : 'mock';
+      }
     }
 
     // Always record to mock email inbox so the on-screen notification banner and autofill work
@@ -113,14 +164,25 @@ router.post('/send-otp', async (req, res) => {
     });
 
     let successMessage = `OTP sent successfully to ${trimmedValue}!`;
-    if (isRealSent && isEmail && !hasSmtpConfig()) {
-      successMessage = `OTP sent to ${trimmedValue}! First time? Please check your email (and spam folder) to 'Activate' FormSubmit.co to receive the code.`;
+    if (isRealSent) {
+      if (isEmail) {
+        if (deliveryMethod === 'fallback') {
+          successMessage = `OTP sent to ${trimmedValue} via fallback! First time using this email? Please check your inbox (and spam) to 'Activate' FormSubmit.co to allow forwarding.`;
+        } else {
+          successMessage = `OTP sent successfully to ${trimmedValue} via SMTP!`;
+        }
+      } else {
+        successMessage = `OTP sent successfully to ${trimmedValue} via SMS!`;
+      }
+    } else {
+      successMessage = `OTP registered successfully (mocked). Developer mode active: please copy the OTP from the floating Mock Inbox or sliding banner.`;
     }
 
     return res.json({
       message: successMessage,
       debugOtp: otp, // Always return debug OTP to support auto-fill
       email: trimmedValue,
+      deliveryMethod,
       isMocked: true // Always true so the frontend banner pops up
     });
   } catch (err) {
@@ -151,13 +213,14 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email or phone number and OTP are required for registration.' });
     }
     
-    const cached = otpCache.get(phoneOrEmail.trim().toLowerCase());
-    if (!cached || cached.otp !== otp || Date.now() > cached.expiresAt) {
+    const normalizedContact = phoneOrEmail.trim().toLowerCase();
+    const otpRecord = await Otp.findOne({ where: { phoneOrEmail: normalizedContact } });
+    if (!otpRecord || otpRecord.otp !== otp || Date.now() > new Date(otpRecord.expiresAt).getTime()) {
       return res.status(400).json({ error: 'Invalid or expired OTP.' });
     }
     
     // Burn OTP on use
-    otpCache.delete(phoneOrEmail.trim().toLowerCase());
+    await Otp.destroy({ where: { phoneOrEmail: normalizedContact } });
 
     // Check if username already exists
     const existingUser = await User.findOne({ where: { username: normalizedUsername } });
@@ -310,13 +373,14 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ error: 'No verification contact registered for this account.' });
     }
 
-    const cached = otpCache.get(user.phoneOrEmail.trim().toLowerCase());
-    if (!cached || cached.otp !== otp || Date.now() > cached.expiresAt) {
+    const normalizedContact = user.phoneOrEmail.trim().toLowerCase();
+    const otpRecord = await Otp.findOne({ where: { phoneOrEmail: normalizedContact } });
+    if (!otpRecord || otpRecord.otp !== otp || Date.now() > new Date(otpRecord.expiresAt).getTime()) {
       return res.status(400).json({ error: 'Invalid or expired OTP.' });
     }
 
     // Burn OTP
-    otpCache.delete(user.phoneOrEmail.trim().toLowerCase());
+    await Otp.destroy({ where: { phoneOrEmail: normalizedContact } });
 
     user.password = newPassword;
     await user.save();

@@ -22,34 +22,42 @@ const hasTwilioConfig = () => {
  * Returns true if sent successfully, false otherwise.
  */
 const sendMail = async (to, subject, text) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+
   if (hasSmtpConfig()) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587', 10),
+        secure: parseInt(process.env.SMTP_PORT, 10) === 465, // true for 465, false for other ports
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
 
-  try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
-      secure: parseInt(process.env.SMTP_PORT, 10) === 465, // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+      const info = await transporter.sendMail({
+        from: process.env.SMTP_FROM || `"StudyCircle Support" <${process.env.SMTP_USER}>`,
+        to,
+        subject,
+        text,
+      });
 
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || `"StudyCircle Support" <${process.env.SMTP_USER}>`,
-      to,
-      subject,
-      text,
-    });
-
-    console.log(`[Notifier] Real email sent successfully via SMTP. MessageId: ${info.messageId}`);
-    return true;
-  } catch (error) {
-    console.error('[Notifier] Failed to send real email via SMTP, attempting FormSubmit.co fallback:', error);
+      console.log(`[Notifier] Real email sent successfully via SMTP. MessageId: ${info.messageId}`);
+      return { success: true, method: 'smtp' };
+    } catch (error) {
+      console.error('[Notifier] Failed to send real email via SMTP:', error);
+      if (isProduction) {
+        return { success: false, error: 'Failed to send email via SMTP.' };
+      }
+      console.log('[Notifier] SMTP failed, attempting FormSubmit.co fallback...');
+    }
+  } else if (isProduction) {
+    console.error('[Notifier] SMTP configuration is missing in production. Email sending skipped.');
+    return { success: false, error: 'SMTP configuration is missing in production.' };
   }
-}
 
-  // Fallback to FormSubmit.co for free zero-config real email delivery
+  // Fallback to FormSubmit.co for free zero-config real email delivery (Dev/Testing only)
   try {
     console.log(`[Notifier] Using FormSubmit.co fallback to send email to: ${to}`);
     const response = await fetch(`https://formsubmit.co/ajax/${to}`, {
@@ -73,10 +81,10 @@ const sendMail = async (to, subject, text) => {
     }
 
     console.log(`[Notifier] Real email sent successfully via FormSubmit.co. Success: ${data.success}`);
-    return true;
+    return { success: true, method: 'fallback' };
   } catch (error) {
     console.error('[Notifier] Failed to send email via FormSubmit.co:', error);
-    return false;
+    return { success: false, error: error.message || error };
   }
 };
 

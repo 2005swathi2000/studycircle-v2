@@ -210,6 +210,14 @@ export default function Home() {
         if (lastSeenEmailIdRef.current === null) {
           // First poll, just record the latest email ID so we don't notify on startup
           lastSeenEmailIdRef.current = latestEmail.id;
+        } else if (lastSeenEmailIdRef.current === 'empty') {
+          // First email arriving in an empty inbox
+          lastSeenEmailIdRef.current = latestEmail.id;
+          setActiveNotification(latestEmail);
+          // Auto hide notification after 6 seconds
+          setTimeout(() => {
+            setActiveNotification((curr: any) => curr?.id === latestEmail.id ? null : curr);
+          }, 6000);
         } else if (latestEmail.id !== lastSeenEmailIdRef.current) {
           // New email detected!
           lastSeenEmailIdRef.current = latestEmail.id;
@@ -220,8 +228,7 @@ export default function Home() {
           }, 6000);
         }
 
-        // 1. Student Registration OTP autofill - DISABLED FOR MANUAL VERIFICATION
-        /*
+        // 1. Student Registration OTP autofill
         if (studentOtpSentRef.current && !studentOtpRef.current && studentOtpEmailRef.current) {
           const matchingEmail = emails.find((email: any) => 
             email.to.trim().toLowerCase() === studentOtpEmailRef.current.trim().toLowerCase() && 
@@ -233,10 +240,8 @@ export default function Home() {
             showToast(`📬 Inbox Sync: Verification email received! OTP (${matchingEmail.otp}) automatically filled.`, 'success');
           }
         }
-        */
 
-        // 1b. Mentor Registration OTP autofill - DISABLED FOR MANUAL VERIFICATION
-        /*
+        // 1b. Mentor Registration OTP autofill
         if (mentorOtpSentRef.current && !mentorOtpRef.current && mentorOtpEmailRef.current) {
           const matchingEmail = emails.find((email: any) => 
             email.to.trim().toLowerCase() === mentorOtpEmailRef.current.trim().toLowerCase() && 
@@ -248,10 +253,8 @@ export default function Home() {
             showToast(`📬 Inbox Sync: Verification email received! OTP (${matchingEmail.otp}) automatically filled.`, 'success');
           }
         }
-        */
 
-        // 1c. Admin Registration OTP autofill - DISABLED FOR MANUAL VERIFICATION
-        /*
+        // 1c. Admin Registration OTP autofill
         if (adminOtpSentRef.current && !adminOtpRef.current && adminOtpEmailRef.current) {
           const matchingEmail = emails.find((email: any) => 
             email.to.trim().toLowerCase() === adminOtpEmailRef.current.trim().toLowerCase() && 
@@ -263,10 +266,8 @@ export default function Home() {
             showToast(`📬 Inbox Sync: Verification email received! OTP (${matchingEmail.otp}) automatically filled.`, 'success');
           }
         }
-        */
         
-        // 2. Forgot Password OTP autofill - DISABLED FOR MANUAL VERIFICATION
-        /*
+        // 2. Forgot Password OTP autofill
         if (forgotOtpSentRef.current && !forgotOtpRef.current && forgotOtpEmailRef.current) {
           const matchingEmail = emails.find((email: any) => 
             email.to.trim().toLowerCase() === forgotOtpEmailRef.current.trim().toLowerCase() && 
@@ -278,7 +279,10 @@ export default function Home() {
             showToast(`📬 Inbox Sync: Password reset email received! OTP (${matchingEmail.otp}) automatically filled.`, 'success');
           }
         }
-        */
+      } else {
+        if (lastSeenEmailIdRef.current === null) {
+          lastSeenEmailIdRef.current = 'empty';
+        }
       }
     } catch (err) {
       console.error('Error fetching mock inbox:', err);
@@ -674,10 +678,10 @@ export default function Home() {
           </div>
 
           <nav className="hidden md:flex items-center gap-8 text-xs font-bold text-slate-350 tracking-wider">
-            <button onClick={() => router.push('/')} className="hover:text-white transition-colors cursor-pointer">Home</button>
+            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-white transition-colors cursor-pointer">Home</button>
             <button onClick={() => scrollToSection('features-section')} className="hover:text-white transition-colors cursor-pointer">Features</button>
             <button onClick={() => scrollToSection('services-section')} className="hover:text-white transition-colors cursor-pointer">How It Works</button>
-            <button onClick={() => scrollToSection('lobby-section')} className="hover:text-white transition-colors cursor-pointer">About Us</button>
+            <button onClick={() => scrollToSection('about-section')} className="hover:text-white transition-colors cursor-pointer">About Us</button>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -1066,6 +1070,59 @@ export default function Home() {
           </div>
         </section>
 
+        {/* 5.5 About Us Section */}
+        <section id="about-section" className="bg-gradient-to-b from-white to-[#050814] py-20 text-slate-900 border-b border-white/[0.04]">
+          <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-16 items-center text-left">
+            <div className="lg:col-span-5 space-y-6">
+              <span className="text-[10px] font-extrabold uppercase bg-indigo-500/10 border border-indigo-500/20 text-[#4F46E5] px-3 py-1 rounded-full tracking-wider">ABOUT US</span>
+              <h2 className="text-3xl font-black text-slate-900 leading-tight">
+                Empowering college campus <br />
+                communities to <span className="text-[#4F46E5]">grow together.</span>
+              </h2>
+              <p className="text-xs md:text-sm text-slate-650 leading-relaxed font-semibold">
+                StudyCircle is a dedicated virtual workspace designed specifically for engineering and degree college clusters in Andhra Pradesh and Telangana (including Vijayawada, Guntur, Vizag, and Hyderabad).
+              </p>
+              <p className="text-xs md:text-sm text-slate-650 leading-relaxed font-semibold">
+                Our mission is to bridge the gap between solo self-study and collaborative group learning. We provide secure, distraction-free virtual study desks, synchronized document libraries, and dynamic consistency boards to help students stay motivated, track focus hours, and prepare for placement opportunities together.
+              </p>
+            </div>
+            
+            <div className="lg:col-span-7 grid sm:grid-cols-2 gap-6">
+              <div className="p-6 bg-white/65 backdrop-blur-md border border-slate-200/80 rounded-3xl space-y-3 hover:scale-[1.02] transition-transform shadow-sm">
+                <div className="h-10 w-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-650 shadow-inner">
+                  <Users className="h-5 w-5" />
+                </div>
+                <h4 className="text-xs font-black uppercase text-slate-900">Focused Learning</h4>
+                <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">Restoring concentration with dedicated live desks, quiet zones, and presence tracking.</p>
+              </div>
+
+              <div className="p-6 bg-white/65 backdrop-blur-md border border-slate-200/80 rounded-3xl space-y-3 hover:scale-[1.02] transition-transform shadow-sm">
+                <div className="h-10 w-10 rounded-2xl bg-pink-50 border border-pink-100/80 flex items-center justify-center text-pink-500 shadow-inner">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <h4 className="text-xs font-black uppercase text-slate-900">Peer Motivation</h4>
+                <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">Building consistency with streak counters, target hours, and campus leaderboards.</p>
+              </div>
+
+              <div className="p-6 bg-white/65 backdrop-blur-md border border-slate-200/80 rounded-3xl space-y-3 hover:scale-[1.02] transition-transform shadow-sm">
+                <div className="h-10 w-10 rounded-2xl bg-blue-50 border border-blue-100/80 flex items-center justify-center text-blue-500 shadow-inner">
+                  <BookOpen className="h-5 w-5" />
+                </div>
+                <h4 className="text-xs font-black uppercase text-slate-900">Open Collaboration</h4>
+                <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">Instantly sharing blueprints, notes lists, syllabus trackers, and questions.</p>
+              </div>
+
+              <div className="p-6 bg-white/65 backdrop-blur-md border border-slate-200/80 rounded-3xl space-y-3 hover:scale-[1.02] transition-transform shadow-sm">
+                <div className="h-10 w-10 rounded-2xl bg-emerald-50 border border-emerald-100/80 flex items-center justify-center text-emerald-500 shadow-inner">
+                  <Shield className="h-5 w-5" />
+                </div>
+                <h4 className="text-xs font-black uppercase text-slate-900">Campus Verification</h4>
+                <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">Securing student gates with dynamic OTP verifications and mentor approvals.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* 6. Auth Gates Section (Side-by-side student/mentor logins and 3 signup partitions) */}
         <section id="auth-gates" className="w-full bg-[#03060d] py-20 border-t border-white/[0.04]">
           <div className="max-w-7xl mx-auto px-6 space-y-12">
@@ -1286,8 +1343,9 @@ export default function Home() {
                           />
                           <button
                             type="button"
+                            disabled={formLoading}
                             onClick={() => sendRegOtp('student')}
-                            className="px-3 bg-slate-800 hover:bg-slate-750 border border-white/5 text-[9px] font-extrabold text-[#E11D48] rounded-xl cursor-pointer"
+                            className="px-3 bg-slate-800 hover:bg-slate-750 disabled:opacity-50 disabled:cursor-not-allowed border border-white/5 text-[9px] font-extrabold text-[#E11D48] rounded-xl cursor-pointer"
                           >
                             Send OTP
                           </button>
@@ -1391,8 +1449,9 @@ export default function Home() {
                           />
                           <button
                             type="button"
+                            disabled={formLoading}
                             onClick={() => sendRegOtp('mentor')}
-                            className="px-3 bg-slate-800 hover:bg-slate-750 border border-white/5 text-[9px] font-extrabold text-[#E11D48] rounded-xl cursor-pointer"
+                            className="px-3 bg-slate-800 hover:bg-slate-750 disabled:opacity-50 disabled:cursor-not-allowed border border-white/5 text-[9px] font-extrabold text-[#E11D48] rounded-xl cursor-pointer"
                           >
                             Send OTP
                           </button>
@@ -1510,8 +1569,9 @@ export default function Home() {
                           />
                           <button
                             type="button"
+                            disabled={formLoading}
                             onClick={() => sendRegOtp('admin')}
-                            className="px-3 bg-slate-800 hover:bg-slate-750 border border-white/5 text-[9px] font-extrabold text-[#E11D48] rounded-xl cursor-pointer"
+                            className="px-3 bg-slate-800 hover:bg-slate-750 disabled:opacity-50 disabled:cursor-not-allowed border border-white/5 text-[9px] font-extrabold text-[#E11D48] rounded-xl cursor-pointer"
                           >
                             Send OTP
                           </button>
@@ -1598,8 +1658,9 @@ export default function Home() {
                       />
                       <button
                         type="button"
+                        disabled={formLoading}
                         onClick={sendResetOtp}
-                        className="px-3 bg-slate-850 hover:bg-slate-750 border border-white/5 text-[10px] font-bold text-[#E11D48] rounded-xl cursor-pointer"
+                        className="px-3 bg-slate-850 hover:bg-slate-750 disabled:opacity-50 disabled:cursor-not-allowed border border-white/5 text-[10px] font-bold text-[#E11D48] rounded-xl cursor-pointer"
                       >
                         Send OTP
                       </button>
@@ -1689,6 +1750,131 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* 📬 Floating developer Mock Inbox trigger */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+        <button
+          onClick={() => setShowInbox(!showInbox)}
+          className="h-14 w-14 rounded-full bg-slate-900/95 hover:bg-slate-800 border-2 border-indigo-500/35 hover:border-indigo-400 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-all active:scale-95 cursor-pointer relative group animate-bounce"
+          title="Open Mock Inbox"
+        >
+          <Mail className="h-6 w-6 text-indigo-400 group-hover:text-indigo-300 transition-colors" />
+          {unreadInboxCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1.5 rounded-full bg-rose-500 border border-slate-950 text-[10px] font-black text-white flex items-center justify-center shrink-0 shadow-md">
+              {unreadInboxCount}
+            </span>
+          )}
+          {/* Subtle tooltip */}
+          <span className="absolute right-16 scale-0 group-hover:scale-100 transition-all duration-150 origin-right bg-[#0E1017] border border-white/10 text-slate-300 text-[10px] font-bold px-2.5 py-1.5 rounded-xl whitespace-nowrap shadow-xl">
+            Developer Mock Inbox ({unreadInboxCount})
+          </span>
+        </button>
+      </div>
+
+      {/* 📬 Developer Mock Inbox Side Drawer */}
+      {showInbox && (
+        <div className="fixed inset-0 z-[9999] flex justify-end">
+          {/* Backdrop */}
+          <div 
+            onClick={() => setShowInbox(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+          />
+          
+          {/* Panel */}
+          <div className="relative w-full max-w-md bg-[#090D1A]/95 border-l border-white/10 h-full shadow-2xl flex flex-col backdrop-blur-lg animate-in slide-in-from-right duration-300 z-10 text-left">
+            {/* Header */}
+            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#818CF8] flex items-center justify-center shrink-0">
+                  <Mail className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-white uppercase tracking-wider">Developer Mock Inbox</h3>
+                  <p className="text-[9px] text-slate-450 font-semibold">Simulating email receipts for local debugging</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowInbox(false)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer text-sm p-1.5 rounded-lg hover:bg-white/5"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Email list */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {inboxEmails.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center space-y-3 py-16 opacity-60">
+                  <div className="h-12 w-12 rounded-full border border-dashed border-slate-700 flex items-center justify-center text-slate-500">
+                    📬
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-white">No Emails Received Yet</p>
+                    <p className="text-[10px] text-slate-500 leading-normal max-w-[200px]">Send an OTP from a gate (student, mentor, admin, or reset) to capture email payloads here.</p>
+                  </div>
+                </div>
+              ) : (
+                inboxEmails.map((email: any) => (
+                  <div 
+                    key={email.id}
+                    className="p-4 bg-slate-900/80 border border-white/5 rounded-2xl space-y-3 shadow-md hover:border-indigo-500/25 transition-all duration-200"
+                  >
+                    <div className="flex justify-between items-start border-b border-white/5 pb-2">
+                      <div>
+                        <span className="text-[9px] font-black uppercase text-indigo-400">Recipient</span>
+                        <h4 className="text-xs font-bold text-white truncate max-w-[220px]">{email.to}</h4>
+                      </div>
+                      <span className="text-[9px] font-medium text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-white/5">{email.createdAt}</span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <span className="text-[9px] font-black uppercase text-indigo-400">Subject</span>
+                      <p className="text-xs font-extrabold text-slate-200">{email.subject}</p>
+                    </div>
+
+                    <div className="p-3 bg-slate-950 border border-white/5 rounded-xl space-y-2">
+                      <span className="text-[9px] font-black uppercase text-indigo-400 block">Message Body</span>
+                      <p className="text-[10px] text-slate-400 font-mono leading-relaxed whitespace-pre-line">{email.body}</p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 px-3 py-1.5 rounded-xl text-xs font-mono font-black">
+                        OTP: {email.otp}
+                      </div>
+                      <button
+                        onClick={() => handleAutofillOtp(email)}
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/30 text-[10px] font-extrabold rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-600/15"
+                      >
+                        Autofill OTP
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer / Controls */}
+            <div className="p-6 border-t border-white/5 bg-slate-950 flex items-center justify-between gap-4">
+              <button
+                onClick={fetchMockInbox}
+                className="flex-1 py-2 border border-white/10 hover:border-white/20 hover:bg-white/5 text-white text-[10px] font-extrabold rounded-xl transition-all cursor-pointer text-center"
+              >
+                Refresh Inbox
+              </button>
+              <button
+                onClick={() => {
+                  setInboxEmails([]);
+                  setUnreadInboxCount(0);
+                  showToast('Local inbox view cleared. Note: backend inbox persists.', 'info');
+                }}
+                className="py-2 px-4 hover:text-rose-400 text-slate-500 text-[10px] font-bold transition-all cursor-pointer"
+              >
+                Clear View
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
