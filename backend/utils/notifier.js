@@ -58,10 +58,14 @@ const sendMail = async (to, subject, text) => {
   }
 
   // Fallback to FormSubmit.co for free zero-config real email delivery (Dev/Testing only)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
   try {
     console.log(`[Notifier] Using FormSubmit.co fallback to send email to: ${to}`);
     const response = await fetch(`https://formsubmit.co/ajax/${to}`, {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -75,6 +79,8 @@ const sendMail = async (to, subject, text) => {
       })
     });
 
+    clearTimeout(timeoutId);
+
     const data = await response.json();
     if (!response.ok || data.success === 'false' || data.success === false) {
       throw new Error(data.message || `FormSubmit returned success false`);
@@ -83,6 +89,11 @@ const sendMail = async (to, subject, text) => {
     console.log(`[Notifier] Real email sent successfully via FormSubmit.co. Success: ${data.success}`);
     return { success: true, method: 'fallback' };
   } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error('[Notifier] FormSubmit.co request timed out after 5 seconds.');
+      return { success: false, error: 'Request timed out' };
+    }
     console.error('[Notifier] Failed to send email via FormSubmit.co:', error);
     return { success: false, error: error.message || error };
   }
@@ -98,6 +109,7 @@ const sendSMS = async (to, body) => {
     return false;
   }
 
+  let timeoutId;
   try {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -123,14 +135,20 @@ const sendSMS = async (to, body) => {
       Body: body
     });
 
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const response = await fetch(url, {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'Authorization': `Basic ${auth}`,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: params.toString()
     });
+
+    clearTimeout(timeoutId);
 
     const data = await response.json();
 
@@ -141,7 +159,12 @@ const sendSMS = async (to, body) => {
     console.log(`[Notifier] Real SMS sent successfully. Sid: ${data.sid}`);
     return true;
   } catch (error) {
-    console.error('[Notifier] Failed to send real SMS via Twilio:', error);
+    if (timeoutId) clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error('[Notifier] Twilio request timed out after 5 seconds.');
+    } else {
+      console.error('[Notifier] Failed to send real SMS via Twilio:', error);
+    }
     return false;
   }
 };
