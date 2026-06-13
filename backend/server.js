@@ -1,9 +1,10 @@
 require('dotenv').config();
+const crypto = require('crypto');
 
 if (process.env.NODE_ENV === 'production') {
   if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'super_secret_study_circle_token_2026_key_ap_telangana') {
-    console.error('CRITICAL STARTUP ERROR: A secure, unique JWT_SECRET environment variable is required in production mode.');
-    process.exit(1);
+    console.warn('[SECURITY WARNING] JWT_SECRET is missing or insecure in production mode. Generating a secure, temporary secret dynamically...');
+    process.env.JWT_SECRET = crypto.randomBytes(64).toString('hex');
   }
 }
 
