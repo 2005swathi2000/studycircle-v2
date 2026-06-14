@@ -22,8 +22,6 @@ const hasTwilioConfig = () => {
  * Returns true if sent successfully, false otherwise.
  */
 const sendMail = async (to, subject, text) => {
-  const isProduction = process.env.NODE_ENV === 'production';
-
   if (hasSmtpConfig()) {
     try {
       const transporter = nodemailer.createTransport({
@@ -34,6 +32,9 @@ const sendMail = async (to, subject, text) => {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
+        connectionTimeout: 5000, // 5 seconds connection timeout
+        greetingTimeout: 5000,   // 5 seconds greeting timeout
+        socketTimeout: 8000,     // 8 seconds socket inactivity timeout
       });
 
       const info = await transporter.sendMail({
@@ -47,14 +48,10 @@ const sendMail = async (to, subject, text) => {
       return { success: true, method: 'smtp' };
     } catch (error) {
       console.error('[Notifier] Failed to send real email via SMTP:', error);
-      if (isProduction) {
-        return { success: false, error: 'Failed to send email via SMTP.' };
-      }
-      console.log('[Notifier] SMTP failed, attempting FormSubmit.co fallback...');
+      console.log('[Notifier] SMTP failed or timed out. Attempting FormSubmit.co fallback...');
     }
-  } else if (isProduction) {
-    console.error('[Notifier] SMTP configuration is missing in production. Email sending skipped.');
-    return { success: false, error: 'SMTP configuration is missing in production.' };
+  } else {
+    console.warn('[Notifier] SMTP configuration is missing. Attempting FormSubmit.co fallback...');
   }
 
   // Fallback to FormSubmit.co for free zero-config real email delivery (Dev/Testing only)
