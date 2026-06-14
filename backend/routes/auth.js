@@ -188,7 +188,7 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
 
       // If a real contact was specified, but we failed to send the real OTP, return error immediately
       if (isReal && !isRealSent) {
-        return res.status(400).json({ error: 'Invalid email, please check and try again!' });
+        return res.status(400).json({ error: 'Failed to send verification email. Please check your email address or try again later.' });
       }
     }
 
