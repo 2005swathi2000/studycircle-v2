@@ -9,7 +9,7 @@ const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
 const bloomFilter = new BloomFilter(2048);
-let lastEmailError = null;
+
 
 const checkDomainMx = async (domain) => {
   try {
@@ -177,9 +177,7 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
         const mailResult = await sendMail(trimmedValue, subject, body);
         isRealSent = mailResult.success;
         deliveryMethod = mailResult.method || 'mock';
-        if (!isRealSent) {
-          lastEmailError = mailResult.error || 'Unknown sendMail error';
-        }
+
       } else {
         const body = `Your StudyCircle verification code is: ${otp}. Valid for 5 minutes.`;
         isRealSent = await sendSMS(trimmedValue, body);
@@ -499,82 +497,6 @@ router.post('/approve', authMiddleware, async (req, res) => {
     console.error(err);
     return res.status(500).json({ error: 'Server error approving user.' });
   }
-});
-
-router.get('/debug-env', (req, res) => {
-  res.json({
-    brevoKeyExists: !!process.env.BREVO_API_KEY,
-    smtpUser: process.env.SMTP_USER,
-    smtpHost: process.env.SMTP_HOST,
-    smtpPort: process.env.SMTP_PORT,
-    hasSmtp: !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS),
-    nodeEnv: process.env.NODE_ENV,
-    lastEmailError
-  });
-});
-
-router.get('/debug-smtp', async (req, res) => {
-  const nodemailer = require('nodemailer');
-  const results = {};
-  
-  // Test 1: Using Render Env SMTP credentials
-  try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
-      secure: parseInt(process.env.SMTP_PORT || '587', 10) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      connectionTimeout: 4000,
-      greetingTimeout: 4000,
-    });
-    await transporter.verify();
-    results.envSmtp = 'Success';
-  } catch (err) {
-    results.envSmtp = err.message || err;
-  }
-  
-  // Test 2: Using Hardcoded fallback credentials (hanumanthuswathi24@gmail.com / skjcetwqhgeorllc)
-  try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: 'hanumanthuswathi24@gmail.com',
-        pass: 'skjcetwqhgeorllc',
-      },
-      connectionTimeout: 4000,
-      greetingTimeout: 4000,
-    });
-    await transporter.verify();
-    results.hardcodedSmtp587 = 'Success';
-  } catch (err) {
-    results.hardcodedSmtp587 = err.message || err;
-  }
-  
-  // Test 3: Using Hardcoded fallback credentials on port 465
-  try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: {
-        user: 'hanumanthuswathi24@gmail.com',
-        pass: 'skjcetwqhgeorllc',
-      },
-      connectionTimeout: 4000,
-      greetingTimeout: 4000,
-    });
-    await transporter.verify();
-    results.hardcodedSmtp465 = 'Success';
-  } catch (err) {
-    results.hardcodedSmtp465 = err.message || err;
-  }
-
-  return res.json(results);
 });
 
 module.exports = router;
