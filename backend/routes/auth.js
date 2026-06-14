@@ -1,5 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const dns = require('dns').promises;
 const { User, Otp } = require('../models');
 const { authMiddleware } = require('../middleware/auth');
 const BloomFilter = require('../utils/bloom');
@@ -8,6 +9,15 @@ const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
 const bloomFilter = new BloomFilter(2048);
+
+const checkDomainMx = async (domain) => {
+  try {
+    const records = await dns.resolveMx(domain);
+    return records && records.length > 0;
+  } catch (err) {
+    return false;
+  }
+};
 
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -124,6 +134,15 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     if (isEmail) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue)) {
         return res.status(400).json({ error: 'Invalid email, please check and try again!' });
+      }
+      // Perform MX record lookup on real email domains to verify domain exists
+      const isReal = isRealContact(trimmedValue);
+      if (isReal) {
+        const domain = trimmedValue.split('@')[1];
+        const hasMx = await checkDomainMx(domain);
+        if (!hasMx) {
+          return res.status(400).json({ error: 'Invalid email, please check and try again!' });
+        }
       }
     } else {
       if (!/^\+?[0-9]{10,14}$/.test(trimmedValue)) {
