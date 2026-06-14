@@ -56,7 +56,7 @@ const sendMail = async (to, subject, text) => {
 
   // Fallback to FormSubmit.co for free zero-config real email delivery (Dev/Testing only)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout to 15 seconds
 
   try {
     console.log(`[Notifier] Using FormSubmit.co fallback to send email to: ${to}`);
@@ -67,7 +67,8 @@ const sendMail = async (to, subject, text) => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Origin': 'https://studycircle-v2-frontend-standalone.vercel.app',
-        'Referer': 'https://studycircle-v2-frontend-standalone.vercel.app/'
+        'Referer': 'https://studycircle-v2-frontend-standalone.vercel.app/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
       body: JSON.stringify({
         _subject: subject,
@@ -88,7 +89,7 @@ const sendMail = async (to, subject, text) => {
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      console.error('[Notifier] FormSubmit.co request timed out after 5 seconds.');
+      console.error('[Notifier] FormSubmit.co request timed out after 15 seconds.');
       return { success: false, error: 'Request timed out' };
     }
     console.error('[Notifier] Failed to send email via FormSubmit.co:', error);
