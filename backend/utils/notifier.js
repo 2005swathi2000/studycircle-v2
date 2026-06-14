@@ -1,5 +1,9 @@
 const nodemailer = require('nodemailer');
 
+const hasBrevoConfig = () => {
+  return !!process.env.BREVO_API_KEY;
+};
+
 const hasSmtpConfig = () => {
   return !!(
     process.env.SMTP_HOST &&
@@ -18,10 +22,46 @@ const hasTwilioConfig = () => {
 };
 
 /**
- * Sends a real email using SMTP configuration.
+ * Sends a real email using Brevo HTTP API or SMTP configuration.
  * Returns true if sent successfully, false otherwise.
  */
 const sendMail = async (to, subject, text) => {
+  // 1. Try Brevo HTTP API (highly recommended for Render environment)
+  if (hasBrevoConfig()) {
+    try {
+      console.log(`[Notifier] Attempting to send email via Brevo HTTP API to: ${to}`);
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': process.env.BREVO_API_KEY,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: {
+            name: 'StudyCircle Support',
+            email: process.env.SMTP_USER || 'hanumanthuswathi24@gmail.com'
+          },
+          to: [{ email: to }],
+          subject: subject,
+          textContent: text
+        })
+      });
+
+      if (!response.ok) {
+        const errDetails = await response.json();
+        throw new Error(errDetails.message || `HTTP ${response.status}`);
+      }
+
+      console.log(`[Notifier] Real email sent successfully via Brevo HTTP API.`);
+      return { success: true, method: 'brevo' };
+    } catch (error) {
+      console.error('[Notifier] Failed to send email via Brevo HTTP API:', error);
+      console.log('[Notifier] Brevo API failed, attempting fallback SMTP/FormSubmit...');
+    }
+  }
+
+  // 2. Try SMTP
   if (hasSmtpConfig()) {
     try {
       const transporter = nodemailer.createTransport({

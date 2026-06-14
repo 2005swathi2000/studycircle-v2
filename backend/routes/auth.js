@@ -182,6 +182,8 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
       if (isEmail) {
         if (deliveryMethod === 'fallback') {
           successMessage = `OTP sent to ${trimmedValue} via fallback! First time using this email? Please check your inbox (and spam) to 'Activate' FormSubmit.co to allow forwarding.`;
+        } else if (deliveryMethod === 'brevo') {
+          successMessage = `OTP sent successfully to ${trimmedValue} via Brevo HTTP API!`;
         } else {
           successMessage = `OTP sent successfully to ${trimmedValue} via SMTP!`;
         }
