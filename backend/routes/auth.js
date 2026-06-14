@@ -143,7 +143,6 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     console.log(`[OTP DEBUG] Sent ${type || 'Verification'} OTP: ${otp} to: ${trimmedValue}`);
 
     // Check target type (Email or Phone)
-    const isEmail = trimmedValue.includes('@');
     let isRealSent = false;
     let deliveryMethod = 'mock';
 
