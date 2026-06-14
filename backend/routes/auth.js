@@ -153,15 +153,18 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
       }
     }
 
-    // Always record to mock email inbox so the on-screen notification banner and autofill work
-    emailInbox.unshift({
-      id: Date.now().toString(),
-      to: trimmedValue,
-      subject: isReset ? 'StudyCircle: Password Reset Request' : 'StudyCircle: Verify Your Account',
-      body: `Hi there,\n\nYour StudyCircle verification code is: ${otp}.\n\nThis code is valid for 5 minutes. If you did not request this, please ignore this email.\n\nWarm regards,\nStudyCircle Team`,
-      otp,
-      createdAt: new Date().toLocaleTimeString()
-    });
+    // Record to mock email inbox ONLY for mock contacts when mock mode is enabled
+    const showMockFlow = isMockOtp && !isReal;
+    if (showMockFlow) {
+      emailInbox.unshift({
+        id: Date.now().toString(),
+        to: trimmedValue,
+        subject: isReset ? 'StudyCircle: Password Reset Request' : 'StudyCircle: Verify Your Account',
+        body: `Hi there,\n\nYour StudyCircle verification code is: ${otp}.\n\nThis code is valid for 5 minutes. If you did not request this, please ignore this email.\n\nWarm regards,\nStudyCircle Team`,
+        otp,
+        createdAt: new Date().toLocaleTimeString()
+      });
+    }
 
     let successMessage = `OTP sent successfully to ${trimmedValue}!`;
     if (isRealSent) {
@@ -180,10 +183,10 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
 
     return res.json({
       message: successMessage,
-      debugOtp: otp, // Always return debug OTP to support auto-fill
+      debugOtp: showMockFlow ? otp : undefined, // Do not expose OTP in response for real contacts
       email: trimmedValue,
       deliveryMethod,
-      isMocked: true // Always true so the frontend banner pops up
+      isMocked: showMockFlow // Only trigger screen banner and autofill for mock contacts
     });
   } catch (err) {
     console.error(err);
