@@ -123,11 +123,11 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     const isEmail = trimmedValue.includes('@');
     if (isEmail) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue)) {
-        return res.status(400).json({ error: 'Invalid email address format.' });
+        return res.status(400).json({ error: 'Invalid email, please check and try again!' });
       }
     } else {
       if (!/^\+?[0-9]{10,14}$/.test(trimmedValue)) {
-        return res.status(400).json({ error: 'Invalid phone number format.' });
+        return res.status(400).json({ error: 'Invalid email, please check and try again!' });
       }
     }
     // Generate 6-digit OTP

@@ -380,7 +380,7 @@ export default function Home() {
       return;
     }
     if (!isValidEmailOrPhone(contact)) {
-      showToast('Please enter a valid email address or phone number.', 'error');
+      showToast('Invalid email, please check and try again!', 'error');
       return;
     }
     setFormLoading(true);
