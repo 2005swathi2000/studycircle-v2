@@ -110,13 +110,23 @@ const isRealContact = (val) => {
 // Route: Send OTP (Mock SMS/Email gateway)
 router.post('/send-otp', otpLimiter, async (req, res) => {
   try {
-    const { type, value, username, isReset } = req.body;
-    let targetValue = value;
+    const { type, value, username, isReset, phoneOrEmail } = req.body;
+    let targetValue = value || phoneOrEmail;
 
-    if (isReset && username) {
-      const user = await User.findOne({ where: { username: username.trim().toLowerCase() } });
+    if (isReset) {
+      const searchContact = (targetValue || '').trim().toLowerCase();
+      const searchUsername = (username || '').trim().toLowerCase();
+
+      let user = null;
+      if (searchContact) {
+        user = await User.findOne({ where: { phoneOrEmail: searchContact } });
+      }
+      if (!user && searchUsername) {
+        user = await User.findOne({ where: { username: searchUsername } });
+      }
+
       if (!user) {
-        return res.status(404).json({ error: 'Username not found.' });
+        return res.status(404).json({ error: 'Account with this email or phone number not found.' });
       }
       if (!user.phoneOrEmail) {
         return res.status(400).json({ error: 'No verification email or phone registered for this account.' });
@@ -404,17 +414,22 @@ router.post('/logout', (req, res) => {
 // Reset Password Route
 router.post('/reset-password', async (req, res) => {
   try {
-    const { username, newPassword, otp } = req.body;
+    const { username, phoneOrEmail, newPassword, otp } = req.body;
+    const contactInput = phoneOrEmail || username;
 
-    if (!username || !newPassword || !otp) {
-      return res.status(400).json({ error: 'Username, new password, and OTP verification code are required.' });
+    if (!contactInput || !newPassword || !otp) {
+      return res.status(400).json({ error: 'Email/Phone or Username, new password, and OTP verification code are required.' });
     }
 
-    const normalizedUsername = username.trim().toLowerCase();
+    const normalizedContactInput = contactInput.trim().toLowerCase();
 
-    const user = await User.findOne({ where: { username: normalizedUsername } });
+    let user = await User.findOne({ where: { phoneOrEmail: normalizedContactInput } });
     if (!user) {
-      return res.status(404).json({ error: 'Username not found.' });
+      user = await User.findOne({ where: { username: normalizedContactInput } });
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'Account with this email, phone, or username not found.' });
     }
 
     if (!user.phoneOrEmail) {

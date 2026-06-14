@@ -422,14 +422,18 @@ export default function Home() {
   // Send Forgot Password OTP
   const sendResetOtp = async () => {
     if (!forgotUser.trim()) {
-      showToast('Please enter your username first.', 'error');
+      showToast('Please enter your registered email or phone number first.', 'error');
+      return;
+    }
+    if (!isValidEmailOrPhone(forgotUser)) {
+      showToast('Invalid email or phone format, please check and try again!', 'error');
       return;
     }
     setFormLoading(true);
     try {
       const data = await apiRequest('/auth/send-otp', {
         method: 'POST',
-        body: JSON.stringify({ isReset: true, username: forgotUser })
+        body: JSON.stringify({ isReset: true, phoneOrEmail: forgotUser, value: forgotUser, username: forgotUser })
       });
       setForgotOtpSent(true);
       setForgotOtpEmail(data.email || '');
@@ -589,6 +593,7 @@ export default function Home() {
       const data = await apiRequest('/auth/reset-password', {
         method: 'POST',
         body: JSON.stringify({
+          phoneOrEmail: forgotUser,
           username: forgotUser,
           newPassword: forgotNewPass,
           otp: forgotOtp
@@ -1658,18 +1663,18 @@ export default function Home() {
                 <div className="space-y-2 text-center">
                   <Key className="h-8 w-8 text-[#E11D48] mx-auto" />
                   <h3 className="text-sm font-black uppercase text-white">Reset Credentials Gate</h3>
-                  <p className="text-xs text-slate-455 leading-relaxed">Input your username and verify dynamic OTP code to reset password.</p>
+                  <p className="text-xs text-slate-455 leading-relaxed">Input your registered email or phone number and verify dynamic OTP code to reset password.</p>
                 </div>
 
                 <form onSubmit={handleResetPassword} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Username</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email or Phone Number</label>
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={forgotUser}
                         onChange={(e) => setForgotUser(e.target.value)}
-                        placeholder="e.g. charan_stud"
+                        placeholder="e.g. charan@example.com or 9876543210"
                         className="flex-1 px-4 py-3 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs text-white outline-none"
                       />
                       <button
