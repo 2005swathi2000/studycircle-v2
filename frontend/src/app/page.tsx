@@ -56,6 +56,7 @@ export default function Home() {
   const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
+  const [isDevMode, setIsDevMode] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [activePortal, setActivePortal] = useState<'student' | 'mentor'>('student');
@@ -308,10 +309,17 @@ export default function Home() {
     }
     setLoading(false);
     fetchPublicCircles();
-    fetchMockInbox();
 
-    const interval = setInterval(fetchMockInbox, 2000);
-    return () => clearInterval(interval);
+    const isLocal = typeof window !== 'undefined' && 
+                    (window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1');
+    setIsDevMode(isLocal);
+
+    if (isLocal) {
+      fetchMockInbox();
+      const interval = setInterval(fetchMockInbox, 2000);
+      return () => clearInterval(interval);
+    }
   }, []);
 
   const fetchPublicCircles = async () => {
@@ -632,7 +640,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#060a16] text-slate-100 flex flex-col relative overflow-hidden font-sans antialiased">
       
       {/* 🔔 Sliding Email Notification Banner */}
-      {activeNotification && (
+      {isDevMode && activeNotification && (
         <div className="fixed top-20 right-6 z-[10000] max-w-sm w-full bg-[#0E1017]/95 border border-indigo-500/30 rounded-2xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 duration-300 pointer-events-auto flex items-start gap-3.5">
           <div className="h-9 w-9 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#818CF8] flex items-center justify-center shrink-0 animate-bounce">
             <Bell className="h-4 w-4" />
@@ -1752,24 +1760,26 @@ export default function Home() {
       </footer>
 
       {/* 📬 Floating developer Mock Inbox trigger */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
-        <button
-          onClick={() => setShowInbox(!showInbox)}
-          className="h-14 w-14 rounded-full bg-slate-900/95 hover:bg-slate-800 border-2 border-indigo-500/35 hover:border-indigo-400 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-all active:scale-95 cursor-pointer relative group animate-bounce"
-          title="Open Mock Inbox"
-        >
-          <Mail className="h-6 w-6 text-indigo-400 group-hover:text-indigo-300 transition-colors" />
-          {unreadInboxCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1.5 rounded-full bg-rose-500 border border-slate-950 text-[10px] font-black text-white flex items-center justify-center shrink-0 shadow-md">
-              {unreadInboxCount}
+      {isDevMode && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+          <button
+            onClick={() => setShowInbox(!showInbox)}
+            className="h-14 w-14 rounded-full bg-slate-900/95 hover:bg-slate-800 border-2 border-indigo-500/35 hover:border-indigo-400 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-all active:scale-95 cursor-pointer relative group animate-bounce"
+            title="Open Mock Inbox"
+          >
+            <Mail className="h-6 w-6 text-indigo-400 group-hover:text-indigo-300 transition-colors" />
+            {unreadInboxCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1.5 rounded-full bg-rose-500 border border-slate-950 text-[10px] font-black text-white flex items-center justify-center shrink-0 shadow-md">
+                {unreadInboxCount}
+              </span>
+            )}
+            {/* Subtle tooltip */}
+            <span className="absolute right-16 scale-0 group-hover:scale-100 transition-all duration-150 origin-right bg-[#0E1017] border border-white/10 text-slate-300 text-[10px] font-bold px-2.5 py-1.5 rounded-xl whitespace-nowrap shadow-xl">
+              Developer Mock Inbox ({unreadInboxCount})
             </span>
-          )}
-          {/* Subtle tooltip */}
-          <span className="absolute right-16 scale-0 group-hover:scale-100 transition-all duration-150 origin-right bg-[#0E1017] border border-white/10 text-slate-300 text-[10px] font-bold px-2.5 py-1.5 rounded-xl whitespace-nowrap shadow-xl">
-            Developer Mock Inbox ({unreadInboxCount})
-          </span>
-        </button>
-      </div>
+          </button>
+        </div>
+      )}
 
       {/* 📬 Developer Mock Inbox Side Drawer */}
       {showInbox && (
