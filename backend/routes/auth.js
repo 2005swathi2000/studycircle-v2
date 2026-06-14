@@ -9,6 +9,7 @@ const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
 const bloomFilter = new BloomFilter(2048);
+let lastEmailError = null;
 
 const checkDomainMx = async (domain) => {
   try {
@@ -176,6 +177,9 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
         const mailResult = await sendMail(trimmedValue, subject, body);
         isRealSent = mailResult.success;
         deliveryMethod = mailResult.method || 'mock';
+        if (!isRealSent) {
+          lastEmailError = mailResult.error || 'Unknown sendMail error';
+        }
       } else {
         const body = `Your StudyCircle verification code is: ${otp}. Valid for 5 minutes.`;
         isRealSent = await sendSMS(trimmedValue, body);
@@ -495,6 +499,18 @@ router.post('/approve', authMiddleware, async (req, res) => {
     console.error(err);
     return res.status(500).json({ error: 'Server error approving user.' });
   }
+});
+
+router.get('/debug-env', (req, res) => {
+  res.json({
+    brevoKeyExists: !!process.env.BREVO_API_KEY,
+    smtpUser: process.env.SMTP_USER,
+    smtpHost: process.env.SMTP_HOST,
+    smtpPort: process.env.SMTP_PORT,
+    hasSmtp: !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS),
+    nodeEnv: process.env.NODE_ENV,
+    lastEmailError
+  });
 });
 
 module.exports = router;
