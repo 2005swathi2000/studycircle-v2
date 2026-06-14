@@ -823,7 +823,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
               <div className="bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-[24px] shadow-lg p-6 flex flex-col justify-between text-left relative overflow-hidden group text-white">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h2 className="text-lg font-black text-white leading-tight">Good Evening Swathi 👋</h2>
+                    <h2 className="text-lg font-black text-white leading-tight">Good Evening {user?.fullName ? user.fullName.split(' ')[0] : 'User'} 👋</h2>
                     <p className="text-[10px] text-zinc-400 font-extrabold tracking-wide uppercase mt-1">Today's Goals</p>
                   </div>
                   {/* Overall progress ring */}
