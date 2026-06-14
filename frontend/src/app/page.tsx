@@ -407,9 +407,11 @@ export default function Home() {
         setAdminOtp('');
       }
       showToast(data.message || 'Verification code sent!', 'success');
-      showToast(`Local Test: Polling mock inbox to autofill...`, 'info');
-      // Trigger inbox fetch immediately to make autofill feel instant
-      setTimeout(fetchMockInbox, 500);
+      if (data.isMocked) {
+        showToast(`Local Test: Polling mock inbox to autofill...`, 'info');
+        // Trigger inbox fetch immediately to make autofill feel instant
+        setTimeout(fetchMockInbox, 500);
+      }
     } catch (e: any) {
       showToast(e.message || 'Failed to send verification code.', 'error');
     } finally {
@@ -434,9 +436,11 @@ export default function Home() {
       setLastSentForgotUser(forgotUser.trim().toLowerCase());
       setForgotOtp(''); // Reset to ensure the user sees the autofill happen
       showToast(data.message || 'Reset code sent to registered contact!', 'success');
-      showToast(`Local Test: Polling mock inbox to autofill...`, 'info');
-      // Trigger inbox fetch immediately to make autofill feel instant
-      setTimeout(fetchMockInbox, 500);
+      if (data.isMocked) {
+        showToast(`Local Test: Polling mock inbox to autofill...`, 'info');
+        // Trigger inbox fetch immediately to make autofill feel instant
+        setTimeout(fetchMockInbox, 500);
+      }
     } catch (e: any) {
       showToast(e.message || 'Failed to send reset code.', 'error');
     } finally {

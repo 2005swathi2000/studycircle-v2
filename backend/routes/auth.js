@@ -181,6 +181,11 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
         isRealSent = await sendSMS(trimmedValue, body);
         deliveryMethod = isRealSent ? 'sms' : 'mock';
       }
+
+      // If a real contact was specified, but we failed to send the real OTP, return error immediately
+      if (isReal && !isRealSent) {
+        return res.status(400).json({ error: 'Invalid email, please check and try again!' });
+      }
     }
 
     // Record to mock email inbox ONLY for mock contacts when mock mode is enabled
