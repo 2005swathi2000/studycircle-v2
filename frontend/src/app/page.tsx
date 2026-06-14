@@ -60,6 +60,7 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [activePortal, setActivePortal] = useState<'student' | 'mentor'>('student');
+  const [regRole, setRegRole] = useState<'student' | 'mentor'>('student');
 
   // Username validation state
   const [usernameToCheck, setUsernameToCheck] = useState('');
@@ -1297,205 +1298,135 @@ export default function Home() {
               </div>
             )}
 
-            {/* Three-Partition Signup Columns */}
+            {/* HackerRank-Style Single Registration Card */}
             {authMode === 'register' && (
-              <div className="space-y-6">
+              <div className="space-y-6 max-w-lg mx-auto">
                 <div className="text-center space-y-2">
-                  <span className="text-[10px] font-extrabold uppercase bg-indigo-500/10 border border-indigo-500/20 text-[#4F46E5] px-3 py-1 rounded-full tracking-wider">Registration Gates</span>
-                  <h3 className="text-2xl font-black text-white uppercase tracking-tight">Three-Partition Workspace Entrance</h3>
-                  <p className="text-xs text-slate-400">Select your gate, input details, and verify dynamic OTPs to gain access.</p>
+                  <span className="text-[10px] font-extrabold uppercase bg-indigo-500/10 border border-indigo-500/20 text-[#4F46E5] px-3 py-1 rounded-full tracking-wider">Registration Gate</span>
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tight">Join StudyCircle Workspace</h3>
+                  <p className="text-xs text-slate-400">Select your workspace role and input verification credentials.</p>
                 </div>
 
-                <div className="grid lg:grid-cols-3 gap-6 text-left">
+                {/* Glassmorphic Container Card */}
+                <div className="p-8 bg-slate-900/65 backdrop-blur-xl border border-white/10 rounded-[32px] space-y-6 shadow-2xl relative overflow-hidden transition-all duration-300">
+                  {/* Subtle decorative glowing background circle */}
+                  <div className="absolute -top-12 -right-12 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
                   
-                  {/* Student Gate Partition */}
-                  <div className="p-6 bg-slate-900 border border-white/5 rounded-3xl space-y-5 shadow-sm">
-                    <div className="border-b border-white/5 pb-3 flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs font-black uppercase text-white">Student Gate</h4>
-                        <p className="text-[9px] text-slate-500 font-semibold uppercase">Verification OTP required</p>
-                      </div>
-                      <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-400/20 text-emerald-400 font-mono">Student</span>
-                    </div>
-
-                    <form onSubmit={handleStudentRegister} className="space-y-3.5">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Full Name</label>
-                        <input
-                          type="text"
-                          value={studentName}
-                          onChange={(e) => setStudentName(e.target.value)}
-                          placeholder="e.g. Sai Charan"
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Username</label>
-                        <input
-                          type="text"
-                          value={studentUser}
-                          onChange={(e) => handleUsernameChange(e.target.value, 'student')}
-                          placeholder="e.g. charan_stud"
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
-                        />
-                        {usernameToCheck === studentUser && usernameToCheck && (
-                          <div className="text-[9px] font-semibold flex items-center gap-1 mt-1">
-                            {checkingUsername ? (
-                              <span className="text-slate-500 animate-pulse">Checking...</span>
-                            ) : usernameStatus?.available ? (
-                              <span className="text-emerald-400">✓ Available ({usernameStatus.method})</span>
-                            ) : (
-                              <span className="text-red-400">✗ Username taken</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Phone / Email</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={studentContact}
-                            onChange={(e) => setStudentContact(e.target.value)}
-                            placeholder="e.g. student@gmail.com"
-                            className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
-                          />
-                          <button
-                            type="button"
-                            disabled={formLoading}
-                            onClick={() => sendRegOtp('student')}
-                            className="px-3 bg-slate-800 hover:bg-slate-750 disabled:opacity-50 disabled:cursor-not-allowed border border-white/5 text-[9px] font-extrabold text-[#E11D48] rounded-xl cursor-pointer"
-                          >
-                            Send OTP
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-455 uppercase tracking-wider">Verification OTP Code</label>
-                        <input
-                          type="text"
-                          value={studentOtp}
-                          onChange={(e) => setStudentOtp(e.target.value)}
-                          placeholder="6-digit code"
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white font-mono tracking-widest text-center"
-                        />
-                      </div>
-
-                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Password</label>
-                        <div className="relative">
-                          <input
-                            type={showStudentPass ? "text" : "password"}
-                            value={studentPass}
-                            onChange={(e) => setStudentPass(e.target.value)}
-                            placeholder="••••••••"
-                            className="w-full pl-3.5 pr-10 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowStudentPass(!showStudentPass)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-sm bg-transparent border-0 cursor-pointer select-none"
-                          >
-                            {showStudentPass ? '🙈' : '👁️'}
-                          </button>
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={formLoading}
-                        className="w-full py-2.5 bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer transition-all"
-                      >
-                        {formLoading ? 'Verifying Student...' : 'Register Student Gate'}
-                      </button>
-                    </form>
+                  {/* HackerRank-style toggle tabs */}
+                  <div className="flex p-1 bg-slate-950/80 border border-white/5 rounded-2xl relative">
+                    <button
+                      type="button"
+                      onClick={() => setRegRole('student')}
+                      className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${
+                        regRole === 'student'
+                          ? 'bg-[#E11D48] text-white shadow-lg shadow-rose-600/15 scale-[1.02]'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      🎓 Student
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRegRole('mentor')}
+                      className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${
+                        regRole === 'mentor'
+                          ? 'bg-[#E11D48] text-white shadow-lg shadow-rose-600/15 scale-[1.02]'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      🛡️ Mentor
+                    </button>
                   </div>
 
-                  {/* Mentor Gate Partition */}
-                  <div className="p-6 bg-slate-900 border border-white/5 rounded-3xl space-y-5 shadow-sm">
-                    <div className="border-b border-white/5 pb-3 flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs font-black uppercase text-white">Mentor Gate</h4>
-                        <p className="text-[9px] text-slate-500 font-semibold uppercase">Admin approval required</p>
-                      </div>
-                      <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded-md bg-[#FCD34D]/20 border border-[#FCD34D]/30 text-[#FCD34D] font-mono">Mentor</span>
+                  <form 
+                    onSubmit={regRole === 'student' ? handleStudentRegister : handleMentorRegister} 
+                    className="space-y-4"
+                  >
+                    {/* Common Field: Full Name */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Full Name</label>
+                      <input
+                        type="text"
+                        value={regRole === 'student' ? studentName : mentorName}
+                        onChange={(e) => regRole === 'student' ? setStudentName(e.target.value) : setMentorName(e.target.value)}
+                        placeholder={regRole === 'student' ? "e.g. Sai Charan" : "e.g. Dr. Prasad"}
+                        className="w-full px-4 py-3 bg-slate-950/90 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs outline-none text-white transition-all duration-150 focus:shadow-md focus:shadow-rose-500/5"
+                        required
+                      />
                     </div>
 
-                    <form onSubmit={handleMentorRegister} className="space-y-3.5">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Full Name</label>
-                        <input
-                          type="text"
-                          value={mentorName}
-                          onChange={(e) => setMentorName(e.target.value)}
-                          placeholder="e.g. Dr. Prasad"
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Username</label>
-                        <input
-                          type="text"
-                          value={mentorUser}
-                          onChange={(e) => handleUsernameChange(e.target.value, 'mentor')}
-                          placeholder="e.g. prasad_mentor"
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
-                        />
-                        {usernameToCheck === mentorUser && usernameToCheck && (
-                          <div className="text-[9px] font-semibold flex items-center gap-1 mt-1">
-                            {checkingUsername ? (
-                              <span className="text-slate-500">Checking...</span>
-                            ) : usernameStatus?.available ? (
-                              <span className="text-emerald-400">✓ Available ({usernameStatus.method})</span>
-                            ) : (
-                              <span className="text-red-400">✗ Username taken</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Phone / Email</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={mentorContact}
-                            onChange={(e) => setMentorContact(e.target.value)}
-                            placeholder="e.g. mentor@vrsec.ac.in"
-                            className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
-                          />
-                          <button
-                            type="button"
-                            disabled={formLoading}
-                            onClick={() => sendRegOtp('mentor')}
-                            className="px-3 bg-slate-800 hover:bg-slate-750 disabled:opacity-50 disabled:cursor-not-allowed border border-white/5 text-[9px] font-extrabold text-[#E11D48] rounded-xl cursor-pointer"
-                          >
-                            Send OTP
-                          </button>
+                    {/* Common Field: Username with Validation */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Username</label>
+                      <input
+                        type="text"
+                        value={regRole === 'student' ? studentUser : mentorUser}
+                        onChange={(e) => handleUsernameChange(e.target.value, regRole)}
+                        placeholder={regRole === 'student' ? "e.g. charan_stud" : "e.g. prasad_mentor"}
+                        className="w-full px-4 py-3 bg-slate-950/90 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs outline-none text-white transition-all duration-150 focus:shadow-md focus:shadow-rose-500/5"
+                        required
+                      />
+                      {usernameToCheck === (regRole === 'student' ? studentUser : mentorUser) && usernameToCheck && (
+                        <div className="text-[9px] font-semibold flex items-center gap-1 mt-1.5 px-1">
+                          {checkingUsername ? (
+                            <span className="text-slate-500 animate-pulse">Checking username availability...</span>
+                          ) : usernameStatus?.available ? (
+                            <span className="text-emerald-400 flex items-center gap-0.5">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                              ✓ Available ({usernameStatus.method})
+                            </span>
+                          ) : (
+                            <span className="text-red-400">✗ Username already taken</span>
+                          )}
                         </div>
-                      </div>
+                      )}
+                    </div>
 
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-455 uppercase tracking-wider">Verification OTP Code</label>
+                    {/* Common Field: Phone / Email with Send OTP */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email or Phone Number</label>
+                      <div className="flex gap-2">
                         <input
                           type="text"
-                          value={mentorOtp}
-                          onChange={(e) => setMentorOtp(e.target.value)}
-                          placeholder="6-digit code"
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white font-mono tracking-widest text-center"
+                          value={regRole === 'student' ? studentContact : mentorContact}
+                          onChange={(e) => regRole === 'student' ? setStudentContact(e.target.value) : setMentorContact(e.target.value)}
+                          placeholder={regRole === 'student' ? "e.g. student@gmail.com" : "e.g. mentor@vrsec.ac.in"}
+                          className="flex-1 px-4 py-3 bg-slate-950/90 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs outline-none text-white transition-all duration-150 focus:shadow-md focus:shadow-rose-500/5"
+                          required
                         />
+                        <button
+                          type="button"
+                          disabled={formLoading}
+                          onClick={() => sendRegOtp(regRole)}
+                          className="px-4 bg-slate-950 hover:bg-slate-850 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 hover:border-white/20 text-[10px] font-black text-[#E11D48] rounded-xl cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-150"
+                        >
+                          Send OTP
+                        </button>
                       </div>
+                    </div>
 
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Institution / College</label>
+                    {/* Common Field: Verification OTP Code */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-455 uppercase tracking-wider">Verification OTP Code</label>
+                      <input
+                        type="text"
+                        value={regRole === 'student' ? studentOtp : mentorOtp}
+                        onChange={(e) => regRole === 'student' ? setStudentOtp(e.target.value) : setMentorOtp(e.target.value)}
+                        placeholder="6-digit code"
+                        className="w-full px-4 py-3 bg-slate-950/90 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs outline-none text-white font-mono tracking-widest text-center transition-all duration-150"
+                        required
+                      />
+                    </div>
+
+                    {/* Mentor-Only Field: Institution / College dropdown */}
+                    {regRole === 'mentor' && (
+                      <div className="space-y-1 animate-in slide-in-from-top-2 duration-200">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Institution / College</label>
                         <select
                           value={mentorInstitution}
                           onChange={(e) => setMentorInstitution(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-slate-300"
+                          className="w-full px-4 py-3 bg-slate-950/90 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs outline-none text-slate-300 transition-all duration-150"
+                          required
                         >
                           <option value="">Select College</option>
                           {COLLEGES.map((c) => (
@@ -1503,156 +1434,42 @@ export default function Home() {
                           ))}
                         </select>
                       </div>
+                    )}
 
-                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Password</label>
-                        <div className="relative">
-                          <input
-                            type={showMentorPass ? "text" : "password"}
-                            value={mentorPass}
-                            onChange={(e) => setMentorPass(e.target.value)}
-                            placeholder="••••••••"
-                            className="w-full pl-3.5 pr-10 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowMentorPass(!showMentorPass)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-sm bg-transparent border-0 cursor-pointer select-none"
-                          >
-                            {showMentorPass ? '🙈' : '👁️'}
-                          </button>
-                        </div>
+                    {/* Common Field: Password */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Password</label>
+                      <div className="relative">
+                        <input
+                          type={(regRole === 'student' ? showStudentPass : showMentorPass) ? "text" : "password"}
+                          value={regRole === 'student' ? studentPass : mentorPass}
+                          onChange={(e) => regRole === 'student' ? setStudentPass(e.target.value) : setMentorPass(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full pl-4 pr-10 py-3 bg-slate-950/90 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs outline-none text-white transition-all duration-150"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => regRole === 'student' ? setShowStudentPass(!showStudentPass) : setShowMentorPass(!showMentorPass)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-sm bg-transparent border-0 cursor-pointer select-none"
+                        >
+                          {(regRole === 'student' ? showStudentPass : showMentorPass) ? '🙈' : '👁️'}
+                        </button>
                       </div>
-
-                      <button
-                        type="submit"
-                        disabled={formLoading}
-                        className="w-full py-2.5 bg-slate-850 hover:bg-slate-750 text-[#E11D48] border border-slate-700 text-xs font-bold rounded-xl shadow-md cursor-pointer transition-all"
-                      >
-                        {formLoading ? 'Awaiting Approval...' : 'Register Mentor Gate'}
-                      </button>
-                    </form>
-                  </div>
-
-                  {/* Admin Gate Partition */}
-                  <div className="p-6 bg-slate-900 border border-white/5 rounded-3xl space-y-5 shadow-sm">
-                    <div className="border-b border-white/5 pb-3 flex items-center justify-between">
-                      <div>
-                        <h4 className="text-xs font-black uppercase text-white">Admin Gate</h4>
-                        <p className="text-[9px] text-slate-500 font-semibold uppercase">Admin approval required</p>
-                      </div>
-                      <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-400/20 text-[#E11D48] font-mono">Admin</span>
                     </div>
 
-                    <form onSubmit={handleAdminRegister} className="space-y-3.5">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Full Name</label>
-                        <input
-                          type="text"
-                          value={adminName}
-                          onChange={(e) => setAdminName(e.target.value)}
-                          placeholder="e.g. Ramesh Babu"
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Username</label>
-                        <input
-                          type="text"
-                          value={adminUser}
-                          onChange={(e) => handleUsernameChange(e.target.value, 'admin')}
-                          placeholder="e.g. ramesh_admin"
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
-                        />
-                        {usernameToCheck === adminUser && usernameToCheck && (
-                          <div className="text-[9px] font-semibold flex items-center gap-1 mt-1">
-                            {checkingUsername ? (
-                              <span className="text-slate-500">Checking...</span>
-                            ) : usernameStatus?.available ? (
-                              <span className="text-emerald-400">✓ Available ({usernameStatus.method})</span>
-                            ) : (
-                              <span className="text-red-400">✗ Username taken</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Phone / Email</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={adminContact}
-                            onChange={(e) => setAdminContact(e.target.value)}
-                            placeholder="e.g. admin@gitam.edu"
-                            className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
-                          />
-                          <button
-                            type="button"
-                            disabled={formLoading}
-                            onClick={() => sendRegOtp('admin')}
-                            className="px-3 bg-slate-800 hover:bg-slate-750 disabled:opacity-50 disabled:cursor-not-allowed border border-white/5 text-[9px] font-extrabold text-[#E11D48] rounded-xl cursor-pointer"
-                          >
-                            Send OTP
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-455 uppercase tracking-wider">Verification OTP Code</label>
-                        <input
-                          type="text"
-                          value={adminOtp}
-                          onChange={(e) => setAdminOtp(e.target.value)}
-                          placeholder="6-digit code"
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white font-mono tracking-widest text-center"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Institution / College</label>
-                        <select
-                          value={adminInstitution}
-                          onChange={(e) => setAdminInstitution(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-slate-300"
-                        >
-                          <option value="">Select College</option>
-                          {COLLEGES.map((c) => (
-                            <option key={c.code} value={c.name}>{c.name}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Password</label>
-                        <div className="relative">
-                          <input
-                            type={showAdminPass ? "text" : "password"}
-                            value={adminPass}
-                            onChange={(e) => setAdminPass(e.target.value)}
-                            placeholder="••••••••"
-                            className="w-full pl-3.5 pr-10 py-2.5 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-xl text-xs outline-none text-white"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowAdminPass(!showAdminPass)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-sm bg-transparent border-0 cursor-pointer select-none"
-                          >
-                            {showAdminPass ? '🙈' : '👁️'}
-                          </button>
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={formLoading}
-                        className="w-full py-2.5 bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer transition-all"
-                      >
-                        {formLoading ? 'Awaiting Approval...' : 'Register Admin Gate'}
-                      </button>
-                    </form>
-                  </div>
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={formLoading}
+                      className="w-full py-3.5 bg-[#E11D48] hover:bg-[#BE123C] disabled:opacity-50 text-white text-xs font-black rounded-2xl shadow-lg shadow-rose-600/15 cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all duration-150 uppercase tracking-wider"
+                    >
+                      {formLoading 
+                        ? (regRole === 'student' ? 'Verifying Student...' : 'Registering Mentor...') 
+                        : (regRole === 'student' ? 'Register Student Gate' : 'Register Mentor Gate')
+                      }
+                    </button>
+                  </form>
                 </div>
               </div>
             )}
