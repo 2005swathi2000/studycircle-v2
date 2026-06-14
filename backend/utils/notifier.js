@@ -87,7 +87,43 @@ const sendMail = async (to, subject, text) => {
       console.log(`[Notifier] Real email sent successfully via SMTP. MessageId: ${info.messageId}`);
       return { success: true, method: 'smtp' };
     } catch (error) {
-      console.error('[Notifier] Failed to send real email via SMTP:', error);
+      console.error('[Notifier] Direct SMTP failed. Attempting Vercel SMTP proxy fallback...', error);
+      
+      // Attempt Vercel SMTP relay proxy fallback (bypasses Render SMTP port blocking)
+      try {
+        const relayUrl = process.env.NODE_ENV === 'production'
+          ? 'https://studycircle-v2-frontend-standalone.vercel.app/api/send-email'
+          : 'http://localhost:3000/api/send-email';
+          
+        console.log(`[Notifier] Relaying SMTP request via Vercel proxy to: ${relayUrl}`);
+        const response = await fetch(relayUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to,
+            subject,
+            text,
+            smtpHost: process.env.SMTP_HOST,
+            smtpPort: process.env.SMTP_PORT,
+            smtpUser: process.env.SMTP_USER,
+            smtpPass: process.env.SMTP_PASS,
+            smtpFrom: process.env.SMTP_FROM,
+          })
+        });
+        
+        const data = await response.json();
+        if (response.ok && data.success) {
+          console.log(`[Notifier] Real email sent successfully via Vercel SMTP proxy relay! MessageId: ${data.messageId}`);
+          return { success: true, method: 'smtp-relay' };
+        } else {
+          console.error('[Notifier] Vercel SMTP relay proxy returned error:', data.error || data);
+        }
+      } catch (relayErr) {
+        console.error('[Notifier] Failed to contact Vercel SMTP relay proxy:', relayErr);
+      }
+      
       console.log('[Notifier] SMTP failed or timed out. Attempting FormSubmit.co fallback...');
     }
   } else {
