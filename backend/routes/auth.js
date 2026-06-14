@@ -196,6 +196,12 @@ router.get('/mock-inbox', (req, res) => {
   return res.json({ inbox: emailInbox });
 });
 
+// Route: Clear Mock Email Inbox
+router.post('/clear-mock-inbox', (req, res) => {
+  emailInbox.length = 0;
+  return res.json({ success: true, message: 'Mock inbox cleared.' });
+});
+
 // Register Route
 router.post('/register', async (req, res) => {
   try {

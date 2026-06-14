@@ -1862,10 +1862,16 @@ export default function Home() {
                 Refresh Inbox
               </button>
               <button
-                onClick={() => {
-                  setInboxEmails([]);
-                  setUnreadInboxCount(0);
-                  showToast('Local inbox view cleared. Note: backend inbox persists.', 'info');
+                onClick={async () => {
+                  try {
+                    await apiRequest('/auth/clear-mock-inbox', { method: 'POST' });
+                    setInboxEmails([]);
+                    setUnreadInboxCount(0);
+                    showToast('Developer Mock Inbox cleared successfully.', 'success');
+                  } catch (err) {
+                    console.error('Error clearing mock inbox:', err);
+                    showToast('Failed to clear inbox on the server.', 'error');
+                  }
                 }}
                 className="py-2 px-4 hover:text-rose-400 text-slate-500 text-[10px] font-bold transition-all cursor-pointer"
               >
