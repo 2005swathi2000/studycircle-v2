@@ -379,6 +379,10 @@ export default function Home() {
       showToast('Please enter an email or phone number first.', 'error');
       return;
     }
+    if (!isValidEmailOrPhone(contact)) {
+      showToast('Please enter a valid email address or phone number.', 'error');
+      return;
+    }
     setFormLoading(true);
     try {
       const data = await apiRequest('/auth/send-otp', {

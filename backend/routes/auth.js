@@ -118,6 +118,18 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     }
 
     const trimmedValue = targetValue.trim().toLowerCase();
+
+    // Validate format
+    const isEmail = trimmedValue.includes('@');
+    if (isEmail) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue)) {
+        return res.status(400).json({ error: 'Invalid email address format.' });
+      }
+    } else {
+      if (!/^\+?[0-9]{10,14}$/.test(trimmedValue)) {
+        return res.status(400).json({ error: 'Invalid phone number format.' });
+      }
+    }
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 min expiry
