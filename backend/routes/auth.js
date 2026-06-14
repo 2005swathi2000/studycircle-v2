@@ -21,7 +21,7 @@ const checkDomainMx = async (domain) => {
 
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP or contact to 5 send-otp requests per windowMs
+  max: 100, // Limit each IP or contact to 100 send-otp requests per windowMs for testing
   message: { error: 'Too many OTP requests from this IP. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
