@@ -321,6 +321,15 @@ export default function Home() {
       setLoading(false);
       fetchPublicCircles();
 
+      // Check query parameter to trigger login modal automatically
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('login') === 'true') {
+          setAuthMode('login');
+          setShowAuthModal(true);
+        }
+      }
+
       const isLocal = typeof window !== 'undefined' && 
                       (window.location.hostname === 'localhost' || 
                        window.location.hostname === '127.0.0.1');

@@ -759,7 +759,7 @@ export default function RegisterPage() {
 
           <div className="text-center pt-2">
             <span className="text-xs text-slate-400">Already have an account? </span>
-            <Link href="/" className="text-xs font-black text-[#818CF8] hover:text-indigo-300 transition-colors">
+            <Link href="/?login=true" className="text-xs font-black text-[#818CF8] hover:text-indigo-300 transition-colors">
               Log In Here
             </Link>
           </div>
