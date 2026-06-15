@@ -90,8 +90,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         return null;
       }
-    } catch (err) {
-      setUser(null);
+    } catch (err: any) {
+      // Only clear user session if the API explicitly reports 401 Unauthorized or 403 Forbidden
+      if (err.status === 401 || err.status === 403) {
+        console.warn('[AppContext] User session invalid or expired. Clearing session.');
+        setUser(null);
+      } else {
+        console.error('[AppContext] Failed to refresh user profile (network or server error):', err);
+      }
       return null;
     }
   };
@@ -142,13 +148,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // 1. Initial restoration
   useEffect(() => {
     const initialize = async () => {
+      let hasStoredUser = false;
       if (typeof window !== 'undefined') {
         const stored = localStorage.getItem('studycircle_user');
         if (stored) {
           try {
             setUserState(JSON.parse(stored));
+            hasStoredUser = true;
           } catch (_) {}
         }
+      }
+      
+      // If we have a cached user, resolve the loading spinner immediately
+      // so the dashboard renders instantly without waiting for the network check.
+      if (hasStoredUser) {
+        setLoading(false);
       }
       
       await refreshUser();

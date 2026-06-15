@@ -65,7 +65,9 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const errorMsg = data?.error || data?.message || `API request failed with status ${response.status}`;
-    throw new Error(errorMsg);
+    const err = new Error(errorMsg);
+    (err as any).status = response.status;
+    throw err;
   }
 
   if (data === null) {

@@ -37,7 +37,9 @@ import {
   Sun,
   Sunset,
   Moon,
-  Edit3
+  Edit3,
+  Play,
+  MessageSquare
 } from 'lucide-react';
 
 const COLLEGES = [
@@ -70,6 +72,7 @@ function getTimeGreeting(): { label: string; icon: 'sun' | 'sunset' | 'moon' } {
 export default function Home() {
   const router = useRouter();
   const { showToast } = useToast();
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   const { user: currentUser, setUser: setCurrentUser, loading: globalLoading } = useApp();
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
@@ -756,8 +759,8 @@ export default function Home() {
   // ─────────────────────────────────────────────
   if (globalLoading) {
     return (
-      <div className="min-h-screen bg-[#070b19] flex items-center justify-center">
-        <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
+      <div className="min-h-screen bg-[#FAFCFB] flex items-center justify-center">
+        <RefreshCw className="h-8 w-8 text-[#0E3E31] animate-spin" />
       </div>
     );
   }
@@ -765,79 +768,94 @@ export default function Home() {
   // Greeting icon component
   const GreetingIcon = () => {
     const size = "h-4 w-4";
-    if (greeting.icon === 'sun') return <Sun className={`${size} text-amber-400`} />;
-    if (greeting.icon === 'sunset') return <Sunset className={`${size} text-orange-400`} />;
-    return <Moon className={`${size} text-indigo-400`} />;
+    if (greeting.icon === 'sun') return <Sun className={`${size} text-amber-500`} />;
+    if (greeting.icon === 'sunset') return <Sunset className={`${size} text-orange-500`} />;
+    return <Moon className={`${size} text-[#0E3E31]`} />;
   };
 
   return (
-    <div className="min-h-screen bg-[#060a16] text-slate-100 flex flex-col relative overflow-hidden font-sans antialiased">
+    <div className="min-h-screen bg-[#FAFCFB] text-slate-850 flex flex-col relative overflow-hidden font-sans antialiased">
       
       {/* 🔔 Sliding Email Notification Banner */}
       {isDevMode && activeNotification && (
-        <div className="fixed top-20 right-6 z-[10000] max-w-sm w-full bg-[#0E1017]/95 border border-indigo-500/30 rounded-2xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 duration-300 pointer-events-auto flex items-start gap-3.5">
-          <div className="h-9 w-9 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#818CF8] flex items-center justify-center shrink-0 animate-bounce">
+        <div className="fixed top-20 right-6 z-[10000] max-w-sm w-full bg-white/95 border border-slate-200 rounded-2xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 duration-300 pointer-events-auto flex items-start gap-3.5">
+          <div className="h-9 w-9 rounded-full bg-[#E6F2ED] border border-[#0E3E31]/20 text-[#0E3E31] flex items-center justify-center shrink-0 animate-bounce">
             <Bell className="h-4 w-4" />
           </div>
           <div className="flex-1 space-y-1">
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-black uppercase text-indigo-400">New Email Received</span>
+              <span className="text-[10px] font-black uppercase text-[#0E3E31]">New Email Received</span>
               <button 
                 onClick={() => setActiveNotification(null)}
-                className="text-slate-500 hover:text-white transition-colors cursor-pointer text-xs"
+                className="text-slate-400 hover:text-slate-900 transition-colors cursor-pointer text-xs"
               >
                 ✕
               </button>
             </div>
-            <h4 className="text-xs font-black text-white">{activeNotification.subject}</h4>
-            <p className="text-[10px] text-slate-350 leading-relaxed font-semibold">
-              To: <span className="text-indigo-300">{activeNotification.to}</span>
+            <h4 className="text-xs font-black text-slate-900">{activeNotification.subject}</h4>
+            <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">
+              To: <span className="text-[#0E3E31]">{activeNotification.to}</span>
             </p>
-            <div className="p-2 bg-slate-950 border border-white/5 rounded-xl mt-1.5 flex items-center justify-between gap-2">
-              <span className="text-[10px] font-mono text-slate-300">OTP Code: <strong className="text-rose-400 font-extrabold">{activeNotification.otp}</strong></span>
-              <span className="text-[9px] font-extrabold uppercase bg-emerald-500/15 border border-emerald-400/20 text-emerald-400 px-2 py-0.5 rounded">Auto Filled</span>
+            <div className="p-2 bg-slate-50 border border-slate-200/60 rounded-xl mt-1.5 flex items-center justify-between gap-2">
+              <span className="text-[10px] font-mono text-slate-650">OTP Code: <strong className="text-rose-600 font-extrabold">{activeNotification.otp}</strong></span>
+              <span className="text-[9px] font-extrabold uppercase bg-emerald-50/80 border border-emerald-200 text-emerald-600 px-2 py-0.5 rounded">Auto Filled</span>
             </div>
           </div>
         </div>
       )}
       
       {/* 1. Header Navbar */}
-      <header className="w-full bg-[#060a16]/90 backdrop-blur-md border-b border-white/[0.04] sticky top-0 z-50 transition-all duration-300">
+      <header className="w-full bg-white/90 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50 transition-all duration-300 shadow-sm shadow-slate-100/30">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => router.push('/')}>
-            <div className="relative h-9 w-9 flex items-center justify-center shrink-0">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#5227EB] via-indigo-400 to-[#E11D48] opacity-90 shadow-md animate-pulse" />
-              <div className="absolute inset-[3px] rounded-full bg-[#060a16] flex items-center justify-center text-white font-bold">
-                <BookOpen className="h-4 w-4 text-[#818CF8]" />
+          <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => router.push('/')}>
+            <div className="relative h-10 w-10 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-300">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#0E3E31] via-[#D5EAE2] to-[#F59E0B] opacity-90 shadow-[0_0_15px_rgba(14,62,49,0.15)] animate-pulse" />
+              <div className="absolute inset-[3px] rounded-full bg-white flex items-center justify-center font-bold">
+                <BookOpen className="h-4.5 w-4.5 text-[#0E3E31] group-hover:rotate-12 transition-transform duration-300" />
               </div>
             </div>
-            <span className="font-extrabold text-base tracking-tight text-white font-sans">
+            <span className="font-black text-lg tracking-tight text-[#0E3E31] font-sans">
               StudyCircle
             </span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-bold text-slate-350 tracking-wider">
-            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-white transition-colors cursor-pointer">Home</button>
-            <button onClick={() => scrollToSection('features-section')} className="hover:text-white transition-colors cursor-pointer">Features</button>
-            <button onClick={() => scrollToSection('services-section')} className="hover:text-white transition-colors cursor-pointer">How It Works</button>
-            <button onClick={() => scrollToSection('about-section')} className="hover:text-white transition-colors cursor-pointer">About Us</button>
+          <nav className="hidden md:flex items-center gap-8 text-xs font-bold text-slate-600 tracking-wider">
+            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="relative hover:text-[#0E3E31] transition-colors cursor-pointer py-1 group">
+              Home
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0E3E31] transition-all group-hover:w-full" />
+            </button>
+            <button onClick={() => scrollToSection('features-section')} className="relative hover:text-[#0E3E31] transition-colors cursor-pointer py-1 group">
+              Features
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0E3E31] transition-all group-hover:w-full" />
+            </button>
+            <button onClick={() => scrollToSection('lobby-section')} className="relative hover:text-[#0E3E31] transition-colors cursor-pointer py-1 group">
+              Explore
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0E3E31] transition-all group-hover:w-full" />
+            </button>
+            <button onClick={() => scrollToSection('about-section')} className="relative hover:text-[#0E3E31] transition-colors cursor-pointer py-1 group">
+              How it Works
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0E3E31] transition-all group-hover:w-full" />
+            </button>
+            <button onClick={() => scrollToSection('faq-section')} className="relative hover:text-[#0E3E31] transition-colors cursor-pointer py-1 group">
+              About Us
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0E3E31] transition-all group-hover:w-full" />
+            </button>
           </nav>
 
           <div className="flex items-center gap-4">
             {currentUser ? (
               <div className="flex items-center gap-2">
-                {/* ── BUG FIX #3 — Profile Edit Button ── */}
                 <button
                   onClick={() => setShowProfileEdit(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 border border-white/10 hover:border-indigo-500/40 hover:bg-white/5 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 hover:border-[#0E3E31]/40 hover:bg-slate-50 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer"
                   title="Edit Profile"
                 >
-                  <Edit3 className="h-3.5 w-3.5" />
+                  <Edit3 className="h-3.5 w-3.5 text-slate-500" />
                   <span className="hidden sm:inline">Edit Profile</span>
                 </button>
                 <button 
                   onClick={() => router.push('/dashboard')}
-                  className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338ca] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/10 cursor-pointer"
+                  className="px-4 py-2 bg-[#0E3E31] hover:bg-[#0B3026] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-[#0E3E31]/10 cursor-pointer"
                 >
                   Dashboard <ChevronRight className="h-3.5 w-3.5" />
                 </button>
@@ -846,15 +864,15 @@ export default function Home() {
               <>
                 <button 
                   onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
-                  className="text-slate-350 hover:text-white text-xs font-bold transition-all cursor-pointer"
+                  className="px-4 py-2 border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-bold transition-all cursor-pointer rounded-xl hover:bg-slate-50"
                 >
-                  Sign In
+                  Log in
                 </button>
                 <button 
                   onClick={() => router.push('/register')}
-                  className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338ca] text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/10 transition-all cursor-pointer"
+                  className="px-4 py-2 bg-[#0E3E31] hover:bg-[#0B3026] text-white rounded-xl text-xs font-bold shadow-md shadow-[#0E3E31]/10 transition-all cursor-pointer"
                 >
-                  Join Now
+                  Get Started
                 </button>
               </>
             )}
@@ -863,30 +881,30 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 w-full flex flex-col">
+      <main className="flex-1 w-full flex flex-col bg-[#FAFCFB]">
 
-        {/* ── BUG FIX #2 — Time-based greeting banner (visible when logged in) ── */}
+        {/* ── Time-based greeting banner (visible when logged in) ── */}
         {currentUser && (
-          <div className="w-full bg-[#0a0f1d] border-b border-white/[0.05] py-3">
+          <div className="w-full bg-[#E6F2ED] border-b border-[#0E3E31]/10 py-3">
             <div className="max-w-7xl mx-auto px-6 flex items-center gap-2.5">
               <GreetingIcon />
-              <span className="text-sm font-extrabold text-white">{greeting.label}, {currentUser.firstName || currentUser.fullName}!</span>
-              <span className="text-xs text-slate-500 font-medium hidden sm:inline">— Ready to study today?</span>
+              <span className="text-sm font-extrabold text-slate-800">{greeting.label}, {currentUser.firstName || currentUser.fullName}!</span>
+              <span className="text-xs text-slate-650 font-medium hidden sm:inline">— Ready to study today?</span>
             </div>
           </div>
         )}
 
-        {/* ── BUG FIX #2 — Time-based greeting also in My Learning Space section ── */}
+        {/* ── Time-based greeting also in My Learning Space section ── */}
         {currentUser && (
-          <section className="bg-[#080c18] border-b border-white/[0.04] py-6">
+          <section className="bg-white border-b border-slate-100 py-6">
             <div className="max-w-7xl mx-auto px-6">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-1">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#0E3E31] mb-1">
                     <Sparkles className="h-3 w-3" />
                     My Learning Space
                   </div>
-                  <h2 className="text-xl font-black text-white flex items-center gap-2">
+                  <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
                     <GreetingIcon />
                     {greeting.label}, {currentUser.firstName || currentUser.fullName}!
                   </h2>
@@ -894,7 +912,7 @@ export default function Home() {
                 </div>
                 <button
                   onClick={() => setShowProfileEdit(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 border border-white/10 hover:border-indigo-500/40 hover:bg-white/5 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 hover:border-[#0E3E31]/40 hover:bg-slate-50 text-slate-600 hover:text-slate-800 rounded-xl text-xs font-bold transition-all cursor-pointer"
                 >
                   <Edit3 className="h-3.5 w-3.5" />
                   Edit Profile
@@ -905,56 +923,207 @@ export default function Home() {
         )}
         
         {/* 2. Hero Section */}
-        <section className="bg-[#060a16] relative overflow-hidden">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[140px] pointer-events-none" />
-          
-          <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-12 gap-12 items-center py-16 md:py-24 text-left relative z-10">
+        <section className="bg-[#FAFCFB] relative overflow-hidden pt-12 pb-16">
+          <style>{`
+            @keyframes bounce-subtle {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-8px); }
+            }
+            .animate-bounce-subtle {
+              animation: bounce-subtle 4s ease-in-out infinite;
+            }
+          `}</style>
+
+          <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-12 gap-12 items-center text-left relative z-10">
+            {/* Left Content Column */}
             <div className="md:col-span-6 space-y-6 md:pr-4">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
-                StudyCircle – <br />
-                <span className="text-indigo-400">Collaborative <br />Learning Workspace</span>
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-[#E6F2ED] text-[#0E3E31] rounded-full text-[10px] font-black uppercase tracking-widest border border-[#E6F2ED]">
+                <Sparkles className="h-3 w-3 text-[#0E3E31]" /> A collaborative learning workspace for every student
+              </div>
+              
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#1A2530] tracking-tight leading-[1.12]">
+                Study together. <br />
+                <span className="text-[#0E3E31]">Achieve together.</span>
               </h1>
-              <p className="text-sm md:text-base text-slate-350 leading-relaxed font-semibold max-w-lg">
-                A structured group study platform for engineering and degree students in Andhra Pradesh and Telangana.
+              
+              <p className="text-xs md:text-sm text-slate-550 leading-relaxed font-bold max-w-lg">
+                Join study rooms, share notes, solve doubts, schedule sessions and track your progress — all in one place.
               </p>
               
               <div className="flex flex-wrap items-center gap-4 pt-2">
                 <button
                   onClick={() => router.push('/register')}
-                  className="px-6 py-3 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-xs font-extrabold rounded-xl shadow-lg shadow-indigo-600/15 flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-6 py-3.5 bg-[#0E3E31] hover:bg-[#0B3026] text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg shadow-[#0E3E31]/10 flex items-center gap-2 transition-all cursor-pointer hover:-translate-y-0.5"
                 >
-                  Get Started <ArrowRight className="h-4 w-4" />
+                  Get Started — It's Free <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => scrollToSection('lobby-section')}
-                  className="px-6 py-3 border border-white/20 hover:border-white/35 hover:bg-white/5 text-white text-xs font-extrabold rounded-xl transition-all cursor-pointer"
+                  onClick={() => scrollToSection('features-section')}
+                  className="px-6 py-3.5 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-2 transition-all cursor-pointer hover:-translate-y-0.5"
                 >
-                  Explore Groups
+                  Explore Features <Play className="h-3 w-3 text-[#0E3E31] fill-[#0E3E31]" />
                 </button>
               </div>
 
-              <div className="flex items-center gap-6 pt-4 text-xs font-bold text-slate-400">
-                <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-indigo-400" /> Secure</span>
-                <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-indigo-400" /> Collaborative</span>
-                <span className="flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5 text-indigo-400" /> Productive</span>
+              {/* Loved by stack */}
+              <div className="flex items-center gap-3 pt-4 select-none">
+                <div className="flex -space-x-2.5 overflow-hidden">
+                  {['/charan-avatar.png', '/karthik-avatar.png', '/bhagya-avatar.png', '/rathna-avatar.png', '/swathi-avatar.png'].map((src, i) => (
+                    <img 
+                      key={i} 
+                      className="inline-block h-8.5 w-8.5 rounded-full ring-2 ring-white object-cover object-center bg-slate-100" 
+                      src={src} 
+                      alt="Student user avatar" 
+                    />
+                  ))}
+                </div>
+                
+                {/* Hand drawn curvy arrow */}
+                <svg className="w-10 h-6 text-slate-400 stroke-current fill-none shrink-0" viewBox="0 0 50 24">
+                  <path d="M2,2 C12,18 28,18 42,6" strokeWidth="2" strokeDasharray="3,3" />
+                  <path d="M36,5 L44,5 L42,12" strokeWidth="2" />
+                </svg>
+
+                <div className="text-left leading-tight">
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-wide">Loved by 10,000+</div>
+                  <div className="text-[10px] font-bold text-slate-400">students across India</div>
+                </div>
               </div>
             </div>
 
-            <div className="md:col-span-6 relative flex justify-center">
-              <div className="relative w-full max-w-[440px] aspect-[4/3] rounded-[32px] overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center bg-slate-900">
-                <img 
-                  src="/students-studying.png" 
-                  alt="Three South Asian students studying together" 
-                  className="w-full h-full object-cover object-center"
-                />
-                <div className="absolute bottom-4 right-4 bg-slate-950/85 backdrop-blur-md border border-white/10 px-4 py-3 rounded-2xl flex items-center gap-3 shadow-xl max-w-[210px]">
-                  <div className="h-8 w-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
-                    <Users className="h-4 w-4" />
+            {/* Right Mockup Model Column */}
+            <div className="md:col-span-6 relative flex items-center justify-center py-8">
+              {/* Back Circle Mint Backdrop */}
+              <div className="absolute w-[360px] h-[360px] md:w-[440px] md:h-[440px] bg-[#E6F2ED] rounded-full -z-10" />
+
+              {/* Potted Plant & Stack of Books */}
+              <div className="absolute left-[-20px] bottom-[30px] z-10 flex flex-col items-center select-none scale-[0.75] origin-bottom-left">
+                {/* Plant leaves */}
+                <div className="relative w-24 h-24 flex items-end justify-center">
+                  <div className="absolute bottom-1 w-8 h-16 bg-[#0E4A3A] rounded-t-full rotate-[-35deg] origin-bottom shadow-sm" />
+                  <div className="absolute bottom-1 w-10 h-18 bg-[#1B5E20] rounded-t-full rotate-[-15deg] origin-bottom shadow-sm" />
+                  <div className="absolute bottom-1 w-9 h-20 bg-[#0E3E31] rounded-t-full rotate-[15deg] origin-bottom shadow-sm" />
+                  <div className="absolute bottom-1 w-8 h-15 bg-[#2E7D32] rounded-t-full rotate-[40deg] origin-bottom shadow-sm" />
+                </div>
+                {/* White Pot */}
+                <div className="w-16 h-12 bg-white border border-slate-200 rounded-b-2xl rounded-t shadow-md flex items-center justify-center">
+                  <div className="w-full h-1 bg-slate-100 rounded-t" />
+                </div>
+                {/* Books Stack */}
+                <div className="w-24 h-4 bg-amber-100 border border-amber-200 rounded shadow-sm mt-1" />
+                <div className="w-22 h-4 bg-[#D5EAE2] border border-emerald-200 rounded shadow-sm" />
+              </div>
+
+              {/* Laptop Body Container */}
+              <div className="flex flex-col items-center relative z-20">
+                {/* Screen bezel */}
+                <div className="relative border-[8px] border-slate-800 bg-slate-900 rounded-t-2xl shadow-xl w-[320px] md:w-[420px] aspect-[16/10] overflow-hidden flex flex-col text-slate-800 text-left select-none">
+                  {/* Laptop OS Content Mockup */}
+                  <div className="w-full h-full bg-[#FAFCFB] flex text-[8px] font-semibold p-1 gap-1">
+                    {/* Mock sidebar */}
+                    <div className="w-[45px] border-r border-slate-200/60 flex flex-col gap-1 py-1 px-0.5 shrink-0 text-left scale-[0.9] origin-left bg-slate-50">
+                      <div className="px-1 text-[#0E3E31] font-black uppercase text-[6px] tracking-wide mt-1">Workspace</div>
+                      <div className="px-1 py-0.5 text-[#0E3E31] font-bold bg-[#E6F2ED] rounded flex items-center gap-1">🏠 Dashboard</div>
+                      <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">📝 Notes</div>
+                      <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">📅 Schedules</div>
+                      <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">🏆 Leaderboard</div>
+                    </div>
+                    
+                    {/* Mock main dashboard view */}
+                    <div className="flex-1 flex flex-col gap-1.5 p-1 text-slate-700">
+                      {/* Greeting banner */}
+                      <div className="p-2 bg-white border border-slate-150 rounded-lg shadow-sm">
+                        <div className="text-[8px] font-extrabold text-slate-800">Welcome back, Swathi! 👋</div>
+                        <div className="text-[6px] text-slate-400">Here's what's happening in your circle today.</div>
+                      </div>
+
+                      {/* Stats cols */}
+                      <div className="grid grid-cols-4 gap-1">
+                        {[
+                          { label: 'Study Rooms', val: '12 Active' },
+                          { label: 'Notes Shared', val: '34 This Wk' },
+                          { label: 'Doubts Solved', val: '56 This Wk' },
+                          { label: 'Study Streak', val: '7 Days' }
+                        ].map((s, idx) => (
+                          <div key={idx} className="p-1.5 bg-slate-50 border border-slate-150 rounded text-center">
+                            <div className="text-[5px] uppercase font-bold text-slate-400 leading-none">{s.label}</div>
+                            <div className="text-[7px] font-black text-[#0E3E31] mt-0.5 leading-none">{s.val}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Sessions lists */}
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div className="p-1.5 bg-white border border-slate-150 rounded-lg flex flex-col justify-between h-14">
+                          <div>
+                            <div className="text-[5px] uppercase font-bold text-slate-400 leading-none">Upcoming sessions</div>
+                            <div className="font-extrabold text-[7px] text-slate-800 mt-1 truncate">DSA Study Session</div>
+                            <div className="text-[5px] text-[#0E3E31] mt-0.5">Today, 7:30 PM</div>
+                          </div>
+                          <button className="py-0.5 px-1 bg-[#0E3E31] text-white rounded text-[5px] font-extrabold cursor-pointer self-start">Join</button>
+                        </div>
+                        
+                        <div className="p-1.5 bg-white border border-slate-150 rounded-lg h-14 flex flex-col justify-between">
+                          <div>
+                            <div className="text-[5px] uppercase font-bold text-slate-400 leading-none">Recent Activity</div>
+                            <div className="text-slate-650 font-bold text-[6px] mt-0.5 truncate flex items-center gap-0.5">
+                              <span className="h-1.5 w-1.5 bg-[#0E3E31] rounded-full shrink-0" /> Rahul shared a note
+                            </div>
+                            <div className="text-slate-650 font-bold text-[6px] mt-0.5 truncate flex items-center gap-0.5">
+                              <span className="h-1.5 w-1.5 bg-[#0E3E31] rounded-full shrink-0" /> Ananya solved doubt
+                            </div>
+                          </div>
+                          <div className="text-[5px] text-slate-400 mt-1">View all activity</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <div className="text-[10px] font-black text-white leading-tight uppercase tracking-wider">Focus Together.</div>
-                    <div className="text-[10px] font-bold text-slate-400 leading-tight">Achieve More.</div>
+                </div>
+
+                {/* Keyboard base */}
+                <div className="w-[350px] md:w-[460px] h-3 bg-slate-700 rounded-b-2xl shadow-lg border-t border-slate-600 relative z-30 flex justify-center">
+                  <div className="w-20 h-1 bg-slate-950 rounded-b" />
+                </div>
+              </div>
+
+              {/* Mobile Phone Mockup Overlay */}
+              <div className="absolute right-[-10px] bottom-[10px] w-[115px] md:w-[130px] aspect-[9/19] bg-slate-950 border-[5px] border-slate-850 rounded-[28px] shadow-2xl overflow-hidden z-40 text-slate-800 flex flex-col text-left select-none scale-[0.95] origin-bottom-right">
+                <div className="w-full h-full bg-[#FAFCFB] p-2 text-[6px] flex flex-col justify-between font-semibold">
+                  <div className="space-y-2">
+                    <div className="border-b border-slate-200 pb-1 flex justify-between items-center font-bold text-[7px] text-[#0E3E31]">
+                      <span>← Doubt Board</span>
+                      <span>🔍</span>
+                    </div>
+
+                    <div className="space-y-1.5 mt-1">
+                      <div className="p-1 bg-white border border-slate-200 rounded-md">
+                        <div className="font-extrabold text-[6px] text-slate-800">How to optimize nested loops?</div>
+                        <div className="text-[5px] text-slate-400 mt-0.5">2 answers • DSA</div>
+                      </div>
+                      
+                      <div className="p-1 bg-white border border-slate-200 rounded-md">
+                        <div className="font-extrabold text-[6px] text-slate-800">Confusion in normalization</div>
+                        <div className="text-[5px] text-slate-400 mt-0.5">5 answers • DBMS</div>
+                      </div>
+
+                      <div className="p-1 bg-white border border-slate-200 rounded-md">
+                        <div className="font-extrabold text-[6px] text-slate-800">Why is state async?</div>
+                        <div className="text-[5px] text-slate-400 mt-0.5">3 answers • Web Dev</div>
+                      </div>
+                    </div>
                   </div>
+
+                  <button className="w-full py-1 bg-[#0E3E31] text-white text-[6px] font-bold rounded-lg cursor-pointer text-center select-none shadow-sm shadow-[#0E3E31]/10">Ask a Doubt</button>
+                </div>
+              </div>
+
+              {/* Coffee Mug sitting on desk */}
+              <div className="absolute right-[-55px] bottom-[15px] z-30 flex items-end select-none scale-[0.8] origin-bottom-right">
+                {/* Handle */}
+                <div className="w-5 h-9 border-4 border-[#0E3E31] rounded-l-full rotate-180 translate-x-[4px] self-center" />
+                {/* Body */}
+                <div className="w-12 h-14 bg-[#0E3E31] rounded-b-xl rounded-t-sm shadow-md flex items-center justify-center">
+                  <BookOpen className="h-4 w-4 text-white/30" />
                 </div>
               </div>
             </div>
@@ -962,150 +1131,120 @@ export default function Home() {
         </section>
 
         {/* 3. Features Grid */}
-        <section id="features-section" className="bg-white py-16 text-slate-900 border-y border-slate-100">
-          <div className="max-w-7xl mx-auto px-6 space-y-12 text-center">
-            <h2 className="text-xl md:text-3xl font-black text-slate-900 leading-tight">
-              Everything you need to <span className="text-[#4F46E5]">study better, together.</span>
-            </h2>
-
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
-              <div className="flex flex-col items-center space-y-4 p-6 bg-pink-50 border border-pink-100/80 rounded-[24px] hover:scale-[1.02] transition-transform text-left">
-                <div className="h-12 w-12 rounded-full bg-white text-pink-500 flex items-center justify-center shadow-sm shrink-0">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div className="space-y-1 text-center">
-                  <h3 className="text-xs font-black text-pink-950">Study Groups</h3>
-                  <p className="text-[10px] text-pink-700/80 leading-relaxed">Create or join groups, invite your friends, and start learning together.</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center space-y-4 p-6 bg-blue-50 border border-blue-100/80 rounded-[24px] hover:scale-[1.02] transition-transform text-left">
-                <div className="h-12 w-12 rounded-full bg-white text-blue-400 flex items-center justify-center shadow-sm shrink-0">
-                  <Wifi className="h-5 w-5" />
-                </div>
-                <div className="space-y-1 text-center">
-                  <h3 className="text-xs font-black text-blue-950">Live Study Rooms</h3>
-                  <p className="text-[10px] text-blue-700/80 leading-relaxed">Real-time study sessions with live presence and distraction-free focus.</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center space-y-4 p-6 bg-pink-50 border border-pink-100/80 rounded-[24px] hover:scale-[1.02] transition-transform text-left">
-                <div className="h-12 w-12 rounded-full bg-white text-pink-500 flex items-center justify-center shadow-sm shrink-0">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <div className="space-y-1 text-center">
-                  <h3 className="text-xs font-black text-pink-950">Shared Notes</h3>
-                  <p className="text-[10px] text-pink-700/80 leading-relaxed">Create, edit and share rich notes with your group in one place.</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center space-y-4 p-6 bg-sky-50 border border-sky-100/80 rounded-[24px] hover:scale-[1.02] transition-transform text-left">
-                <div className="h-12 w-12 rounded-full bg-white text-sky-500 flex items-center justify-center shadow-sm shrink-0">
-                  <Calendar className="h-5 w-5" />
-                </div>
-                <div className="space-y-1 text-center">
-                  <h3 className="text-xs font-black text-sky-950">Session Scheduling</h3>
-                  <p className="text-[10px] text-sky-700/80 leading-relaxed">Plan upcoming sessions and get reminders so you never miss out.</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center space-y-4 p-6 bg-pink-50 border border-pink-100/80 rounded-[24px] hover:scale-[1.02] transition-transform text-left">
-                <div className="h-12 w-12 rounded-full bg-white text-pink-500 flex items-center justify-center shadow-sm shrink-0">
-                  <TrendingUp className="h-5 w-5" />
-                </div>
-                <div className="space-y-1 text-center">
-                  <h3 className="text-xs font-black text-pink-950">Track Progress</h3>
-                  <p className="text-[10px] text-pink-700/80 leading-relaxed">Track your study hours, streaks and stay consistent with your goals.</p>
-                </div>
+        <section id="features-section" className="bg-[#FAFCFB] py-12 text-slate-800">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-md shadow-slate-150/15">
+              <div className="grid grid-cols-2 lg:grid-cols-6 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 text-left">
+                {[
+                  { icon: Users, title: 'Study Rooms', desc: 'Join or create live rooms and study together in real-time.', bg: '#EBF5F1', text: '#0E3E31' },
+                  { icon: FileText, title: 'Shared Notes', desc: 'Upload, organize and access notes shared by your circle.', bg: '#EBF5F1', text: '#0E3E31' },
+                  { icon: HelpCircle, title: 'Doubt Board', desc: 'Ask questions, get answers and clear your doubts.', bg: '#FFF5F0', text: '#F97316' },
+                  { icon: Calendar, title: 'Session Schedule', desc: 'Plan and join study sessions that keep you consistent.', bg: '#EBF5F1', text: '#0E3E31' },
+                  { icon: Award, title: 'Leaderboard', desc: 'Track your progress, earn points and stay motivated.', bg: '#FFF9F0', text: '#F59E0B' },
+                  { icon: MessageSquare, title: 'Group Chats', desc: 'Chat with your circle and stay connected always.', bg: '#EBF5F1', text: '#0E3E31' }
+                ].map((item, i) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={i} className={`space-y-3 ${i === 0 ? '' : 'pt-4 lg:pt-0 lg:pl-6'}`}>
+                      <div className="h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm" style={{ backgroundColor: item.bg }}>
+                        <Icon className="h-5 w-5" style={{ color: item.text }} />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">{item.title}</h4>
+                        <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">{item.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
         </section>
 
         {/* 4. Services Section */}
-        <section id="services-section" className="bg-[#060a16] py-20 relative overflow-hidden border-b border-white/[0.04]">
-          <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <section id="services-section" className="bg-white py-20 relative overflow-hidden border-b border-slate-100">
+          <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-[#E6F2ED]/40 rounded-full blur-[120px] pointer-events-none" />
           
           <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-16 items-center relative z-10 text-left">
             <div className="lg:col-span-5 space-y-6">
-              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">OUR SERVICES</span>
-              <h2 className="text-3xl font-black text-white leading-tight">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#0E3E31]">OUR SERVICES</span>
+              <h2 className="text-3xl font-black text-slate-900 leading-tight">
                 All the tools you need <br />
-                to <span className="text-indigo-400">grow together.</span>
+                to <span className="text-[#0E3E31]">grow together.</span>
               </h2>
-              <p className="text-xs md:text-sm text-slate-350 leading-relaxed font-semibold">
+              <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-bold">
                 StudyCircle provides a focused and structured environment for students to collaborate, share knowledge, track progress, and achieve their academic goals — together.
               </p>
               <div className="pt-2">
                 <button
                   onClick={() => router.push('/register')}
-                  className="px-6 py-3 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-xs font-extrabold rounded-xl shadow-lg shadow-indigo-600/15 flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-6 py-3 bg-[#0E3E31] hover:bg-[#0B3026] text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg shadow-[#0E3E31]/10 flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   Join StudyCircle <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold text-slate-450 pt-4 border-t border-white/5">
-                <span className="flex items-center gap-1"><Shield className="h-3.5 w-3.5 text-indigo-400" /> Secure Login</span>
-                <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5 text-indigo-400" /> Role Based Access</span>
-                <span className="flex items-center gap-1"><Bell className="h-3.5 w-3.5 text-indigo-400" /> Smart Notifications</span>
+              <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold text-slate-500 pt-4 border-t border-slate-100">
+                <span className="flex items-center gap-1"><Shield className="h-3.5 w-3.5 text-[#0E3E31]" /> Secure Login</span>
+                <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5 text-[#0E3E31]" /> Role Based Access</span>
+                <span className="flex items-center gap-1"><Bell className="h-3.5 w-3.5 text-[#0E3E31]" /> Smart Notifications</span>
               </div>
             </div>
 
             <div className="lg:col-span-7 flex justify-center py-6">
               <div className="relative w-full max-w-[480px]">
-                <div className="relative border-[8px] border-slate-700 bg-slate-900 rounded-2xl shadow-2xl overflow-hidden aspect-[16/10] w-[90%] z-10">
-                  <div className="w-full h-full bg-[#0E1017] text-slate-100 flex text-[9px] font-semibold select-none p-1 gap-1.5">
-                    <div className="w-[65px] border-r border-white/5 flex flex-col gap-1 py-1 px-0.5 shrink-0 text-left scale-[0.9] origin-left">
-                      <div className="h-4 w-full bg-indigo-600/20 border border-indigo-600/20 text-[#818CF8] text-[8px] font-bold rounded flex items-center gap-1 px-1 mb-1">📚 Lounge</div>
-                      <div className="px-1 text-slate-550 font-bold uppercase text-[7px] tracking-wide mt-1">Workspace</div>
-                      <div className="px-1 py-0.5 text-indigo-300 font-bold bg-white/5 rounded flex items-center gap-1">🏠 Dashboard</div>
+                <div className="relative border-[8px] border-slate-200 bg-slate-100 rounded-2xl shadow-2xl overflow-hidden aspect-[16/10] w-[90%] z-10">
+                  <div className="w-full h-full bg-[#FAFCFB] text-slate-700 flex text-[9px] font-semibold select-none p-1 gap-1.5 border border-slate-200">
+                    <div className="w-[65px] border-r border-slate-250 flex flex-col gap-1 py-1 px-0.5 shrink-0 text-left scale-[0.9] origin-left">
+                      <div className="h-4 w-full bg-[#E6F2ED] border border-[#0E3E31]/20 text-[#0E3E31] text-[8px] font-bold rounded flex items-center gap-1 px-1 mb-1">📚 Lounge</div>
+                      <div className="px-1 text-slate-400 font-bold uppercase text-[7px] tracking-wide mt-1">Workspace</div>
+                      <div className="px-1 py-0.5 text-[#0E3E31] font-bold bg-slate-200/50 rounded flex items-center gap-1">🏠 Dashboard</div>
                       <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">📝 Notes</div>
                       <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">📅 Schedules</div>
                       <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">🏆 Leaderboard</div>
                     </div>
                     
                     <div className="flex-1 flex flex-col gap-2 p-1.5 text-left text-[8px]">
-                      <div className="p-2.5 bg-slate-900 border border-white/5 rounded-lg flex items-center justify-between">
+                      <div className="p-2.5 bg-white border border-slate-200 rounded-lg flex items-center justify-between shadow-sm">
                         <div>
-                          <div className="text-[9px] font-bold text-white leading-tight">Welcome, Study Buddies</div>
+                          <div className="text-[9px] font-bold text-slate-800 leading-tight">Welcome, Study Buddies</div>
                           <div className="text-[7px] text-slate-450 leading-tight">AP & Telangana Cluster</div>
                         </div>
-                        <div className="text-[9px] text-[#E11D48] font-bold shrink-0">🔥 5 Day Streak</div>
+                        <div className="text-[9px] text-[#0E3E31] font-bold shrink-0">🔥 5 Day Streak</div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="p-2.5 bg-slate-900 border border-white/5 rounded-lg flex flex-col justify-between h-20">
+                        <div className="p-2.5 bg-white border border-slate-200 rounded-lg flex flex-col justify-between h-20 shadow-sm">
                           <div>
-                            <div className="text-[7px] uppercase font-bold tracking-wider text-slate-500">Upcoming session</div>
-                            <div className="text-white font-extrabold text-[8px] mt-0.5 truncate leading-tight">Data Structures</div>
-                            <div className="text-[7px] text-slate-400 mt-0.5 font-mono">Today, 7:30 PM</div>
+                            <div className="text-[7px] uppercase font-bold tracking-wider text-slate-400">Upcoming session</div>
+                            <div className="text-slate-800 font-extrabold text-[8px] mt-0.5 truncate leading-tight">Data Structures</div>
+                            <div className="text-[7px] text-slate-500 mt-0.5 font-mono">Today, 7:30 PM</div>
                           </div>
-                          <button className="py-0.5 px-2 bg-indigo-650 text-white rounded text-[7px] font-extrabold cursor-pointer self-start leading-normal">Join Room</button>
+                          <button className="py-0.5 px-2 bg-[#0E3E31] text-white rounded text-[7px] font-extrabold cursor-pointer self-start leading-normal">Join Room</button>
                         </div>
                         
-                        <div className="p-2.5 bg-slate-900 border border-white/5 rounded-lg h-20 flex flex-col justify-between">
+                        <div className="p-2.5 bg-white border border-slate-200 rounded-lg h-20 shadow-sm flex flex-col justify-between">
                           <div>
-                            <div className="text-[7px] uppercase font-bold tracking-wider text-slate-500">Study Progress</div>
-                            <div className="text-white font-extrabold text-[9px] mt-0.5">12.5 hrs</div>
+                            <div className="text-[7px] uppercase font-bold tracking-wider text-slate-400">Study Progress</div>
+                            <div className="text-[#0E3E31] font-extrabold text-[9px] mt-0.5">12.5 hrs</div>
                           </div>
                           <div className="flex items-end gap-1 h-8 pb-1">
-                            <div className="bg-indigo-650/40 w-1.5 h-3 rounded-t" />
-                            <div className="bg-indigo-650/40 w-1.5 h-5 rounded-t" />
-                            <div className="bg-indigo-650/40 w-1.5 h-4 rounded-t" />
-                            <div className="bg-indigo-650 w-1.5 h-7 rounded-t" />
-                            <div className="bg-indigo-650 w-1.5 h-6 rounded-t" />
+                            <div className="bg-[#E6F2ED] w-1.5 h-3 rounded-t" />
+                            <div className="bg-[#E6F2ED] w-1.5 h-5 rounded-t" />
+                            <div className="bg-[#E6F2ED] w-1.5 h-4 rounded-t" />
+                            <div className="bg-[#0E3E31] w-1.5 h-7 rounded-t" />
+                            <div className="bg-[#0E3E31] w-1.5 h-6 rounded-t" />
                           </div>
                         </div>
                       </div>
 
-                      <div className="p-2.5 bg-slate-900 border border-white/5 rounded-lg space-y-1">
-                        <div className="text-[7px] uppercase font-bold tracking-wider text-slate-500">Recent Notes</div>
-                        <div className="flex justify-between items-center text-[7px] text-slate-400 border-b border-white/5 pb-0.5">
+                      <div className="p-2.5 bg-white border border-slate-200 rounded-lg space-y-1 shadow-sm">
+                        <div className="text-[7px] uppercase font-bold tracking-wider text-slate-450">Recent Notes</div>
+                        <div className="flex justify-between items-center text-[7px] text-slate-600 border-b border-slate-100 pb-0.5">
                           <span>DBMS - Normalization</span>
                           <span>by Prasad</span>
                         </div>
-                        <div className="flex justify-between items-center text-[7px] text-slate-400">
+                        <div className="flex justify-between items-center text-[7px] text-slate-600">
                           <span>Operating Systems</span>
                           <span>by Swathi</span>
                         </div>
@@ -1114,33 +1253,33 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="absolute right-0 bottom-[-15px] border-[5px] border-slate-800 bg-[#0E0F15] rounded-[24px] shadow-2xl overflow-hidden aspect-[9/19] w-[130px] z-20">
-                  <div className="w-full h-full bg-[#0E1017] text-white p-2 text-[7px] select-none flex flex-col justify-between text-left">
+                <div className="absolute right-0 bottom-[-15px] border-[5px] border-slate-300 bg-white rounded-[24px] shadow-2xl overflow-hidden aspect-[9/19] w-[130px] z-20">
+                  <div className="w-full h-full bg-[#FAFCFB] text-slate-800 p-2 text-[7px] select-none flex flex-col justify-between text-left border border-slate-200 rounded-[20px]">
                     <div className="space-y-2">
-                      <div className="border-b border-white/5 pb-1 flex justify-between items-center">
-                        <span className="font-bold text-[8px] text-indigo-400">Live Room</span>
-                        <span className="text-[6px] text-emerald-400 font-bold uppercase tracking-wider animate-pulse flex items-center gap-0.5">
+                      <div className="border-b border-slate-200 pb-1 flex justify-between items-center">
+                        <span className="font-bold text-[8px] text-[#0E3E31]">Live Room</span>
+                        <span className="text-[6px] text-emerald-600 font-bold uppercase tracking-wider animate-pulse flex items-center gap-0.5">
                           <span className="h-1 w-1 bg-emerald-500 rounded-full" /> Live
                         </span>
                       </div>
 
                       <div className="space-y-1.5">
                         {['Swathi', 'Shreya', 'Sridhar'].map((name) => (
-                          <div key={name} className="flex items-center justify-between text-[7px] text-slate-350">
+                          <div key={name} className="flex items-center justify-between text-[7px] text-slate-600">
                             <span className="truncate flex items-center gap-1">
-                              <span className="h-4 w-4 bg-slate-800 rounded-full text-[6px] flex items-center justify-center font-bold text-white">{name[0]}</span> {name}
+                              <span className="h-4 w-4 bg-slate-100 border border-slate-200 rounded-full text-[6px] flex items-center justify-center font-bold text-slate-700">{name[0]}</span> {name}
                             </span>
-                            <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
                           </div>
                         ))}
-                        <div className="flex items-center justify-between text-[7px] text-slate-350">
-                          <span className="truncate flex items-center gap-1"><span className="h-4 w-4 bg-[#E11D48] rounded-full text-[6px] flex items-center justify-center font-bold text-white">C</span> Charan</span>
-                          <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                        <div className="flex items-center justify-between text-[7px] text-slate-600">
+                          <span className="truncate flex items-center gap-1"><span className="h-4 w-4 bg-slate-100 border border-slate-200 rounded-full text-[6px] flex items-center justify-center font-bold text-slate-700">C</span> Charan</span>
+                          <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
                         </div>
                       </div>
                     </div>
 
-                    <button className="w-full py-1 bg-[#E11D48] text-white text-[7px] font-bold rounded-lg cursor-pointer text-center select-none shadow-sm shadow-rose-900/10">End Session</button>
+                    <button className="w-full py-1 bg-red-600 hover:bg-red-750 text-white text-[7px] font-bold rounded-lg cursor-pointer text-center select-none shadow-sm shadow-red-900/10">End Session</button>
                   </div>
                 </div>
               </div>
@@ -1149,11 +1288,11 @@ export default function Home() {
         </section>
 
         {/* 5. Public Workspaces Lobby Section */}
-        <section id="lobby-section" className="bg-white py-16 w-full text-slate-900 border-b border-slate-100">
+        <section id="lobby-section" className="bg-[#FAFCFB] py-16 w-full text-slate-900 border-b border-slate-100">
           <div className="max-w-7xl mx-auto px-6 space-y-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 text-left">
               <div className="space-y-1">
-                <span className="text-[10px] font-extrabold uppercase bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 px-3 py-1 rounded-full tracking-wider">Public Lobbies</span>
+                <span className="text-[10px] font-extrabold uppercase bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] px-3 py-1 rounded-full tracking-wider">Public Lobbies</span>
                 <h2 className="text-xl md:text-2xl font-black text-slate-900 uppercase tracking-tight">Public Circles Board</h2>
                 <p className="text-xs text-slate-500">Browse and join active study lounges from engineering college clusters without invite codes.</p>
               </div>
@@ -1167,10 +1306,10 @@ export default function Home() {
 
             {loadingLobby && publicCircles.length === 0 ? (
               <div className="flex justify-center py-10">
-                <RefreshCw className="h-6 w-6 text-indigo-500 animate-spin" />
+                <RefreshCw className="h-6 w-6 text-[#0E3E31] animate-spin" />
               </div>
             ) : publicCircles.length === 0 ? (
-              <div className="text-center py-12 bg-slate-50 border border-slate-200/60 rounded-3xl">
+              <div className="text-center py-12 bg-white border border-slate-200/60 rounded-3xl">
                 <Users className="h-8 w-8 text-slate-400 mx-auto mb-2" />
                 <p className="text-xs font-semibold text-slate-500">No public study circles available at this moment.</p>
               </div>
@@ -1179,26 +1318,26 @@ export default function Home() {
                 {publicCircles.map((circle) => (
                   <div 
                     key={circle.id}
-                    className="group relative p-6 bg-slate-50 border border-slate-200/60 hover:border-[#4F46E5]/30 rounded-[24px] transition-all duration-300 flex flex-col justify-between shadow-sm"
+                    className="group relative p-6 bg-white border border-slate-200/80 hover:border-[#0E3E31]/30 rounded-[24px] transition-all duration-300 flex flex-col justify-between shadow-sm shadow-slate-100/50"
                   >
                     <div className="space-y-4">
                       <div className="flex justify-between items-start">
-                        <span className="text-[9px] font-extrabold uppercase bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 px-2 py-0.5 rounded">
+                        <span className="text-[9px] font-extrabold uppercase bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] px-2 py-0.5 rounded">
                           Public Lounge
                         </span>
-                        <span className="text-[9px] font-bold text-slate-400 font-mono">
+                        <span className="text-[9px] font-bold text-[#F59E0B] font-mono">
                           Code: {circle.inviteCode}
                         </span>
                       </div>
 
                       <div className="space-y-1.5">
-                        <h4 className="text-sm font-extrabold text-slate-900 group-hover:text-[#4F46E5] transition-colors">
+                        <h4 className="text-sm font-extrabold text-slate-900 group-hover:text-[#0E3E31] transition-colors">
                           {circle.name}
                         </h4>
-                        <div className="text-[10px] text-[#4F46E5] font-bold uppercase tracking-wide">
+                        <div className="text-[10px] text-[#0E3E31] font-bold uppercase tracking-wide">
                           {circle.subject || 'Engineering'}
                         </div>
-                        <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
+                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 font-semibold">
                           {circle.description || 'Structured study circles, desking presence indicators, and notes lists.'}
                         </p>
                       </div>
@@ -1206,13 +1345,13 @@ export default function Home() {
 
                     <div className="pt-4 mt-6 border-t border-slate-100 flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-[10px] text-slate-450 font-bold uppercase tracking-wider">
-                        <Users className="h-3.5 w-3.5 text-indigo-650" />
+                        <Users className="h-3.5 w-3.5 text-[#0E3E31]" />
                         <span>Lounge Desk</span>
                       </div>
                       <button
                         onClick={() => joinPublicGroup(circle.id)}
                         disabled={globalLoading}
-                        className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338ca] disabled:opacity-60 text-[10px] font-bold text-white rounded-xl flex items-center gap-1 cursor-pointer transition-all shadow-md shadow-indigo-600/10"
+                        className="px-4 py-2 bg-[#0E3E31] hover:bg-[#0B3026] disabled:opacity-60 text-[10px] font-bold text-white rounded-xl flex items-center gap-1 cursor-pointer transition-all shadow-md shadow-[#0E3E31]/10"
                       >
                         Join Circle <ExternalLink className="h-3 w-3" />
                       </button>
@@ -1224,16 +1363,41 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Bottom Stats Ticker Banner */}
+        <section className="bg-[#FAFCFB] py-12">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="bg-[#0E3E31] rounded-[32px] p-8 md:p-12 text-white shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-[#E6F2ED]/10 rounded-full blur-3xl pointer-events-none" />
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4 relative z-10 text-center items-center divide-y md:divide-y-0 md:divide-x divide-white/10">
+                <div className="space-y-1 md:px-4">
+                  <div className="text-4xl md:text-5xl font-black tracking-tight text-white">10,000+</div>
+                  <div className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#E6F2ED]">Active Students</div>
+                </div>
+                <div className="space-y-1 pt-6 md:pt-0 md:px-4">
+                  <div className="text-4xl md:text-5xl font-black tracking-tight text-white">50+</div>
+                  <div className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#E6F2ED]">Colleges Connected</div>
+                </div>
+                <div className="space-y-1 pt-6 md:pt-0 md:px-4">
+                  <div className="text-4xl md:text-5xl font-black tracking-tight text-white">150,000+</div>
+                  <div className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#E6F2ED]">Study Hours Logged</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* 5.5 About Us Section */}
-        <section id="about-section" className="bg-gradient-to-b from-white to-[#050814] py-20 text-slate-900 border-b border-white/[0.04]">
+        <section id="about-section" className="bg-white py-20 text-slate-900 border-b border-slate-100">
           <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-16 items-center text-left">
             <div className="lg:col-span-5 space-y-6">
-              <span className="text-[10px] font-extrabold uppercase bg-indigo-500/10 border border-indigo-500/20 text-[#4F46E5] px-3 py-1 rounded-full tracking-wider">ABOUT US</span>
+              <span className="text-[10px] font-extrabold uppercase bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] px-3 py-1 rounded-full tracking-wider">ABOUT US</span>
               <h2 className="text-3xl font-black text-slate-900 leading-tight">
                 Empowering college campus <br />
-                communities to <span className="text-[#4F46E5]">grow together.</span>
+                communities to <span className="text-[#0E3E31]">grow together.</span>
               </h2>
-              <p className="text-xs md:text-sm text-slate-650 leading-relaxed font-semibold">
+              <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-semibold">
                 StudyCircle is a dedicated virtual workspace designed specifically for engineering and degree college clusters in Andhra Pradesh and Telangana (including Vijayawada, Guntur, Vizag, and Hyderabad).
               </p>
               <p className="text-xs md:text-sm text-slate-650 leading-relaxed font-semibold">
@@ -1243,19 +1407,81 @@ export default function Home() {
             
             <div className="lg:col-span-7 grid sm:grid-cols-2 gap-6">
               {[
-                { icon: Users, bg: 'indigo', title: 'Focused Learning', desc: 'Restoring concentration with dedicated live desks, quiet zones, and presence tracking.' },
-                { icon: TrendingUp, bg: 'pink', title: 'Peer Motivation', desc: 'Building consistency with streak counters, target hours, and campus leaderboards.' },
-                { icon: BookOpen, bg: 'blue', title: 'Open Collaboration', desc: 'Instantly sharing blueprints, notes lists, syllabus trackers, and questions.' },
-                { icon: Shield, bg: 'emerald', title: 'Campus Verification', desc: 'Securing student gates with dynamic OTP verifications and mentor approvals.' },
-              ].map(({ icon: Icon, bg, title, desc }) => (
-                <div key={title} className="p-6 bg-white/65 backdrop-blur-md border border-slate-200/80 rounded-3xl space-y-3 hover:scale-[1.02] transition-transform shadow-sm">
-                  <div className={`h-10 w-10 rounded-2xl bg-${bg}-50 border border-${bg}-100 flex items-center justify-center text-${bg}-500 shadow-inner`}>
-                    <Icon className="h-5 w-5" />
+                { icon: Users, bg: 'mint', title: 'Focused Learning', desc: 'Restoring concentration with dedicated live desks, quiet zones, and presence tracking.', bgCol: '#E6F2ED', borderCol: '#0E3E31', textCol: '#0E3E31' },
+                { icon: TrendingUp, bg: 'orange', title: 'Peer Motivation', desc: 'Building consistency with streak counters, target hours, and campus leaderboards.', bgCol: '#FFF5F0', borderCol: '#F97316', textCol: '#F97316' },
+                { icon: BookOpen, bg: 'amber', title: 'Open Collaboration', desc: 'Instantly sharing blueprints, notes lists, syllabus trackers, and questions.', bgCol: '#FFF9F0', borderCol: '#F59E0B', textCol: '#F59E0B' },
+                { icon: Shield, bg: 'mint', title: 'Campus Verification', desc: 'Securing student gates with dynamic OTP verifications and mentor approvals.', bgCol: '#E6F2ED', borderCol: '#0E3E31', textCol: '#0E3E31' },
+              ].map(({ icon: Icon, title, desc, bgCol, borderCol, textCol }) => (
+                <div key={title} className="p-6 bg-slate-50 border border-slate-200/80 rounded-3xl space-y-3 hover:scale-[1.02] transition-all shadow-sm hover:border-[#0E3E31]/20">
+                  <div className="h-10 w-10 rounded-2xl flex items-center justify-center shadow-inner" style={{ backgroundColor: bgCol, border: `1px solid ${borderCol}20` }}>
+                    <Icon className="h-5 w-5" style={{ color: textCol }} />
                   </div>
                   <h4 className="text-xs font-black uppercase text-slate-900">{title}</h4>
-                  <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">{desc}</p>
+                  <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">{desc}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 5.6 Interactive FAQ Accordion Section */}
+        <section id="faq-section" className="bg-[#FAFCFB] py-20 relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/4 w-[350px] h-[350px] bg-[#E6F2ED]/30 rounded-full blur-[120px] pointer-events-none" />
+          
+          <div className="max-w-4xl mx-auto px-6 space-y-10 relative z-10">
+            <div className="text-center space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#0E3E31] bg-[#E6F2ED] border border-[#0E3E31]/10 px-3 py-1 rounded-full">FAQ</span>
+              <h2 className="text-2xl md:text-4xl font-black text-slate-900">Frequently Asked Questions</h2>
+              <p className="text-xs text-slate-500 max-w-md mx-auto font-semibold">Got questions about StudyCircle? Here is everything you need to know about the platform.</p>
+            </div>
+
+            <div className="space-y-4">
+              {[
+                {
+                  q: "What is StudyCircle?",
+                  a: "StudyCircle is a dedicated virtual workspace built specifically for engineering and degree college clusters. It helps students join forces, co-study in distraction-free virtual rooms, share syllabus notes, and maintain consistency streaks together."
+                },
+                {
+                  q: "Is it restricted to specific colleges in Andhra Pradesh & Telangana?",
+                  a: "While StudyCircle integrates predefined configurations for leading regional institutions (such as VRSEC, PVPSIT, VIT-AP, KL University, RVR&JC, Gitam, AU, JNTU, CBIT, etc.), any student can register and choose 'Other College / University' to set up their custom study workspace."
+                },
+                {
+                  q: "How do Live Study Rooms work?",
+                  a: "Live Study Rooms allow you to study quietly alongside peers. It tracks presence and logs your study duration directly to your consistency board. You can mute/unmute audio or video, manage a focal checklist, and prepare for exams without off-task distractions."
+                },
+                {
+                  q: "What is the role of a Mentor on the platform?",
+                  a: "Mentors are verified coordinators (often professors or senior leads) who oversee circles. They manage schedules, publish official study material blueprint files, send alerts/nudges to inactive or low-focus students, and maintain campus-level coordinator approvals."
+                },
+                {
+                  q: "Is my session data secured?",
+                  a: "Yes. StudyCircle implements secure JSON Web Tokens (JWT) for user sessions, which are securely persisted and validated across browser tabs. In addition, student registrations require verification to maintain workspace security."
+                }
+              ].map((item, index) => {
+                const isOpen = expandedFaq === index;
+                return (
+                  <div 
+                    key={index} 
+                    className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden transition-all duration-300 shadow-sm"
+                  >
+                    <button
+                      onClick={() => setExpandedFaq(isOpen ? null : index)}
+                      className="w-full px-6 py-4 flex items-center justify-between text-left text-xs font-black uppercase tracking-wider text-slate-800 hover:text-[#0E3E31] hover:bg-slate-50 cursor-pointer transition-colors"
+                    >
+                      <span>{item.q}</span>
+                      <ChevronRight className={`h-4 w-4 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-90 text-[#0E3E31]' : ''}`} />
+                    </button>
+                    
+                    <div 
+                      className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-40 border-t border-slate-100 bg-slate-50/50' : 'max-h-0'}`}
+                    >
+                      <div className="p-6 text-xs text-slate-600 leading-relaxed font-semibold">
+                        {item.a}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -1263,13 +1489,13 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full border-t border-white/5 bg-[#03060d] py-8">
+      <footer className="w-full border-t border-slate-200 bg-white py-8">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 text-left">
           <div>
             © 2026 StudyCircle. Dedicated to learning spaces in Vijayawada, Guntur, Vizag, Hyderabad, and AP/Telangana cluster colleges.
           </div>
           <div className="flex gap-4">
-            <span className="font-bold text-slate-400">AP & Telangana Degree Cluster Workspace</span>
+            <span className="font-bold text-slate-700">AP & Telangana Degree Cluster Workspace</span>
           </div>
         </div>
       </footer>
@@ -1282,24 +1508,24 @@ export default function Home() {
             className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity cursor-pointer"
           />
           
-          <div className="relative w-full max-w-lg bg-[#0a0f1d]/90 border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-xl z-10 text-left animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
+          <div className="relative w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-8 shadow-2xl z-10 text-left animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
             <button 
               onClick={() => setShowAuthModal(false)}
-              className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-white/5"
+              className="absolute top-6 right-6 text-slate-400 hover:text-slate-900 transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-slate-100"
             >
               ✕
             </button>
 
             <div className="text-center space-y-2 mb-6">
-              <div className="inline-flex h-10 w-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#818CF8] items-center justify-center">
+              <div className="inline-flex h-10 w-10 rounded-full bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] items-center justify-center">
                 <Lock className="h-5 w-5" />
               </div>
-              <h3 className="text-xl font-black text-white">
+              <h3 className="text-xl font-black text-slate-900">
                 {authMode === 'login' && 'Welcome to StudyCircle'}
                 {authMode === 'register' && 'Create Your Account'}
                 {authMode === 'forgot' && 'Reset Password'}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-550 font-bold">
                 {authMode === 'login' && 'Log in to access your student or mentor workspace'}
                 {authMode === 'register' && 'Join the AP & Telangana degree cluster lounge'}
                 {authMode === 'forgot' && 'Recover your credentials via registered contact'}
@@ -1308,18 +1534,18 @@ export default function Home() {
 
             {authMode === 'login' && (
               <form onSubmit={handleLogin} className="space-y-4">
-                <div className="flex bg-[#0e1428] p-1 rounded-xl border border-white/5">
+                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60">
                   <button
                     type="button"
                     onClick={() => setActivePortal('student')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${activePortal === 'student' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${activePortal === 'student' ? 'bg-[#0E3E31] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'}`}
                   >
                     Student Portal
                   </button>
                   <button
                     type="button"
                     onClick={() => setActivePortal('mentor')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${activePortal === 'mentor' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${activePortal === 'mentor' ? 'bg-[#0E3E31] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'}`}
                   >
                     Mentor / Admin
                   </button>
@@ -1327,36 +1553,36 @@ export default function Home() {
 
                 <div className="space-y-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Username</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Username</label>
                     <div className="relative">
-                      <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                      <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                       <input
                         type="text"
                         placeholder="Enter your username"
                         value={loginUser}
                         onChange={(e) => setLoginUser(e.target.value)}
-                        className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#0E3E31]/50 focus:bg-white outline-none transition-all"
                         required
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Password</label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                      <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                       <input
                         type={showLoginPass ? 'text' : 'password'}
                         placeholder="Enter your password"
                         value={loginPass}
                         onChange={(e) => setLoginPass(e.target.value)}
-                        className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#0E3E31]/50 focus:bg-white outline-none transition-all"
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowLoginPass(!showLoginPass)}
-                        className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-bold"
+                        className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-800 text-xs font-bold"
                       >
                         {showLoginPass ? 'Hide' : 'Show'}
                       </button>
@@ -1368,7 +1594,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => setAuthMode('forgot')}
-                    className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                    className="text-[#0E3E31] hover:text-[#0B3026] transition-colors"
                   >
                     Forgot Password?
                   </button>
@@ -1377,17 +1603,17 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="w-full py-3 bg-[#4F46E5] hover:bg-[#4338ca] disabled:bg-indigo-650/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-[#0E3E31] hover:bg-[#0B3026] disabled:bg-[#0E3E31]/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#0E3E31]/10 transition-all flex items-center justify-center gap-2"
                 >
                   {formLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
                   Log In to {activePortal === 'student' ? 'Student' : 'Mentor/Admin'} Desk
                 </button>
                 <div className="text-center pt-2">
-                  <span className="text-[10px] text-slate-400">Don't have an account? </span>
+                  <span className="text-[10px] text-slate-500">Don't have an account? </span>
                   <button
                     type="button"
                     onClick={() => { setShowAuthModal(false); router.push('/register'); }}
-                    className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 transition-colors"
+                    className="text-[10px] font-black text-[#0E3E31] hover:text-[#0B3026] transition-colors"
                   >
                     Sign Up
                   </button>
@@ -1399,7 +1625,7 @@ export default function Home() {
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div className="space-y-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Username or Contact (Email/Phone)</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Username or Contact (Email/Phone)</label>
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -1407,14 +1633,14 @@ export default function Home() {
                         value={forgotUser}
                         onChange={(e) => setForgotUser(e.target.value)}
                         disabled={forgotOtpSent}
-                        className="flex-1 bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all disabled:opacity-50"
+                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#0E3E31]/50 focus:bg-white outline-none transition-all disabled:opacity-50"
                         required
                       />
                       <button
                         type="button"
                         onClick={sendResetOtp}
                         disabled={formLoading || forgotOtpSent}
-                        className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-700/30 text-white rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                        className="px-4 py-2.5 bg-[#0E3E31] hover:bg-[#0B3026] disabled:bg-[#0E3E31]/20 text-white rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
                       >
                         {forgotOtpSent ? 'Sent ✓' : 'Send Code'}
                       </button>
@@ -1424,33 +1650,33 @@ export default function Home() {
                   {forgotOtpSent && (
                     <>
                       <div className="space-y-1 animate-in fade-in duration-200">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Verification Code (OTP)</label>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Verification Code (OTP)</label>
                         <input
                           type="text"
                           placeholder="Enter 6-digit OTP code"
                           value={forgotOtp}
                           onChange={(e) => setForgotOtp(e.target.value)}
-                          className="w-full bg-[#0a0e1c] border border-indigo-500/30 rounded-xl px-4 py-2.5 text-xs text-white font-mono text-center tracking-widest placeholder-slate-600 focus:border-indigo-500 outline-none transition-all"
+                          className="w-full bg-slate-50 border border-[#0E3E31]/30 rounded-xl px-4 py-2.5 text-xs text-slate-805 font-mono text-center tracking-widest placeholder-slate-400 focus:border-[#0E3E31] outline-none transition-all"
                           required
                         />
                       </div>
 
                       <div className="space-y-1 animate-in fade-in duration-200">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">New Password</label>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">New Password</label>
                         <div className="relative">
-                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                           <input
                             type={showForgotPass ? 'text' : 'password'}
                             placeholder="Enter new password"
                             value={forgotNewPass}
                             onChange={(e) => setForgotNewPass(e.target.value)}
-                            className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#0E3E31]/50 focus:bg-white outline-none transition-all"
                             required
                           />
                           <button
                             type="button"
                             onClick={() => setShowForgotPass(!showForgotPass)}
-                            className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-bold"
+                            className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-850 text-xs font-bold"
                           >
                             {showForgotPass ? 'Hide' : 'Show'}
                           </button>
@@ -1463,7 +1689,7 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={formLoading || !forgotOtpSent}
-                  className="w-full py-3 bg-[#4F46E5] hover:bg-[#4338ca] disabled:bg-indigo-650/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 transition-all flex items-center justify-center gap-2 mt-4"
+                  className="w-full py-3 bg-[#0E3E31] hover:bg-[#0B3026] disabled:bg-[#0E3E31]/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#0E3E31]/10 transition-all flex items-center justify-center gap-2 mt-4"
                 >
                   {formLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
                   Reset Password & Log In
@@ -1473,7 +1699,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => setAuthMode('login')}
-                    className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 transition-colors"
+                    className="text-[10px] font-black text-[#0E3E31] hover:text-[#0B3026] transition-colors"
                   >
                     Back to Login
                   </button>
@@ -1491,48 +1717,48 @@ export default function Home() {
             onClick={() => setShowProfileEdit(false)}
             className="absolute inset-0 bg-black/70 backdrop-blur-md cursor-pointer"
           />
-          <div className="relative w-full max-w-md bg-[#0a0f1d]/95 border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-xl z-10 text-left animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-md bg-white border border-slate-200 rounded-3xl p-8 shadow-2xl z-10 text-left animate-in fade-in zoom-in-95 duration-200">
             <button
               onClick={() => setShowProfileEdit(false)}
-              className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-white/5"
+              className="absolute top-6 right-6 text-slate-400 hover:text-slate-900 transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-slate-100"
             >
               ✕
             </button>
 
             <div className="text-center space-y-2 mb-6">
-              <div className="inline-flex h-10 w-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#818CF8] items-center justify-center">
+              <div className="inline-flex h-10 w-10 rounded-full bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] items-center justify-center">
                 <Edit3 className="h-5 w-5" />
               </div>
-              <h3 className="text-xl font-black text-white">Edit Profile</h3>
-              <p className="text-xs text-slate-400">Update your display name</p>
+              <h3 className="text-xl font-black text-slate-900 font-sans">Edit Profile</h3>
+              <p className="text-xs text-slate-500 font-semibold">Update your display name</p>
             </div>
 
             <form onSubmit={handleSaveProfile} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">First Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">First Name</label>
                 <input
                   type="text"
                   placeholder="Your first name"
                   value={profileFirstName}
                   onChange={(e) => setProfileFirstName(e.target.value)}
-                  className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#0E3E31]/50 focus:bg-white outline-none transition-all"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Last Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Last Name</label>
                 <input
                   type="text"
                   placeholder="Your last name"
                   value={profileLastName}
                   onChange={(e) => setProfileLastName(e.target.value)}
-                  className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-805 placeholder-slate-400 focus:border-[#0E3E31]/50 focus:bg-white outline-none transition-all"
                   required
                 />
               </div>
 
-              <div className="p-3 bg-white/[0.03] border border-white/5 rounded-xl text-[10px] text-slate-400 font-medium">
+              <div className="p-3 bg-[#E6F2ED]/60 border border-[#0E3E31]/10 rounded-xl text-[10px] text-slate-600 font-semibold">
                 Username and contact information cannot be changed here. Contact support if needed.
               </div>
 
@@ -1540,14 +1766,14 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setShowProfileEdit(false)}
-                  className="flex-1 py-2.5 border border-white/10 hover:border-white/20 hover:bg-white/5 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+                  className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={profileSaving}
-                  className="flex-1 py-2.5 bg-[#4F46E5] hover:bg-[#4338ca] disabled:opacity-60 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-indigo-600/15 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 py-2.5 bg-[#0E3E31] hover:bg-[#0B3026] disabled:opacity-60 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-[#0E3E31]/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {profileSaving && <RefreshCw className="h-3 w-3 animate-spin" />}
                   Save Changes
@@ -1563,16 +1789,16 @@ export default function Home() {
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
           <button
             onClick={() => setShowInbox(!showInbox)}
-            className="h-14 w-14 rounded-full bg-slate-900/95 hover:bg-slate-800 border-2 border-indigo-500/35 hover:border-indigo-400 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-all active:scale-95 cursor-pointer relative group animate-bounce"
+            className="h-14 w-14 rounded-full bg-white hover:bg-slate-50 border-2 border-[#0E3E31]/30 hover:border-[#0E3E31]/65 text-[#0E3E31] flex items-center justify-center shadow-2xl backdrop-blur-md transition-all active:scale-95 cursor-pointer relative group animate-bounce"
             title="Open Mock Inbox"
           >
-            <Mail className="h-6 w-6 text-indigo-400 group-hover:text-indigo-300 transition-colors" />
+            <Mail className="h-6 w-6 text-[#0E3E31] group-hover:scale-110 transition-transform" />
             {unreadInboxCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1.5 rounded-full bg-rose-500 border border-slate-950 text-[10px] font-black text-white flex items-center justify-center shrink-0 shadow-md">
+              <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1.5 rounded-full bg-rose-500 border border-white text-[10px] font-black text-white flex items-center justify-center shrink-0 shadow-md">
                 {unreadInboxCount}
               </span>
             )}
-            <span className="absolute right-16 scale-0 group-hover:scale-100 transition-all duration-150 origin-right bg-[#0E1017] border border-white/10 text-slate-300 text-[10px] font-bold px-2.5 py-1.5 rounded-xl whitespace-nowrap shadow-xl">
+            <span className="absolute right-16 scale-0 group-hover:scale-100 transition-all duration-150 origin-right bg-white border border-slate-200 text-slate-700 text-[10px] font-black px-2.5 py-1.5 rounded-xl whitespace-nowrap shadow-xl">
               Developer Mock Inbox ({unreadInboxCount})
             </span>
           </button>
@@ -1587,20 +1813,20 @@ export default function Home() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
           />
           
-          <div className="relative w-full max-w-md bg-[#090D1A]/95 border-l border-white/10 h-full shadow-2xl flex flex-col backdrop-blur-lg animate-in slide-in-from-right duration-300 z-10 text-left">
-            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+          <div className="relative w-full max-w-md bg-white border-l border-slate-200 h-full shadow-2xl flex flex-col backdrop-blur-lg animate-in slide-in-from-right duration-300 z-10 text-left">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#818CF8] flex items-center justify-center shrink-0">
+                <div className="h-8 w-8 rounded-full bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] flex items-center justify-center shrink-0">
                   <Mail className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-black text-white uppercase tracking-wider">Developer Mock Inbox</h3>
-                  <p className="text-[9px] text-slate-450 font-semibold">Simulating email receipts for local debugging</p>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Developer Mock Inbox</h3>
+                  <p className="text-[9px] text-slate-500 font-semibold font-sans">Simulating email receipts for local debugging</p>
                 </div>
               </div>
               <button 
                 onClick={() => setShowInbox(false)}
-                className="text-slate-400 hover:text-white transition-colors cursor-pointer text-sm p-1.5 rounded-lg hover:bg-white/5"
+                className="text-slate-400 hover:text-slate-900 transition-colors cursor-pointer text-sm p-1.5 rounded-lg hover:bg-slate-100"
               >
                 ✕
               </button>
@@ -1609,45 +1835,45 @@ export default function Home() {
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {inboxEmails.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-3 py-16 opacity-60">
-                  <div className="h-12 w-12 rounded-full border border-dashed border-slate-700 flex items-center justify-center text-slate-500">
+                  <div className="h-12 w-12 rounded-full border border-dashed border-slate-350 flex items-center justify-center text-slate-400 text-lg">
                     📬
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs font-bold text-white">No Emails Received Yet</p>
-                    <p className="text-[10px] text-slate-500 leading-normal max-w-[200px]">Send an OTP from a gate (student, mentor, admin, or reset) to capture email payloads here.</p>
+                    <p className="text-xs font-black text-slate-800">No Emails Received Yet</p>
+                    <p className="text-[10px] text-slate-500 leading-normal max-w-[200px] font-semibold">Send an OTP from a gate (student, mentor, admin, or reset) to capture email payloads here.</p>
                   </div>
                 </div>
               ) : (
                 inboxEmails.map((email: any) => (
                   <div 
                     key={email.id}
-                    className="p-4 bg-slate-900/80 border border-white/5 rounded-2xl space-y-3 shadow-md hover:border-indigo-500/25 transition-all duration-200"
+                    className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-3 shadow-sm hover:border-[#0E3E31]/25 transition-all duration-200"
                   >
-                    <div className="flex justify-between items-start border-b border-white/5 pb-2">
+                    <div className="flex justify-between items-start border-b border-slate-200 pb-2">
                       <div>
-                        <span className="text-[9px] font-black uppercase text-indigo-400">Recipient</span>
-                        <h4 className="text-xs font-bold text-white truncate max-w-[220px]">{email.to}</h4>
+                        <span className="text-[9px] font-black uppercase text-[#0E3E31]">Recipient</span>
+                        <h4 className="text-xs font-bold text-slate-800 truncate max-w-[220px]">{email.to}</h4>
                       </div>
-                      <span className="text-[9px] font-medium text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-white/5">{email.createdAt}</span>
+                      <span className="text-[9px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/80">{email.createdAt}</span>
                     </div>
 
                     <div className="space-y-1.5">
-                      <span className="text-[9px] font-black uppercase text-indigo-400">Subject</span>
-                      <p className="text-xs font-extrabold text-slate-200">{email.subject}</p>
+                      <span className="text-[9px] font-black uppercase text-[#0E3E31]">Subject</span>
+                      <p className="text-xs font-extrabold text-slate-805">{email.subject}</p>
                     </div>
 
-                    <div className="p-3 bg-slate-950 border border-white/5 rounded-xl space-y-2">
-                      <span className="text-[9px] font-black uppercase text-indigo-400 block">Message Body</span>
-                      <p className="text-[10px] text-slate-400 font-mono leading-relaxed whitespace-pre-line">{email.body}</p>
+                    <div className="p-3 bg-white border border-slate-200/60 rounded-xl space-y-2">
+                      <span className="text-[9px] font-black uppercase text-[#0E3E31] block">Message Body</span>
+                      <p className="text-[10px] text-slate-650 font-mono leading-relaxed whitespace-pre-line">{email.body}</p>
                     </div>
 
                     <div className="flex items-center justify-between pt-1">
-                      <div className="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 px-3 py-1.5 rounded-xl text-xs font-mono font-black">
+                      <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 text-rose-600 px-3 py-1.5 rounded-xl text-xs font-mono font-black">
                         OTP: {email.otp}
                       </div>
                       <button
                         onClick={() => handleAutofillOtp(email)}
-                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/30 text-[10px] font-extrabold rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-600/15"
+                        className="px-3 py-1.5 bg-[#0E3E31] hover:bg-[#0B3026] text-white border border-[#0E3E31]/10 text-[10px] font-extrabold rounded-xl transition-all cursor-pointer shadow-md shadow-[#0E3E31]/10"
                       >
                         Autofill OTP
                       </button>
@@ -1657,10 +1883,10 @@ export default function Home() {
               )}
             </div>
 
-            <div className="p-6 border-t border-white/5 bg-slate-950 flex items-center justify-between gap-4">
+            <div className="p-6 border-t border-slate-150 bg-slate-50 flex items-center justify-between gap-4">
               <button
                 onClick={fetchMockInbox}
-                className="flex-1 py-2 border border-white/10 hover:border-white/20 hover:bg-white/5 text-white text-[10px] font-extrabold rounded-xl transition-all cursor-pointer text-center"
+                className="flex-1 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] font-extrabold rounded-xl transition-all cursor-pointer text-center"
               >
                 Refresh Inbox
               </button>
