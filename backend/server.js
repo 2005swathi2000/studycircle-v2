@@ -85,7 +85,7 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    await sequelize.sync();
+    await sequelize.sync({ alter: true });
     console.log('Database synced successfully.');
 
     // Seed if empty

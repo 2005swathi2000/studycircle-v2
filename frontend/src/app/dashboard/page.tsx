@@ -860,8 +860,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
   if (globalLoading || (loading && user)) {
     return (
       <div 
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: 'linear-gradient(135deg, #ffd2fc 0%, #e8dbfc 50%, #bde3ff 100%)' }}
+        className="min-h-screen flex items-center justify-center bg-[#D4D4FF]"
       >
         <RefreshCw className="h-8 w-8 text-[#5227EB] animate-spin" />
       </div>
@@ -1827,8 +1826,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
   return (
     <div 
-      className="min-h-screen text-slate-800 font-sans flex relative overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #ffd2fc 0%, #e8dbfc 50%, #bde3ff 100%)' }}
+      className="min-h-screen text-slate-800 font-sans flex relative overflow-hidden bg-[#D4D4FF]"
     >
       
       {/* 1. Left Sidebar */}
@@ -3172,10 +3170,12 @@ Based on your desking logs and consistency, the AI tutor recommends:
       {/* Auth Guard Login Overlay */}
       {!user && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'linear-gradient(135deg, #ffd2fc 0%, #e8dbfc 50%, #bde3ff 100%)' }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
         >
-          <div className="max-w-md w-full bg-white border border-slate-250 rounded-[32px] p-6 space-y-6 shadow-2xl text-left animate-in fade-in zoom-in-95 duration-250">
+          <div 
+            className="max-w-md w-full bg-white border border-slate-250 rounded-[32px] p-6 space-y-6 shadow-2xl text-left animate-in fade-in zoom-in-95 duration-250"
+            style={{ background: 'linear-gradient(135deg, #ffd2fc 0%, #e8dbfc 50%, #bde3ff 100%)' }}
+          >
             <div className="text-center space-y-2">
               <div className="h-12 w-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center mx-auto text-[#5227EB]">
                 <LayoutDashboard className="h-6 w-6" />
