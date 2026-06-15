@@ -157,6 +157,7 @@ export default function DashboardPage() {
   const [editBio, setEditBio] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const isNewMentor = true; // Forced zero state for new mentor dashboard
 
   // Profile details states
   const [editFirstName, setEditFirstName] = useState('');
@@ -1450,7 +1451,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
   // MENTOR DASHBOARD ("CLASSROOM COMMAND CENTER")
   // ==========================================
   const renderMentorDashboard = () => {
-    const isNewMentor = true;
+
 
     const managedGroupsCount = myGroups.length;
     const publishedNotesCount = notesList.filter(n => n.publishedBy?.includes(user?.fullName || '')).length;
@@ -2600,16 +2601,21 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
               {user?.role === 'mentor' ? (
                 <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
-                  <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-4 shadow-sm">
+                  {/* Class Focus Distribution Card */}
+                  <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-4 shadow-sm text-left">
                     <h4 className="text-xs font-black uppercase text-slate-400">Class Focus Distribution</h4>
                     <p className="text-xs text-slate-550 leading-relaxed font-semibold">
-                      Students in the Vijayawada cluster logged a combined total of <b>340.5 focus hours</b> this week. Peak classroom activity concentrates in the evenings.
+                      {isNewMentor ? (
+                        <>Students have logged a combined total of <b>0.0 focus hours</b> this week. Classroom activity insights will accumulate as students log focus sessions.</>
+                      ) : (
+                        <>Students in the Vijayawada cluster logged a combined total of <b>340.5 focus hours</b> this week. Peak classroom activity concentrates in the evenings.</>
+                      )}
                     </p>
                     <div className="space-y-3 pt-2">
                       {[
-                        { label: 'Vijayawada Cluster (VR Siddhartha)', progress: 85, hours: '180h' },
-                        { label: 'Guntur Cluster (RVR Siddhartha)', progress: 62, hours: '110h' },
-                        { label: 'Visakhapatnam Cluster (AU Campus)', progress: 40, hours: '50.5h' }
+                        { label: 'Vijayawada Cluster (VR Siddhartha)', progress: isNewMentor ? 0 : 85, hours: isNewMentor ? '0h' : '180h' },
+                        { label: 'Guntur Cluster (RVR Siddhartha)', progress: isNewMentor ? 0 : 62, hours: isNewMentor ? '0h' : '110h' },
+                        { label: 'Visakhapatnam Cluster (AU Campus)', progress: isNewMentor ? 0 : 40, hours: isNewMentor ? '0h' : '50.5h' }
                       ].map((item, idx) => (
                         <div key={idx} className="space-y-1">
                           <div className="flex justify-between text-[10px] font-extrabold text-slate-750">
@@ -2617,24 +2623,35 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             <span>{item.hours}</span>
                           </div>
                           <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
-                            <div className="h-full bg-[#5227EB] rounded-full" style={{ width: `${item.progress}%` }} />
+                            <div className="h-full bg-[#5227EB] rounded-full transition-all duration-500" style={{ width: `${item.progress}%` }} />
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-4 shadow-sm flex flex-col justify-between">
+                  {/* Subject Performance Benchmarks Card */}
+                  <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-4 shadow-sm flex flex-col justify-between text-left">
                     <div>
                       <h4 className="text-xs font-black uppercase text-slate-400 mb-2">Subject Performance Benchmarks</h4>
                       <p className="text-xs text-slate-550 leading-relaxed font-semibold">
-                        DBMS student cohorts show excellent syllabus coverage milestones, while Operating Systems groups continue to fall behind the mid-term target margins.
+                        {isNewMentor ? (
+                          <>Syllabus coverage milestones, top performers, and low-engagement alerts will accumulate here once students start desking inside workspaces.</>
+                        ) : (
+                          <>DBMS student cohorts show excellent syllabus coverage milestones, while Operating Systems groups continue to fall behind the mid-term target margins.</>
+                        )}
                       </p>
                     </div>
-                    <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl text-[10px] text-indigo-800 font-bold space-y-2">
-                      <p>🚀 Top Performer: DBMS (91% Engagement)</p>
-                      <p>⚠️ Alert: Operating Systems (65% Engagement - scheduled revision suggested)</p>
-                    </div>
+                    {isNewMentor ? (
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] text-slate-500 font-bold space-y-2">
+                        <p>No performance logs recorded yet. Top performers and low engagement alerts will populate as students study.</p>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl text-[10px] text-indigo-800 font-bold space-y-2">
+                        <p>🚀 Top Performer: DBMS (91% Engagement)</p>
+                        <p>⚠️ Alert: Operating Systems (65% Engagement - scheduled revision suggested)</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
