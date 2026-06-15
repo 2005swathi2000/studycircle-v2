@@ -1,5 +1,12 @@
-const NEXT_PUBLIC_API_URL_ENV = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-const BASE_URL = NEXT_PUBLIC_API_URL_ENV.endsWith('/api') ? NEXT_PUBLIC_API_URL_ENV : `${NEXT_PUBLIC_API_URL_ENV}/api`;
+let rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+// Enforce correct Render domain (k1l7) when running in production Vercel environment
+if (typeof window !== 'undefined' && 
+    (window.location.hostname.includes('vercel.app') || rawApiUrl.includes('studycircle-v2') || rawApiUrl.includes('studycircle-backend'))) {
+  rawApiUrl = 'https://studycircle-backend-k1l7.onrender.com/api';
+}
+
+const BASE_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
 export const getUserInfo = (): any => {
     if (typeof window !== 'undefined') {
