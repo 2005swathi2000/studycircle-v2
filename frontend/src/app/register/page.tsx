@@ -304,7 +304,7 @@ export default function RegisterPage() {
           otp: studentOtp
         })
       });
-      setCurrentUser(data.user);
+      setCurrentUser(data.user, data.token);
       showToast(data.message || 'Student account created successfully!', 'success');
       router.push('/dashboard');
     } catch (err: any) {
@@ -339,7 +339,7 @@ export default function RegisterPage() {
       });
       showToast(data.message || 'Mentor registered. Awaiting Admin Approval.', 'success');
       if (data.user && data.user.isApproved) {
-        setCurrentUser(data.user);
+        setCurrentUser(data.user, data.token);
         showToast('Approved automatically. Redirecting...', 'success');
         router.push('/dashboard');
       } else {

@@ -503,7 +503,7 @@ export default function Home() {
           otp: studentOtp
         })
       });
-      setCurrentUser(data.user);
+      setCurrentUser(data.user, data.token);
       showToast(data.message || 'Student account created successfully!', 'success');
       setShowAuthModal(false);
       router.push('/dashboard');
@@ -540,7 +540,7 @@ export default function Home() {
       });
       showToast(data.message || 'Mentor registered. Awaiting Admin Approval.', 'success');
       if (data.user && data.user.isApproved) {
-        setCurrentUser(data.user);
+        setCurrentUser(data.user, data.token);
         showToast('Approved automatically. Redirecting...', 'success');
         setShowAuthModal(false);
         router.push('/dashboard');
@@ -576,7 +576,7 @@ export default function Home() {
       });
       showToast(data.message || 'Admin registered. Awaiting Admin Approval.', 'success');
       if (data.user && data.user.isApproved) {
-        setCurrentUser(data.user);
+        setCurrentUser(data.user, data.token);
         showToast('Approved automatically. Redirecting...', 'success');
         router.push('/dashboard');
       } else {
@@ -607,7 +607,7 @@ export default function Home() {
           portal: activePortal
         })
       });
-      setCurrentUser(data.user);
+      setCurrentUser(data.user, data.token);
       showToast('Welcome back, ' + data.user.fullName + '!', 'success');
       setShowAuthModal(false);
       router.push('/dashboard');

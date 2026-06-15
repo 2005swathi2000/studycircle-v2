@@ -126,6 +126,13 @@ export default function DashboardPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const dataLoadedRef = useRef(false);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
   
   const { 
     user, 
@@ -178,7 +185,7 @@ export default function DashboardPage() {
           portal: loginPortal
         })
       });
-      setUser(data.user);
+      setUser(data.user, data.token);
       showToast('Welcome back, ' + data.user.fullName + '!', 'success');
       loadDashboardData(data.user);
     } catch (err: any) {
@@ -643,7 +650,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
       try {
         const meData = await apiRequest('/auth/me');
         if (meData.user) {
-          setUser(meData.user);
+          setUser(meData.user, meData.token || (typeof window !== 'undefined' ? localStorage.getItem('studycircle_token') : null));
           setEditFullName(meData.user.fullName || '');
           setEditFirstName(meData.user.firstName || '');
           setEditLastName(meData.user.lastName || '');
@@ -694,7 +701,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
       try {
         const meData = await apiRequest('/auth/me');
         if (meData.user) {
-          setUser(meData.user);
+          setUser(meData.user, meData.token || (typeof window !== 'undefined' ? localStorage.getItem('studycircle_token') : null));
           setEditFullName(meData.user.fullName || '');
           setEditFirstName(meData.user.firstName || '');
           setEditLastName(meData.user.lastName || '');
@@ -755,7 +762,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
         })
       });
       
-      setUser(res.user);
+      setUser(res.user, res.token || (typeof window !== 'undefined' ? localStorage.getItem('studycircle_token') : null));
       showToast('Profile updated successfully!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Failed to update profile.', 'error');
@@ -1008,12 +1015,12 @@ Based on your desking logs and consistency, the AI tutor recommends:
             
             {/* Row 1: Hero Card / Focus Session split */}
             <div className="grid md:grid-cols-2 gap-6">
-                          {/* Hero & Goals checklist card */}
+              {/* Hero & Goals checklist card */}
               <div className="bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-[24px] shadow-lg p-6 flex flex-col justify-between text-left relative overflow-hidden group text-white">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h2 className="text-lg font-black text-white leading-tight">Good Evening {user?.fullName ? user.fullName.split(' ')[0] : 'User'} 👋</h2>
-                    <p className="text-[10px] text-zinc-400 font-extrabold tracking-wide uppercase mt-1">Today's Goals</p>
+                    <h2 className="text-lg font-black text-white leading-tight">{getGreeting()} {user?.fullName ? user.fullName.split(' ')[0] : 'User'} 👋</h2>
+                    <p className="text-[10px] text-zinc-450 font-extrabold tracking-wide uppercase mt-1">Today's Goals</p>
                   </div>
                   {/* Overall progress ring */}
                   <div className="relative h-16 w-16 flex items-center justify-center shrink-0">
@@ -1217,6 +1224,12 @@ Based on your desking logs and consistency, the AI tutor recommends:
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/10 border border-white/15 rounded-full text-[9px] font-bold tracking-wide">
                 Level {Math.max(1, Math.floor(stats.totalStudyHours / 15) + 1)} ⭐️
               </span>
+              <button 
+                onClick={() => setActiveTab('settings')}
+                className="mt-1 px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-xl text-[9px] font-extrabold transition-all cursor-pointer flex items-center gap-1 border border-white/10"
+              >
+                <Settings className="h-3 w-3" /> Edit Profile
+              </button>
             </div>
 
             {/* Overall Content Progress Circle Card */}
@@ -1860,9 +1873,13 @@ Based on your desking logs and consistency, the AI tutor recommends:
         </div>
 
         {/* Profile Card */}
-        <div className="p-4 border-b border-slate-150 bg-slate-50/30 flex items-center justify-between gap-3">
+        <div 
+          onClick={() => setActiveTab('settings')}
+          className="p-4 border-b border-slate-150 bg-slate-50/30 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-100/50 transition-all group"
+          title="Click to Edit Profile"
+        >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden">
+            <div className="h-10 w-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden group-hover:border-indigo-300 transition-colors">
               <img 
                 src={user?.avatarUrl || getAvatarByName(user?.fullName)} 
                 className="absolute inset-0 h-full w-full object-cover" 
@@ -1870,11 +1887,11 @@ Based on your desking logs and consistency, the AI tutor recommends:
               />
             </div>
             <div className="min-w-0 text-left">
-              <div className="text-xs font-extrabold text-slate-900 truncate">{user?.fullName || 'User'}</div>
+              <div className="text-xs font-extrabold text-slate-900 group-hover:text-indigo-650 transition-colors truncate">{user?.fullName || 'User'}</div>
               <div className="text-[10px] font-bold text-slate-400 capitalize mt-0.5">{user?.role || 'Guest'}</div>
             </div>
           </div>
-          <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
+          <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-[#5227EB] transition-colors shrink-0" />
         </div>
 
         {/* Dynamic Sidebar Links */}

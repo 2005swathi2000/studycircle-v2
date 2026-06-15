@@ -40,6 +40,13 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     ...(options.headers as Record<string, string> || {}),
   };
 
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('studycircle_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     credentials: 'include',

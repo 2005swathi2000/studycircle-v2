@@ -20,6 +20,7 @@ export interface User {
   streakCount?: number;
   totalStudyHours?: number;
   bio?: string;
+  token?: string;
 }
 
 export interface NotificationItem {
@@ -35,7 +36,7 @@ export interface NotificationItem {
 
 export interface AppContextType {
   user: User | null;
-  setUser: (user: User | null) => void;
+  setUser: (user: User | null, token?: string | null) => void;
   notifications: NotificationItem[];
   setNotifications: React.Dispatch<React.SetStateAction<NotificationItem[]>>;
   unreadCount: number;
@@ -59,14 +60,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const setUser = (newUser: User | null) => {
+  const setUser = (newUser: User | null, token?: string | null) => {
     setUserState(newUser);
     if (typeof window !== 'undefined') {
       if (newUser) {
         localStorage.setItem('studycircle_user', JSON.stringify(newUser));
         localStorage.setItem('auth_session_active', 'true');
+        if (token) {
+          localStorage.setItem('studycircle_token', token);
+        } else if (newUser.token) {
+          localStorage.setItem('studycircle_token', newUser.token);
+        }
       } else {
         localStorage.removeItem('studycircle_user');
+        localStorage.removeItem('studycircle_token');
         localStorage.setItem('auth_session_active', 'false');
       }
     }
@@ -76,7 +83,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     try {
       const data = await apiRequest('/auth/me');
       if (data && data.user) {
-        setUser(data.user);
+        const activeToken = data.token || (typeof window !== 'undefined' ? localStorage.getItem('studycircle_token') : null);
+        setUser(data.user, activeToken);
         return data.user;
       } else {
         setUser(null);
