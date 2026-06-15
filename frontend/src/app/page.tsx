@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from './utils/api';
 import { useApp } from './context/AppContext';
@@ -33,7 +33,11 @@ import {
   Layers,
   Sparkles,
   Bell,
-  BookOpen
+  BookOpen,
+  Sun,
+  Sunset,
+  Moon,
+  Edit3
 } from 'lucide-react';
 
 const COLLEGES = [
@@ -51,6 +55,17 @@ const COLLEGES = [
   { code: 'ADITYA_UNI', name: 'Aditya University' },
   { code: 'OTHER', name: 'Other College / University' }
 ];
+
+// ─────────────────────────────────────────────
+// BUG FIX #2 — Time-based greeting helper
+// Returns { label, icon } based on current hour
+// ─────────────────────────────────────────────
+function getTimeGreeting(): { label: string; icon: 'sun' | 'sunset' | 'moon' } {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return { label: 'Good Morning', icon: 'sun' };
+  if (hour >= 12 && hour < 17) return { label: 'Good Afternoon', icon: 'sunset' };
+  return { label: 'Good Evening', icon: 'moon' };
+}
 
 export default function Home() {
   const router = useRouter();
@@ -159,6 +174,59 @@ export default function Home() {
   const [lastSentForgotUser, setLastSentForgotUser] = useState('');
   const lastSeenEmailIdRef = useRef<string | null>(null);
 
+  // ─────────────────────────────────────────────
+  // BUG FIX #2 — Time-based greeting state
+  // Updates every minute so it stays accurate
+  // ─────────────────────────────────────────────
+  const [greeting, setGreeting] = useState(getTimeGreeting());
+  useEffect(() => {
+    // Update immediately, then every 60 seconds
+    setGreeting(getTimeGreeting());
+    const greetInterval = setInterval(() => setGreeting(getTimeGreeting()), 60_000);
+    return () => clearInterval(greetInterval);
+  }, []);
+
+  // ─────────────────────────────────────────────
+  // BUG FIX #3 — Profile Edit modal state
+  // ─────────────────────────────────────────────
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [profileFirstName, setProfileFirstName] = useState('');
+  const [profileLastName, setProfileLastName] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  // Sync profile fields when user changes
+  useEffect(() => {
+    if (currentUser) {
+      setProfileFirstName(currentUser.firstName || '');
+      setProfileLastName(currentUser.lastName || '');
+    }
+  }, [currentUser]);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileFirstName.trim() || !profileLastName.trim()) {
+      showToast('First name and last name are required.', 'error');
+      return;
+    }
+    setProfileSaving(true);
+    try {
+      const data = await apiRequest('/auth/update-profile', {
+        method: 'POST',
+        body: JSON.stringify({
+          firstName: profileFirstName.trim(),
+          lastName: profileLastName.trim()
+        })
+      });
+      setCurrentUser(data.user);
+      showToast('Profile updated successfully!', 'success');
+      setShowProfileEdit(false);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update profile.', 'error');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
   useEffect(() => {
     studentOtpSentRef.current = studentOtpSent;
   }, [studentOtpSent]);
@@ -207,7 +275,7 @@ export default function Home() {
     forgotOtpEmailRef.current = forgotOtpEmail;
   }, [forgotOtpEmail]);
 
-  const fetchMockInbox = async () => {
+  const fetchMockInbox = useCallback(async () => {
     try {
       const data = await apiRequest('/auth/mock-inbox');
       const emails = data.inbox || [];
@@ -217,29 +285,22 @@ export default function Home() {
       if (emails.length > 0) {
         const latestEmail = emails[0];
         
-        // Initialize or detect new email arrival
         if (lastSeenEmailIdRef.current === null) {
-          // First poll, just record the latest email ID so we don't notify on startup
           lastSeenEmailIdRef.current = latestEmail.id;
         } else if (lastSeenEmailIdRef.current === 'empty') {
-          // First email arriving in an empty inbox
           lastSeenEmailIdRef.current = latestEmail.id;
           setActiveNotification(latestEmail);
-          // Auto hide notification after 6 seconds
           setTimeout(() => {
             setActiveNotification((curr: any) => curr?.id === latestEmail.id ? null : curr);
           }, 6000);
         } else if (latestEmail.id !== lastSeenEmailIdRef.current) {
-          // New email detected!
           lastSeenEmailIdRef.current = latestEmail.id;
           setActiveNotification(latestEmail);
-          // Auto hide notification after 6 seconds
           setTimeout(() => {
             setActiveNotification((curr: any) => curr?.id === latestEmail.id ? null : curr);
           }, 6000);
         }
 
-        // 1. Student Registration OTP autofill
         if (studentOtpSentRef.current && !studentOtpRef.current && studentOtpEmailRef.current) {
           const matchingEmail = emails.find((email: any) => 
             email.to.trim().toLowerCase() === studentOtpEmailRef.current.trim().toLowerCase() && 
@@ -252,7 +313,6 @@ export default function Home() {
           }
         }
 
-        // 1b. Mentor Registration OTP autofill
         if (mentorOtpSentRef.current && !mentorOtpRef.current && mentorOtpEmailRef.current) {
           const matchingEmail = emails.find((email: any) => 
             email.to.trim().toLowerCase() === mentorOtpEmailRef.current.trim().toLowerCase() && 
@@ -265,7 +325,6 @@ export default function Home() {
           }
         }
 
-        // 1c. Admin Registration OTP autofill
         if (adminOtpSentRef.current && !adminOtpRef.current && adminOtpEmailRef.current) {
           const matchingEmail = emails.find((email: any) => 
             email.to.trim().toLowerCase() === adminOtpEmailRef.current.trim().toLowerCase() && 
@@ -278,7 +337,6 @@ export default function Home() {
           }
         }
         
-        // 2. Forgot Password OTP autofill
         if (forgotOtpSentRef.current && !forgotOtpRef.current && forgotOtpEmailRef.current) {
           const matchingEmail = emails.find((email: any) => 
             email.to.trim().toLowerCase() === forgotOtpEmailRef.current.trim().toLowerCase() && 
@@ -298,7 +356,7 @@ export default function Home() {
     } catch (err) {
       console.error('Error fetching mock inbox:', err);
     }
-  };
+  }, [showToast]);
 
   const handleAutofillOtp = (email: any) => {
     if (email.subject.includes('Reset') || email.subject.toLowerCase().includes('password')) {
@@ -312,16 +370,19 @@ export default function Home() {
     }
   };
 
-  // Local page loading state triggers after context session is checked
-  const [loading, setLoading] = useState(true);
+  // ─────────────────────────────────────────────
+  // BUG FIX #1 — Glitch fix
+  // Don't use a separate `loading` state that
+  // mirrors globalLoading. Use globalLoading
+  // directly, and separate the redirect effect
+  // so it doesn't race with the loading state.
+  // ─────────────────────────────────────────────
   const [isDevMode, setIsDevMode] = useState(false);
 
   useEffect(() => {
     if (!globalLoading) {
-      setLoading(false);
       fetchPublicCircles();
 
-      // Check query parameter to trigger login modal automatically
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         if (params.get('login') === 'true') {
@@ -341,9 +402,10 @@ export default function Home() {
         return () => clearInterval(interval);
       }
     }
-  }, [globalLoading]);
+  }, [globalLoading, fetchMockInbox]);
 
-  // Auto-redirect authenticated users to dashboard
+  // Keep redirect in its own effect — runs only when user actually
+  // exists after context is fully resolved. No flash.
   useEffect(() => {
     if (!globalLoading && currentUser) {
       router.push('/dashboard');
@@ -422,7 +484,7 @@ export default function Home() {
         setStudentOtpSent(true);
         setStudentOtpEmail(emailVal);
         setLastSentStudentEmail(contact.trim().toLowerCase());
-        setStudentOtp(''); // Reset to ensure the user sees the autofill happen
+        setStudentOtp('');
       } else if (role === 'mentor') {
         setMentorOtpSent(true);
         setMentorOtpEmail(emailVal);
@@ -437,7 +499,6 @@ export default function Home() {
       showToast(data.message || 'Verification code sent!', 'success');
       if (data.isMocked) {
         showToast(`Local Test: Polling mock inbox to autofill...`, 'info');
-        // Trigger inbox fetch immediately to make autofill feel instant
         setTimeout(fetchMockInbox, 500);
       }
     } catch (e: any) {
@@ -466,11 +527,10 @@ export default function Home() {
       setForgotOtpSent(true);
       setForgotOtpEmail(data.email || '');
       setLastSentForgotUser(forgotUser.trim().toLowerCase());
-      setForgotOtp(''); // Reset to ensure the user sees the autofill happen
+      setForgotOtp('');
       showToast(data.message || 'Reset code sent to registered contact!', 'success');
       if (data.isMocked) {
         showToast(`Local Test: Polling mock inbox to autofill...`, 'info');
-        // Trigger inbox fetch immediately to make autofill feel instant
         setTimeout(fetchMockInbox, 500);
       }
     } catch (e: any) {
@@ -645,10 +705,21 @@ export default function Home() {
     }
   };
 
-  // Join a Public Circle from Lobby
+  // ─────────────────────────────────────────────
+  // BUG FIX #4 — "Access Denied" on Workspace join
+  // Root cause: context hasn't hydrated when
+  // joinPublicGroup runs, so currentUser is null.
+  // Fix: if globalLoading is still true, wait for
+  // it; also read fresh from context ref.
+  // ─────────────────────────────────────────────
   const joinPublicGroup = async (groupId: string) => {
-    const user = currentUser;
-    if (!user) {
+    // If context is still loading, wait — don't flash "Access Denied"
+    if (globalLoading) {
+      showToast('Please wait, loading your session...', 'info');
+      return;
+    }
+
+    if (!currentUser) {
       showToast('Please log in or sign up first to join this study circle.', 'warning');
       setAuthMode('login');
       setShowAuthModal(true);
@@ -678,13 +749,26 @@ export default function Home() {
     }
   };
 
-  if (loading) {
+  // ─────────────────────────────────────────────
+  // BUG FIX #1 — No separate `loading` state
+  // Show spinner while globalLoading is true.
+  // This avoids the double-render glitch.
+  // ─────────────────────────────────────────────
+  if (globalLoading) {
     return (
       <div className="min-h-screen bg-[#070b19] flex items-center justify-center">
         <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
       </div>
     );
   }
+
+  // Greeting icon component
+  const GreetingIcon = () => {
+    const size = "h-4 w-4";
+    if (greeting.icon === 'sun') return <Sun className={`${size} text-amber-400`} />;
+    if (greeting.icon === 'sunset') return <Sunset className={`${size} text-orange-400`} />;
+    return <Moon className={`${size} text-indigo-400`} />;
+  };
 
   return (
     <div className="min-h-screen bg-[#060a16] text-slate-100 flex flex-col relative overflow-hidden font-sans antialiased">
@@ -717,15 +801,12 @@ export default function Home() {
         </div>
       )}
       
-      {/* 1. Header Navbar (Deep Navy / Violet button) */}
+      {/* 1. Header Navbar */}
       <header className="w-full bg-[#060a16]/90 backdrop-blur-md border-b border-white/[0.04] sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => router.push('/')}>
-            {/* Unique collaborative ring logo */}
             <div className="relative h-9 w-9 flex items-center justify-center shrink-0">
-              {/* Outer gradient ring representing collaborative circle */}
               <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#5227EB] via-indigo-400 to-[#E11D48] opacity-90 shadow-md animate-pulse" />
-              {/* Inner dark center */}
               <div className="absolute inset-[3px] rounded-full bg-[#060a16] flex items-center justify-center text-white font-bold">
                 <BookOpen className="h-4 w-4 text-[#818CF8]" />
               </div>
@@ -744,12 +825,23 @@ export default function Home() {
 
           <div className="flex items-center gap-4">
             {currentUser ? (
-              <button 
-                onClick={() => router.push('/dashboard')}
-                className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338ca] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/10 cursor-pointer"
-              >
-                Dashboard <ChevronRight className="h-3.5 w-3.5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* ── BUG FIX #3 — Profile Edit Button ── */}
+                <button
+                  onClick={() => setShowProfileEdit(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 border border-white/10 hover:border-indigo-500/40 hover:bg-white/5 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  title="Edit Profile"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Edit Profile</span>
+                </button>
+                <button 
+                  onClick={() => router.push('/dashboard')}
+                  className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338ca] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/10 cursor-pointer"
+                >
+                  Dashboard <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
             ) : (
               <>
                 <button 
@@ -772,14 +864,51 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="flex-1 w-full flex flex-col">
+
+        {/* ── BUG FIX #2 — Time-based greeting banner (visible when logged in) ── */}
+        {currentUser && (
+          <div className="w-full bg-[#0a0f1d] border-b border-white/[0.05] py-3">
+            <div className="max-w-7xl mx-auto px-6 flex items-center gap-2.5">
+              <GreetingIcon />
+              <span className="text-sm font-extrabold text-white">{greeting.label}, {currentUser.firstName || currentUser.fullName}!</span>
+              <span className="text-xs text-slate-500 font-medium hidden sm:inline">— Ready to study today?</span>
+            </div>
+          </div>
+        )}
+
+        {/* ── BUG FIX #2 — Time-based greeting also in My Learning Space section ── */}
+        {currentUser && (
+          <section className="bg-[#080c18] border-b border-white/[0.04] py-6">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-1">
+                    <Sparkles className="h-3 w-3" />
+                    My Learning Space
+                  </div>
+                  <h2 className="text-xl font-black text-white flex items-center gap-2">
+                    <GreetingIcon />
+                    {greeting.label}, {currentUser.firstName || currentUser.fullName}!
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium">Here's your study overview for today.</p>
+                </div>
+                <button
+                  onClick={() => setShowProfileEdit(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 border border-white/10 hover:border-indigo-500/40 hover:bg-white/5 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                  Edit Profile
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
         
-        {/* 2. Hero Section (Navy blue theme with three-student visual & focus overlay card) */}
+        {/* 2. Hero Section */}
         <section className="bg-[#060a16] relative overflow-hidden">
-          {/* Subtle glow background */}
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[140px] pointer-events-none" />
           
           <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-12 gap-12 items-center py-16 md:py-24 text-left relative z-10">
-            {/* Left Hero Column */}
             <div className="md:col-span-6 space-y-6 md:pr-4">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
                 StudyCircle – <br />
@@ -804,7 +933,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Secure, Collaborative, Productive row */}
               <div className="flex items-center gap-6 pt-4 text-xs font-bold text-slate-400">
                 <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-indigo-400" /> Secure</span>
                 <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-indigo-400" /> Collaborative</span>
@@ -812,17 +940,13 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Hero Column: Students photo with absolute focus card overlay */}
             <div className="md:col-span-6 relative flex justify-center">
               <div className="relative w-full max-w-[440px] aspect-[4/3] rounded-[32px] overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center bg-slate-900">
-                {/* Main students studying image */}
                 <img 
                   src="/students-studying.png" 
                   alt="Three South Asian students studying together" 
                   className="w-full h-full object-cover object-center"
                 />
-                
-                {/* Absolute Glassmorphic focus card matching mockup overlay */}
                 <div className="absolute bottom-4 right-4 bg-slate-950/85 backdrop-blur-md border border-white/10 px-4 py-3 rounded-2xl flex items-center gap-3 shadow-xl max-w-[210px]">
                   <div className="h-8 w-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
                     <Users className="h-4 w-4" />
@@ -837,7 +961,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 3. Everything You Need features grid (White Background, 5 circular icon columns) */}
+        {/* 3. Features Grid */}
         <section id="features-section" className="bg-white py-16 text-slate-900 border-y border-slate-100">
           <div className="max-w-7xl mx-auto px-6 space-y-12 text-center">
             <h2 className="text-xl md:text-3xl font-black text-slate-900 leading-tight">
@@ -845,8 +969,6 @@ export default function Home() {
             </h2>
 
             <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
-              
-              {/* Feature 1: Study Groups */}
               <div className="flex flex-col items-center space-y-4 p-6 bg-pink-50 border border-pink-100/80 rounded-[24px] hover:scale-[1.02] transition-transform text-left">
                 <div className="h-12 w-12 rounded-full bg-white text-pink-500 flex items-center justify-center shadow-sm shrink-0">
                   <Users className="h-5 w-5" />
@@ -857,7 +979,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Feature 2: Live Study Rooms */}
               <div className="flex flex-col items-center space-y-4 p-6 bg-blue-50 border border-blue-100/80 rounded-[24px] hover:scale-[1.02] transition-transform text-left">
                 <div className="h-12 w-12 rounded-full bg-white text-blue-400 flex items-center justify-center shadow-sm shrink-0">
                   <Wifi className="h-5 w-5" />
@@ -868,7 +989,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Feature 3: Shared Notes */}
               <div className="flex flex-col items-center space-y-4 p-6 bg-pink-50 border border-pink-100/80 rounded-[24px] hover:scale-[1.02] transition-transform text-left">
                 <div className="h-12 w-12 rounded-full bg-white text-pink-500 flex items-center justify-center shadow-sm shrink-0">
                   <FileText className="h-5 w-5" />
@@ -879,7 +999,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Feature 4: Session Scheduling */}
               <div className="flex flex-col items-center space-y-4 p-6 bg-sky-50 border border-sky-100/80 rounded-[24px] hover:scale-[1.02] transition-transform text-left">
                 <div className="h-12 w-12 rounded-full bg-white text-sky-500 flex items-center justify-center shadow-sm shrink-0">
                   <Calendar className="h-5 w-5" />
@@ -890,7 +1009,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Feature 5: Track Progress */}
               <div className="flex flex-col items-center space-y-4 p-6 bg-pink-50 border border-pink-100/80 rounded-[24px] hover:scale-[1.02] transition-transform text-left">
                 <div className="h-12 w-12 rounded-full bg-white text-pink-500 flex items-center justify-center shadow-sm shrink-0">
                   <TrendingUp className="h-5 w-5" />
@@ -900,17 +1018,15 @@ export default function Home() {
                   <p className="text-[10px] text-pink-700/80 leading-relaxed">Track your study hours, streaks and stay consistent with your goals.</p>
                 </div>
               </div>
-
             </div>
           </div>
         </section>
 
-        {/* 4. Services Section (Dark Navy Background, left info column, right CSS device mockups) */}
+        {/* 4. Services Section */}
         <section id="services-section" className="bg-[#060a16] py-20 relative overflow-hidden border-b border-white/[0.04]">
           <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
           
           <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-16 items-center relative z-10 text-left">
-            {/* Left Info Column */}
             <div className="lg:col-span-5 space-y-6">
               <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">OUR SERVICES</span>
               <h2 className="text-3xl font-black text-white leading-tight">
@@ -929,7 +1045,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Bottom security markers */}
               <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold text-slate-450 pt-4 border-t border-white/5">
                 <span className="flex items-center gap-1"><Shield className="h-3.5 w-3.5 text-indigo-400" /> Secure Login</span>
                 <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5 text-indigo-400" /> Role Based Access</span>
@@ -937,15 +1052,10 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Mockup Column: CSS Laptop & Mobile frames rendering dashboards */}
             <div className="lg:col-span-7 flex justify-center py-6">
               <div className="relative w-full max-w-[480px]">
-                
-                {/* CSS Laptop Device mockup */}
                 <div className="relative border-[8px] border-slate-700 bg-slate-900 rounded-2xl shadow-2xl overflow-hidden aspect-[16/10] w-[90%] z-10">
-                  {/* Laptop screen mock StudyCircle Dashboard layout */}
                   <div className="w-full h-full bg-[#0E1017] text-slate-100 flex text-[9px] font-semibold select-none p-1 gap-1.5">
-                    {/* Mock Sidebar */}
                     <div className="w-[65px] border-r border-white/5 flex flex-col gap-1 py-1 px-0.5 shrink-0 text-left scale-[0.9] origin-left">
                       <div className="h-4 w-full bg-indigo-600/20 border border-indigo-600/20 text-[#818CF8] text-[8px] font-bold rounded flex items-center gap-1 px-1 mb-1">📚 Lounge</div>
                       <div className="px-1 text-slate-550 font-bold uppercase text-[7px] tracking-wide mt-1">Workspace</div>
@@ -955,9 +1065,7 @@ export default function Home() {
                       <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">🏆 Leaderboard</div>
                     </div>
                     
-                    {/* Mock Dashboard Contents */}
                     <div className="flex-1 flex flex-col gap-2 p-1.5 text-left text-[8px]">
-                      {/* Top Welcome banner */}
                       <div className="p-2.5 bg-slate-900 border border-white/5 rounded-lg flex items-center justify-between">
                         <div>
                           <div className="text-[9px] font-bold text-white leading-tight">Welcome, Study Buddies</div>
@@ -966,9 +1074,7 @@ export default function Home() {
                         <div className="text-[9px] text-[#E11D48] font-bold shrink-0">🔥 5 Day Streak</div>
                       </div>
 
-                      {/* Main widgets Row */}
                       <div className="grid grid-cols-2 gap-2">
-                        {/* Upcoming assessments */}
                         <div className="p-2.5 bg-slate-900 border border-white/5 rounded-lg flex flex-col justify-between h-20">
                           <div>
                             <div className="text-[7px] uppercase font-bold tracking-wider text-slate-500">Upcoming session</div>
@@ -978,13 +1084,11 @@ export default function Home() {
                           <button className="py-0.5 px-2 bg-indigo-650 text-white rounded text-[7px] font-extrabold cursor-pointer self-start leading-normal">Join Room</button>
                         </div>
                         
-                        {/* Weekly study hours */}
                         <div className="p-2.5 bg-slate-900 border border-white/5 rounded-lg h-20 flex flex-col justify-between">
                           <div>
                             <div className="text-[7px] uppercase font-bold tracking-wider text-slate-500">Study Progress</div>
                             <div className="text-white font-extrabold text-[9px] mt-0.5">12.5 hrs</div>
                           </div>
-                          {/* Mini visual chart bar */}
                           <div className="flex items-end gap-1 h-8 pb-1">
                             <div className="bg-indigo-650/40 w-1.5 h-3 rounded-t" />
                             <div className="bg-indigo-650/40 w-1.5 h-5 rounded-t" />
@@ -995,7 +1099,6 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* Recent note listings */}
                       <div className="p-2.5 bg-slate-900 border border-white/5 rounded-lg space-y-1">
                         <div className="text-[7px] uppercase font-bold tracking-wider text-slate-500">Recent Notes</div>
                         <div className="flex justify-between items-center text-[7px] text-slate-400 border-b border-white/5 pb-0.5">
@@ -1011,9 +1114,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* CSS Mobile Phone mockup overlaid on bottom right */}
                 <div className="absolute right-0 bottom-[-15px] border-[5px] border-slate-800 bg-[#0E0F15] rounded-[24px] shadow-2xl overflow-hidden aspect-[9/19] w-[130px] z-20">
-                  {/* Phone screen live desking lobby view */}
                   <div className="w-full h-full bg-[#0E1017] text-white p-2 text-[7px] select-none flex flex-col justify-between text-left">
                     <div className="space-y-2">
                       <div className="border-b border-white/5 pb-1 flex justify-between items-center">
@@ -1023,22 +1124,17 @@ export default function Home() {
                         </span>
                       </div>
 
-                      {/* Member lists */}
                       <div className="space-y-1.5">
+                        {['Swathi', 'Shreya', 'Sridhar'].map((name) => (
+                          <div key={name} className="flex items-center justify-between text-[7px] text-slate-350">
+                            <span className="truncate flex items-center gap-1">
+                              <span className="h-4 w-4 bg-slate-800 rounded-full text-[6px] flex items-center justify-center font-bold text-white">{name[0]}</span> {name}
+                            </span>
+                            <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                          </div>
+                        ))}
                         <div className="flex items-center justify-between text-[7px] text-slate-350">
-                          <span className="truncate flex items-center gap-1"><span className="h-4 w-4 bg-slate-800 rounded-full text-[6px] flex items-center justify-center font-bold text-white">S</span> Swathi</span>
-                          <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-                        </div>
-                        <div className="flex items-center justify-between text-[7px] text-slate-350">
-                          <span className="truncate flex items-center gap-1"><span className="h-4 w-4 bg-slate-800 rounded-full text-[6px] flex items-center justify-center font-bold text-white">S</span> Shreya</span>
-                          <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-                        </div>
-                        <div className="flex items-center justify-between text-[7px] text-slate-350">
-                          <span className="truncate flex items-center gap-1"><span className="h-4 w-4 bg-slate-800 rounded-full text-[6px] flex items-center justify-center font-bold text-white">S</span> Sridhar</span>
-                          <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-                        </div>
-                        <div className="flex items-center justify-between text-[7px] text-slate-350">
-                          <span className="truncate flex items-center gap-1"><span className="h-4 w-4 bg-[#E11D48] rounded-full text-[6px] flex items-center justify-center font-bold text-white text-[5px]">C</span> Charan</span>
+                          <span className="truncate flex items-center gap-1"><span className="h-4 w-4 bg-[#E11D48] rounded-full text-[6px] flex items-center justify-center font-bold text-white">C</span> Charan</span>
                           <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
                         </div>
                       </div>
@@ -1047,7 +1143,6 @@ export default function Home() {
                     <button className="w-full py-1 bg-[#E11D48] text-white text-[7px] font-bold rounded-lg cursor-pointer text-center select-none shadow-sm shadow-rose-900/10">End Session</button>
                   </div>
                 </div>
-
               </div>
             </div>
           </div>
@@ -1116,7 +1211,8 @@ export default function Home() {
                       </div>
                       <button
                         onClick={() => joinPublicGroup(circle.id)}
-                        className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338ca] text-[10px] font-bold text-white rounded-xl flex items-center gap-1 cursor-pointer transition-all shadow-md shadow-indigo-600/10"
+                        disabled={globalLoading}
+                        className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338ca] disabled:opacity-60 text-[10px] font-bold text-white rounded-xl flex items-center gap-1 cursor-pointer transition-all shadow-md shadow-indigo-600/10"
                       >
                         Join Circle <ExternalLink className="h-3 w-3" />
                       </button>
@@ -1146,37 +1242,20 @@ export default function Home() {
             </div>
             
             <div className="lg:col-span-7 grid sm:grid-cols-2 gap-6">
-              <div className="p-6 bg-white/65 backdrop-blur-md border border-slate-200/80 rounded-3xl space-y-3 hover:scale-[1.02] transition-transform shadow-sm">
-                <div className="h-10 w-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-650 shadow-inner">
-                  <Users className="h-5 w-5" />
+              {[
+                { icon: Users, bg: 'indigo', title: 'Focused Learning', desc: 'Restoring concentration with dedicated live desks, quiet zones, and presence tracking.' },
+                { icon: TrendingUp, bg: 'pink', title: 'Peer Motivation', desc: 'Building consistency with streak counters, target hours, and campus leaderboards.' },
+                { icon: BookOpen, bg: 'blue', title: 'Open Collaboration', desc: 'Instantly sharing blueprints, notes lists, syllabus trackers, and questions.' },
+                { icon: Shield, bg: 'emerald', title: 'Campus Verification', desc: 'Securing student gates with dynamic OTP verifications and mentor approvals.' },
+              ].map(({ icon: Icon, bg, title, desc }) => (
+                <div key={title} className="p-6 bg-white/65 backdrop-blur-md border border-slate-200/80 rounded-3xl space-y-3 hover:scale-[1.02] transition-transform shadow-sm">
+                  <div className={`h-10 w-10 rounded-2xl bg-${bg}-50 border border-${bg}-100 flex items-center justify-center text-${bg}-500 shadow-inner`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h4 className="text-xs font-black uppercase text-slate-900">{title}</h4>
+                  <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">{desc}</p>
                 </div>
-                <h4 className="text-xs font-black uppercase text-slate-900">Focused Learning</h4>
-                <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">Restoring concentration with dedicated live desks, quiet zones, and presence tracking.</p>
-              </div>
-
-              <div className="p-6 bg-white/65 backdrop-blur-md border border-slate-200/80 rounded-3xl space-y-3 hover:scale-[1.02] transition-transform shadow-sm">
-                <div className="h-10 w-10 rounded-2xl bg-pink-50 border border-pink-100/80 flex items-center justify-center text-pink-500 shadow-inner">
-                  <TrendingUp className="h-5 w-5" />
-                </div>
-                <h4 className="text-xs font-black uppercase text-slate-900">Peer Motivation</h4>
-                <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">Building consistency with streak counters, target hours, and campus leaderboards.</p>
-              </div>
-
-              <div className="p-6 bg-white/65 backdrop-blur-md border border-slate-200/80 rounded-3xl space-y-3 hover:scale-[1.02] transition-transform shadow-sm">
-                <div className="h-10 w-10 rounded-2xl bg-blue-50 border border-blue-100/80 flex items-center justify-center text-blue-500 shadow-inner">
-                  <BookOpen className="h-5 w-5" />
-                </div>
-                <h4 className="text-xs font-black uppercase text-slate-900">Open Collaboration</h4>
-                <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">Instantly sharing blueprints, notes lists, syllabus trackers, and questions.</p>
-              </div>
-
-              <div className="p-6 bg-white/65 backdrop-blur-md border border-slate-200/80 rounded-3xl space-y-3 hover:scale-[1.02] transition-transform shadow-sm">
-                <div className="h-10 w-10 rounded-2xl bg-emerald-50 border border-emerald-100/80 flex items-center justify-center text-emerald-500 shadow-inner">
-                  <Shield className="h-5 w-5" />
-                </div>
-                <h4 className="text-xs font-black uppercase text-slate-900">Campus Verification</h4>
-                <p className="text-[10px] text-slate-600 leading-relaxed font-semibold">Securing student gates with dynamic OTP verifications and mentor approvals.</p>
-              </div>
+              ))}
             </div>
           </div>
         </section>
@@ -1198,15 +1277,12 @@ export default function Home() {
       {/* 🔐 Auth Overlay Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          {/* Backdrop */}
           <div 
             onClick={() => setShowAuthModal(false)}
             className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity cursor-pointer"
           />
           
-          {/* Modal Card */}
           <div className="relative w-full max-w-lg bg-[#0a0f1d]/90 border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-xl z-10 text-left animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
-            {/* Close Button */}
             <button 
               onClick={() => setShowAuthModal(false)}
               className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-white/5"
@@ -1214,7 +1290,6 @@ export default function Home() {
               ✕
             </button>
 
-            {/* Header */}
             <div className="text-center space-y-2 mb-6">
               <div className="inline-flex h-10 w-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#818CF8] items-center justify-center">
                 <Lock className="h-5 w-5" />
@@ -1231,10 +1306,8 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Forms */}
             {authMode === 'login' && (
               <form onSubmit={handleLogin} className="space-y-4">
-                {/* Portal Tabs */}
                 <div className="flex bg-[#0e1428] p-1 rounded-xl border border-white/5">
                   <button
                     type="button"
@@ -1411,6 +1484,80 @@ export default function Home() {
         </div>
       )}
 
+      {/* ── BUG FIX #3 — Profile Edit Modal ── */}
+      {showProfileEdit && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            onClick={() => setShowProfileEdit(false)}
+            className="absolute inset-0 bg-black/70 backdrop-blur-md cursor-pointer"
+          />
+          <div className="relative w-full max-w-md bg-[#0a0f1d]/95 border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-xl z-10 text-left animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowProfileEdit(false)}
+              className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-white/5"
+            >
+              ✕
+            </button>
+
+            <div className="text-center space-y-2 mb-6">
+              <div className="inline-flex h-10 w-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#818CF8] items-center justify-center">
+                <Edit3 className="h-5 w-5" />
+              </div>
+              <h3 className="text-xl font-black text-white">Edit Profile</h3>
+              <p className="text-xs text-slate-400">Update your display name</p>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">First Name</label>
+                <input
+                  type="text"
+                  placeholder="Your first name"
+                  value={profileFirstName}
+                  onChange={(e) => setProfileFirstName(e.target.value)}
+                  className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Last Name</label>
+                <input
+                  type="text"
+                  placeholder="Your last name"
+                  value={profileLastName}
+                  onChange={(e) => setProfileLastName(e.target.value)}
+                  className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                  required
+                />
+              </div>
+
+              <div className="p-3 bg-white/[0.03] border border-white/5 rounded-xl text-[10px] text-slate-400 font-medium">
+                Username and contact information cannot be changed here. Contact support if needed.
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowProfileEdit(false)}
+                  className="flex-1 py-2.5 border border-white/10 hover:border-white/20 hover:bg-white/5 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={profileSaving}
+                  className="flex-1 py-2.5 bg-[#4F46E5] hover:bg-[#4338ca] disabled:opacity-60 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-indigo-600/15 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {profileSaving && <RefreshCw className="h-3 w-3 animate-spin" />}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* 📬 Floating developer Mock Inbox trigger */}
       {isDevMode && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
@@ -1425,7 +1572,6 @@ export default function Home() {
                 {unreadInboxCount}
               </span>
             )}
-            {/* Subtle tooltip */}
             <span className="absolute right-16 scale-0 group-hover:scale-100 transition-all duration-150 origin-right bg-[#0E1017] border border-white/10 text-slate-300 text-[10px] font-bold px-2.5 py-1.5 rounded-xl whitespace-nowrap shadow-xl">
               Developer Mock Inbox ({unreadInboxCount})
             </span>
@@ -1436,15 +1582,12 @@ export default function Home() {
       {/* 📬 Developer Mock Inbox Side Drawer */}
       {showInbox && (
         <div className="fixed inset-0 z-[9999] flex justify-end">
-          {/* Backdrop */}
           <div 
             onClick={() => setShowInbox(false)}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
           />
           
-          {/* Panel */}
           <div className="relative w-full max-w-md bg-[#090D1A]/95 border-l border-white/10 h-full shadow-2xl flex flex-col backdrop-blur-lg animate-in slide-in-from-right duration-300 z-10 text-left">
-            {/* Header */}
             <div className="p-6 border-b border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="h-8 w-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#818CF8] flex items-center justify-center shrink-0">
@@ -1463,7 +1606,6 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Email list */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {inboxEmails.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-3 py-16 opacity-60">
@@ -1515,7 +1657,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* Footer / Controls */}
             <div className="p-6 border-t border-white/5 bg-slate-950 flex items-center justify-between gap-4">
               <button
                 onClick={fetchMockInbox}
