@@ -8,6 +8,7 @@ import { useApp } from '../context/AppContext';
 import { useToast } from '../components/ToastProvider';
 import { 
   ArrowRight, 
+  ArrowLeft,
   Lock, 
   User, 
   Mail, 
@@ -399,6 +400,16 @@ export default function RegisterPage() {
         <div className="absolute bottom-20 left-1/3 w-[600px] h-[600px] rounded-full bg-blue-500/5 blur-[150px]" />
       </div>
 
+      {/* Back to Home Button */}
+      <div className="absolute top-6 left-6 z-20">
+        <Link 
+          href="/" 
+          className="flex items-center gap-2 px-3 py-1.5 bg-[#090d1e]/80 border border-white/5 hover:border-white/10 text-xs font-bold text-slate-400 hover:text-white rounded-xl transition-all shadow-md backdrop-blur-sm group cursor-pointer"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          <span>Back to Home</span>
+        </Link>
+      </div>
 
       {/* Brand logo header */}
       <div className="flex flex-col items-center text-center mb-10 z-10">
