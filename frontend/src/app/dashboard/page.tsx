@@ -32,6 +32,7 @@ import {
   Mail,
   BarChart2,
   Settings,
+  Edit3,
   Video,
   CheckCircle2,
   Trash2,
@@ -155,6 +156,7 @@ export default function DashboardPage() {
   const [editFullName, setEditFullName] = useState('');
   const [editBio, setEditBio] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   // Profile details states
   const [editFirstName, setEditFirstName] = useState('');
@@ -841,6 +843,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
       
       setUser(res.user, res.token || (typeof window !== 'undefined' ? localStorage.getItem('studycircle_token') : null));
       showToast('Profile updated successfully!', 'success');
+      setIsEditingProfile(false);
     } catch (err: any) {
       showToast(err.message || 'Failed to update profile.', 'error');
     } finally {
@@ -2819,125 +2822,205 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <Settings className="h-4.5 w-4.5 text-[#5227EB]" /> Portal Settings
               </h3>
               <div className="p-8 bg-white border border-slate-200 rounded-[24px] shadow-sm max-w-2xl space-y-6">
-                <form onSubmit={handleUpdateProfile} className="space-y-5">
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Account Settings</h4>
-                    <p className="text-[10px] text-slate-400">Manage profile data and avatar details</p>
+                {!isEditingProfile ? (
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider text-left">Account Settings</h4>
+                        <p className="text-[10px] text-slate-400 text-left">View and manage your profile details</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditFirstName(user?.firstName || '');
+                          setEditLastName(user?.lastName || '');
+                          setEditEmail(user?.email || '');
+                          setEditPhone(user?.phone || '');
+                          setPreviewAvatar(user?.avatarUrl || '');
+                          setEditBio(user?.bio || '');
+                          setIsEditingProfile(true);
+                        }}
+                        className="px-3 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-extrabold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" /> Edit Profile
+                      </button>
+                    </div>
 
-                    {/* WhatsApp-style photo upload preview */}
-                    <div className="flex items-center gap-5 mt-4">
-                      <div className="relative group w-20 h-20 rounded-full overflow-hidden border-2 border-indigo-100 shadow-sm shrink-0 bg-slate-50">
+                    {/* Profile Presentation */}
+                    <div className="flex items-center gap-6 p-4 bg-slate-50 border border-slate-150 rounded-[20px] shadow-inner">
+                      <div className="w-16 h-16 rounded-full overflow-hidden border border-indigo-100 shadow-sm shrink-0 bg-white relative">
                         <img 
-                          src={previewAvatar || getAvatarByName(user?.fullName)} 
-                          className="h-full w-full object-cover" 
-                          alt="Avatar Preview" 
-                        />
-                        <label 
-                          htmlFor="settings-avatar-input" 
-                          className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Camera className="h-5 w-5 text-white" />
-                        </label>
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          id="settings-avatar-input" 
-                          onChange={handleFileChange} 
+                          src={user?.avatarUrl || getAvatarByName(user?.fullName)} 
+                          className="absolute inset-0 h-full w-full object-cover" 
+                          alt="Avatar" 
                         />
                       </div>
-                      <div className="text-left">
-                        <label htmlFor="settings-avatar-input" className="text-xs font-black text-[#5227EB] hover:underline cursor-pointer block">
-                          Change Profile Photo
-                        </label>
-                        <p className="text-[9px] text-slate-400 mt-1 leading-normal">
-                          Choose an image from your device.<br />It will be compressed and saved as your profile picture.
-                        </p>
+                      <div className="text-left space-y-1">
+                        <h3 className="text-sm font-black text-slate-900">{user?.fullName || 'User'}</h3>
+                        <p className="text-[10px] text-slate-400 font-extrabold font-mono">@{user?.username || 'username'}</p>
+                        <span className="inline-flex items-center px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-[8px] font-black uppercase tracking-wider rounded-md">
+                          {user?.role || 'student'}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mt-6 text-xs font-bold text-left">
-                      <div className="space-y-1">
-                        <label className="text-slate-400 block text-[9px] uppercase tracking-wide">First Name</label>
-                        <input 
-                          type="text" 
-                          value={editFirstName} 
-                          onChange={(e) => setEditFirstName(e.target.value)}
-                          required
-                          className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
-                        />
+                    <div className="grid grid-cols-2 gap-4 text-xs font-bold text-left">
+                      <div className="space-y-1 p-3 bg-slate-50 border border-slate-150 rounded-xl">
+                        <span className="text-slate-400 block text-[8px] uppercase tracking-wide">First Name</span>
+                        <span className="text-slate-800 font-semibold">{user?.firstName || 'Not Set'}</span>
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Last Name</label>
-                        <input 
-                          type="text" 
-                          value={editLastName} 
-                          onChange={(e) => setEditLastName(e.target.value)}
-                          required
-                          className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
-                        />
+                      <div className="space-y-1 p-3 bg-slate-50 border border-slate-150 rounded-xl">
+                        <span className="text-slate-400 block text-[8px] uppercase tracking-wide">Last Name</span>
+                        <span className="text-slate-800 font-semibold">{user?.lastName || 'Not Set'}</span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mt-4 text-xs font-bold text-left">
-                      <div className="space-y-1">
-                        <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Email Address</label>
-                        <input 
-                          type="email" 
-                          value={editEmail} 
-                          onChange={(e) => setEditEmail(e.target.value)}
-                          placeholder="e.g. email@domain.com"
-                          className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
-                        />
+                    <div className="grid grid-cols-2 gap-4 text-xs font-bold text-left">
+                      <div className="space-y-1 p-3 bg-slate-50 border border-slate-150 rounded-xl">
+                        <span className="text-slate-400 block text-[8px] uppercase tracking-wide">Email Address</span>
+                        <span className="text-slate-800 font-semibold truncate block">{user?.email || 'Not Set'}</span>
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Phone Number</label>
-                        <input 
-                          type="text" 
-                          value={editPhone} 
-                          onChange={(e) => setEditPhone(e.target.value)}
-                          placeholder="e.g. 9876543210"
-                          className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
-                        />
+                      <div className="space-y-1 p-3 bg-slate-50 border border-slate-150 rounded-xl">
+                        <span className="text-slate-400 block text-[8px] uppercase tracking-wide">Phone Number</span>
+                        <span className="text-slate-800 font-semibold">{user?.phone || 'Not Set'}</span>
                       </div>
                     </div>
 
-                    <div className="space-y-1 mt-4 text-xs font-bold text-left">
-                      <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Username</label>
-                      <input 
-                        type="text" 
-                        value={user?.username || ''} 
-                        readOnly 
-                        className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl outline-none text-slate-450 cursor-not-allowed font-medium" 
-                      />
-                    </div>
-                    
-                    <div className="space-y-1 mt-4 text-xs font-bold text-left">
-                      <label className="text-slate-400 block text-[9px] uppercase tracking-wide">About Bio</label>
-                      <textarea
-                        value={editBio}
-                        onChange={(e) => setEditBio(e.target.value)}
-                        placeholder="Write a brief bio about your study goals, or interests..."
-                        rows={3}
-                        className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none resize-none transition-all text-slate-800 font-medium"
-                      />
+                    <div className="space-y-1 p-3 bg-slate-50 border border-slate-150 rounded-xl text-xs font-bold text-left">
+                      <span className="text-slate-400 block text-[8px] uppercase tracking-wide">About Bio</span>
+                      <p className="text-slate-800 font-medium whitespace-pre-wrap leading-relaxed">
+                        {user?.bio || 'No bio provided yet.'}
+                      </p>
                     </div>
                   </div>
+                ) : (
+                  <form onSubmit={handleUpdateProfile} className="space-y-5">
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider text-left">Account Settings</h4>
+                      <p className="text-[10px] text-slate-400 text-left">Manage profile data and avatar details</p>
 
-                  <div className="flex justify-end pt-2">
-                    <button
-                      type="submit"
-                      disabled={savingProfile}
-                      className="px-5 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
-                    >
-                      {savingProfile ? (
-                        <>
-                          <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Saving Changes...
-                        </>
-                      ) : 'Save Profile Changes'}
-                    </button>
-                  </div>
-                </form>
+                      {/* WhatsApp-style photo upload preview */}
+                      <div className="flex items-center gap-5 mt-4">
+                        <div className="relative group w-20 h-20 rounded-full overflow-hidden border-2 border-indigo-100 shadow-sm shrink-0 bg-slate-50">
+                          <img 
+                            src={previewAvatar || getAvatarByName(user?.fullName)} 
+                            className="h-full w-full object-cover animate-fade-in" 
+                            alt="Avatar Preview" 
+                          />
+                          <label 
+                            htmlFor="settings-avatar-input" 
+                            className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Camera className="h-5 w-5 text-white" />
+                          </label>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            id="settings-avatar-input" 
+                            onChange={handleFileChange} 
+                          />
+                        </div>
+                        <div className="text-left">
+                          <label htmlFor="settings-avatar-input" className="text-xs font-black text-[#5227EB] hover:underline cursor-pointer block">
+                            Change Profile Photo
+                          </label>
+                          <p className="text-[9px] text-slate-400 mt-1 leading-normal">
+                            Choose an image from your device.<br />It will be compressed and saved as your profile picture.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mt-6 text-xs font-bold text-left">
+                        <div className="space-y-1">
+                          <label className="text-slate-400 block text-[9px] uppercase tracking-wide">First Name</label>
+                          <input 
+                            type="text" 
+                            value={editFirstName} 
+                            onChange={(e) => setEditFirstName(e.target.value)}
+                            required
+                            className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Last Name</label>
+                          <input 
+                            type="text" 
+                            value={editLastName} 
+                            onChange={(e) => setEditLastName(e.target.value)}
+                            required
+                            className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mt-4 text-xs font-bold text-left">
+                        <div className="space-y-1">
+                          <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Email Address</label>
+                          <input 
+                            type="email" 
+                            value={editEmail} 
+                            onChange={(e) => setEditEmail(e.target.value)}
+                            placeholder="e.g. email@domain.com"
+                            className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Phone Number</label>
+                          <input 
+                            type="text" 
+                            value={editPhone} 
+                            onChange={(e) => setEditPhone(e.target.value)}
+                            placeholder="e.g. 9876543210"
+                            className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1 mt-4 text-xs font-bold text-left">
+                        <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Username</label>
+                        <input 
+                          type="text" 
+                          value={user?.username || ''} 
+                          readOnly 
+                          className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl outline-none text-slate-450 cursor-not-allowed font-medium" 
+                        />
+                      </div>
+                      
+                      <div className="space-y-1 mt-4 text-xs font-bold text-left">
+                        <label className="text-slate-400 block text-[9px] uppercase tracking-wide">About Bio</label>
+                        <textarea
+                          value={editBio}
+                          onChange={(e) => setEditBio(e.target.value)}
+                          placeholder="Write a brief bio about your study goals, or interests..."
+                          rows={3}
+                          className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none resize-none transition-all text-slate-800 font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingProfile(false)}
+                        className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-655 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={savingProfile}
+                        className="px-5 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        {savingProfile ? (
+                          <>
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Saving Changes...
+                          </>
+                        ) : 'Save Profile Changes'}
+                      </button>
+                    </div>
+                  </form>
+                )}
 
                 <div className="border-t border-slate-100 pt-4">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Security Settings</h4>
