@@ -125,6 +125,7 @@ const getAvatarByName = (fullName: string | null | undefined): string => {
 export default function DashboardPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const dataLoadedRef = useRef(false);
   
   const { 
     user, 
@@ -608,6 +609,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
     if (!globalLoading) {
       if (!user) {
         setLoading(false);
+        dataLoadedRef.current = false;
         return;
       }
       setEditFullName(user.fullName || '');
@@ -617,7 +619,11 @@ Based on your desking logs and consistency, the AI tutor recommends:
       setEditPhone(user.phone || '');
       setPreviewAvatar(user.avatarUrl || '');
       setEditBio(user.bio || '');
-      loadDashboardData(user);
+      
+      if (!dataLoadedRef.current) {
+        dataLoadedRef.current = true;
+        loadDashboardData(user);
+      }
 
       // Set current date on client side
       const dateStr = new Date().toLocaleDateString('en-US', {
