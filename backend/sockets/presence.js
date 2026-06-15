@@ -8,6 +8,14 @@ module.exports = (io) => {
     let currentUser = null;
     let activeNoteId = null;
 
+    // Direct channel room for pushing notifications
+    socket.on('join-user', ({ userId }) => {
+      if (userId) {
+        socket.join(`user-${userId}`);
+        console.log(`[Socket] User ${userId} joined private room user-${userId}`);
+      }
+    });
+
     // Presence: join group room
     socket.on('join-room', ({ groupId, user }) => {
       currentGroupId = groupId;

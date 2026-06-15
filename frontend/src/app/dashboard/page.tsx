@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { apiRequest, clearUserInfo, getUserInfo, setUserInfo } from '../utils/api';
+import { apiRequest } from '../utils/api';
+import { useApp } from '../context/AppContext';
 import { useToast } from '../components/ToastProvider';
 import { 
   Users, 
@@ -125,10 +126,21 @@ export default function DashboardPage() {
   const router = useRouter();
   const { showToast } = useToast();
   
+  const { 
+    user, 
+    setUser, 
+    notifications, 
+    setNotifications, 
+    myGroups, 
+    setMyGroups, 
+    logout, 
+    loading: globalLoading,
+    markAllNotificationsRead,
+    markNotificationRead 
+  } = useApp();
+
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({ streakCount: 0, totalStudyHours: 0.0 });
-  const [myGroups, setMyGroups] = useState<Group[]>([]);
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
 
@@ -165,7 +177,6 @@ export default function DashboardPage() {
           portal: loginPortal
         })
       });
-      setUserInfo(data.user);
       setUser(data.user);
       showToast('Welcome back, ' + data.user.fullName + '!', 'success');
       loadDashboardData(data.user);
@@ -240,7 +251,6 @@ export default function DashboardPage() {
 
   // Notifications states
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   // ==========================================
@@ -377,7 +387,7 @@ export default function DashboardPage() {
 
     const reportText = `# StudyCircle Weekly Analytics Report
 Generated on: ${new Date().toLocaleDateString()}
-Student Profile: ${user.fullName} (@${user.username})
+Student Profile: ${user?.fullName || 'User'} (@${user?.username || ''})
 
 ## 📊 Consistency & Focus metrics
 - **Current Day Streak**: ${stats.streakCount} Days desking
@@ -411,7 +421,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
     const element = document.createElement("a");
     const file = new Blob([reportText], {type: 'text/markdown'});
     element.href = URL.createObjectURL(file);
-    element.download = `StudyCircle_Weekly_Report_${user.fullName.replace(/\s+/g, '_')}.md`;
+    element.download = `StudyCircle_Weekly_Report_${(user?.fullName || 'User').replace(/\s+/g, '_')}.md`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
@@ -579,64 +589,46 @@ Based on your desking logs and consistency, the AI tutor recommends:
   }, []);
 
   // Handle Mark All Read
-  const handleMarkAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
+  const handleMarkAllRead = async () => {
+    await markAllNotificationsRead();
     showToast('All notifications marked as read', 'success');
   };
 
   // Handle click on notification item
-  const handleNotificationClick = (notif: any) => {
-    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, unread: false } : n));
+  const handleNotificationClick = async (notif: any) => {
+    await markNotificationRead(notif.id);
     setShowNotifications(false);
     if (notif.actionTab) {
-      setActiveTab(notif.actionTab);
+      setActiveTab(notif.actionTab as TabType);
     }
     showToast('Viewing notification details', 'info');
   };
 
   useEffect(() => {
-    const info = getUserInfo();
-    if (!info) {
-      setLoading(false);
-      return;
-    }
-    setUser(info);
-    setEditFullName(info.fullName || '');
-    setEditFirstName(info.firstName || '');
-    setEditLastName(info.lastName || '');
-    setEditEmail(info.email || '');
-    setEditPhone(info.phone || '');
-    setPreviewAvatar(info.avatarUrl || '');
-    setEditBio(info.bio || '');
-    loadDashboardData(info);
-    
-    // Seed role-based notifications
-    if (info.role === 'student') {
-      setNotifications([
-        { id: 1, message: "New doubt posted: 'What is the space complexity of quicksort?' in DSA Vijayawada Prep", type: 'doubt', time: '10 mins ago', unread: true, actionTab: 'groups', groupName: "DSA Vijayawada Prep" },
-        { id: 2, message: "Your mock DBMS study report is compiled and ready for download.", type: 'report', time: '1 hour ago', unread: true, actionTab: 'progress' }
-      ]);
-    } else if (info.role === 'mentor') {
-      setNotifications([
-        { id: 1, message: "Student Ravi is at critical risk of consistency loss. Please send a nudge.", type: 'system', time: '5 mins ago', unread: true, actionTab: 'dashboard' },
-        { id: 2, message: "New class performance summary is generated.", type: 'report', time: '2 hours ago', unread: true, actionTab: 'progress' }
-      ]);
-    } else if (info.role === 'admin') {
-      setNotifications([
-        { id: 1, message: "Pending Coordinator Registration from Dr. Srinivasa Rao (RVR Siddhartha).", type: 'system', time: '1 min ago', unread: true, actionTab: 'admin' },
-        { id: 2, message: "System CPU & memory transaction checks: 100% healthy.", type: 'report', time: '4 hours ago', unread: true, actionTab: 'dashboard' }
-      ]);
-    }
+    if (!globalLoading) {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      setEditFullName(user.fullName || '');
+      setEditFirstName(user.firstName || '');
+      setEditLastName(user.lastName || '');
+      setEditEmail(user.email || '');
+      setEditPhone(user.phone || '');
+      setPreviewAvatar(user.avatarUrl || '');
+      setEditBio(user.bio || '');
+      loadDashboardData(user);
 
-    // Set current date on client side
-    const dateStr = new Date().toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-    setFormattedDate(dateStr);
-  }, []);
+      // Set current date on client side
+      const dateStr = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      setFormattedDate(dateStr);
+    }
+  }, [user, globalLoading]);
 
   const loadDashboardData = async (info: any) => {
     setLoading(true);
@@ -758,18 +750,6 @@ Based on your desking logs and consistency, the AI tutor recommends:
       });
       
       setUser(res.user);
-      const updatedInfo = {
-        ...getUserInfo(),
-        fullName: res.user.fullName,
-        firstName: res.user.firstName,
-        lastName: res.user.lastName,
-        email: res.user.email,
-        phone: res.user.phone,
-        avatarUrl: res.user.avatarUrl,
-        bio: res.user.bio
-      };
-      setUserInfo(updatedInfo);
-      
       showToast('Profile updated successfully!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Failed to update profile.', 'error');
@@ -860,15 +840,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
   };
 
   const handleLogout = async () => {
-    try {
-      await apiRequest('/auth/logout', { method: 'POST' });
-      clearUserInfo();
-      showToast('Logged out successfully!', 'success');
-      router.push('/');
-    } catch (err: any) {
-      clearUserInfo();
-      router.push('/');
-    }
+    await logout();
+    showToast('Logged out successfully!', 'success');
+    router.push('/');
   };
 
   // Time formatter helpers
@@ -883,7 +857,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
     ].join(':');
   };
 
-  if (loading) {
+  if (globalLoading || (loading && user)) {
     return (
       <div className="min-h-screen bg-[#D4D4FF] flex items-center justify-center">
         <RefreshCw className="h-8 w-8 text-[#5227EB] animate-spin" />
@@ -1841,7 +1815,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
   const filteredNotifications = notifications.filter(notif => {
     if (notif.groupName) {
-      return myGroups.some(g => g.name.trim().toLowerCase() === notif.groupName.trim().toLowerCase());
+      return myGroups.some(g => g.name.trim().toLowerCase() === (notif.groupName || '').trim().toLowerCase());
     }
     return true;
   });
@@ -1993,7 +1967,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             <p className={`text-[10px] leading-tight ${notif.unread ? 'font-bold text-white' : 'text-zinc-400'}`}>
                               {notif.message}
                             </p>
-                            <span className="text-[8px] text-zinc-500 font-mono block">{notif.time}</span>
+                            <span className="text-[8px] text-zinc-500 font-mono block">{new Date(notif.createdAt).toLocaleString()}</span>
                           </div>
                         </div>
                       ))
@@ -2036,7 +2010,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
                   <Users className="h-4.5 w-4.5 text-[#5227EB]" /> Study Circles Workspace
                 </h3>
-                {(user.role === 'admin' || user.role === 'mentor') && (
+                {(user?.role === 'admin' || user?.role === 'mentor') && (
                   <button
                     onClick={() => setShowCreateModal(true)}
                     className="px-3 py-1.5 bg-indigo-50 border border-indigo-100 hover:bg-indigo-150 text-[#5227EB] rounded-xl text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
@@ -2326,7 +2300,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
                   <Calendar className="h-4.5 w-4.5 text-[#5227EB]" /> Study Session Schedule
                 </h3>
-                {(user.role === 'mentor' || user.role === 'admin') && (
+                {(user?.role === 'mentor' || user?.role === 'admin') && (
                   <button 
                     onClick={() => setShowSessionModal(true)}
                     className="px-3 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-bold rounded-xl flex items-center gap-1"
@@ -2374,10 +2348,10 @@ Based on your desking logs and consistency, the AI tutor recommends:
             <div className="space-y-6 text-left">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
                 <TrendingUp className="h-4.5 w-4.5 text-[#5227EB]" /> 
-                {user.role === 'mentor' ? 'Classroom Analytics Dashboard' : 'My Study Progress'}
+                {user?.role === 'mentor' ? 'Classroom Analytics Dashboard' : 'My Study Progress'}
               </h3>
 
-              {user.role === 'mentor' ? (
+              {user?.role === 'mentor' ? (
                 <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
                   <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-4 shadow-sm">
                     <h4 className="text-xs font-black uppercase text-slate-400">Class Focus Distribution</h4>

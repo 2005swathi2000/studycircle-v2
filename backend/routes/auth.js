@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const dns = require('dns').promises;
-const { User, Otp } = require('../models');
+const { User, Otp, Notification } = require('../models');
 const { authMiddleware } = require('../middleware/auth');
 const BloomFilter = require('../utils/bloom');
 const { sendMail, sendSMS, hasSmtpConfig } = require('../utils/notifier');
@@ -614,6 +614,22 @@ router.post('/approve', authMiddleware, async (req, res) => {
 
     user.isApproved = true;
     await user.save();
+
+    try {
+      const notification = await Notification.create({
+        userId: user.id,
+        message: 'Your account registration has been approved by the administrator!',
+        type: 'system',
+        unread: true,
+        actionTab: 'profile'
+      });
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user-${user.id}`).emit('new-notification', notification);
+      }
+    } catch (notifErr) {
+      console.error('[Notifier] Error sending approval notification:', notifErr);
+    }
 
     return res.json({ message: `Successfully approved user @${user.username}!` });
   } catch (err) {

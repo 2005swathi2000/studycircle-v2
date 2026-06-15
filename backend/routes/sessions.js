@@ -1,5 +1,5 @@
 const express = require('express');
-const { Session, User, GroupMember } = require('../models');
+const { Session, User, GroupMember, Group, Notification } = require('../models');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -62,6 +62,35 @@ router.post('/', authMiddleware, async (req, res) => {
       createdBy: req.user.id,
       status: 'upcoming'
     });
+
+    try {
+      const group = await Group.findByPk(groupId);
+      const groupName = group ? group.name : 'Study Circle';
+      
+      const members = await GroupMember.findAll({ where: { groupId } });
+      const notificationsToCreate = members
+        .filter(m => m.userId !== req.user.id)
+        .map(m => ({
+          userId: m.userId,
+          message: `New session scheduled: "${title}" in ${groupName}`,
+          type: 'session',
+          unread: true,
+          groupName,
+          actionTab: 'sessions'
+        }));
+
+      if (notificationsToCreate.length > 0) {
+        const createdNotifications = await Notification.bulkCreate(notificationsToCreate);
+        const io = req.app.get('io');
+        if (io) {
+          createdNotifications.forEach(notification => {
+            io.to(`user-${notification.userId}`).emit('new-notification', notification);
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error('[Notifier] Error sending session notifications:', notifErr);
+    }
 
     return res.status(201).json({ message: 'Session scheduled successfully!', session });
   } catch (err) {

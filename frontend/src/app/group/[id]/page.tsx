@@ -3,8 +3,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { apiRequest, getUserInfo } from '../../utils/api';
+import { apiRequest } from '../../utils/api';
 import { getSocket } from '../../utils/socket';
+import { useApp } from '../../context/AppContext';
 import { useToast } from '../../components/ToastProvider';
 import { 
   ArrowLeft, 
@@ -86,7 +87,7 @@ export default function GroupPage() {
   const { showToast } = useToast();
   const groupId = params.id as string;
 
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { user: currentUser, loading: globalLoading } = useApp();
   const [group, setGroup] = useState<Group | null>(null);
   const [myRole, setMyRole] = useState<'admin' | 'mentor' | 'student'>('student');
   const [loading, setLoading] = useState(true);
@@ -153,64 +154,63 @@ export default function GroupPage() {
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
   useEffect(() => {
-    const info = getUserInfo();
-    if (!info) {
-      showToast('Session expired. Please sign in.', 'error');
-      router.push('/');
-      return;
-    }
-    setCurrentUser(info);
-    loadGroupData(info);
-    
-    // Connect Socket.io
-    const socket = getSocket();
-    socketRef.current = socket;
-
-    socket.connect();
-    
-    socket.on('connect', () => {
-      setSocketConnected(true);
-      // Join Room
-      socket.emit('join-room', { groupId, user: info });
-    });
-
-    socket.on('room-presence-update', (usersList: ActiveLoungeUser[]) => {
-      setActiveUsers(usersList);
-    });
-
-    socket.on('note-viewers-update', ({ noteId, viewers }: any) => {
-      setNoteViewersMap((prev: any) => ({ ...prev, [noteId]: viewers }));
-    });
-
-    socket.on('note-typing-update', ({ noteId, typingUsers }: any) => {
-      setNoteTypingMap((prev: any) => ({ ...prev, [noteId]: typingUsers }));
-    });
-
-    socket.on('new-doubt-alert', ({ doubtTitle, authorName, authorUsername }: any) => {
-      showToast(`❓ Doubt Alert: @${authorUsername} posted "${doubtTitle}"`, 'info');
-      // Fetch fresh doubts
-      apiRequest(`/doubts/group/${groupId}`).then(data => {
-        setDoubts(data.doubts || []);
-      }).catch(() => {});
-    });
-
-    socket.on('disconnect', () => {
-      setSocketConnected(false);
-    });
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.emit('leave-room');
-        socketRef.current.off('room-presence-update');
-        socketRef.current.off('note-viewers-update');
-        socketRef.current.off('note-typing-update');
-        socketRef.current.off('new-doubt-alert');
-        socketRef.current.off('connect');
-        socketRef.current.off('disconnect');
-        socketRef.current.disconnect();
+    if (!globalLoading) {
+      if (!currentUser) {
+        showToast('Session expired. Please sign in.', 'error');
+        router.push('/');
+        return;
       }
-    };
-  }, [groupId]);
+      loadGroupData(currentUser);
+      
+      // Connect Socket.io
+      const socket = getSocket();
+      socketRef.current = socket;
+
+      if (!socket.connected) {
+        socket.connect();
+      }
+      
+      // Ensure user joins private channel for alerts
+      socket.emit('join-user', { userId: currentUser.id });
+      socket.emit('join-room', { groupId, user: currentUser });
+      setSocketConnected(true);
+
+      socket.on('room-presence-update', (usersList: ActiveLoungeUser[]) => {
+        setActiveUsers(usersList);
+      });
+
+      socket.on('note-viewers-update', ({ noteId, viewers }: any) => {
+        setNoteViewersMap((prev: any) => ({ ...prev, [noteId]: viewers }));
+      });
+
+      socket.on('note-typing-update', ({ noteId, typingUsers }: any) => {
+        setNoteTypingMap((prev: any) => ({ ...prev, [noteId]: typingUsers }));
+      });
+
+      socket.on('new-doubt-alert', ({ doubtTitle, authorName, authorUsername }: any) => {
+        showToast(`❓ Doubt Alert: @${authorUsername} posted "${doubtTitle}"`, 'info');
+        // Fetch fresh doubts
+        apiRequest(`/doubts/group/${groupId}`).then(data => {
+          setDoubts(data.doubts || []);
+        }).catch(() => {});
+      });
+
+      socket.on('disconnect', () => {
+        setSocketConnected(false);
+      });
+
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.emit('leave-room');
+          socketRef.current.off('room-presence-update');
+          socketRef.current.off('note-viewers-update');
+          socketRef.current.off('note-typing-update');
+          socketRef.current.off('new-doubt-alert');
+          socketRef.current.off('disconnect');
+        }
+      };
+    }
+  }, [groupId, currentUser, globalLoading]);
 
   useEffect(() => {
     if (!socketRef.current || !socketConnected || !currentUser) return;

@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiRequest, setUserInfo, getUserInfo, clearUserInfo } from './utils/api';
+import { apiRequest } from './utils/api';
+import { useApp } from './context/AppContext';
 import { useToast } from './components/ToastProvider';
 import { 
   ArrowRight, 
@@ -55,9 +56,7 @@ export default function Home() {
   const router = useRouter();
   const { showToast } = useToast();
 
-  const [loading, setLoading] = useState(true);
-  const [isDevMode, setIsDevMode] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { user: currentUser, setUser: setCurrentUser, loading: globalLoading } = useApp();
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [activePortal, setActivePortal] = useState<'student' | 'mentor'>('student');
   const [regRole, setRegRole] = useState<'student' | 'mentor'>('student');
@@ -313,25 +312,34 @@ export default function Home() {
     }
   };
 
+  // Local page loading state triggers after context session is checked
+  const [loading, setLoading] = useState(true);
+  const [isDevMode, setIsDevMode] = useState(false);
+
   useEffect(() => {
-    const user = getUserInfo();
-    if (user) {
-      setCurrentUser(user);
-    }
-    setLoading(false);
-    fetchPublicCircles();
+    if (!globalLoading) {
+      setLoading(false);
+      fetchPublicCircles();
 
-    const isLocal = typeof window !== 'undefined' && 
-                    (window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1');
-    setIsDevMode(isLocal);
+      const isLocal = typeof window !== 'undefined' && 
+                      (window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1');
+      setIsDevMode(isLocal);
 
-    if (isLocal) {
-      fetchMockInbox();
-      const interval = setInterval(fetchMockInbox, 2000);
-      return () => clearInterval(interval);
+      if (isLocal) {
+        fetchMockInbox();
+        const interval = setInterval(fetchMockInbox, 2000);
+        return () => clearInterval(interval);
+      }
     }
-  }, []);
+  }, [globalLoading]);
+
+  // Auto-redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!globalLoading && currentUser) {
+      router.push('/dashboard');
+    }
+  }, [currentUser, globalLoading, router]);
 
   const fetchPublicCircles = async () => {
     setLoadingLobby(true);
@@ -486,7 +494,7 @@ export default function Home() {
           otp: studentOtp
         })
       });
-      setUserInfo(data.user);
+      setCurrentUser(data.user);
       showToast(data.message || 'Student account created successfully!', 'success');
       setShowAuthModal(false);
       router.push('/dashboard');
@@ -523,7 +531,7 @@ export default function Home() {
       });
       showToast(data.message || 'Mentor registered. Awaiting Admin Approval.', 'success');
       if (data.user && data.user.isApproved) {
-        setUserInfo(data.user);
+        setCurrentUser(data.user);
         showToast('Approved automatically. Redirecting...', 'success');
         setShowAuthModal(false);
         router.push('/dashboard');
@@ -559,7 +567,7 @@ export default function Home() {
       });
       showToast(data.message || 'Admin registered. Awaiting Admin Approval.', 'success');
       if (data.user && data.user.isApproved) {
-        setUserInfo(data.user);
+        setCurrentUser(data.user);
         showToast('Approved automatically. Redirecting...', 'success');
         router.push('/dashboard');
       } else {
@@ -590,7 +598,7 @@ export default function Home() {
           portal: activePortal
         })
       });
-      setUserInfo(data.user);
+      setCurrentUser(data.user);
       showToast('Welcome back, ' + data.user.fullName + '!', 'success');
       setShowAuthModal(false);
       router.push('/dashboard');
@@ -630,7 +638,7 @@ export default function Home() {
 
   // Join a Public Circle from Lobby
   const joinPublicGroup = async (groupId: string) => {
-    const user = getUserInfo();
+    const user = currentUser;
     if (!user) {
       showToast('Please log in or sign up first to join this study circle.', 'warning');
       setAuthMode('login');
@@ -742,7 +750,7 @@ export default function Home() {
                   Sign In
                 </button>
                 <button 
-                  onClick={() => { setAuthMode('register'); setShowAuthModal(true); }}
+                  onClick={() => router.push('/register')}
                   className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338ca] text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/10 transition-all cursor-pointer"
                 >
                   Join Now
@@ -774,7 +782,7 @@ export default function Home() {
               
               <div className="flex flex-wrap items-center gap-4 pt-2">
                 <button
-                  onClick={() => { setAuthMode('register'); setShowAuthModal(true); }}
+                  onClick={() => router.push('/register')}
                   className="px-6 py-3 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-xs font-extrabold rounded-xl shadow-lg shadow-indigo-600/15 flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   Get Started <ArrowRight className="h-4 w-4" />
@@ -905,7 +913,7 @@ export default function Home() {
               </p>
               <div className="pt-2">
                 <button
-                  onClick={() => { setAuthMode('register'); setShowAuthModal(true); }}
+                  onClick={() => router.push('/register')}
                   className="px-6 py-3 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-xs font-extrabold rounded-xl shadow-lg shadow-indigo-600/15 flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   Join StudyCircle <ArrowRight className="h-4 w-4" />
@@ -1292,339 +1300,17 @@ export default function Home() {
                   {formLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
                   Log In to {activePortal === 'student' ? 'Student' : 'Mentor/Admin'} Desk
                 </button>
-
                 <div className="text-center pt-2">
                   <span className="text-[10px] text-slate-400">Don't have an account? </span>
                   <button
                     type="button"
-                    onClick={() => { setAuthMode('register'); setRegRole('student'); }}
+                    onClick={() => { setShowAuthModal(false); router.push('/register'); }}
                     className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 transition-colors"
                   >
                     Sign Up
                   </button>
                 </div>
               </form>
-            )}
-
-            {authMode === 'register' && (
-              <div className="space-y-4">
-                {/* Registration Role Selection */}
-                <div className="flex bg-[#0e1428] p-1 rounded-xl border border-white/5">
-                  <button
-                    type="button"
-                    onClick={() => setRegRole('student')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${regRole === 'student' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
-                  >
-                    I'm a Student
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRegRole('mentor')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${regRole === 'mentor' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
-                  >
-                    I'm a Mentor
-                  </button>
-                </div>
-
-                {regRole === 'student' ? (
-                  <form onSubmit={handleStudentRegister} className="space-y-3.5">
-                    {/* First Name & Last Name */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">First Name</label>
-                        <input
-                          type="text"
-                          placeholder="First Name"
-                          value={studentFirstName}
-                          onChange={(e) => setStudentFirstName(e.target.value)}
-                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all animate-pulse-once"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Last Name</label>
-                        <input
-                          type="text"
-                          placeholder="Last Name"
-                          value={studentLastName}
-                          onChange={(e) => setStudentLastName(e.target.value)}
-                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Gender Dropdown */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gender</label>
-                      <select
-                        value={studentGender}
-                        onChange={(e) => setStudentGender(e.target.value)}
-                        className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white focus:border-indigo-500/50 outline-none transition-all cursor-pointer"
-                        required
-                      >
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Others</option>
-                      </select>
-                    </div>
-
-                    {/* Username Check block */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Username</label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
-                        <input
-                          type="text"
-                          placeholder="Choose unique username"
-                          value={studentUser}
-                          onChange={(e) => handleUsernameChange(e.target.value, 'student')}
-                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
-                          required
-                        />
-                      </div>
-                      {checkingUsername && <p className="text-[9px] text-slate-500">Checking availability...</p>}
-                      {usernameStatus && usernameStatus.checked && (
-                        <p className={`text-[9px] font-bold ${usernameStatus.available ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {usernameStatus.available ? `✓ Available (${usernameStatus.method})` : `✗ Username already taken`}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Password */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password</label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
-                        <input
-                          type={showStudentPass ? 'text' : 'password'}
-                          placeholder="Password"
-                          value={studentPass}
-                          onChange={(e) => setStudentPass(e.target.value)}
-                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowStudentPass(!showStudentPass)}
-                          className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-bold"
-                        >
-                          {showStudentPass ? 'Hide' : 'Show'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Contact (Email/Phone) with verification */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Contact Email / Phone</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Email or Phone Number"
-                          value={studentContact}
-                          onChange={(e) => setStudentContact(e.target.value)}
-                          disabled={studentOtpSent}
-                          className="flex-1 bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all disabled:opacity-50"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => sendRegOtp('student')}
-                          disabled={formLoading || studentOtpSent}
-                          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-700/30 text-white rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
-                        >
-                          {studentOtpSent ? 'Sent ✓' : 'Verify'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {studentOtpSent && (
-                      <div className="space-y-1 animate-in fade-in duration-200">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Verification Code (OTP)</label>
-                        <input
-                          type="text"
-                          placeholder="Enter 6-digit OTP code"
-                          value={studentOtp}
-                          onChange={(e) => setStudentOtp(e.target.value)}
-                          className="w-full bg-[#0a0e1c] border border-indigo-500/30 rounded-xl px-4 py-2.5 text-xs text-white font-mono text-center tracking-widest placeholder-slate-600 focus:border-indigo-500 outline-none transition-all"
-                          required
-                        />
-                      </div>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={formLoading || usernameStatus?.available === false}
-                      className="w-full py-3 bg-[#4F46E5] hover:bg-[#4338ca] disabled:bg-indigo-650/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 transition-all flex items-center justify-center gap-2 mt-4"
-                    >
-                      {formLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
-                      Register & Join Lobby
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleMentorRegister} className="space-y-3.5">
-                    {/* First Name & Last Name */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">First Name</label>
-                        <input
-                          type="text"
-                          placeholder="First Name"
-                          value={mentorFirstName}
-                          onChange={(e) => setMentorFirstName(e.target.value)}
-                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Last Name</label>
-                        <input
-                          type="text"
-                          placeholder="Last Name"
-                          value={mentorLastName}
-                          onChange={(e) => setMentorLastName(e.target.value)}
-                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Gender Dropdown */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gender</label>
-                      <select
-                        value={mentorGender}
-                        onChange={(e) => setMentorGender(e.target.value)}
-                        className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white focus:border-indigo-500/50 outline-none transition-all cursor-pointer"
-                        required
-                      >
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Others</option>
-                      </select>
-                    </div>
-
-                    {/* Username Check block */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Username</label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
-                        <input
-                          type="text"
-                          placeholder="Choose unique username"
-                          value={mentorUser}
-                          onChange={(e) => handleUsernameChange(e.target.value, 'mentor')}
-                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
-                          required
-                        />
-                      </div>
-                      {checkingUsername && <p className="text-[9px] text-slate-500">Checking availability...</p>}
-                      {usernameStatus && usernameStatus.checked && (
-                        <p className={`text-[9px] font-bold ${usernameStatus.available ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {usernameStatus.available ? `✓ Available (${usernameStatus.method})` : `✗ Username already taken`}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Password */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password</label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
-                        <input
-                          type={showMentorPass ? 'text' : 'password'}
-                          placeholder="Password"
-                          value={mentorPass}
-                          onChange={(e) => setMentorPass(e.target.value)}
-                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowMentorPass(!showMentorPass)}
-                          className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-bold"
-                        >
-                          {showMentorPass ? 'Hide' : 'Show'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* College / Institution */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">College / Institution</label>
-                      <select
-                        value={mentorInstitution}
-                        onChange={(e) => setMentorInstitution(e.target.value)}
-                        className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white focus:border-indigo-500/50 outline-none transition-all"
-                        required
-                      >
-                        <option value="">Select College</option>
-                        {COLLEGES.map((col) => (
-                          <option key={col.code} value={col.name}>{col.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Contact (Email/Phone) with verification */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Contact Email / Phone</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Email or Phone Number"
-                          value={mentorContact}
-                          onChange={(e) => setMentorContact(e.target.value)}
-                          disabled={mentorOtpSent}
-                          className="flex-1 bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all disabled:opacity-50"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => sendRegOtp('mentor')}
-                          disabled={formLoading || mentorOtpSent}
-                          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-700/30 text-white rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
-                        >
-                          {mentorOtpSent ? 'Sent ✓' : 'Verify'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {mentorOtpSent && (
-                      <div className="space-y-1 animate-in fade-in duration-200">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Verification Code (OTP)</label>
-                        <input
-                          type="text"
-                          placeholder="Enter 6-digit OTP code"
-                          value={mentorOtp}
-                          onChange={(e) => setMentorOtp(e.target.value)}
-                          className="w-full bg-[#0a0e1c] border border-indigo-500/30 rounded-xl px-4 py-2.5 text-xs text-white font-mono text-center tracking-widest placeholder-slate-600 focus:border-indigo-500 outline-none transition-all"
-                          required
-                        />
-                      </div>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={formLoading || usernameStatus?.available === false}
-                      className="w-full py-3 bg-[#4F46E5] hover:bg-[#4338ca] disabled:bg-indigo-650/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 transition-all flex items-center justify-center gap-2 mt-4"
-                    >
-                      {formLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
-                      Register as Mentor
-                    </button>
-                  </form>
-                )}
-
-                <div className="text-center pt-2">
-                  <span className="text-[10px] text-slate-400">Already have an account? </span>
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode('login')}
-                    className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 transition-colors"
-                  >
-                    Log In
-                  </button>
-                </div>
-              </div>
             )}
 
             {authMode === 'forgot' && (

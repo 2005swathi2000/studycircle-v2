@@ -10,6 +10,7 @@ const Answer = require('./Answer');
 const SharedNote = require('./SharedNote');
 const Bookmark = require('./Bookmark');
 const Otp = require('./Otp');
+const Notification = require('./Notification');
 
 // M-M relations
 User.belongsToMany(Group, { through: GroupMember, foreignKey: 'userId' });
@@ -56,6 +57,10 @@ Bookmark.belongsTo(User, { foreignKey: 'userId' });
 SharedNote.hasMany(Bookmark, { foreignKey: 'noteId', onDelete: 'CASCADE' });
 Bookmark.belongsTo(SharedNote, { foreignKey: 'noteId' });
 
+// Notifications
+User.hasMany(Notification, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Notification.belongsTo(User, { foreignKey: 'userId' });
+
 module.exports = {
   sequelize,
   User,
@@ -68,5 +73,7 @@ module.exports = {
   Answer,
   SharedNote,
   Bookmark,
-  Otp
+  Otp,
+  Notification
 };
+

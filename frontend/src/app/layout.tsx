@@ -1,6 +1,7 @@
 import './globals.css';
 import { ToastProvider } from './components/ToastProvider';
 import { FloatingLogo } from './components/FloatingLogo';
+import { AppProvider } from './context/AppContext';
 
 export const metadata = {
   title: 'StudyCircle - Collaborative Learning Workspace',
@@ -20,9 +21,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className="bg-[#0A0B10] text-zinc-100 min-h-screen antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <AppProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </AppProvider>
         <FloatingLogo />
       </body>
     </html>

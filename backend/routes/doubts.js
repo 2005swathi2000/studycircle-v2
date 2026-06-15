@@ -1,5 +1,5 @@
 const express = require('express');
-const { Doubt, Answer, User, GroupMember } = require('../models');
+const { Doubt, Answer, User, GroupMember, Group, Notification } = require('../models');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -72,6 +72,35 @@ router.post('/', authMiddleware, async (req, res) => {
         attributes: ['fullName', 'username', 'role']
       }]
     });
+
+    try {
+      const group = await Group.findByPk(groupId);
+      const groupName = group ? group.name : 'Study Circle';
+      
+      const members = await GroupMember.findAll({ where: { groupId } });
+      const notificationsToCreate = members
+        .filter(m => m.userId !== req.user.id)
+        .map(m => ({
+          userId: m.userId,
+          message: `${req.user.fullName} posted a new doubt: "${title}" in ${groupName}`,
+          type: 'doubt',
+          unread: true,
+          groupName,
+          actionTab: 'doubts'
+        }));
+
+      if (notificationsToCreate.length > 0) {
+        const createdNotifications = await Notification.bulkCreate(notificationsToCreate);
+        const io = req.app.get('io');
+        if (io) {
+          createdNotifications.forEach(notification => {
+            io.to(`user-${notification.userId}`).emit('new-notification', notification);
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error('[Notifier] Error sending doubt notifications:', notifErr);
+    }
 
     return res.status(201).json({ message: 'Doubt posted successfully!', doubt: fullDoubt });
   } catch (err) {
@@ -162,6 +191,28 @@ router.post('/:id/answers', authMiddleware, async (req, res) => {
         attributes: ['fullName', 'username', 'role']
       }]
     });
+
+    try {
+      if (doubt.userId !== req.user.id) {
+        const group = await Group.findByPk(doubt.groupId);
+        const groupName = group ? group.name : 'Study Circle';
+        const notification = await Notification.create({
+          userId: doubt.userId,
+          message: `${req.user.fullName} answered your doubt: "${doubt.title}" in ${groupName}`,
+          type: 'doubt',
+          unread: true,
+          groupName,
+          actionTab: 'doubts'
+        });
+        
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`user-${doubt.userId}`).emit('new-notification', notification);
+        }
+      }
+    } catch (notifErr) {
+      console.error('[Notifier] Error sending answer notification:', notifErr);
+    }
 
     return res.status(201).json({ message: 'Answer posted successfully!', answer: fullAnswer });
   } catch (err) {
