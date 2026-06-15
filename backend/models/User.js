@@ -50,7 +50,27 @@ const User = sequelize.define('User', {
     allowNull: true
   },
   avatarUrl: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  firstName: {
     type: DataTypes.STRING,
+    allowNull: true
+  },
+  lastName: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  gender: {
+    type: DataTypes.ENUM('male', 'female', 'other'),
     allowNull: true
   }
 }, {

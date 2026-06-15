@@ -257,14 +257,19 @@ router.post('/clear-mock-inbox', (req, res) => {
 // Register Route
 router.post('/register', async (req, res) => {
   try {
-    const { fullName, username, password, role, phoneOrEmail, otp } = req.body;
+    const { firstName, lastName, username, password, role, email, phone, gender, otp } = req.body;
 
-    if (!fullName || !username || !password) {
-      return res.status(400).json({ error: 'All fields (fullName, username, password) are required.' });
+    if (!firstName || !lastName || !username || !password || !gender) {
+      return res.status(400).json({ error: 'First name, last name, username, password, and gender are required.' });
     }
 
     const normalizedUsername = username.trim().toLowerCase();
     const validRole = (role === 'admin' || role === 'mentor' || role === 'student') ? role : 'student';
+    const normalizedGender = (gender === 'male' || gender === 'female' || gender === 'other') ? gender : 'other';
+
+    // Calculate composite fields for backward compatibility
+    const fullName = `${firstName.trim()} ${lastName.trim()}`;
+    const phoneOrEmail = (email || phone || '').trim().toLowerCase();
 
     // Verification check for all accounts
     if (!phoneOrEmail || !otp) {
@@ -286,7 +291,14 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Username is already taken.' });
     }
 
-    // All users are approved immediately to facilitate testing and workspace entry
+    // Set avatarUrl based on gender
+    let avatarUrl = '/charan-avatar.png'; // default male
+    if (normalizedGender === 'female') {
+      avatarUrl = '/swathi-avatar.png';
+    } else if (normalizedGender === 'other') {
+      avatarUrl = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+    }
+
     let isApproved = true;
 
     // Create user
@@ -295,9 +307,15 @@ router.post('/register', async (req, res) => {
       username: normalizedUsername,
       password,
       role: validRole,
-      phoneOrEmail: phoneOrEmail ? phoneOrEmail.trim().toLowerCase() : null,
+      phoneOrEmail,
       isVerified: true,
-      isApproved
+      isApproved,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email ? email.trim().toLowerCase() : null,
+      phone: phone ? phone.trim() : null,
+      gender: normalizedGender,
+      avatarUrl
     });
 
     // Add new username to Bloom Filter
@@ -315,16 +333,20 @@ router.post('/register', async (req, res) => {
     });
 
     return res.status(201).json({
-      message: isApproved 
-        ? 'Registration successful!' 
-        : 'Registration successful! Account is pending approval by an existing admin.',
+      message: 'Registration successful!',
       token,
       user: {
         id: newUser.id,
         fullName: newUser.fullName,
         username: newUser.username,
         role: newUser.role,
-        isApproved: newUser.isApproved
+        isApproved: newUser.isApproved,
+        avatarUrl: newUser.avatarUrl,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        phone: newUser.phone,
+        gender: newUser.gender
       }
     });
   } catch (err) {
@@ -391,7 +413,13 @@ router.post('/login', async (req, res) => {
         role: user.role,
         isApproved: user.isApproved,
         streakCount: user.streakCount,
-        totalStudyHours: user.totalStudyHours
+        totalStudyHours: user.totalStudyHours,
+        avatarUrl: user.avatarUrl,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        gender: user.gender
       }
     });
   } catch (err) {
@@ -468,6 +496,86 @@ router.get('/me', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error retrieving user profile.' });
+  }
+});
+
+// Update user profile (PUT /update-profile)
+router.put('/update-profile', authMiddleware, async (req, res) => {
+  try {
+    const { firstName, lastName, email, phone, avatarUrl, bio } = req.body;
+    
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    if (firstName !== undefined) {
+      if (!firstName || firstName.trim() === '') {
+        return res.status(400).json({ error: 'First name cannot be empty.' });
+      }
+      user.firstName = firstName.trim();
+    }
+
+    if (lastName !== undefined) {
+      if (!lastName || lastName.trim() === '') {
+        return res.status(400).json({ error: 'Last name cannot be empty.' });
+      }
+      user.lastName = lastName.trim();
+    }
+
+    if (email !== undefined) {
+      user.email = email ? email.trim().toLowerCase() : null;
+    }
+
+    if (phone !== undefined) {
+      user.phone = phone ? phone.trim() : null;
+    }
+
+    if (avatarUrl !== undefined) {
+      user.avatarUrl = avatarUrl;
+    }
+
+    if (bio !== undefined) {
+      user.bio = bio ? bio.trim() : null;
+    }
+
+    // Update old composite columns for backward compatibility
+    const updatedFirstName = user.firstName || '';
+    const updatedLastName = user.lastName || '';
+    if (updatedFirstName || updatedLastName) {
+      user.fullName = `${updatedFirstName} ${updatedLastName}`.trim();
+    }
+    user.phoneOrEmail = user.email || user.phone || null;
+
+    await user.save();
+
+    // Exclude password from the returned user details
+    const updatedUser = {
+      id: user.id,
+      fullName: user.fullName,
+      username: user.username,
+      role: user.role,
+      phoneOrEmail: user.phoneOrEmail,
+      isVerified: user.isVerified,
+      isApproved: user.isApproved,
+      streakCount: user.streakCount,
+      totalStudyHours: user.totalStudyHours,
+      bio: user.bio,
+      avatarUrl: user.avatarUrl,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      gender: user.gender
+    };
+
+    return res.json({
+      message: 'Profile updated successfully!',
+      user: updatedUser
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error updating user profile.' });
   }
 });
 

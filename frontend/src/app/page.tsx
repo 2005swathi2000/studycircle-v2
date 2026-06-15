@@ -61,6 +61,16 @@ export default function Home() {
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [activePortal, setActivePortal] = useState<'student' | 'mentor'>('student');
   const [regRole, setRegRole] = useState<'student' | 'mentor'>('student');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Split name and gender inputs
+  const [studentFirstName, setStudentFirstName] = useState('');
+  const [studentLastName, setStudentLastName] = useState('');
+  const [studentGender, setStudentGender] = useState('male');
+
+  const [mentorFirstName, setMentorFirstName] = useState('');
+  const [mentorLastName, setMentorLastName] = useState('');
+  const [mentorGender, setMentorGender] = useState('male');
 
   // Username validation state
   const [usernameToCheck, setUsernameToCheck] = useState('');
@@ -456,8 +466,8 @@ export default function Home() {
   // Perform Student Registration
   const handleStudentRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!studentName || !studentUser || !studentPass || !studentContact || !studentOtp) {
-      showToast('All student fields including verification code are required.', 'error');
+    if (!studentFirstName.trim() || !studentLastName.trim() || !studentUser.trim() || !studentPass || !studentContact.trim() || !studentOtp || !studentGender) {
+      showToast('All fields (including first name, last name, verification code, and gender) are required.', 'error');
       return;
     }
     setFormLoading(true);
@@ -465,16 +475,20 @@ export default function Home() {
       const data = await apiRequest('/auth/register', {
         method: 'POST',
         body: JSON.stringify({
-          fullName: studentName,
-          username: studentUser,
+          firstName: studentFirstName.trim(),
+          lastName: studentLastName.trim(),
+          username: studentUser.trim(),
           password: studentPass,
           role: 'student',
-          phoneOrEmail: studentContact,
+          email: studentContact.includes('@') ? studentContact.trim().toLowerCase() : null,
+          phone: !studentContact.includes('@') ? studentContact.trim() : null,
+          gender: studentGender,
           otp: studentOtp
         })
       });
       setUserInfo(data.user);
       showToast(data.message || 'Student account created successfully!', 'success');
+      setShowAuthModal(false);
       router.push('/dashboard');
     } catch (err: any) {
       showToast(err.message || 'Registration failed.', 'error');
@@ -486,8 +500,8 @@ export default function Home() {
   // Perform Mentor Registration
   const handleMentorRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mentorName || !mentorUser || !mentorPass || !mentorInstitution || !mentorContact || !mentorOtp) {
-      showToast('All fields including verification code are required.', 'error');
+    if (!mentorFirstName.trim() || !mentorLastName.trim() || !mentorUser.trim() || !mentorPass || !mentorInstitution || !mentorContact.trim() || !mentorOtp || !mentorGender) {
+      showToast('All fields (including first name, last name, verification code, and gender) are required.', 'error');
       return;
     }
     setFormLoading(true);
@@ -495,22 +509,26 @@ export default function Home() {
       const data = await apiRequest('/auth/register', {
         method: 'POST',
         body: JSON.stringify({
-          fullName: mentorName,
-          username: mentorUser,
+          firstName: mentorFirstName.trim(),
+          lastName: mentorLastName.trim(),
+          username: mentorUser.trim(),
           password: mentorPass,
           role: 'mentor',
-          phoneOrEmail: mentorContact,
-          otp: mentorOtp
+          email: mentorContact.includes('@') ? mentorContact.trim().toLowerCase() : null,
+          phone: !mentorContact.includes('@') ? mentorContact.trim() : null,
+          gender: mentorGender,
+          otp: mentorOtp,
+          institution: mentorInstitution
         })
       });
       showToast(data.message || 'Mentor registered. Awaiting Admin Approval.', 'success');
       if (data.user && data.user.isApproved) {
         setUserInfo(data.user);
         showToast('Approved automatically. Redirecting...', 'success');
+        setShowAuthModal(false);
         router.push('/dashboard');
       } else {
         setAuthMode('login');
-        scrollToSection('auth-gates');
       }
     } catch (err: any) {
       showToast(err.message || 'Registration failed.', 'error');
@@ -574,6 +592,7 @@ export default function Home() {
       });
       setUserInfo(data.user);
       showToast('Welcome back, ' + data.user.fullName + '!', 'success');
+      setShowAuthModal(false);
       router.push('/dashboard');
     } catch (err: any) {
       showToast(err.message || 'Login failed.', 'error');
@@ -615,7 +634,7 @@ export default function Home() {
     if (!user) {
       showToast('Please log in or sign up first to join this study circle.', 'warning');
       setAuthMode('login');
-      scrollToSection('auth-gates');
+      setShowAuthModal(true);
       return;
     }
 
@@ -717,13 +736,13 @@ export default function Home() {
             ) : (
               <>
                 <button 
-                  onClick={() => { setAuthMode('login'); scrollToSection('auth-gates'); }}
+                  onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
                   className="text-slate-350 hover:text-white text-xs font-bold transition-all cursor-pointer"
                 >
                   Sign In
                 </button>
                 <button 
-                  onClick={() => { setAuthMode('register'); scrollToSection('auth-gates'); }}
+                  onClick={() => { setAuthMode('register'); setShowAuthModal(true); }}
                   className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338ca] text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/10 transition-all cursor-pointer"
                 >
                   Join Now
@@ -755,7 +774,7 @@ export default function Home() {
               
               <div className="flex flex-wrap items-center gap-4 pt-2">
                 <button
-                  onClick={() => { setAuthMode('register'); scrollToSection('auth-gates'); }}
+                  onClick={() => { setAuthMode('register'); setShowAuthModal(true); }}
                   className="px-6 py-3 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-xs font-extrabold rounded-xl shadow-lg shadow-indigo-600/15 flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   Get Started <ArrowRight className="h-4 w-4" />
@@ -886,7 +905,7 @@ export default function Home() {
               </p>
               <div className="pt-2">
                 <button
-                  onClick={() => { setAuthMode('register'); scrollToSection('auth-gates'); }}
+                  onClick={() => { setAuthMode('register'); setShowAuthModal(true); }}
                   className="px-6 py-3 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-xs font-extrabold rounded-xl shadow-lg shadow-indigo-600/15 flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   Join StudyCircle <ArrowRight className="h-4 w-4" />
@@ -1145,436 +1164,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 6. Auth Gates Section (Side-by-side student/mentor logins and 3 signup partitions) */}
-        <section id="auth-gates" className="w-full bg-[#03060d] py-20 border-t border-white/[0.04]">
-          <div className="max-w-7xl mx-auto px-6 space-y-12">
-            
-            {/* Login Gates */}
-            {authMode === 'login' && (
-              <div className="max-w-4xl mx-auto space-y-8">
-                <div className="text-center space-y-2">
-                  <span className="text-[10px] font-extrabold uppercase bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full tracking-wider">Lobby entrance</span>
-                  <h3 className="text-2xl font-black text-white uppercase tracking-tight">Active Portal Access</h3>
-                  <p className="text-xs text-slate-450 font-sans">Students log in on the left Student Gate; mentors & administrators log in on the right Mentor Gate.</p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-8 text-left">
-                  {/* Student Login Gate */}
-                  <div className={`p-8 bg-slate-900 border ${activePortal === 'student' ? 'border-[#E11D48]/35 shadow-2xl bg-[#E11D48]/5' : 'border-white/5 shadow-sm'} rounded-[32px] transition-all duration-300 relative`}>
-                    {activePortal === 'student' && <div className="absolute top-5 right-5 text-[8px] font-extrabold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-400/20 px-2 py-0.5 rounded-lg">Active Desk</div>}
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <div className="inline-flex p-2.5 bg-slate-950 border border-white/5 rounded-2xl text-[#E11D48]">
-                          <GraduationCap className="h-5 w-5" />
-                        </div>
-                        <h3 className="text-sm font-black uppercase text-white">Student Gate</h3>
-                        <p className="text-xs text-slate-400 leading-normal">Enter to virtually co-work at live desks and collaborate on note boards.</p>
-                      </div>
-
-                      <form onSubmit={handleLogin} className="space-y-4">
-                        {activePortal === 'student' && (
-                          <>
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Username</label>
-                              <input
-                                type="text"
-                                value={loginUser}
-                                onChange={(e) => setLoginUser(e.target.value)}
-                                placeholder="e.g. charan_stud"
-                                className="w-full px-4 py-3 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs text-white outline-none"
-                              />
-                            </div>
-                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Password</label>
-                              <div className="relative">
-                                <input
-                                  type={showLoginPass ? "text" : "password"}
-                                  value={loginPass}
-                                  onChange={(e) => setLoginPass(e.target.value)}
-                                  placeholder="••••••••"
-                                  className="w-full pl-4 pr-10 py-3 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs text-white outline-none"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => setShowLoginPass(!showLoginPass)}
-                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm bg-transparent border-0 cursor-pointer select-none"
-                                >
-                                  {showLoginPass ? '🙈' : '👁️'}
-                                </button>
-                              </div>
-                            </div>
-                          </>
-                        )}
-
-                        {activePortal === 'student' ? (
-                          <button
-                            type="submit"
-                            disabled={formLoading}
-                            className="w-full py-3 bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-bold rounded-2xl cursor-pointer shadow-lg tracking-widest uppercase transition-all"
-                          >
-                            {formLoading ? 'Verifying Student...' : 'Access Student Desk'}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => { setActivePortal('student'); setLoginUser(''); setLoginPass(''); }}
-                            className="w-full py-3 bg-slate-950 hover:bg-slate-800 border border-white/5 text-slate-350 text-xs font-bold rounded-2xl cursor-pointer transition-all"
-                          >
-                            Activate Student Gate
-                          </button>
-                        )}
-                      </form>
-                    </div>
-                  </div>
-
-                  {/* Mentor / Admin Gate */}
-                  <div className={`p-8 bg-slate-900 border ${activePortal === 'mentor' ? 'border-[#E11D48]/35 shadow-2xl bg-[#E11D48]/5' : 'border-white/5 shadow-sm'} rounded-[32px] transition-all duration-300 relative`}>
-                    {activePortal === 'mentor' && <div className="absolute top-5 right-5 text-[8px] font-extrabold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-400/20 px-2 py-0.5 rounded-lg">Active Coordinator</div>}
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <div className="inline-flex p-2.5 bg-slate-950 border border-white/5 rounded-2xl text-[#E11D48]">
-                          <Shield className="h-5 w-5" />
-                        </div>
-                        <h3 className="text-sm font-black uppercase text-white">Mentor & Admin Gate</h3>
-                        <p className="text-xs text-slate-400 leading-normal">Coordinators and group directors console gate. Approved status check.</p>
-                      </div>
-
-                      <form onSubmit={handleLogin} className="space-y-4">
-                        {activePortal === 'mentor' && (
-                          <>
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Username</label>
-                              <input
-                                type="text"
-                                value={loginUser}
-                                onChange={(e) => setLoginUser(e.target.value)}
-                                placeholder="e.g. klu_admin"
-                                className="w-full px-4 py-3 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs text-white outline-none"
-                              />
-                            </div>
-                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Password</label>
-                              <div className="relative">
-                                <input
-                                  type={showLoginPass ? "text" : "password"}
-                                  value={loginPass}
-                                  onChange={(e) => setLoginPass(e.target.value)}
-                                  placeholder="••••••••"
-                                  className="w-full pl-4 pr-10 py-3 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs text-white outline-none"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => setShowLoginPass(!showLoginPass)}
-                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm bg-transparent border-0 cursor-pointer select-none"
-                                >
-                                  {showLoginPass ? '🙈' : '👁️'}
-                                </button>
-                              </div>
-                            </div>
-                          </>
-                        )}
-
-                        {activePortal === 'mentor' ? (
-                          <button
-                            type="submit"
-                            disabled={formLoading}
-                            className="w-full py-3 bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-bold rounded-2xl cursor-pointer shadow-lg tracking-widest uppercase transition-all"
-                          >
-                            {formLoading ? 'Verifying Coordinator...' : 'Access Admin Console'}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => { setActivePortal('mentor'); setLoginUser(''); setLoginPass(''); }}
-                            className="w-full py-3 bg-slate-950 hover:bg-slate-800 border border-white/5 text-slate-350 text-xs font-bold rounded-2xl cursor-pointer transition-all"
-                          >
-                            Activate Coordinator Gate
-                          </button>
-                        )}
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* HackerRank-Style Single Registration Card */}
-            {authMode === 'register' && (
-              <div className="space-y-6 max-w-lg mx-auto">
-                <div className="text-center space-y-2">
-                  <span className="text-[10px] font-extrabold uppercase bg-indigo-500/10 border border-indigo-500/20 text-[#4F46E5] px-3 py-1 rounded-full tracking-wider">Registration Gate</span>
-                  <h3 className="text-2xl font-black text-white uppercase tracking-tight">Join StudyCircle Workspace</h3>
-                  <p className="text-xs text-slate-400">Select your workspace role and input verification credentials.</p>
-                </div>
-
-                {/* Glassmorphic Container Card */}
-                <div className="p-8 bg-slate-900/65 backdrop-blur-xl border border-white/10 rounded-[32px] space-y-6 shadow-2xl relative overflow-hidden transition-all duration-300">
-                  {/* Subtle decorative glowing background circle */}
-                  <div className="absolute -top-12 -right-12 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-                  
-                  {/* HackerRank-style toggle tabs */}
-                  <div className="flex p-1 bg-slate-950/80 border border-white/5 rounded-2xl relative">
-                    <button
-                      type="button"
-                      onClick={() => setRegRole('student')}
-                      className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${
-                        regRole === 'student'
-                          ? 'bg-[#E11D48] text-white shadow-lg shadow-rose-600/15 scale-[1.02]'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      🎓 Student
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRegRole('mentor')}
-                      className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${
-                        regRole === 'mentor'
-                          ? 'bg-[#E11D48] text-white shadow-lg shadow-rose-600/15 scale-[1.02]'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      🛡️ Mentor
-                    </button>
-                  </div>
-
-                  <form 
-                    onSubmit={regRole === 'student' ? handleStudentRegister : handleMentorRegister} 
-                    className="space-y-4"
-                  >
-                    {/* Common Field: Full Name */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Full Name</label>
-                      <input
-                        type="text"
-                        value={regRole === 'student' ? studentName : mentorName}
-                        onChange={(e) => regRole === 'student' ? setStudentName(e.target.value) : setMentorName(e.target.value)}
-                        placeholder={regRole === 'student' ? "e.g. Sai Charan" : "e.g. Dr. Prasad"}
-                        className="w-full px-4 py-3 bg-slate-950/90 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs outline-none text-white transition-all duration-150 focus:shadow-md focus:shadow-rose-500/5"
-                        required
-                      />
-                    </div>
-
-                    {/* Common Field: Username with Validation */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Username</label>
-                      <input
-                        type="text"
-                        value={regRole === 'student' ? studentUser : mentorUser}
-                        onChange={(e) => handleUsernameChange(e.target.value, regRole)}
-                        placeholder={regRole === 'student' ? "e.g. charan_stud" : "e.g. prasad_mentor"}
-                        className="w-full px-4 py-3 bg-slate-950/90 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs outline-none text-white transition-all duration-150 focus:shadow-md focus:shadow-rose-500/5"
-                        required
-                      />
-                      {usernameToCheck === (regRole === 'student' ? studentUser : mentorUser) && usernameToCheck && (
-                        <div className="text-[9px] font-semibold flex items-center gap-1 mt-1.5 px-1">
-                          {checkingUsername ? (
-                            <span className="text-slate-500 animate-pulse">Checking username availability...</span>
-                          ) : usernameStatus?.available ? (
-                            <span className="text-emerald-400 flex items-center gap-0.5">
-                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                              ✓ Available ({usernameStatus.method})
-                            </span>
-                          ) : (
-                            <span className="text-red-400">✗ Username already taken</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Common Field: Phone / Email with Send OTP */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email or Phone Number</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={regRole === 'student' ? studentContact : mentorContact}
-                          onChange={(e) => regRole === 'student' ? setStudentContact(e.target.value) : setMentorContact(e.target.value)}
-                          placeholder={regRole === 'student' ? "e.g. student@gmail.com" : "e.g. mentor@vrsec.ac.in"}
-                          className="flex-1 px-4 py-3 bg-slate-950/90 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs outline-none text-white transition-all duration-150 focus:shadow-md focus:shadow-rose-500/5"
-                          required
-                        />
-                        <button
-                          type="button"
-                          disabled={formLoading}
-                          onClick={() => sendRegOtp(regRole)}
-                          className="px-4 bg-slate-950 hover:bg-slate-850 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 hover:border-white/20 text-[10px] font-black text-[#E11D48] rounded-xl cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-150"
-                        >
-                          Send OTP
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Common Field: Verification OTP Code */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-455 uppercase tracking-wider">Verification OTP Code</label>
-                      <input
-                        type="text"
-                        value={regRole === 'student' ? studentOtp : mentorOtp}
-                        onChange={(e) => regRole === 'student' ? setStudentOtp(e.target.value) : setMentorOtp(e.target.value)}
-                        placeholder="6-digit code"
-                        className="w-full px-4 py-3 bg-slate-950/90 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs outline-none text-white font-mono tracking-widest text-center transition-all duration-150"
-                        required
-                      />
-                    </div>
-
-                    {/* Mentor-Only Field: Institution / College dropdown */}
-                    {regRole === 'mentor' && (
-                      <div className="space-y-1 animate-in slide-in-from-top-2 duration-200">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Institution / College</label>
-                        <select
-                          value={mentorInstitution}
-                          onChange={(e) => setMentorInstitution(e.target.value)}
-                          className="w-full px-4 py-3 bg-slate-950/90 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs outline-none text-slate-300 transition-all duration-150"
-                          required
-                        >
-                          <option value="">Select College</option>
-                          {COLLEGES.map((c) => (
-                            <option key={c.code} value={c.name}>{c.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Common Field: Password */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Password</label>
-                      <div className="relative">
-                        <input
-                          type={(regRole === 'student' ? showStudentPass : showMentorPass) ? "text" : "password"}
-                          value={regRole === 'student' ? studentPass : mentorPass}
-                          onChange={(e) => regRole === 'student' ? setStudentPass(e.target.value) : setMentorPass(e.target.value)}
-                          placeholder="••••••••"
-                          className="w-full pl-4 pr-10 py-3 bg-slate-950/90 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs outline-none text-white transition-all duration-150"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => regRole === 'student' ? setShowStudentPass(!showStudentPass) : setShowMentorPass(!showMentorPass)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-sm bg-transparent border-0 cursor-pointer select-none"
-                        >
-                          {(regRole === 'student' ? showStudentPass : showMentorPass) ? '🙈' : '👁️'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Submit Button */}
-                    <button
-                      type="submit"
-                      disabled={formLoading}
-                      className="w-full py-3.5 bg-[#E11D48] hover:bg-[#BE123C] disabled:opacity-50 text-white text-xs font-black rounded-2xl shadow-lg shadow-rose-600/15 cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all duration-150 uppercase tracking-wider"
-                    >
-                      {formLoading 
-                        ? (regRole === 'student' ? 'Verifying Student...' : 'Registering Mentor...') 
-                        : (regRole === 'student' ? 'Register Student Gate' : 'Register Mentor Gate')
-                      }
-                    </button>
-                  </form>
-                </div>
-              </div>
-            )}
-
-            {/* Forgot Credentials Flow */}
-            {authMode === 'forgot' && (
-              <div className="max-w-md mx-auto p-8 bg-slate-900 border border-white/5 rounded-[32px] space-y-6 text-left shadow-lg">
-                <div className="space-y-2 text-center">
-                  <Key className="h-8 w-8 text-[#E11D48] mx-auto" />
-                  <h3 className="text-sm font-black uppercase text-white">Reset Credentials Gate</h3>
-                  <p className="text-xs text-slate-455 leading-relaxed">Input your registered email or phone number and verify dynamic OTP code to reset password.</p>
-                </div>
-
-                <form onSubmit={handleResetPassword} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email or Phone Number</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={forgotUser}
-                        onChange={(e) => setForgotUser(e.target.value)}
-                        placeholder="e.g. charan@example.com or 9876543210"
-                        className="flex-1 px-4 py-3 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs text-white outline-none"
-                      />
-                      <button
-                        type="button"
-                        disabled={formLoading}
-                        onClick={sendResetOtp}
-                        className="px-3 bg-slate-850 hover:bg-slate-750 disabled:opacity-50 disabled:cursor-not-allowed border border-white/5 text-[10px] font-bold text-[#E11D48] rounded-xl cursor-pointer"
-                      >
-                        Send OTP
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Verification OTP Code</label>
-                    <input
-                      type="text"
-                      value={forgotOtp}
-                      onChange={(e) => setForgotOtp(e.target.value)}
-                      placeholder="6-digit code"
-                      className="w-full px-4 py-3 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs text-white outline-none font-mono tracking-widest text-center"
-                    />
-                  </div>
-
-                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-455 uppercase tracking-wider">New Password</label>
-                    <div className="relative">
-                      <input
-                        type={showForgotPass ? "text" : "password"}
-                        value={forgotNewPass}
-                        onChange={(e) => setForgotNewPass(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full pl-4 pr-10 py-3 bg-slate-950 border border-white/5 focus:border-[#E11D48] rounded-2xl text-xs text-white outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowForgotPass(!showForgotPass)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-sm bg-transparent border-0 cursor-pointer select-none"
-                      >
-                        {showForgotPass ? '🙈' : '👁️'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={formLoading}
-                    className="w-full py-3 bg-[#E11D48] hover:bg-[#BE123C] text-white text-xs font-bold rounded-2xl cursor-pointer shadow-md tracking-wider uppercase transition-all"
-                  >
-                    {formLoading ? 'Resetting...' : 'Update Password & Enter'}
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* Auth Navigation Links */}
-            <div className="flex justify-center gap-6 text-xs text-slate-400 font-semibold">
-              {authMode === 'login' && (
-                <>
-                  <button onClick={() => setAuthMode('register')} className="hover:text-[#E11D48] transition-colors cursor-pointer font-bold">
-                    Create Study Account
-                  </button>
-                  <span>•</span>
-                  <button onClick={() => setAuthMode('forgot')} className="hover:text-[#E11D48] transition-colors cursor-pointer font-bold">
-                    Forgot Password?
-                  </button>
-                </>
-              )}
-              {authMode === 'register' && (
-                <button onClick={() => setAuthMode('login')} className="hover:text-[#E11D48] transition-colors cursor-pointer font-bold">
-                  Already have an account? Sign In
-                </button>
-              )}
-              {authMode === 'forgot' && (
-                <button onClick={() => setAuthMode('login')} className="hover:text-[#E11D48] transition-colors cursor-pointer font-bold">
-                  Return to Login Gate
-                </button>
-              )}
-            </div>
-
-          </div>
-        </section>
-
       </main>
 
       {/* Footer */}
@@ -1588,6 +1177,544 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* 🔐 Auth Overlay Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            onClick={() => setShowAuthModal(false)}
+            className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity cursor-pointer"
+          />
+          
+          {/* Modal Card */}
+          <div className="relative w-full max-w-lg bg-[#0a0f1d]/90 border border-white/10 rounded-3xl p-8 shadow-2xl backdrop-blur-xl z-10 text-left animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
+            {/* Close Button */}
+            <button 
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-white/5"
+            >
+              ✕
+            </button>
+
+            {/* Header */}
+            <div className="text-center space-y-2 mb-6">
+              <div className="inline-flex h-10 w-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#818CF8] items-center justify-center">
+                <Lock className="h-5 w-5" />
+              </div>
+              <h3 className="text-xl font-black text-white">
+                {authMode === 'login' && 'Welcome to StudyCircle'}
+                {authMode === 'register' && 'Create Your Account'}
+                {authMode === 'forgot' && 'Reset Password'}
+              </h3>
+              <p className="text-xs text-slate-400">
+                {authMode === 'login' && 'Log in to access your student or mentor workspace'}
+                {authMode === 'register' && 'Join the AP & Telangana degree cluster lounge'}
+                {authMode === 'forgot' && 'Recover your credentials via registered contact'}
+              </p>
+            </div>
+
+            {/* Forms */}
+            {authMode === 'login' && (
+              <form onSubmit={handleLogin} className="space-y-4">
+                {/* Portal Tabs */}
+                <div className="flex bg-[#0e1428] p-1 rounded-xl border border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setActivePortal('student')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${activePortal === 'student' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    Student Portal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivePortal('mentor')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${activePortal === 'mentor' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    Mentor / Admin
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Username</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                      <input
+                        type="text"
+                        placeholder="Enter your username"
+                        value={loginUser}
+                        onChange={(e) => setLoginUser(e.target.value)}
+                        className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                      <input
+                        type={showLoginPass ? 'text' : 'password'}
+                        placeholder="Enter your password"
+                        value={loginPass}
+                        onChange={(e) => setLoginPass(e.target.value)}
+                        className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPass(!showLoginPass)}
+                        className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-bold"
+                      >
+                        {showLoginPass ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('forgot')}
+                    className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="w-full py-3 bg-[#4F46E5] hover:bg-[#4338ca] disabled:bg-indigo-650/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 transition-all flex items-center justify-center gap-2"
+                >
+                  {formLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
+                  Log In to {activePortal === 'student' ? 'Student' : 'Mentor/Admin'} Desk
+                </button>
+
+                <div className="text-center pt-2">
+                  <span className="text-[10px] text-slate-400">Don't have an account? </span>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('register'); setRegRole('student'); }}
+                    className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 transition-colors"
+                  >
+                    Sign Up
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {authMode === 'register' && (
+              <div className="space-y-4">
+                {/* Registration Role Selection */}
+                <div className="flex bg-[#0e1428] p-1 rounded-xl border border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setRegRole('student')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${regRole === 'student' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    I'm a Student
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRegRole('mentor')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${regRole === 'mentor' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    I'm a Mentor
+                  </button>
+                </div>
+
+                {regRole === 'student' ? (
+                  <form onSubmit={handleStudentRegister} className="space-y-3.5">
+                    {/* First Name & Last Name */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">First Name</label>
+                        <input
+                          type="text"
+                          placeholder="First Name"
+                          value={studentFirstName}
+                          onChange={(e) => setStudentFirstName(e.target.value)}
+                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all animate-pulse-once"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Last Name</label>
+                        <input
+                          type="text"
+                          placeholder="Last Name"
+                          value={studentLastName}
+                          onChange={(e) => setStudentLastName(e.target.value)}
+                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Gender Dropdown */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gender</label>
+                      <select
+                        value={studentGender}
+                        onChange={(e) => setStudentGender(e.target.value)}
+                        className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white focus:border-indigo-500/50 outline-none transition-all cursor-pointer"
+                        required
+                      >
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Others</option>
+                      </select>
+                    </div>
+
+                    {/* Username Check block */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Username</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                        <input
+                          type="text"
+                          placeholder="Choose unique username"
+                          value={studentUser}
+                          onChange={(e) => handleUsernameChange(e.target.value, 'student')}
+                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                          required
+                        />
+                      </div>
+                      {checkingUsername && <p className="text-[9px] text-slate-500">Checking availability...</p>}
+                      {usernameStatus && usernameStatus.checked && (
+                        <p className={`text-[9px] font-bold ${usernameStatus.available ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {usernameStatus.available ? `✓ Available (${usernameStatus.method})` : `✗ Username already taken`}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Password */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                        <input
+                          type={showStudentPass ? 'text' : 'password'}
+                          placeholder="Password"
+                          value={studentPass}
+                          onChange={(e) => setStudentPass(e.target.value)}
+                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowStudentPass(!showStudentPass)}
+                          className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-bold"
+                        >
+                          {showStudentPass ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Contact (Email/Phone) with verification */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Contact Email / Phone</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Email or Phone Number"
+                          value={studentContact}
+                          onChange={(e) => setStudentContact(e.target.value)}
+                          disabled={studentOtpSent}
+                          className="flex-1 bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all disabled:opacity-50"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => sendRegOtp('student')}
+                          disabled={formLoading || studentOtpSent}
+                          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-700/30 text-white rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                        >
+                          {studentOtpSent ? 'Sent ✓' : 'Verify'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {studentOtpSent && (
+                      <div className="space-y-1 animate-in fade-in duration-200">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Verification Code (OTP)</label>
+                        <input
+                          type="text"
+                          placeholder="Enter 6-digit OTP code"
+                          value={studentOtp}
+                          onChange={(e) => setStudentOtp(e.target.value)}
+                          className="w-full bg-[#0a0e1c] border border-indigo-500/30 rounded-xl px-4 py-2.5 text-xs text-white font-mono text-center tracking-widest placeholder-slate-600 focus:border-indigo-500 outline-none transition-all"
+                          required
+                        />
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={formLoading || usernameStatus?.available === false}
+                      className="w-full py-3 bg-[#4F46E5] hover:bg-[#4338ca] disabled:bg-indigo-650/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 transition-all flex items-center justify-center gap-2 mt-4"
+                    >
+                      {formLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
+                      Register & Join Lobby
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleMentorRegister} className="space-y-3.5">
+                    {/* First Name & Last Name */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">First Name</label>
+                        <input
+                          type="text"
+                          placeholder="First Name"
+                          value={mentorFirstName}
+                          onChange={(e) => setMentorFirstName(e.target.value)}
+                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Last Name</label>
+                        <input
+                          type="text"
+                          placeholder="Last Name"
+                          value={mentorLastName}
+                          onChange={(e) => setMentorLastName(e.target.value)}
+                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Gender Dropdown */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gender</label>
+                      <select
+                        value={mentorGender}
+                        onChange={(e) => setMentorGender(e.target.value)}
+                        className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white focus:border-indigo-500/50 outline-none transition-all cursor-pointer"
+                        required
+                      >
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Others</option>
+                      </select>
+                    </div>
+
+                    {/* Username Check block */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Username</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                        <input
+                          type="text"
+                          placeholder="Choose unique username"
+                          value={mentorUser}
+                          onChange={(e) => handleUsernameChange(e.target.value, 'mentor')}
+                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                          required
+                        />
+                      </div>
+                      {checkingUsername && <p className="text-[9px] text-slate-500">Checking availability...</p>}
+                      {usernameStatus && usernameStatus.checked && (
+                        <p className={`text-[9px] font-bold ${usernameStatus.available ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {usernameStatus.available ? `✓ Available (${usernameStatus.method})` : `✗ Username already taken`}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Password */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                        <input
+                          type={showMentorPass ? 'text' : 'password'}
+                          placeholder="Password"
+                          value={mentorPass}
+                          onChange={(e) => setMentorPass(e.target.value)}
+                          className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowMentorPass(!showMentorPass)}
+                          className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-bold"
+                        >
+                          {showMentorPass ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* College / Institution */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">College / Institution</label>
+                      <select
+                        value={mentorInstitution}
+                        onChange={(e) => setMentorInstitution(e.target.value)}
+                        className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white focus:border-indigo-500/50 outline-none transition-all"
+                        required
+                      >
+                        <option value="">Select College</option>
+                        {COLLEGES.map((col) => (
+                          <option key={col.code} value={col.name}>{col.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Contact (Email/Phone) with verification */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Contact Email / Phone</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Email or Phone Number"
+                          value={mentorContact}
+                          onChange={(e) => setMentorContact(e.target.value)}
+                          disabled={mentorOtpSent}
+                          className="flex-1 bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all disabled:opacity-50"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => sendRegOtp('mentor')}
+                          disabled={formLoading || mentorOtpSent}
+                          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-700/30 text-white rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                        >
+                          {mentorOtpSent ? 'Sent ✓' : 'Verify'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {mentorOtpSent && (
+                      <div className="space-y-1 animate-in fade-in duration-200">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Verification Code (OTP)</label>
+                        <input
+                          type="text"
+                          placeholder="Enter 6-digit OTP code"
+                          value={mentorOtp}
+                          onChange={(e) => setMentorOtp(e.target.value)}
+                          className="w-full bg-[#0a0e1c] border border-indigo-500/30 rounded-xl px-4 py-2.5 text-xs text-white font-mono text-center tracking-widest placeholder-slate-600 focus:border-indigo-500 outline-none transition-all"
+                          required
+                        />
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={formLoading || usernameStatus?.available === false}
+                      className="w-full py-3 bg-[#4F46E5] hover:bg-[#4338ca] disabled:bg-indigo-650/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 transition-all flex items-center justify-center gap-2 mt-4"
+                    >
+                      {formLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
+                      Register as Mentor
+                    </button>
+                  </form>
+                )}
+
+                <div className="text-center pt-2">
+                  <span className="text-[10px] text-slate-400">Already have an account? </span>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('login')}
+                    className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 transition-colors"
+                  >
+                    Log In
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {authMode === 'forgot' && (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Username or Contact (Email/Phone)</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Registered Email, Phone, or Username"
+                        value={forgotUser}
+                        onChange={(e) => setForgotUser(e.target.value)}
+                        disabled={forgotOtpSent}
+                        className="flex-1 bg-[#0a0e1c] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all disabled:opacity-50"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={sendResetOtp}
+                        disabled={formLoading || forgotOtpSent}
+                        className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-700/30 text-white rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                      >
+                        {forgotOtpSent ? 'Sent ✓' : 'Send Code'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {forgotOtpSent && (
+                    <>
+                      <div className="space-y-1 animate-in fade-in duration-200">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Verification Code (OTP)</label>
+                        <input
+                          type="text"
+                          placeholder="Enter 6-digit OTP code"
+                          value={forgotOtp}
+                          onChange={(e) => setForgotOtp(e.target.value)}
+                          className="w-full bg-[#0a0e1c] border border-indigo-500/30 rounded-xl px-4 py-2.5 text-xs text-white font-mono text-center tracking-widest placeholder-slate-600 focus:border-indigo-500 outline-none transition-all"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1 animate-in fade-in duration-200">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">New Password</label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                          <input
+                            type={showForgotPass ? 'text' : 'password'}
+                            placeholder="Enter new password"
+                            value={forgotNewPass}
+                            onChange={(e) => setForgotNewPass(e.target.value)}
+                            className="w-full bg-[#0a0e1c] border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowForgotPass(!showForgotPass)}
+                            className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-bold"
+                          >
+                            {showForgotPass ? 'Hide' : 'Show'}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={formLoading || !forgotOtpSent}
+                  className="w-full py-3 bg-[#4F46E5] hover:bg-[#4338ca] disabled:bg-indigo-650/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 transition-all flex items-center justify-center gap-2 mt-4"
+                >
+                  {formLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
+                  Reset Password & Log In
+                </button>
+
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('login')}
+                    className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 transition-colors"
+                  >
+                    Back to Login
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 📬 Floating developer Mock Inbox trigger */}
       {isDevMode && (

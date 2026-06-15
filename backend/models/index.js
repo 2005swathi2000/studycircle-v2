@@ -8,6 +8,7 @@ const Progress = require('./Progress');
 const Doubt = require('./Doubt');
 const Answer = require('./Answer');
 const SharedNote = require('./SharedNote');
+const Bookmark = require('./Bookmark');
 const Otp = require('./Otp');
 
 // M-M relations
@@ -49,6 +50,12 @@ Answer.belongsTo(Doubt, { foreignKey: 'doubtId' });
 User.hasMany(Answer, { foreignKey: 'userId', as: 'CreatedAnswers' });
 Answer.belongsTo(User, { foreignKey: 'userId', as: 'Author' });
 
+// Bookmarks
+User.hasMany(Bookmark, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Bookmark.belongsTo(User, { foreignKey: 'userId' });
+SharedNote.hasMany(Bookmark, { foreignKey: 'noteId', onDelete: 'CASCADE' });
+Bookmark.belongsTo(SharedNote, { foreignKey: 'noteId' });
+
 module.exports = {
   sequelize,
   User,
@@ -60,5 +67,6 @@ module.exports = {
   Doubt,
   Answer,
   SharedNote,
+  Bookmark,
   Otp
 };

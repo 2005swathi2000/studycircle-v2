@@ -1,5 +1,5 @@
 const express = require('express');
-const { SharedNote, User } = require('../models');
+const { SharedNote, User, Bookmark } = require('../models');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -10,10 +10,52 @@ router.get('/', authMiddleware, async (req, res) => {
     const notes = await SharedNote.findAll({
       order: [['createdAt', 'DESC']]
     });
-    return res.json({ notes });
+
+    // Fetch user's bookmarks to calculate isBookmarked dynamically
+    const userBookmarks = await Bookmark.findAll({
+      where: { userId: req.user.id },
+      attributes: ['noteId']
+    });
+    const bookmarkedSet = new Set(userBookmarks.map(b => b.noteId));
+
+    const notesWithBookmark = notes.map(note => {
+      const plain = note.get({ plain: true });
+      plain.isBookmarked = bookmarkedSet.has(plain.id);
+      return plain;
+    });
+
+    return res.json({ notes: notesWithBookmark });
   } catch (err) {
     console.error('Error fetching shared notes:', err);
     return res.status(500).json({ error: 'Server error retrieving shared notes.' });
+  }
+});
+
+// Toggle bookmark for a shared note
+router.post('/:noteId/bookmark', authMiddleware, async (req, res) => {
+  try {
+    const { noteId } = req.params;
+    const userId = req.user.id;
+
+    const note = await SharedNote.findByPk(noteId);
+    if (!note) {
+      return res.status(404).json({ error: 'Shared note not found.' });
+    }
+
+    const existing = await Bookmark.findOne({
+      where: { userId, noteId }
+    });
+
+    if (existing) {
+      await existing.destroy();
+      return res.json({ bookmarked: false, message: 'Bookmark removed.' });
+    } else {
+      await Bookmark.create({ userId, noteId });
+      return res.json({ bookmarked: true, message: 'Bookmark added.' });
+    }
+  } catch (err) {
+    console.error('Error toggling bookmark:', err);
+    return res.status(500).json({ error: 'Server error toggling bookmark.' });
   }
 });
 

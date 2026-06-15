@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { apiRequest, clearUserInfo, getUserInfo } from '../utils/api';
+import { apiRequest, clearUserInfo, getUserInfo, setUserInfo } from '../utils/api';
 import { useToast } from '../components/ToastProvider';
 import { 
   Users, 
@@ -77,7 +77,8 @@ type TabType =
   | 'invites' 
   | 'reports' 
   | 'settings' 
-  | 'admin';
+  | 'admin'
+  | 'bookmarks';
 
 // Helper to determine gender-based profile picture dynamically
 const getAvatarByName = (fullName: string | null | undefined): string => {
@@ -130,6 +131,91 @@ export default function DashboardPage() {
   const [myGroups, setMyGroups] = useState<Group[]>([]);
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
+
+  const [editFullName, setEditFullName] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Profile details states
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [previewAvatar, setPreviewAvatar] = useState('');
+
+  // Login states for dashboard Auth Guard Overlay
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [loginPortal, setLoginPortal] = useState<'student' | 'mentor'>('student');
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  const handleDashboardLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginUser.trim() || !loginPass.trim()) {
+      showToast('Username and password are required.', 'error');
+      return;
+    }
+    setLoginLoading(true);
+    try {
+      const data = await apiRequest('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: loginUser.trim(),
+          password: loginPass,
+          portal: loginPortal
+        })
+      });
+      setUserInfo(data.user);
+      setUser(data.user);
+      showToast('Welcome back, ' + data.user.fullName + '!', 'success');
+      loadDashboardData(data.user);
+    } catch (err: any) {
+      showToast(err.message || 'Login failed.', 'error');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 250;
+        const MAX_HEIGHT = 250;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const base64 = canvas.toDataURL('image/jpeg', 0.8);
+          setPreviewAvatar(base64);
+          showToast('Photo selected and compressed!', 'success');
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Navigation tab state matching sidebar clicks
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -240,15 +326,21 @@ export default function DashboardPage() {
     showToast('Goal removed.', 'info');
   };
 
-  const handleToggleNoteBookmark = (id: string) => {
-    setNotesList(prev => prev.map(n => {
-      if (n.id === id) {
-        const nextType = n.type === 'bookmark' ? 'recent' : 'bookmark';
-        showToast(nextType === 'bookmark' ? 'Note bookmarked!' : 'Removed bookmark.', 'success');
-        return { ...n, type: nextType };
-      }
-      return n;
-    }));
+  const handleToggleNoteBookmark = async (id: string) => {
+    try {
+      const data = await apiRequest(`/shared-notes/${id}/bookmark`, {
+        method: 'POST'
+      });
+      showToast(data.message || 'Bookmark updated!', 'success');
+      setNotesList(prev => prev.map(n => {
+        if (n.id === id) {
+          return { ...n, isBookmarked: data.bookmarked };
+        }
+        return n;
+      }));
+    } catch (err: any) {
+      showToast(err.message || 'Failed to toggle bookmark.', 'error');
+    }
   };
 
   const handlePublishSharedNote = async (e: React.FormEvent) => {
@@ -505,17 +597,23 @@ Based on your desking logs and consistency, the AI tutor recommends:
   useEffect(() => {
     const info = getUserInfo();
     if (!info) {
-      showToast('Session expired. Please sign in.', 'error');
-      router.push('/');
+      setLoading(false);
       return;
     }
     setUser(info);
+    setEditFullName(info.fullName || '');
+    setEditFirstName(info.firstName || '');
+    setEditLastName(info.lastName || '');
+    setEditEmail(info.email || '');
+    setEditPhone(info.phone || '');
+    setPreviewAvatar(info.avatarUrl || '');
+    setEditBio(info.bio || '');
     loadDashboardData(info);
     
     // Seed role-based notifications
     if (info.role === 'student') {
       setNotifications([
-        { id: 1, message: "New doubt posted: 'What is the space complexity of quicksort?' in DSA Vijayawada Prep", type: 'doubt', time: '10 mins ago', unread: true, actionTab: 'groups' },
+        { id: 1, message: "New doubt posted: 'What is the space complexity of quicksort?' in DSA Vijayawada Prep", type: 'doubt', time: '10 mins ago', unread: true, actionTab: 'groups', groupName: "DSA Vijayawada Prep" },
         { id: 2, message: "Your mock DBMS study report is compiled and ready for download.", type: 'report', time: '1 hour ago', unread: true, actionTab: 'progress' }
       ]);
     } else if (info.role === 'mentor') {
@@ -543,6 +641,23 @@ Based on your desking logs and consistency, the AI tutor recommends:
   const loadDashboardData = async (info: any) => {
     setLoading(true);
     try {
+      // 0. Fetch latest user details
+      try {
+        const meData = await apiRequest('/auth/me');
+        if (meData.user) {
+          setUser(meData.user);
+          setEditFullName(meData.user.fullName || '');
+          setEditFirstName(meData.user.firstName || '');
+          setEditLastName(meData.user.lastName || '');
+          setEditEmail(meData.user.email || '');
+          setEditPhone(meData.user.phone || '');
+          setPreviewAvatar(meData.user.avatarUrl || '');
+          setEditBio(meData.user.bio || '');
+        }
+      } catch (meErr) {
+        console.error('Error fetching latest user details:', meErr);
+      }
+
       // 1. Fetch user stats
       const statsData = await apiRequest('/progress/me');
       setStats({
@@ -578,6 +693,22 @@ Based on your desking logs and consistency, the AI tutor recommends:
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
+      try {
+        const meData = await apiRequest('/auth/me');
+        if (meData.user) {
+          setUser(meData.user);
+          setEditFullName(meData.user.fullName || '');
+          setEditFirstName(meData.user.firstName || '');
+          setEditLastName(meData.user.lastName || '');
+          setEditEmail(meData.user.email || '');
+          setEditPhone(meData.user.phone || '');
+          setPreviewAvatar(meData.user.avatarUrl || '');
+          setEditBio(meData.user.bio || '');
+        }
+      } catch (meErr) {
+        console.error('Error refreshing user details:', meErr);
+      }
+
       const statsData = await apiRequest('/progress/me');
       setStats({
         streakCount: statsData.streakCount || 0,
@@ -603,6 +734,47 @@ Based on your desking logs and consistency, the AI tutor recommends:
       showToast('Failed to sync data.', 'error');
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editFirstName.trim() || !editLastName.trim()) {
+      showToast('First name and last name are required.', 'error');
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const res = await apiRequest('/auth/update-profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          firstName: editFirstName.trim(),
+          lastName: editLastName.trim(),
+          email: editEmail.trim() || null,
+          phone: editPhone.trim() || null,
+          avatarUrl: previewAvatar || null,
+          bio: editBio.trim()
+        })
+      });
+      
+      setUser(res.user);
+      const updatedInfo = {
+        ...getUserInfo(),
+        fullName: res.user.fullName,
+        firstName: res.user.firstName,
+        lastName: res.user.lastName,
+        email: res.user.email,
+        phone: res.user.phone,
+        avatarUrl: res.user.avatarUrl,
+        bio: res.user.bio
+      };
+      setUserInfo(updatedInfo);
+      
+      showToast('Profile updated successfully!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update profile.', 'error');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -711,7 +883,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
     ].join(':');
   };
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#D4D4FF] flex items-center justify-center">
         <RefreshCw className="h-8 w-8 text-[#5227EB] animate-spin" />
@@ -724,18 +896,19 @@ Based on your desking logs and consistency, the AI tutor recommends:
   // ==========================================
   const renderSidebar = () => {
     const links = [];
-    if (user.role === 'student') {
+    if (user?.role === 'student') {
       links.push(
         { id: 'dashboard', label: 'My Learning Space', icon: LayoutDashboard },
         { id: 'groups', label: 'Study Circles', icon: Users },
         { id: 'rooms', label: 'Live Rooms', icon: Wifi },
+        { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark },
         { id: 'notes', label: 'My Notes', icon: FileText },
         { id: 'sessions', label: 'Sessions', icon: Clock },
         { id: 'progress', label: 'Progress Tracking', icon: TrendingUp },
         { id: 'leaderboard', label: 'Leaderboard', icon: Award },
         { id: 'settings', label: 'Settings', icon: Settings }
       );
-    } else if (user.role === 'mentor') {
+    } else if (user?.role === 'mentor') {
       links.push(
         { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard },
         { id: 'groups', label: 'Manage Circles', icon: Users },
@@ -744,7 +917,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
         { id: 'progress', label: 'Class Analytics', icon: BarChart2 },
         { id: 'settings', label: 'Settings', icon: Settings }
       );
-    } else if (user.role === 'admin') {
+    } else if (user?.role === 'admin') {
       links.push(
         { id: 'dashboard', label: 'Platform Monitor', icon: LayoutDashboard },
         { id: 'notes', label: 'Platform Shared Notes', icon: FileText },
@@ -816,6 +989,40 @@ Based on your desking logs and consistency, the AI tutor recommends:
           
           {/* Main Left/Center column span 7 */}
           <div className="lg:col-span-7 space-y-6">
+            {/* Stats Row */}
+            <div className="grid grid-cols-3 gap-4 animate-in slide-in-from-top-4 duration-300">
+              <div className="bg-white border border-slate-200 rounded-[20px] p-4 flex items-center gap-3 shadow-sm text-left">
+                <div className="h-9 w-9 rounded-xl bg-indigo-50 text-[#5227EB] flex items-center justify-center shrink-0">
+                  <Users className="h-4.5 w-4.5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block truncate">Classes Joined</span>
+                  <div className="text-base font-black text-slate-900 leading-tight mt-0.5">{myGroups.length}</div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-[20px] p-4 flex items-center gap-3 shadow-sm text-left">
+                <div className="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <Wifi className="h-4.5 w-4.5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block truncate">Active Rooms</span>
+                  <div className="text-base font-black text-slate-900 leading-tight mt-0.5">{activeRoom ? 1 : 0}</div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-[20px] p-4 flex items-center gap-3 shadow-sm text-left">
+                <div className="h-9 w-9 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
+                  <FileText className="h-4.5 w-4.5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block truncate">Resources Uploaded</span>
+                  <div className="text-base font-black text-slate-900 leading-tight mt-0.5">
+                    {notesList.filter(n => n.publishedBy === user?.username).length}
+                  </div>
+                </div>
+              </div>
+            </div>
             
             {/* Row 1: Hero Card / Focus Session split */}
             <div className="grid md:grid-cols-2 gap-6">
@@ -1019,11 +1226,11 @@ Based on your desking logs and consistency, the AI tutor recommends:
             <div className="p-5 bg-gradient-to-b from-[#5227EB] to-[#6366f1] rounded-[24px] text-center text-white flex flex-col justify-center items-center gap-3 shadow-md relative overflow-hidden">
               <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-xl" />
               <div className="h-16 w-16 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center text-3xl font-black text-white shadow-inner relative overflow-hidden">
-                <img src={getAvatarByName(user?.fullName)} className="absolute inset-0 h-full w-full object-cover" alt="Avatar" />
+                <img src={user?.avatarUrl || getAvatarByName(user?.fullName)} className="absolute inset-0 h-full w-full object-cover" alt="Avatar" />
               </div>
               <div className="text-center">
-                <h3 className="text-sm font-black truncate max-w-[150px]">{user.fullName}</h3>
-                <p className="text-[9px] text-indigo-100 font-bold capitalize mt-0.5">B.Tech Student</p>
+                <h3 className="text-sm font-black truncate max-w-[150px]">{user?.fullName || 'User'}</h3>
+                <p className="text-[9px] text-indigo-100 font-bold capitalize mt-0.5">{user?.role === 'mentor' ? 'Mentor' : user?.role === 'admin' ? 'Admin' : 'B.Tech Student'}</p>
               </div>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/10 border border-white/15 rounded-full text-[9px] font-bold tracking-wide">
                 Level {Math.max(1, Math.floor(stats.totalStudyHours / 15) + 1)} ⭐️
@@ -1098,7 +1305,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
               <div className="space-y-2.5">
                 {[
                   { name: 'Charan', hours: 18.2, streak: 8, avatar: '/charan-avatar.png' },
-                  { name: user?.fullName ? `${user.fullName} (You)` : 'Swathi (You)', hours: 15.5, streak: 7, avatar: getAvatarByName(user?.fullName || 'Swathi') },
+                  { name: user?.fullName ? `${user.fullName} (You)` : 'Swathi (You)', hours: 15.5, streak: 7, avatar: user?.avatarUrl || getAvatarByName(user?.fullName || 'Swathi') },
                   { name: 'Bhagya', hours: 12.0, streak: 6, avatar: '/bhagya-avatar.png' }
                 ].map((student, rank) => (
                   <div key={rank} className="flex items-center justify-between gap-2 border-b border-white/5 pb-2 last:border-0 last:pb-0">
@@ -1493,7 +1700,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 </thead>
                 <tbody className="font-extrabold text-zinc-300">
                   {[
-                    { name: user?.fullName ? `${user.fullName} Vijayawada` : 'Swathi Vijayawada', hours: 18.2, streak: 8, avatar: getAvatarByName(user?.fullName || 'Swathi') },
+                    { name: user?.fullName ? `${user.fullName} Vijayawada` : 'Swathi Vijayawada', hours: 18.2, streak: 8, avatar: user?.avatarUrl || getAvatarByName(user?.fullName || 'Swathi') },
                     { name: 'Bhagya Guntur', hours: 15.0, streak: 6, avatar: '/bhagya-avatar.png' },
                     { name: 'Rathna Visakhapatnam', hours: 13.5, streak: 5, avatar: '/rathna-avatar.png' }
                   ].map((student, idx) => (
@@ -1632,7 +1839,14 @@ Based on your desking logs and consistency, the AI tutor recommends:
     );
   };
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const filteredNotifications = notifications.filter(notif => {
+    if (notif.groupName) {
+      return myGroups.some(g => g.name.trim().toLowerCase() === notif.groupName.trim().toLowerCase());
+    }
+    return true;
+  });
+
+  const unreadCount = filteredNotifications.filter(n => n.unread).length;
 
   return (
     <div className="min-h-screen bg-[#D4D4FF] text-slate-800 font-sans flex relative overflow-hidden">
@@ -1666,14 +1880,14 @@ Based on your desking logs and consistency, the AI tutor recommends:
           <div className="flex items-center gap-3 min-w-0">
             <div className="h-10 w-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden">
               <img 
-                src={getAvatarByName(user?.fullName)} 
+                src={user?.avatarUrl || getAvatarByName(user?.fullName)} 
                 className="absolute inset-0 h-full w-full object-cover" 
                 alt="Avatar" 
               />
             </div>
             <div className="min-w-0 text-left">
-              <div className="text-xs font-extrabold text-slate-900 truncate">{user.fullName}</div>
-              <div className="text-[10px] font-bold text-slate-400 capitalize mt-0.5">{user.role}</div>
+              <div className="text-xs font-extrabold text-slate-900 truncate">{user?.fullName || 'User'}</div>
+              <div className="text-[10px] font-bold text-slate-400 capitalize mt-0.5">{user?.role || 'Guest'}</div>
             </div>
           </div>
           <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
@@ -1753,10 +1967,10 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     )}
                   </div>
                   <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                    {notifications.length === 0 ? (
+                    {filteredNotifications.length === 0 ? (
                       <p className="text-[10px] text-zinc-500 py-4 text-center font-medium">No new notifications</p>
                     ) : (
-                      notifications.map(notif => (
+                      filteredNotifications.map(notif => (
                         <div 
                           key={notif.id} 
                           onClick={() => handleNotificationClick(notif)}
@@ -1791,9 +2005,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
             <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
               <div className="h-8 w-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-xs text-indigo-700">
-                {user.fullName.charAt(0).toUpperCase()}
+                {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
               </div>
-              <span className="text-xs font-bold text-slate-700">{user.fullName.split(' ')[0]}</span>
+              <span className="text-xs font-bold text-slate-700">{user?.fullName ? user.fullName.split(' ')[0] : 'User'}</span>
             </div>
 
             <button 
@@ -1810,9 +2024,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
           
           {/* Tab 1: Dashboard Routing */}
           {activeTab === 'dashboard' && (
-            user.role === 'student' ? renderStudentDashboard() :
-            user.role === 'mentor' ? renderMentorDashboard() :
-            renderAdminDashboard()
+            user?.role === 'student' ? renderStudentDashboard() :
+            user?.role === 'mentor' ? renderMentorDashboard() :
+            user?.role === 'admin' ? renderAdminDashboard() : null
           )}
 
           {/* Tab 2: Groups */}
@@ -1938,6 +2152,59 @@ Based on your desking logs and consistency, the AI tutor recommends:
             </div>
           )}
 
+          {/* Tab: Bookmarks */}
+          {activeTab === 'bookmarks' && (
+            <div className="space-y-6 text-left animate-in fade-in duration-350">
+              <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                <Bookmark className="h-4.5 w-4.5 text-[#5227EB]" /> Bookmarked Resources
+              </h3>
+
+              {notesList.filter(n => n.isBookmarked).length === 0 ? (
+                <div className="p-12 bg-white border border-slate-200 rounded-[24px] text-center space-y-3 shadow-sm max-w-2xl">
+                  <Bookmark className="h-8 w-8 text-slate-350 mx-auto" />
+                  <p className="text-xs text-slate-500 font-bold">No bookmarks saved yet.</p>
+                  <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">Click the bookmark button on any shared note to save it here for quick access.</p>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl">
+                  {notesList.filter(n => n.isBookmarked).map((note) => (
+                    <div key={note.id} className="p-5 bg-white border border-slate-200 rounded-[24px] shadow-sm flex flex-col justify-between gap-4">
+                      <div className="space-y-2 text-left">
+                        <div className="flex justify-between items-start">
+                          <span className="text-[8px] font-extrabold uppercase px-2 py-0.5 rounded bg-indigo-550/10 text-[#5227EB] border border-indigo-500/10">
+                            {note.type}
+                          </span>
+                          <span className="text-[9px] text-slate-400 font-semibold">{note.size}</span>
+                        </div>
+                        <h4 className="text-sm font-extrabold text-slate-900">{note.name}</h4>
+                        {note.publishedBy && (
+                          <div className="text-[9px] text-slate-500 font-bold bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1 inline-flex items-center gap-1 mt-1">
+                            <span>👤 Published by:</span>
+                            <span className="text-[#5227EB]">{note.publishedBy}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleToggleNoteBookmark(note.id)}
+                          className="flex-1 py-1.5 bg-rose-50 border border-rose-100 hover:bg-rose-100 text-rose-600 hover:text-rose-700 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                        <button
+                          onClick={() => handleDownloadNote(note.id, note.name)}
+                          className="flex-1 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <Download className="h-3.5 w-3.5" /> Download
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Tab 4: Notes */}
           {activeTab === 'notes' && (
             <div className="space-y-6 text-left">
@@ -1968,13 +2235,13 @@ Based on your desking logs and consistency, the AI tutor recommends:
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleToggleNoteBookmark(note.id)}
-                            className="flex-1 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:text-[#5227EB] hover:border-indigo-550 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1"
+                            className={`flex-1 py-1.5 border text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer ${note.isBookmarked ? 'bg-indigo-50 border-indigo-200 text-[#5227EB]' : 'bg-slate-50 border-slate-200 text-slate-655 hover:text-[#5227EB] hover:border-indigo-550'}`}
                           >
-                            <Bookmark className="h-3.5 w-3.5 fill-current" /> Bookmark
+                            <Bookmark className={`h-3.5 w-3.5 ${note.isBookmarked ? 'fill-[#5227EB]' : ''}`} /> {note.isBookmarked ? 'Bookmarked' : 'Bookmark'}
                           </button>
                           <button
                             onClick={() => handleDownloadNote(note.id, note.name)}
-                            className="flex-1 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1"
+                            className="flex-1 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer"
                           >
                             <Download className="h-3.5 w-3.5" /> {note.downloaded ? 'Saved' : 'Download'}
                           </button>
@@ -1991,7 +2258,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     </p>
                   </div>
 
-                  {(user.role === 'admin' || user.role === 'mentor') && (
+                  {(user?.role === 'admin' || user?.role === 'mentor') && (
                     <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-4 shadow-sm mt-6">
                       <h3 className="text-xs font-black uppercase tracking-wider text-[#5227EB] flex items-center gap-1.5">
                         <PlusCircle className="h-4 w-4" /> Publish Shared Note
@@ -2186,56 +2453,82 @@ Based on your desking logs and consistency, the AI tutor recommends:
                      </div>
                    </div>
 
-                   {/* Grid 2: Weekly Allocation & Subject Breakdown */}
-                   <div className="grid md:grid-cols-2 gap-6">
-                     <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-4 shadow-sm">
-                       <h4 className="text-xs font-black uppercase text-slate-400">Weekly Focus Allocation</h4>
-                       <p className="text-xs text-slate-550 leading-relaxed font-semibold">
-                         Your daily desking hours logged across all desking rooms this week.
-                       </p>
-                       <div className="flex items-end justify-between gap-2 h-28 pt-4">
-                         {[
-                           { day: 'M', hours: 2.5, percent: 70 },
-                           { day: 'T', hours: 1.5, percent: 42 },
-                           { day: 'W', hours: 3.0, percent: 85 },
-                           { day: 'T', hours: 2.0, percent: 56 },
-                           { day: 'F', hours: 1.0, percent: 28 },
-                           { day: 'S', hours: 3.5, percent: 100 },
-                           { day: 'S', hours: 0.0, percent: 0 }
-                         ].map((d, i) => (
-                           <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
-                             <span className="text-[8px] font-black text-[#5227EB] opacity-0 group-hover:opacity-100 transition-opacity font-mono">{d.hours}h</span>
-                             <div className="w-full bg-slate-100 rounded-md border border-slate-250/20 overflow-hidden flex items-end h-full">
-                               <div className="w-full bg-gradient-to-t from-[#5227EB] to-indigo-400 rounded-md transition-all duration-500" style={{ height: `${d.percent}%` }} />
-                             </div>
-                             <span className="text-[9px] font-black text-slate-400">{d.day}</span>
-                           </div>
-                         ))}
-                       </div>
-                     </div>
+                   {/* Grid 2: Weekly Allocation & Subject Breakdown / Zero-State Check */}
+                    {stats.totalStudyHours === 0 ? (
+                      <div className="p-8 bg-white border border-slate-200 rounded-[28px] shadow-sm text-center space-y-4 max-w-4xl">
+                        <div className="h-16 w-16 bg-indigo-50 text-[#5227EB] rounded-full flex items-center justify-center mx-auto shadow-inner">
+                          <TrendingUp className="h-8 w-8" />
+                        </div>
+                        <h4 className="text-sm font-black text-slate-900">Your Study Progress Tracker is Ready!</h4>
+                        <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                          Since you are a new user, you don't have any study hours logged yet. Start a focus session from your learning space stopwatch or join a live room to begin charting your progress.
+                        </p>
+                        <div className="grid sm:grid-cols-3 gap-4 text-left pt-2 max-w-xl mx-auto">
+                          <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl space-y-1">
+                            <span className="text-[10px] font-black text-indigo-650 block uppercase tracking-wider">1. Join Circles</span>
+                            <span className="text-[9px] text-slate-400 leading-snug">Find study cohorts or enter invite codes to collaborate.</span>
+                          </div>
+                          <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl space-y-1">
+                            <span className="text-[10px] font-black text-indigo-650 block uppercase tracking-wider">2. Focus Timer</span>
+                            <span className="text-[9px] text-slate-400 leading-snug">Log custom study sessions with the Learning Space stopwatch timer.</span>
+                          </div>
+                          <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl space-y-1">
+                            <span className="text-[10px] font-black text-indigo-650 block uppercase tracking-wider">3. Rank Up</span>
+                            <span className="text-[9px] text-slate-400 leading-snug">Level up and rank on placement leaderboards.</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-4 shadow-sm">
+                          <h4 className="text-xs font-black uppercase text-slate-400">Weekly Focus Allocation</h4>
+                          <p className="text-xs text-slate-550 leading-relaxed font-semibold">
+                            Your daily desking hours logged across all desking rooms this week.
+                          </p>
+                          <div className="flex items-end justify-between gap-2 h-28 pt-4">
+                            {[
+                              { day: 'M', hours: 2.5, percent: 70 },
+                              { day: 'T', hours: 1.5, percent: 42 },
+                              { day: 'W', hours: 3.0, percent: 85 },
+                              { day: 'T', hours: 2.0, percent: 56 },
+                              { day: 'F', hours: 1.0, percent: 28 },
+                              { day: 'S', hours: 3.5, percent: 100 },
+                              { day: 'S', hours: 0.0, percent: 0 }
+                            ].map((d, i) => (
+                              <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
+                                <span className="text-[8px] font-black text-[#5227EB] opacity-0 group-hover:opacity-100 transition-opacity font-mono">{d.hours}h</span>
+                                <div className="w-full bg-slate-100 rounded-md border border-slate-250/20 overflow-hidden flex items-end h-full">
+                                  <div className="w-full bg-gradient-to-t from-[#5227EB] to-indigo-400 rounded-md transition-all duration-500" style={{ height: `${d.percent}%` }} />
+                                </div>
+                                <span className="text-[9px] font-black text-slate-400">{d.day}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
 
-                     <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-4 shadow-sm">
-                       <h4 className="text-xs font-black uppercase text-slate-400">Subject Distribution</h4>
-                       <div className="space-y-3">
-                         {[
-                           { subject: 'Algorithms & DSA', percent: 35, color: 'bg-indigo-650' },
-                           { subject: 'Database Systems (DBMS)', percent: 25, color: 'bg-emerald-600' },
-                           { subject: 'Computer Networks (CN)', percent: 20, color: 'bg-[#FF8A75]' },
-                           { subject: 'Operating Systems (OS)', percent: 20, color: 'bg-amber-500' }
-                         ].map((sub, idx) => (
-                           <div key={idx} className="space-y-1">
-                             <div className="flex justify-between text-[10px] font-extrabold text-slate-750">
-                               <span>{sub.subject}</span>
-                               <span className="font-mono">{sub.percent}%</span>
-                             </div>
-                             <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
-                               <div className={`h-full ${sub.color} rounded-full`} style={{ width: `${sub.percent}%` }} />
-                             </div>
-                           </div>
-                         ))}
-                       </div>
-                     </div>
-                   </div>
+                        <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-4 shadow-sm">
+                          <h4 className="text-xs font-black uppercase text-slate-400">Subject Distribution</h4>
+                          <div className="space-y-3">
+                            {[
+                              { subject: 'Algorithms & DSA', percent: 35, color: 'bg-indigo-650' },
+                              { subject: 'Database Systems (DBMS)', percent: 25, color: 'bg-emerald-600' },
+                              { subject: 'Computer Networks (CN)', percent: 20, color: 'bg-[#FF8A75]' },
+                              { subject: 'Operating Systems (OS)', percent: 20, color: 'bg-amber-500' }
+                            ].map((sub, idx) => (
+                              <div key={idx} className="space-y-1">
+                                <div className="flex justify-between text-[10px] font-extrabold text-slate-750">
+                                  <span>{sub.subject}</span>
+                                  <span className="font-mono">{sub.percent}%</span>
+                                </div>
+                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                                  <div className={`h-full ${sub.color} rounded-full`} style={{ width: `${sub.percent}%` }} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                    {/* AI Recommendations & Report Download Card */}
                    <div className="p-6 bg-gradient-to-r from-indigo-50/50 via-slate-50 to-orange-50/30 border border-slate-200 rounded-[24px] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -2308,20 +2601,125 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <Settings className="h-4.5 w-4.5 text-[#5227EB]" /> Portal Settings
               </h3>
               <div className="p-8 bg-white border border-slate-200 rounded-[24px] shadow-sm max-w-2xl space-y-6">
-                <div>
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Account Settings</h4>
-                  <p className="text-[10px] text-slate-400">Manage profile data and avatar details</p>
-                  <div className="grid grid-cols-2 gap-4 mt-4 text-xs font-bold">
-                    <div className="space-y-1">
-                      <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Full Name</label>
-                      <input type="text" value={user.fullName} readOnly className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl outline-none" />
+                <form onSubmit={handleUpdateProfile} className="space-y-5">
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Account Settings</h4>
+                    <p className="text-[10px] text-slate-400">Manage profile data and avatar details</p>
+
+                    {/* WhatsApp-style photo upload preview */}
+                    <div className="flex items-center gap-5 mt-4">
+                      <div className="relative group w-20 h-20 rounded-full overflow-hidden border-2 border-indigo-100 shadow-sm shrink-0 bg-slate-50">
+                        <img 
+                          src={previewAvatar || getAvatarByName(user?.fullName)} 
+                          className="h-full w-full object-cover" 
+                          alt="Avatar Preview" 
+                        />
+                        <label 
+                          htmlFor="settings-avatar-input" 
+                          className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Camera className="h-5 w-5 text-white" />
+                        </label>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          id="settings-avatar-input" 
+                          onChange={handleFileChange} 
+                        />
+                      </div>
+                      <div className="text-left">
+                        <label htmlFor="settings-avatar-input" className="text-xs font-black text-[#5227EB] hover:underline cursor-pointer block">
+                          Change Profile Photo
+                        </label>
+                        <p className="text-[9px] text-slate-400 mt-1 leading-normal">
+                          Choose an image from your device.<br />It will be compressed and saved as your profile picture.
+                        </p>
+                      </div>
                     </div>
-                    <div className="space-y-1">
+
+                    <div className="grid grid-cols-2 gap-4 mt-6 text-xs font-bold text-left">
+                      <div className="space-y-1">
+                        <label className="text-slate-400 block text-[9px] uppercase tracking-wide">First Name</label>
+                        <input 
+                          type="text" 
+                          value={editFirstName} 
+                          onChange={(e) => setEditFirstName(e.target.value)}
+                          required
+                          className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Last Name</label>
+                        <input 
+                          type="text" 
+                          value={editLastName} 
+                          onChange={(e) => setEditLastName(e.target.value)}
+                          required
+                          className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mt-4 text-xs font-bold text-left">
+                      <div className="space-y-1">
+                        <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Email Address</label>
+                        <input 
+                          type="email" 
+                          value={editEmail} 
+                          onChange={(e) => setEditEmail(e.target.value)}
+                          placeholder="e.g. email@domain.com"
+                          className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Phone Number</label>
+                        <input 
+                          type="text" 
+                          value={editPhone} 
+                          onChange={(e) => setEditPhone(e.target.value)}
+                          placeholder="e.g. 9876543210"
+                          className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 mt-4 text-xs font-bold text-left">
                       <label className="text-slate-400 block text-[9px] uppercase tracking-wide">Username</label>
-                      <input type="text" value={user.username} readOnly className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl outline-none" />
+                      <input 
+                        type="text" 
+                        value={user?.username || ''} 
+                        readOnly 
+                        className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl outline-none text-slate-450 cursor-not-allowed font-medium" 
+                      />
+                    </div>
+                    
+                    <div className="space-y-1 mt-4 text-xs font-bold text-left">
+                      <label className="text-slate-400 block text-[9px] uppercase tracking-wide">About Bio</label>
+                      <textarea
+                        value={editBio}
+                        onChange={(e) => setEditBio(e.target.value)}
+                        placeholder="Write a brief bio about your study goals, or interests..."
+                        rows={3}
+                        className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none resize-none transition-all text-slate-800 font-medium"
+                      />
                     </div>
                   </div>
-                </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="submit"
+                      disabled={savingProfile}
+                      className="px-5 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      {savingProfile ? (
+                        <>
+                          <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Saving Changes...
+                        </>
+                      ) : 'Save Profile Changes'}
+                    </button>
+                  </div>
+                </form>
 
                 <div className="border-t border-slate-100 pt-4">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Security Settings</h4>
@@ -2343,7 +2741,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
           )}
 
           {/* Tab 14: Admin approvals panel */}
-          {user.role === 'admin' && activeTab === 'admin' && (
+          {user?.role === 'admin' && activeTab === 'admin' && (
             <section id="admin-approvals-section" className="p-6 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-[24px] shadow-lg space-y-4 text-left text-white">
               <div className="flex items-center gap-2">
                 <Shield className="h-4.5 w-4.5 text-rose-400" />
@@ -2713,7 +3111,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-slate-900 flex items-center justify-center">
                   <div className="text-center space-y-2 relative z-10">
                     <div className="h-16 w-16 rounded-full overflow-hidden bg-white/10 border border-white/20 mx-auto shadow-inner relative">
-                      <img src={getAvatarByName(user?.fullName)} className="absolute inset-0 h-full w-full object-cover" alt="Avatar" />
+                      <img src={user?.avatarUrl || getAvatarByName(user?.fullName)} className="absolute inset-0 h-full w-full object-cover" alt="Avatar" />
                     </div>
                     <span className="text-[10px] font-bold text-indigo-200">{user?.fullName || 'Swathi'} (You)</span>
                   </div>
@@ -2787,6 +3185,78 @@ Based on your desking logs and consistency, the AI tutor recommends:
             >
               Leave Room
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Auth Guard Login Overlay */}
+      {!user && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="max-w-md w-full bg-white border border-slate-250 rounded-[32px] p-6 space-y-6 shadow-2xl text-left animate-in fade-in zoom-in-95 duration-250">
+            <div className="text-center space-y-2">
+              <div className="h-12 w-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center mx-auto text-[#5227EB]">
+                <LayoutDashboard className="h-6 w-6" />
+              </div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">Access Restricted</h3>
+              <p className="text-[10px] text-slate-400">Please sign in to access your StudyCircle dashboard workspace.</p>
+            </div>
+
+            <div className="flex bg-slate-100 rounded-xl p-1 text-[10px] font-bold">
+              <button 
+                type="button" 
+                onClick={() => setLoginPortal('student')}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${loginPortal === 'student' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Student Portal
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setLoginPortal('mentor')}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${loginPortal === 'mentor' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Mentor / Admin
+              </button>
+            </div>
+
+            <form onSubmit={handleDashboardLogin} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Username</label>
+                <input 
+                  type="text" 
+                  value={loginUser}
+                  onChange={(e) => setLoginUser(e.target.value)}
+                  placeholder="e.g. swathi"
+                  required
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-[#5227EB] rounded-xl text-xs text-slate-800 outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Password</label>
+                <input 
+                  type="password" 
+                  value={loginPass}
+                  onChange={(e) => setLoginPass(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-[#5227EB] rounded-xl text-xs text-slate-800 outline-none"
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={loginLoading}
+                className="w-full py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                {loginLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
+                Enter Workspace Dashboard
+              </button>
+            </form>
+            <div className="text-center pt-2">
+              <Link href="/" className="text-[10px] font-black text-indigo-650 hover:underline">
+                Return to Homepage
+              </Link>
+            </div>
           </div>
         </div>
       )}
