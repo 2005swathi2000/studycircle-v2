@@ -777,7 +777,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#FAFCFB] text-slate-850 flex flex-col relative overflow-hidden font-sans antialiased">
       
       {/* 🔔 Sliding Email Notification Banner */}
-      {isDevMode && activeNotification && (
+      {false && isDevMode && activeNotification && (
         <div className="fixed top-20 right-6 z-[10000] max-w-sm w-full bg-white/95 border border-slate-200 rounded-2xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 duration-300 pointer-events-auto flex items-start gap-3.5">
           <div className="h-9 w-9 rounded-full bg-[#E6F2ED] border border-[#0E3E31]/20 text-[#0E3E31] flex items-center justify-center shrink-0 animate-bounce">
             <Bell className="h-4 w-4" />
@@ -1785,7 +1785,7 @@ export default function Home() {
       )}
 
       {/* 📬 Floating developer Mock Inbox trigger */}
-      {isDevMode && (
+      {false && isDevMode && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
           <button
             onClick={() => setShowInbox(!showInbox)}
@@ -1806,7 +1806,7 @@ export default function Home() {
       )}
 
       {/* 📬 Developer Mock Inbox Side Drawer */}
-      {showInbox && (
+      {false && showInbox && (
         <div className="fixed inset-0 z-[9999] flex justify-end">
           <div 
             onClick={() => setShowInbox(false)}
