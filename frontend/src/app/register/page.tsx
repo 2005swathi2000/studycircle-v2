@@ -399,33 +399,6 @@ export default function RegisterPage() {
         <div className="absolute bottom-20 left-1/3 w-[600px] h-[600px] rounded-full bg-blue-500/5 blur-[150px]" />
       </div>
 
-      {/* 🔔 Sliding Email Notification Banner */}
-      {isDevMode && activeNotification && (
-        <div className="fixed top-6 right-6 z-[10000] max-w-sm w-full bg-[#0E1017]/95 border border-indigo-500/30 rounded-2xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 duration-300 pointer-events-auto flex items-start gap-3.5">
-          <div className="h-9 w-9 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#818CF8] flex items-center justify-center shrink-0 animate-bounce">
-            <Mail className="h-4 w-4" />
-          </div>
-          <div className="flex-1 space-y-1 text-left">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-black uppercase text-indigo-400">New Email Received</span>
-              <button 
-                onClick={() => setActiveNotification(null)}
-                className="text-slate-500 hover:text-white transition-colors cursor-pointer text-xs"
-              >
-                ✕
-              </button>
-            </div>
-            <h4 className="text-xs font-black text-white">{activeNotification.subject}</h4>
-            <p className="text-[10px] text-slate-350 leading-relaxed font-semibold">
-              To: <span className="text-indigo-300">{activeNotification.to}</span>
-            </p>
-            <div className="p-2 bg-slate-950 border border-white/5 rounded-xl mt-1.5 flex items-center justify-between gap-2 text-left">
-              <span className="text-[10px] font-mono text-slate-300">OTP Code: <strong className="text-rose-400 font-extrabold">{activeNotification.otp}</strong></span>
-              <span className="text-[9px] font-extrabold uppercase bg-emerald-500/15 border border-emerald-400/20 text-emerald-400 px-2 py-0.5 rounded">Auto Filled</span>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Brand logo header */}
       <div className="flex flex-col items-center text-center mb-10 z-10">
@@ -444,279 +417,247 @@ export default function RegisterPage() {
       </div>
 
       {/* Main Container with side illustrations and central cards grid */}
-      <div className="relative w-full max-w-6xl flex items-center justify-center z-10 px-4 mb-10">
-        
-        {/* Left student illustration (visible on desktop) */}
-        <div className="hidden xl:block absolute -left-72 top-1/2 -translate-y-1/2 w-60 z-0 select-none">
-          <div className="relative flex flex-col items-center">
-            <img 
-              src="/hero-student.png" 
-              alt="Student Illustration" 
-              className="w-full object-contain filter drop-shadow-[0_0_25px_rgba(16,185,129,0.15)] rounded-2xl" 
-            />
-            {/* Green floating decorative circle elements */}
-            <div className="absolute -left-6 top-12 h-10 w-10 rounded-full bg-[#00b074]/15 border border-[#00b074]/30 flex items-center justify-center text-[#00b074] shadow-lg animate-bounce duration-1000">
-              <BookOpen className="h-4.5 w-4.5" />
-            </div>
-            <div className="absolute -right-4 top-24 h-10 w-10 rounded-full bg-[#00b074]/15 border border-[#00b074]/30 flex items-center justify-center text-[#00b074] shadow-lg animate-pulse">
-              <MessageSquare className="h-4.5 w-4.5" />
-            </div>
-            <div className="absolute -bottom-4 left-10 h-10 w-10 rounded-full bg-[#00b074]/15 border border-[#00b074]/30 flex items-center justify-center text-[#00b074] shadow-lg animate-bounce delay-150">
-              <Users className="h-4.5 w-4.5" />
-            </div>
-          </div>
-        </div>
-
-        {/* Right admin/mentor illustration (visible on desktop) */}
-        <div className="hidden xl:block absolute -right-72 top-1/2 -translate-y-1/2 w-60 z-0 select-none">
-          <div className="relative flex flex-col items-center">
-            <img 
-              src="/students-illustration.png" 
-              alt="Mentor Illustration" 
-              className="w-full object-contain filter drop-shadow-[0_0_25px_rgba(99,102,241,0.15)] rounded-2xl" 
-            />
-            {/* Purple floating decorative circle elements */}
-            <div className="absolute -right-6 top-16 h-10 w-10 rounded-full bg-[#5046E5]/15 border border-[#5046E5]/30 flex items-center justify-center text-[#818CF8] shadow-lg animate-bounce duration-1000">
-              <TrendingUp className="h-4.5 w-4.5" />
-            </div>
-            <div className="absolute -left-4 top-28 h-10 w-10 rounded-full bg-[#5046E5]/15 border border-[#5046E5]/30 flex items-center justify-center text-[#818CF8] shadow-lg animate-pulse">
-              <Shield className="h-4.5 w-4.5" />
-            </div>
-            <div className="absolute -bottom-4 right-10 h-10 w-10 rounded-full bg-[#5046E5]/15 border border-[#5046E5]/30 flex items-center justify-center text-[#818CF8] shadow-lg animate-bounce delay-150">
-              <Users className="h-4.5 w-4.5" />
-            </div>
-          </div>
-        </div>
-
-        {/* Double Card registration layout */}
+      <div className="relative w-full max-w-[1350px] flex items-center justify-center z-10 px-4 mb-10">
         <div className="w-full grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-stretch gap-6 bg-[#080d22]/30 border border-white/5 rounded-3xl p-6 lg:p-8 backdrop-blur-md relative z-10 shadow-2xl">
           
           {/* Left panel: Student Register Card */}
-          <div className="flex flex-col justify-between p-2 border border-[#00b074]/10 rounded-2xl bg-[#090d1e]/40 p-4">
+          <div className="flex flex-col gap-6 p-6 border border-[#00b074]/10 rounded-2xl bg-[#090d1e]/40 shadow-xl transition-all duration-300 hover:border-[#00b074]/30">
+            {/* Header with image and title */}
+            <div className="flex items-center gap-4 border-b border-white/5 pb-4">
+              <img 
+                src="/register-student.png" 
+                alt="Student Registration" 
+                className="w-16 h-18 object-contain rounded-xl border border-white/10 shadow-lg shadow-[#00b074]/5 bg-[#070b19]/40 p-1"
+              />
+              <div className="flex-1 text-left">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="h-7 w-7 rounded-full bg-[#00b074]/10 border border-[#00b074]/20 text-[#00b074] flex items-center justify-center">
+                    <GraduationCap className="h-4 w-4" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#00b074]">Student Account</span>
+                </div>
+                <h3 className="text-lg font-bold text-white">Student Register</h3>
+                <p className="text-[11px] text-slate-400 leading-normal">Join StudyCircle and connect with peers, share knowledge and grow together.</p>
+              </div>
+            </div>
+
             <form onSubmit={handleStudentRegister} className="space-y-5">
-              <div className="flex flex-col items-start text-left mb-4">
-                <div className="h-12 w-12 rounded-full bg-[#00b074]/10 border border-[#00b074]/20 text-[#00b074] flex items-center justify-center mb-3.5">
-                  <GraduationCap className="h-6 w-6" />
-                </div>
-                <h3 className="text-lg font-bold text-[#00b074] mb-0.5">Student Register</h3>
-                <p className="text-[11px] text-slate-400 leading-normal max-w-sm">Join StudyCircle and connect with peers, share knowledge and grow together.</p>
-              </div>
 
-              {/* First Name & Last Name */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* First Name & Last Name */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1 text-left">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">First Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                      <input
+                        type="text"
+                        placeholder="Enter your first name"
+                        value={studentFirstName}
+                        onChange={(e) => setStudentFirstName(e.target.value)}
+                        className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-left">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Last Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                      <input
+                        type="text"
+                        placeholder="Enter your last name"
+                        value={studentLastName}
+                        onChange={(e) => setStudentLastName(e.target.value)}
+                        className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Address with Send OTP button beside it */}
                 <div className="space-y-1 text-left">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">First Name</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Email Address</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                      <input
+                        type="email"
+                        placeholder="Enter your email"
+                        value={studentContact}
+                        onChange={(e) => setStudentContact(e.target.value)}
+                        disabled={studentOtpSent}
+                        className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all disabled:opacity-50"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => sendRegOtp('student')}
+                      disabled={formLoading || studentOtpSent}
+                      className="px-4 py-2.5 bg-[#00b074]/10 hover:bg-[#00b074]/20 border border-[#00b074]/30 text-[#00b074] rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer disabled:opacity-50"
+                    >
+                      {studentOtpSent ? 'Sent ✓' : 'Send OTP'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* OTP Input Field */}
+                {studentOtpSent && (
+                  <div className="space-y-1 text-left animate-in fade-in duration-200">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Verification Code (OTP)</label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                      <input
+                        type="text"
+                        placeholder="Enter 6-digit OTP code"
+                        value={studentOtp}
+                        onChange={(e) => setStudentOtp(e.target.value)}
+                        className="w-full bg-[#070b19]/80 border border-emerald-500/35 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white font-mono tracking-widest placeholder-slate-600 focus:border-[#00b074] outline-none transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Phone Number */}
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Phone Number</label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                     <input
-                      type="text"
-                      placeholder="Enter your first name"
-                      value={studentFirstName}
-                      onChange={(e) => setStudentFirstName(e.target.value)}
+                      type="tel"
+                      placeholder="Enter your phone number"
+                      value={studentPhone}
+                      onChange={(e) => setStudentPhone(e.target.value)}
                       className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all"
                       required
                     />
                   </div>
                 </div>
+
+                {/* Password & Confirm Password */}
                 <div className="space-y-1 text-left">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Last Name</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Password</label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                     <input
-                      type="text"
-                      placeholder="Enter your last name"
-                      value={studentLastName}
-                      onChange={(e) => setStudentLastName(e.target.value)}
-                      className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all"
+                      type={showStudentPass ? 'text' : 'password'}
+                      placeholder="Create a password"
+                      value={studentPass}
+                      onChange={(e) => setStudentPass(e.target.value)}
+                      className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all"
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowStudentPass(!showStudentPass)}
+                      className="absolute right-3 top-3 text-slate-500 hover:text-slate-350 transition-colors"
+                    >
+                      {showStudentPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
-              </div>
 
-              {/* Email Address with Send OTP button beside it */}
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Email Address</label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-                    <input
-                      type="email"
-                      placeholder="Enter your email"
-                      value={studentContact}
-                      onChange={(e) => setStudentContact(e.target.value)}
-                      disabled={studentOtpSent}
-                      className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all disabled:opacity-50"
-                      required
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => sendRegOtp('student')}
-                    disabled={formLoading || studentOtpSent}
-                    className="px-4 py-2.5 bg-[#00b074]/10 hover:bg-[#00b074]/20 border border-[#00b074]/30 text-[#00b074] rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer disabled:opacity-50"
-                  >
-                    {studentOtpSent ? 'Sent ✓' : 'Send OTP'}
-                  </button>
-                </div>
-              </div>
-
-              {/* OTP Input Field */}
-              {studentOtpSent && (
-                <div className="space-y-1 text-left animate-in fade-in duration-200">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Verification Code (OTP)</label>
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Confirm Password</label>
                   <div className="relative">
-                    <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                     <input
-                      type="text"
-                      placeholder="Enter 6-digit OTP code"
-                      value={studentOtp}
-                      onChange={(e) => setStudentOtp(e.target.value)}
-                      className="w-full bg-[#070b19]/80 border border-emerald-500/35 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white font-mono tracking-widest placeholder-slate-600 focus:border-[#00b074] outline-none transition-all"
+                      type={showStudentPass ? 'text' : 'password'}
+                      placeholder="Confirm your password"
+                      value={studentConfirmPass}
+                      onChange={(e) => setStudentConfirmPass(e.target.value)}
+                      className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all"
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowStudentPass(!showStudentPass)}
+                      className="absolute right-3 top-3 text-slate-500 hover:text-slate-355 transition-colors"
+                    >
+                      {showStudentPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
-              )}
 
-              {/* Phone Number */}
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Phone Number</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                {/* Gender radio selectors */}
+                <div className="space-y-1.5 text-left">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Gender</label>
+                  <div className="flex gap-6 items-center py-1">
+                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="studentGender"
+                        value="male"
+                        checked={studentGender === 'male'}
+                        onChange={() => setStudentGender('male')}
+                        className="w-4 h-4 accent-[#00b074] cursor-pointer"
+                      />
+                      Male
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="studentGender"
+                        value="female"
+                        checked={studentGender === 'female'}
+                        onChange={() => setStudentGender('female')}
+                        className="w-4 h-4 accent-[#00b074] cursor-pointer"
+                      />
+                      Female
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="studentGender"
+                        value="other"
+                        checked={studentGender === 'other'}
+                        onChange={() => setStudentGender('other')}
+                        className="w-4 h-4 accent-[#00b074] cursor-pointer"
+                      />
+                      Others
+                    </label>
+                  </div>
+                </div>
+
+                {/* Agreement Checkbox */}
+                <label className="flex items-start gap-2.5 text-xs text-slate-450 select-none cursor-pointer mt-2 text-left">
                   <input
-                    type="tel"
-                    placeholder="Enter your phone number"
-                    value={studentPhone}
-                    onChange={(e) => setStudentPhone(e.target.value)}
-                    className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all"
-                    required
+                    type="checkbox"
+                    checked={studentAgree}
+                    onChange={(e) => setStudentAgree(e.target.checked)}
+                    className="w-4 h-4 mt-0.5 rounded accent-[#00b074] border-white/5 cursor-pointer bg-[#070b19]"
                   />
+                  <span>
+                    I agree to the{' '}
+                    <a href="#" className="text-[#00b074] hover:underline font-bold transition-all">
+                      Terms of Service
+                    </a>{' '}
+                    and{' '}
+                    <a href="#" className="text-[#00b074] hover:underline font-bold transition-all">
+                      Privacy Policy
+                    </a>
+                  </span>
+                </label>
+
+                {/* Submit button */}
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="w-full py-3 bg-[#00b074] hover:bg-[#009060] disabled:bg-[#00b074]/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#00b074]/15 transition-all flex items-center justify-center gap-2 mt-5 cursor-pointer"
+                >
+                  {formLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                  Register as Student <ArrowRight className="h-4.5 w-4.5" />
+                </button>
+
+                <div className="text-center pt-2 text-xs text-slate-400">
+                  Already have an account?{' '}
+                  <Link href="/?login=true" className="text-xs font-black text-[#00b074] hover:text-[#00d08a] transition-colors">
+                    Login here
+                  </Link>
                 </div>
-              </div>
-
-              {/* Password & Confirm Password */}
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-                  <input
-                    type={showStudentPass ? 'text' : 'password'}
-                    placeholder="Create a password"
-                    value={studentPass}
-                    onChange={(e) => setStudentPass(e.target.value)}
-                    className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowStudentPass(!showStudentPass)}
-                    className="absolute right-3 top-3 text-slate-500 hover:text-slate-350 transition-colors"
-                  >
-                    {showStudentPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Confirm Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-                  <input
-                    type={showStudentPass ? 'text' : 'password'}
-                    placeholder="Confirm your password"
-                    value={studentConfirmPass}
-                    onChange={(e) => setStudentConfirmPass(e.target.value)}
-                    className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowStudentPass(!showStudentPass)}
-                    className="absolute right-3 top-3 text-slate-500 hover:text-slate-355 transition-colors"
-                  >
-                    {showStudentPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Gender radio selectors */}
-              <div className="space-y-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Gender</label>
-                <div className="flex gap-6 items-center py-1">
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="studentGender"
-                      value="male"
-                      checked={studentGender === 'male'}
-                      onChange={() => setStudentGender('male')}
-                      className="w-4 h-4 accent-[#00b074] cursor-pointer"
-                    />
-                    Male
-                  </label>
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="studentGender"
-                      value="female"
-                      checked={studentGender === 'female'}
-                      onChange={() => setStudentGender('female')}
-                      className="w-4 h-4 accent-[#00b074] cursor-pointer"
-                    />
-                    Female
-                  </label>
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="studentGender"
-                      value="other"
-                      checked={studentGender === 'other'}
-                      onChange={() => setStudentGender('other')}
-                      className="w-4 h-4 accent-[#00b074] cursor-pointer"
-                    />
-                    Others
-                  </label>
-                </div>
-              </div>
-
-              {/* Agreement Checkbox */}
-              <label className="flex items-start gap-2.5 text-xs text-slate-450 select-none cursor-pointer mt-2 text-left">
-                <input
-                  type="checkbox"
-                  checked={studentAgree}
-                  onChange={(e) => setStudentAgree(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 rounded accent-[#00b074] border-white/5 cursor-pointer bg-[#070b19]"
-                />
-                <span>
-                  I agree to the{' '}
-                  <a href="#" className="text-[#00b074] hover:underline font-bold transition-all">
-                    Terms of Service
-                  </a>{' '}
-                  and{' '}
-                  <a href="#" className="text-[#00b074] hover:underline font-bold transition-all">
-                    Privacy Policy
-                  </a>
-                </span>
-              </label>
-
-              {/* Submit button */}
-              <button
-                type="submit"
-                disabled={formLoading}
-                className="w-full py-3 bg-[#00b074] hover:bg-[#009060] disabled:bg-[#00b074]/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#00b074]/15 transition-all flex items-center justify-center gap-2 mt-5 cursor-pointer"
-              >
-                {formLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-                Register as Student <ArrowRight className="h-4.5 w-4.5" />
-              </button>
-
-              <div className="text-center pt-2 text-xs text-slate-400">
-                Already have an account?{' '}
-                <Link href="/?login=true" className="text-xs font-black text-[#00b074] hover:text-[#00d08a] transition-colors">
-                  Login here
-                </Link>
-              </div>
-            </form>
+              </form>
           </div>
 
           {/* OR divider */}
@@ -729,284 +670,295 @@ export default function RegisterPage() {
           </div>
 
           {/* Right panel: Admin / Mentor Register Card */}
-          <div className="flex flex-col justify-between p-2 border border-[#5046E5]/10 rounded-2xl bg-[#090d1e]/40 p-4">
+          <div className="flex flex-col gap-6 p-6 border border-[#5046E5]/10 rounded-2xl bg-[#090d1e]/40 shadow-xl transition-all duration-300 hover:border-[#5046E5]/30">
+            {/* Header with image and title */}
+            <div className="flex items-center gap-4 border-b border-white/5 pb-4">
+              <img 
+                src="/register-mentor.png" 
+                alt="Mentor Registration" 
+                className="w-16 h-18 object-contain rounded-xl border border-white/10 shadow-lg shadow-[#5046e5]/5 bg-[#070b19]/40 p-1"
+              />
+              <div className="flex-1 text-left">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="h-7 w-7 rounded-full bg-[#5046E5]/10 border border-[#5046E5]/20 text-[#818CF8] flex items-center justify-center">
+                    <Shield className="h-4 w-4" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#818CF8]">Admin / Mentor</span>
+                </div>
+                <h3 className="text-lg font-bold text-white">Admin / Mentor Register</h3>
+                <p className="text-[11px] text-slate-400 leading-normal">Create an account to manage, mentor and guide learners on StudyCircle.</p>
+              </div>
+            </div>
+
             <form onSubmit={handleMentorRegister} className="space-y-5">
-              <div className="flex flex-col items-start text-left mb-4">
-                <div className="h-12 w-12 rounded-full bg-[#5046E5]/10 border border-[#5046E5]/20 text-[#818CF8] flex items-center justify-center mb-3.5">
-                  <Shield className="h-6 w-6" />
-                </div>
-                <h3 className="text-lg font-bold text-[#818CF8] mb-0.5">Admin / Mentor Register</h3>
-                <p className="text-[11px] text-slate-400 leading-normal max-w-sm">Create an account to manage, mentor and guide learners on StudyCircle.</p>
-              </div>
 
-              {/* First Name & Last Name */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* First Name & Last Name */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1 text-left">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">First Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                      <input
+                        type="text"
+                        placeholder="Enter your first name"
+                        value={mentorFirstName}
+                        onChange={(e) => setMentorFirstName(e.target.value)}
+                        className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-left">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Last Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                      <input
+                        type="text"
+                        placeholder="Enter your last name"
+                        value={mentorLastName}
+                        onChange={(e) => setMentorLastName(e.target.value)}
+                        className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Address with Send OTP button beside it */}
                 <div className="space-y-1 text-left">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">First Name</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Email Address</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                      <input
+                        type="email"
+                        placeholder="Enter your email"
+                        value={mentorContact}
+                        onChange={(e) => setMentorContact(e.target.value)}
+                        disabled={mentorOtpSent}
+                        className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all disabled:opacity-50"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => sendRegOtp('mentor')}
+                      disabled={formLoading || mentorOtpSent}
+                      className="px-4 py-2.5 bg-[#5046E5]/10 hover:bg-[#5046E5]/20 border border-[#5046E5]/30 text-[#818CF8] rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer disabled:opacity-50"
+                    >
+                      {mentorOtpSent ? 'Sent ✓' : 'Send OTP'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* OTP Input Field */}
+                {mentorOtpSent && (
+                  <div className="space-y-1 text-left animate-in fade-in duration-200">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Verification Code (OTP)</label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                      <input
+                        type="text"
+                        placeholder="Enter 6-digit OTP code"
+                        value={mentorOtp}
+                        onChange={(e) => setMentorOtp(e.target.value)}
+                        className="w-full bg-[#070b19]/80 border border-indigo-500/35 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white font-mono tracking-widest placeholder-slate-600 focus:border-[#5046E5] outline-none transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Phone Number */}
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Phone Number</label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <Phone className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
                     <input
-                      type="text"
-                      placeholder="Enter your first name"
-                      value={mentorFirstName}
-                      onChange={(e) => setMentorFirstName(e.target.value)}
+                      type="tel"
+                      placeholder="Enter your phone number"
+                      value={mentorPhone}
+                      onChange={(e) => setMentorPhone(e.target.value)}
                       className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all"
                       required
                     />
                   </div>
                 </div>
+
+                {/* Role selector */}
                 <div className="space-y-1 text-left">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Last Name</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Role</label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-                    <input
-                      type="text"
-                      placeholder="Enter your last name"
-                      value={mentorLastName}
-                      onChange={(e) => setMentorLastName(e.target.value)}
-                      className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all"
+                    <Shield className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <select
+                      value={mentorRole}
+                      onChange={(e) => setMentorRole(e.target.value as 'mentor' | 'admin')}
+                      className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all cursor-pointer appearance-none"
                       required
-                    />
+                    >
+                      <option value="mentor">Mentor</option>
+                      <option value="admin">Administrator</option>
+                    </select>
+                    <div className="absolute right-3 top-3 pointer-events-none text-slate-500">
+                      <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Email Address with Send OTP button beside it */}
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Email Address</label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-                    <input
-                      type="email"
-                      placeholder="Enter your email"
-                      value={mentorContact}
-                      onChange={(e) => setMentorContact(e.target.value)}
-                      disabled={mentorOtpSent}
-                      className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all disabled:opacity-50"
-                      required
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => sendRegOtp('mentor')}
-                    disabled={formLoading || mentorOtpSent}
-                    className="px-4 py-2.5 bg-[#5046E5]/10 hover:bg-[#5046E5]/20 border border-[#5046E5]/30 text-[#818CF8] rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer disabled:opacity-50"
-                  >
-                    {mentorOtpSent ? 'Sent ✓' : 'Send OTP'}
-                  </button>
-                </div>
-              </div>
-
-              {/* OTP Input Field */}
-              {mentorOtpSent && (
-                <div className="space-y-1 text-left animate-in fade-in duration-200">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Verification Code (OTP)</label>
+                {/* College Selector (Mentor / Admin Registration requires this) */}
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">College / Institution</label>
                   <div className="relative">
-                    <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <BookOpen className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
+                    <select
+                      value={mentorInstitution}
+                      onChange={(e) => setMentorInstitution(e.target.value)}
+                      className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all cursor-pointer appearance-none"
+                      required
+                    >
+                      <option value="">Select College</option>
+                      {COLLEGES.map((col) => (
+                        <option key={col.code} value={col.name}>{col.name}</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-3 pointer-events-none text-slate-500">
+                      <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Password & Confirm Password */}
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                     <input
-                      type="text"
-                      placeholder="Enter 6-digit OTP code"
-                      value={mentorOtp}
-                      onChange={(e) => setMentorOtp(e.target.value)}
-                      className="w-full bg-[#070b19]/80 border border-indigo-500/35 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white font-mono tracking-widest placeholder-slate-600 focus:border-[#5046E5] outline-none transition-all"
+                      type={showMentorPass ? 'text' : 'password'}
+                      placeholder="Create a password"
+                      value={mentorPass}
+                      onChange={(e) => setMentorPass(e.target.value)}
+                      className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all"
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowMentorPass(!showMentorPass)}
+                      className="absolute right-3 top-3 text-slate-500 hover:text-slate-350 transition-colors"
+                    >
+                      {showMentorPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
-              )}
 
-              {/* Phone Number */}
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Phone Number</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
-                  <input
-                    type="tel"
-                    placeholder="Enter your phone number"
-                    value={mentorPhone}
-                    onChange={(e) => setMentorPhone(e.target.value)}
-                    className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Role selector */}
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Role</label>
-                <div className="relative">
-                  <Shield className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-                  <select
-                    value={mentorRole}
-                    onChange={(e) => setMentorRole(e.target.value as 'mentor' | 'admin')}
-                    className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all cursor-pointer appearance-none"
-                    required
-                  >
-                    <option value="mentor">Mentor</option>
-                    <option value="admin">Administrator</option>
-                  </select>
-                  <div className="absolute right-3 top-3 pointer-events-none text-slate-500">
-                    <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
-                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                    </svg>
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Confirm Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <input
+                      type={showMentorPass ? 'text' : 'password'}
+                      placeholder="Confirm your password"
+                      value={mentorConfirmPass}
+                      onChange={(e) => setMentorConfirmPass(e.target.value)}
+                      className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowMentorPass(!showMentorPass)}
+                      className="absolute right-3 top-3 text-slate-505 hover:text-slate-355 transition-colors"
+                    >
+                      {showMentorPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
-              </div>
 
-              {/* College Selector (Mentor / Admin Registration requires this) */}
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">College / Institution</label>
-                <div className="relative">
-                  <BookOpen className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
-                  <select
-                    value={mentorInstitution}
-                    onChange={(e) => setMentorInstitution(e.target.value)}
-                    className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all cursor-pointer appearance-none"
-                    required
-                  >
-                    <option value="">Select College</option>
-                    {COLLEGES.map((col) => (
-                      <option key={col.code} value={col.name}>{col.name}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-3 pointer-events-none text-slate-500">
-                    <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
-                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                    </svg>
+                {/* Gender radio selectors */}
+                <div className="space-y-1.5 text-left">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Gender</label>
+                  <div className="flex gap-6 items-center py-1">
+                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="mentorGender"
+                        value="male"
+                        checked={mentorGender === 'male'}
+                        onChange={() => setMentorGender('male')}
+                        className="w-4 h-4 accent-[#5046E5] cursor-pointer"
+                      />
+                      Male
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="mentorGender"
+                        value="female"
+                        checked={mentorGender === 'female'}
+                        onChange={() => setMentorGender('female')}
+                        className="w-4 h-4 accent-[#5046E5] cursor-pointer"
+                      />
+                      Female
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="mentorGender"
+                        value="other"
+                        checked={mentorGender === 'other'}
+                        onChange={() => setMentorGender('other')}
+                        className="w-4 h-4 accent-[#5046E5] cursor-pointer"
+                      />
+                      Others
+                    </label>
                   </div>
                 </div>
-              </div>
 
-              {/* Password & Confirm Password */}
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                {/* Agreement Checkbox */}
+                <label className="flex items-start gap-2.5 text-xs text-slate-455 select-none cursor-pointer mt-2 text-left">
                   <input
-                    type={showMentorPass ? 'text' : 'password'}
-                    placeholder="Create a password"
-                    value={mentorPass}
-                    onChange={(e) => setMentorPass(e.target.value)}
-                    className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all"
-                    required
+                    type="checkbox"
+                    checked={mentorAgree}
+                    onChange={(e) => setMentorAgree(e.target.checked)}
+                    className="w-4 h-4 mt-0.5 rounded accent-[#5046E5] border-white/5 cursor-pointer bg-[#070b19]"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowMentorPass(!showMentorPass)}
-                    className="absolute right-3 top-3 text-slate-500 hover:text-slate-350 transition-colors"
-                  >
-                    {showMentorPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                  <span>
+                    I agree to the{' '}
+                    <a href="#" className="text-[#818CF8] hover:underline font-bold transition-all">
+                      Terms of Service
+                    </a>{' '}
+                    and{' '}
+                    <a href="#" className="text-[#818CF8] hover:underline font-bold transition-all">
+                      Privacy Policy
+                    </a>
+                  </span>
+                </label>
+
+                {/* Submit button */}
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="w-full py-3 bg-[#5046E5] hover:bg-[#4338ca] disabled:bg-[#5046E5]/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#5046e5]/15 transition-all flex items-center justify-center gap-2 mt-5 cursor-pointer"
+                >
+                  {formLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                  Register as Admin / Mentor <ArrowRight className="h-4.5 w-4.5" />
+                </button>
+
+                <div className="text-center pt-2 text-xs text-slate-400">
+                  Already have an account?{' '}
+                  <Link href="/?login=true" className="text-xs font-black text-[#818CF8] hover:text-[#a5b4fc] transition-colors">
+                    Login here
+                  </Link>
                 </div>
-              </div>
-
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Confirm Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-                  <input
-                    type={showMentorPass ? 'text' : 'password'}
-                    placeholder="Confirm your password"
-                    value={mentorConfirmPass}
-                    onChange={(e) => setMentorConfirmPass(e.target.value)}
-                    className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowMentorPass(!showMentorPass)}
-                    className="absolute right-3 top-3 text-slate-500 hover:text-slate-355 transition-colors"
-                  >
-                    {showMentorPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Gender radio selectors */}
-              <div className="space-y-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Gender</label>
-                <div className="flex gap-6 items-center py-1">
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="mentorGender"
-                      value="male"
-                      checked={mentorGender === 'male'}
-                      onChange={() => setMentorGender('male')}
-                      className="w-4 h-4 accent-[#5046E5] cursor-pointer"
-                    />
-                    Male
-                  </label>
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="mentorGender"
-                      value="female"
-                      checked={mentorGender === 'female'}
-                      onChange={() => setMentorGender('female')}
-                      className="w-4 h-4 accent-[#5046E5] cursor-pointer"
-                    />
-                    Female
-                  </label>
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="mentorGender"
-                      value="other"
-                      checked={mentorGender === 'other'}
-                      onChange={() => setMentorGender('other')}
-                      className="w-4 h-4 accent-[#5046E5] cursor-pointer"
-                    />
-                    Others
-                  </label>
-                </div>
-              </div>
-
-              {/* Agreement Checkbox */}
-              <label className="flex items-start gap-2.5 text-xs text-slate-455 select-none cursor-pointer mt-2 text-left">
-                <input
-                  type="checkbox"
-                  checked={mentorAgree}
-                  onChange={(e) => setMentorAgree(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 rounded accent-[#5046E5] border-white/5 cursor-pointer bg-[#070b19]"
-                />
-                <span>
-                  I agree to the{' '}
-                  <a href="#" className="text-[#818CF8] hover:underline font-bold transition-all">
-                    Terms of Service
-                  </a>{' '}
-                  and{' '}
-                  <a href="#" className="text-[#818CF8] hover:underline font-bold transition-all">
-                    Privacy Policy
-                  </a>
-                </span>
-              </label>
-
-              {/* Submit button */}
-              <button
-                type="submit"
-                disabled={formLoading}
-                className="w-full py-3 bg-[#5046E5] hover:bg-[#4338ca] disabled:bg-[#5046E5]/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#5046e5]/15 transition-all flex items-center justify-center gap-2 mt-5 cursor-pointer"
-              >
-                {formLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-                Register as Admin / Mentor <ArrowRight className="h-4.5 w-4.5" />
-              </button>
-
-              <div className="text-center pt-2 text-xs text-slate-400">
-                Already have an account?{' '}
-                <Link href="/?login=true" className="text-xs font-black text-[#818CF8] hover:text-[#a5b4fc] transition-colors">
-                  Login here
-                </Link>
-              </div>
-            </form>
+              </form>
           </div>
-
         </div>
       </div>
 
       {/* Footer Features Banner */}
-      <div className="max-w-6xl w-full bg-[#080d22]/50 border border-white/5 rounded-3xl p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 z-10 backdrop-blur-sm shadow-xl">
+      <div className="max-w-[1350px] w-full bg-[#080d22]/50 border border-white/5 rounded-3xl p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 z-10 backdrop-blur-sm shadow-xl">
         <div className="flex items-center gap-3.5 text-left">
           <div className="h-10 w-10 rounded-full bg-[#00b074]/10 border border-[#00b074]/20 text-[#00b074] flex items-center justify-center shrink-0">
             <Users className="h-5 w-5" />
@@ -1047,115 +999,6 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
-
-      {/* Floating Developer Mock Inbox Drawer */}
-      {isDevMode && showInbox && (
-        <div className="fixed inset-0 z-[9999] flex justify-end">
-          <div onClick={() => setShowInbox(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity cursor-pointer" />
-          <div className="relative w-full max-w-md bg-[#090D1A]/95 border-l border-white/10 h-full shadow-2xl flex flex-col backdrop-blur-lg animate-in slide-in-from-right duration-300 z-10 text-left">
-            <div className="p-6 border-b border-white/5 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[#818CF8] flex items-center justify-center shrink-0">
-                  <Mail className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-black text-white uppercase tracking-wider">Developer Mock Inbox</h3>
-                  <p className="text-[9px] text-slate-450 font-semibold">Simulating email receipts for local debugging</p>
-                </div>
-              </div>
-              <button onClick={() => setShowInbox(false)} className="text-slate-450 hover:text-white transition-colors cursor-pointer text-sm p-1.5 rounded-lg hover:bg-white/5">✕</button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {inboxEmails.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center space-y-3 py-16 opacity-60">
-                  <div className="h-12 w-12 rounded-full border border-dashed border-slate-700 flex items-center justify-center text-slate-500">📬</div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-white">No Emails Received Yet</p>
-                    <p className="text-[10px] text-slate-500 leading-normal max-w-[200px]">Send an OTP from the verify button to capture email payloads here.</p>
-                  </div>
-                </div>
-              ) : (
-                inboxEmails.map((email: any) => (
-                  <div key={email.id} className="p-4 bg-slate-900/80 border border-white/5 rounded-2xl space-y-3 shadow-md">
-                    <div className="flex justify-between items-start border-b border-white/5 pb-2">
-                      <div>
-                        <span className="text-[9px] font-black uppercase text-indigo-400">Recipient</span>
-                        <h4 className="text-xs font-bold text-white truncate max-w-[220px]">{email.to}</h4>
-                      </div>
-                      <span className="text-[9px] font-medium text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-white/5">{email.createdAt}</span>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <span className="text-[9px] font-black uppercase text-indigo-400">Subject</span>
-                      <p className="text-xs font-extrabold text-slate-200">{email.subject}</p>
-                    </div>
-
-                    <div className="p-3 bg-slate-950 border border-white/5 rounded-xl space-y-2">
-                      <span className="text-[9px] font-black uppercase text-indigo-400 block">Message Body</span>
-                      <p className="text-[10px] text-slate-450 font-mono leading-relaxed whitespace-pre-line">{email.body}</p>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1">
-                      <div className="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 px-3 py-1.5 rounded-xl text-xs font-mono font-black">
-                        OTP: {email.otp}
-                      </div>
-                      <button
-                        onClick={() => handleAutofillOtp(email)}
-                        className="px-3 py-1.5 bg-indigo-650 hover:bg-indigo-550 text-white text-[10px] font-extrabold rounded-xl transition-all cursor-pointer shadow-md shadow-[#5046e5]/15"
-                      >
-                        Autofill OTP
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="p-6 border-t border-white/5 bg-slate-950 flex items-center justify-between gap-4">
-              <button
-                onClick={fetchMockInbox}
-                className="flex-1 py-2 border border-white/10 hover:border-white/20 hover:bg-white/5 text-white text-[10px] font-extrabold rounded-xl transition-all cursor-pointer text-center"
-              >
-                Refresh Inbox
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    await apiRequest('/auth/clear-mock-inbox', { method: 'POST' });
-                    setInboxEmails([]);
-                    setUnreadInboxCount(0);
-                    showToast('Developer Mock Inbox cleared.', 'success');
-                  } catch (err) {
-                    console.error('Error clearing mock inbox:', err);
-                  }
-                }}
-                className="py-2 px-4 hover:text-rose-400 text-slate-500 text-[10px] font-bold cursor-pointer"
-              >
-                Clear View
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Developer Mock Inbox Button */}
-      {isDevMode && (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
-          <button
-            onClick={() => setShowInbox(!showInbox)}
-            className="h-14 w-14 rounded-full bg-slate-900/95 hover:bg-slate-800 border-2 border-indigo-500/35 hover:border-indigo-400 text-white flex items-center justify-center shadow-2xl backdrop-blur-md transition-all active:scale-95 cursor-pointer relative group animate-bounce"
-            title="Open Mock Inbox"
-          >
-            <Mail className="h-6 w-6 text-indigo-400 group-hover:text-indigo-300 transition-colors" />
-            {unreadInboxCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1.5 rounded-full bg-rose-500 border border-slate-950 text-[10px] font-black text-white flex items-center justify-center shrink-0 shadow-md">
-                {unreadInboxCount}
-              </span>
-            )}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
