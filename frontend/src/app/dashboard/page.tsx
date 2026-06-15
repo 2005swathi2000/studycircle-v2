@@ -859,7 +859,10 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
   if (globalLoading || (loading && user)) {
     return (
-      <div className="min-h-screen bg-[#D4D4FF] flex items-center justify-center">
+      <div 
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #ffd2fc 0%, #e8dbfc 50%, #bde3ff 100%)' }}
+      >
         <RefreshCw className="h-8 w-8 text-[#5227EB] animate-spin" />
       </div>
     );
@@ -1823,7 +1826,10 @@ Based on your desking logs and consistency, the AI tutor recommends:
   const unreadCount = filteredNotifications.filter(n => n.unread).length;
 
   return (
-    <div className="min-h-screen bg-[#D4D4FF] text-slate-800 font-sans flex relative overflow-hidden">
+    <div 
+      className="min-h-screen text-slate-800 font-sans flex relative overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #ffd2fc 0%, #e8dbfc 50%, #bde3ff 100%)' }}
+    >
       
       {/* 1. Left Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 h-screen sticky top-0 z-30">
@@ -3165,7 +3171,10 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
       {/* Auth Guard Login Overlay */}
       {!user && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'linear-gradient(135deg, #ffd2fc 0%, #e8dbfc 50%, #bde3ff 100%)' }}
+        >
           <div className="max-w-md w-full bg-white border border-slate-250 rounded-[32px] p-6 space-y-6 shadow-2xl text-left animate-in fade-in zoom-in-95 duration-250">
             <div className="text-center space-y-2">
               <div className="h-12 w-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center mx-auto text-[#5227EB]">
