@@ -98,4 +98,35 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
+// Update a shared note
+router.put('/:noteId', authMiddleware, async (req, res) => {
+  try {
+    const { noteId } = req.params;
+    const { name, size, type } = req.body;
+
+    if (req.user.role !== 'admin' && req.user.role !== 'mentor') {
+      return res.status(403).json({ error: 'Access denied. Only Admins and Mentors can edit shared notes.' });
+    }
+
+    const note = await SharedNote.findByPk(noteId);
+    if (!note) {
+      return res.status(404).json({ error: 'Shared note not found.' });
+    }
+
+    if (name !== undefined) note.name = name.trim();
+    if (size !== undefined) note.size = size.trim();
+    if (type !== undefined) note.type = type;
+
+    await note.save();
+
+    return res.json({
+      message: 'Shared note updated successfully!',
+      note
+    });
+  } catch (err) {
+    console.error('Error updating shared note:', err);
+    return res.status(500).json({ error: 'Server error updating shared note.' });
+  }
+});
+
 module.exports = router;

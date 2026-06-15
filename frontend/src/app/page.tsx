@@ -211,7 +211,7 @@ export default function Home() {
     setProfileSaving(true);
     try {
       const data = await apiRequest('/auth/update-profile', {
-        method: 'POST',
+        method: 'PUT',
         body: JSON.stringify({
           firstName: profileFirstName.trim(),
           lastName: profileLastName.trim()

@@ -163,6 +163,22 @@ export default function DashboardPage() {
   const [editPhone, setEditPhone] = useState('');
   const [previewAvatar, setPreviewAvatar] = useState('');
 
+  // Edit Note State
+  const [showEditNoteModal, setShowEditNoteModal] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editNoteName, setEditNoteName] = useState('');
+  const [editNoteSize, setEditNoteSize] = useState('');
+  const [editNoteCategory, setEditNoteCategory] = useState('syllabus');
+  const [editingNote, setEditingNote] = useState(false);
+
+  // Edit Session State
+  const [showEditSessionModal, setShowEditSessionModal] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editSessTitle, setEditSessTitle] = useState('');
+  const [editSessTime, setEditSessTime] = useState('');
+  const [editSessSubject, setEditSessSubject] = useState('');
+  const [editSessStatus, setEditSessStatus] = useState('Upcoming');
+
   // Login states for dashboard Auth Guard Overlay
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
@@ -513,6 +529,67 @@ Based on your desking logs and consistency, the AI tutor recommends:
     setSessTitle('');
     setSessTime('');
     setSessSubject('');
+  };
+
+  const triggerEditNote = (note: any) => {
+    setEditingNoteId(note.id);
+    setEditNoteName(note.name);
+    setEditNoteSize(note.size);
+    setEditNoteCategory(note.type || 'syllabus');
+    setShowEditNoteModal(true);
+  };
+
+  const handleEditSharedNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingNoteId || !editNoteName.trim()) return;
+    setEditingNote(true);
+    try {
+      const response = await apiRequest(`/shared-notes/${editingNoteId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: editNoteName.trim(),
+          size: editNoteSize.trim() || '1.5 MB',
+          type: editNoteCategory
+        })
+      });
+
+      showToast(response.message || 'Shared note updated successfully!', 'success');
+      setShowEditNoteModal(false);
+
+      // Refresh shared notes list
+      const notesData = await apiRequest('/shared-notes');
+      setNotesList(notesData.notes || []);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update shared note.', 'error');
+    } finally {
+      setEditingNote(false);
+    }
+  };
+
+  const triggerEditSession = (sess: any) => {
+    setEditingSessionId(sess.id);
+    setEditSessTitle(sess.title);
+    setEditSessTime(sess.time);
+    setEditSessSubject(sess.subject);
+    setEditSessStatus(sess.status || 'Upcoming');
+    setShowEditSessionModal(true);
+  };
+
+  const handleEditSessionSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSessionId || !editSessTitle.trim() || !editSessTime.trim()) {
+      showToast('Title and Time are required.', 'error');
+      return;
+    }
+    setMockSessions(prev => prev.map(s => s.id === editingSessionId ? {
+      ...s,
+      title: editSessTitle,
+      time: editSessTime,
+      subject: editSessSubject || 'General',
+      status: editSessStatus
+    } : s));
+    showToast(`Study Session updated successfully!`, 'success');
+    setShowEditSessionModal(false);
   };
 
   const handlePostAnnouncement = (e: React.FormEvent) => {
@@ -1370,6 +1447,76 @@ Based on your desking logs and consistency, the AI tutor recommends:
   // MENTOR DASHBOARD ("CLASSROOM COMMAND CENTER")
   // ==========================================
   const renderMentorDashboard = () => {
+    const isNewMentor = true;
+
+    const managedGroupsCount = myGroups.length;
+    const publishedNotesCount = notesList.filter(n => n.publishedBy?.includes(user?.fullName || '')).length;
+    const scheduledSessionsCount = mockSessions.length;
+
+    // Dynamic stats that start at 0 and grow
+    const healthPercent = isNewMentor ? 0 : Math.min(100, 50 + managedGroupsCount * 10 + publishedNotesCount * 5 + scheduledSessionsCount * 5);
+    const attendanceRate = isNewMentor ? 0 : Math.min(100, 65 + scheduledSessionsCount * 4);
+    const activeStudentsPercent = isNewMentor ? 0 : Math.min(100, 70 + managedGroupsCount * 5 + publishedNotesCount * 3);
+    const activeSessionsPercent = isNewMentor ? 0 : Math.min(100, 60 + scheduledSessionsCount * 5);
+
+    const healthText = healthPercent === 0 ? 'N/A' : healthPercent >= 85 ? 'Excellent' : healthPercent >= 60 ? 'Good' : 'Needs Focus';
+    const healthStrokeColor = healthPercent >= 85 ? '#10B981' : healthPercent >= 60 ? '#F59E0B' : healthPercent > 0 ? '#EF4444' : '#64748B';
+
+    // Insights text
+    const dynamicObservation = isNewMentor
+      ? "Initialize study circles and schedule sessions to gather student attendance benchmarks."
+      : `Mid-week active study rooms helped drive student engagement up to ${attendanceRate}%. Operating systems sessions still show minor delays.`;
+
+    // AI recommendations
+    const dynamicRecommendations = [];
+    if (isNewMentor) {
+      dynamicRecommendations.push({
+        id: 'rec-1',
+        title: 'Initialize Your First Study Circle',
+        description: 'You have not created any study circles yet. Get started by initializing a workspace.',
+        type: 'primary',
+        actionLabel: 'Initialize Circle',
+        action: () => setShowCreateModal(true)
+      });
+      dynamicRecommendations.push({
+        id: 'rec-2',
+        title: 'Publish Syllabus Reference Notes',
+        description: 'New mentors are encouraged to upload lecture summaries or midterm study plans.',
+        type: 'info',
+        actionLabel: 'Publish Shared Note',
+        action: () => setActiveTab('notes')
+      });
+    } else {
+      dynamicRecommendations.push({
+        id: 'rec-1',
+        title: 'CN study group engagement dropped 12% in the last 3 days.',
+        description: 'Schedule a revision session to help students recover focus.',
+        type: 'warning',
+        actionLabel: 'Schedule revision session',
+        action: () => triggerEditSession(mockSessions[1] || mockSessions[0])
+      });
+      dynamicRecommendations.push({
+        id: 'rec-2',
+        title: 'DBMS study group completed 100% of weekly goal metrics!',
+        description: 'Post congratulations to the group channel to keep motivation high.',
+        type: 'success',
+        actionLabel: 'Post Congratulations',
+        action: () => triggerPrefilledAnnouncement("Outstanding progress, DBMS scholars! Your streak consistency and live study room attendance this week are exemplary. Let's maintain this momentum.")
+      });
+    }
+
+    const dynamicGroupsPerformance = isNewMentor
+      ? []
+      : myGroups.map((g, idx) => {
+          const percents = [91, 65, 43, 80, 55];
+          const colors = ['bg-emerald-500', 'bg-orange-500', 'bg-rose-500', 'bg-indigo-500', 'bg-amber-500'];
+          return {
+            name: g.name,
+            percent: percents[idx % percents.length],
+            color: colors[idx % colors.length]
+          };
+        });
+
     return (
       <div className="space-y-6 text-left">
         {/* Banner greeting */}
@@ -1391,7 +1538,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
           <div className="p-6 bg-gradient-to-br from-[#134E4A] via-[#1F3A35] to-[#0F172A] border border-white/10 rounded-[24px] shadow-lg flex flex-col justify-between text-white">
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">Community Health</h3>
-              <p className="text-[10px] text-zinc-400 leading-tight">Average student participation across syllabus groups</p>
+              <p className="text-[10px] text-zinc-450 leading-tight">Average student participation across syllabus groups</p>
             </div>
 
             <div className="py-6 flex flex-col items-center justify-center">
@@ -1402,18 +1549,18 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     cx="64" 
                     cy="64" 
                     r="52" 
-                    stroke="#10B981" 
+                    stroke={healthStrokeColor} 
                     strokeWidth="10" 
                     fill="transparent" 
                     strokeDasharray="326.72" 
-                    strokeDashoffset={326.72 - (326.72 * 0.92)}
+                    strokeDashoffset={326.72 - (326.72 * (healthPercent / 100))}
                     strokeLinecap="round"
                     className="transition-all duration-700 ease-out"
                   />
                 </svg>
                 <div className="absolute text-center">
-                  <span className="text-2xl font-black text-white leading-none">92%</span>
-                  <span className="text-[8px] text-emerald-400 font-extrabold uppercase tracking-wide block mt-1">Excellent</span>
+                  <span className="text-2xl font-black text-white leading-none">{healthPercent}%</span>
+                  <span className="text-[8px] font-extrabold uppercase tracking-wide block mt-1" style={{ color: healthStrokeColor }}>{healthText}</span>
                 </div>
               </div>
             </div>
@@ -1421,19 +1568,19 @@ Based on your desking logs and consistency, the AI tutor recommends:
             <div className="border-t border-white/10 pt-4 space-y-2 text-[10px] font-bold text-zinc-350">
               <div className="flex justify-between">
                 <span>Active Attendance rate:</span>
-                <span className="text-white">85%</span>
+                <span className="text-white">{attendanceRate}%</span>
               </div>
               <div className="flex justify-between">
                 <span>Monthly Active Students:</span>
-                <span className="text-white">92%</span>
+                <span className="text-white">{activeStudentsPercent}%</span>
               </div>
               <div className="flex justify-between">
                 <span>Shared Syllabus Notes:</span>
-                <span className="text-white">28 shared</span>
+                <span className="text-white">{publishedNotesCount} shared</span>
               </div>
               <div className="flex justify-between">
                 <span>Session Participation:</span>
-                <span className="text-white">78%</span>
+                <span className="text-white">{activeSessionsPercent}%</span>
               </div>
             </div>
           </div>
@@ -1442,26 +1589,28 @@ Based on your desking logs and consistency, the AI tutor recommends:
           <div className="p-6 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-[24px] shadow-lg flex flex-col justify-between text-white">
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">Attendance Insights</h3>
-              <p className="text-[10px] text-zinc-400 leading-tight">Weekly average session attendance benchmarks</p>
+              <p className="text-[10px] text-zinc-450 leading-tight">Weekly average session attendance benchmarks</p>
             </div>
 
             <div className="py-6 flex items-center justify-around gap-4">
-              <div className="text-center p-4 bg-slate-950/40 border border-white/5 rounded-2xl flex-1">
+              <div className="text-center p-4 bg-slate-955/40 border border-white/5 rounded-2xl flex-1">
                 <span className="text-[8px] text-zinc-400 font-extrabold uppercase block mb-1">Last Week</span>
-                <span className="text-xl font-black text-zinc-400">72%</span>
+                <span className="text-xl font-black text-zinc-400">{isNewMentor ? 0 : 72}%</span>
               </div>
               
               <div className="text-center p-4 bg-[#5227EB]/10 border border-[#5227EB]/30 rounded-2xl flex-1 relative">
                 <span className="text-[8px] text-indigo-400 font-extrabold uppercase block mb-1">This Week</span>
-                <span className="text-xl font-black text-indigo-200">85%</span>
-                <span className="absolute -top-2 -right-1.5 bg-emerald-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-sm">
-                  +13%
-                </span>
+                <span className="text-xl font-black text-indigo-200">{attendanceRate}%</span>
+                {!isNewMentor && (
+                  <span className="absolute -top-2 -right-1.5 bg-emerald-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-sm">
+                    +13%
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="text-[10px] text-zinc-300 font-semibold leading-relaxed bg-slate-955/40 p-3.5 rounded-xl border border-white/5">
-              💡 <b>Observation:</b> Mid-week DBMS focus hours helped drive higher student room attendances. operating systems sessions still show minor delays.
+              💡 <b>Observation:</b> {dynamicObservation}
             </div>
           </div>
 
@@ -1473,37 +1622,33 @@ Based on your desking logs and consistency, the AI tutor recommends:
             </div>
 
             <div className="space-y-3 flex-1 flex flex-col justify-center">
-              {/* Recommendation 1 */}
-              <div className="p-3 bg-red-950/20 border border-red-500/20 rounded-xl space-y-2 text-red-300">
-                <div className="flex items-start gap-1.5">
-                  <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
-                  <p className="text-[10px] font-extrabold text-red-350 leading-tight">
-                    CN study group engagement dropped 12% in the last 3 days.
-                  </p>
+              {dynamicRecommendations.map((rec) => (
+                <div key={rec.id} className={`p-3 rounded-xl space-y-2 border ${
+                  rec.type === 'primary' ? 'bg-indigo-950/20 border-indigo-500/20 text-indigo-300' :
+                  rec.type === 'warning' ? 'bg-red-950/20 border-red-500/20 text-red-300' :
+                  rec.type === 'success' ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300' :
+                  'bg-slate-900/40 border-white/10 text-slate-350'
+                }`}>
+                  <div className="flex items-start gap-1.5">
+                    <Sparkles className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[10px] font-extrabold leading-tight text-white">{rec.title}</p>
+                      <p className="text-[9px] text-zinc-400 mt-0.5 font-semibold leading-snug">{rec.description}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={rec.action}
+                    className={`w-full py-1 text-[8px] font-extrabold rounded-lg border uppercase tracking-wider cursor-pointer transition-colors ${
+                      rec.type === 'primary' ? 'bg-indigo-950/40 hover:bg-indigo-900/40 border-indigo-500/30 text-indigo-300' :
+                      rec.type === 'warning' ? 'bg-red-950/40 hover:bg-red-900/40 border-red-500/30 text-red-300' :
+                      rec.type === 'success' ? 'bg-emerald-950/40 hover:bg-emerald-900/40 border-emerald-500/30 text-emerald-300' :
+                      'bg-slate-900/40 hover:bg-slate-800 border-white/10 text-slate-300'
+                    }`}
+                  >
+                    {rec.actionLabel}
+                  </button>
                 </div>
-                <button 
-                  onClick={() => triggerPrefilledSession('Computer Networks')}
-                  className="w-full py-1 bg-red-950/40 hover:bg-red-900/40 text-red-300 text-[8px] font-extrabold rounded-lg border border-red-500/30 transition-colors uppercase tracking-wider cursor-pointer"
-                >
-                  Schedule revision session
-                </button>
-              </div>
-
-              {/* Recommendation 2 */}
-              <div className="p-3 bg-indigo-950/20 border border-indigo-500/20 rounded-xl space-y-2 text-indigo-300">
-                <div className="flex items-start gap-1.5">
-                  <Sparkles className="h-4 w-4 text-[#5227EB] shrink-0 mt-0.5" />
-                  <p className="text-[10px] font-extrabold text-indigo-350 leading-tight">
-                    DBMS study group completed 100% of weekly goal metrics!
-                  </p>
-                </div>
-                <button 
-                  onClick={() => triggerPrefilledAnnouncement('Outstanding progress, DBMS scholars! Your streak consistency and live study room attendance this week are exemplary. Let\'s maintain this momentum.')}
-                  className="w-full py-1 bg-indigo-950/40 hover:bg-indigo-900/40 text-indigo-300 text-[8px] font-extrabold rounded-lg border border-indigo-500/30 transition-colors uppercase tracking-wider cursor-pointer"
-                >
-                  Post Congratulations
-                </button>
-              </div>
+              ))}
             </div>
           </div>
 
@@ -1527,27 +1672,33 @@ Based on your desking logs and consistency, the AI tutor recommends:
             </div>
 
             <div className="space-y-3 flex-1 overflow-y-auto">
-              {atRiskStudents.map((stud) => (
-                <div key={stud.id} className="p-3 bg-slate-950/40 border border-white/5 rounded-xl flex items-center justify-between gap-3">
-                  <div>
-                    <h4 className="text-xs font-extrabold text-white">{stud.name}</h4>
-                    <span className="text-[9px] font-semibold text-zinc-400 block mt-0.5">{stud.detail}</span>
-                  </div>
-                  
-                  {stud.nudged ? (
-                    <span className="px-2.5 py-1 bg-emerald-950/20 border border-emerald-500/20 text-emerald-400 text-[9px] font-black rounded-lg uppercase tracking-wide shrink-0">
-                      Nudged ⚡
-                    </span>
-                  ) : (
-                    <button 
-                      onClick={() => handleNudgeStudent(stud.id, stud.name)}
-                      className="px-2.5 py-1 bg-red-600 hover:bg-red-750 text-white text-[9px] font-black rounded-lg uppercase tracking-wide shrink-0 transition-colors cursor-pointer"
-                    >
-                      Nudge Student
-                    </button>
-                  )}
+              {isNewMentor ? (
+                <div className="py-12 text-center text-zinc-450 font-bold border border-dashed border-white/10 rounded-2xl bg-slate-950/20 text-xs">
+                  All students are consistent!
                 </div>
-              ))}
+              ) : (
+                atRiskStudents.map((stud) => (
+                  <div key={stud.id} className="p-3 bg-slate-955/40 border border-white/5 rounded-xl flex items-center justify-between gap-3 font-semibold">
+                    <div>
+                      <h4 className="text-xs font-extrabold text-white">{stud.name}</h4>
+                      <span className="text-[9px] font-semibold text-zinc-400 block mt-0.5">{stud.detail}</span>
+                    </div>
+                    
+                    {stud.nudged ? (
+                      <span className="px-2.5 py-1 bg-emerald-950/20 border border-emerald-500/20 text-emerald-400 text-[9px] font-black rounded-lg uppercase tracking-wide shrink-0">
+                        Nudged ⚡
+                      </span>
+                    ) : (
+                      <button 
+                        onClick={() => handleNudgeStudent(stud.id, stud.name)}
+                        className="px-2.5 py-1 bg-red-600 hover:bg-red-750 text-white text-[9px] font-black rounded-lg uppercase tracking-wide shrink-0 transition-colors cursor-pointer"
+                      >
+                        Nudge Student
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -1559,21 +1710,23 @@ Based on your desking logs and consistency, the AI tutor recommends:
             </div>
 
             <div className="space-y-4 flex-1 flex flex-col justify-center">
-              {[
-                { name: 'DBMS Group', percent: 91, color: 'bg-emerald-500' },
-                { name: 'OS Group', percent: 65, color: 'bg-orange-500' },
-                { name: 'CN Group', percent: 43, color: 'bg-rose-500' }
-              ].map((grp, idx) => (
-                <div key={idx} className="space-y-1.5">
-                  <div className="flex justify-between text-[10px] font-extrabold text-zinc-300">
-                    <span>{grp.name}</span>
-                    <span>{grp.percent}%</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden border border-white/10">
-                    <div className={`h-full ${grp.color} rounded-full transition-all duration-500`} style={{ width: `${grp.percent}%` }} />
-                  </div>
+              {isNewMentor ? (
+                <div className="py-12 text-center text-zinc-455 font-bold border border-dashed border-white/10 rounded-2xl bg-slate-950/20 text-xs">
+                  No active groups.
                 </div>
-              ))}
+              ) : (
+                dynamicGroupsPerformance.map((grp, idx) => (
+                  <div key={idx} className="space-y-1.5">
+                    <div className="flex justify-between text-[10px] font-extrabold text-zinc-300">
+                      <span>{grp.name}</span>
+                      <span>{grp.percent}%</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden border border-white/10">
+                      <div className={`h-full ${grp.color} rounded-full transition-all duration-500`} style={{ width: `${grp.percent}%` }} />
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -1584,37 +1737,43 @@ Based on your desking logs and consistency, the AI tutor recommends:
               <p className="text-[10px] text-zinc-450 mb-4">Aggregated student behavior patterns</p>
             </div>
 
-            <div className="space-y-3.5 flex-1 flex flex-col justify-center">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#6366f1] shrink-0 shadow-sm">
-                  <Clock className="h-4.5 w-4.5" />
-                </div>
-                <div>
-                  <span className="text-[8px] text-zinc-400 font-extrabold uppercase tracking-wide">Most Active Time</span>
-                  <div className="text-[11px] font-black text-white">7:00 PM - 10:00 PM</div>
-                </div>
+            {isNewMentor ? (
+              <div className="py-12 text-center text-zinc-450 font-bold border border-dashed border-white/10 rounded-2xl bg-slate-950/20 text-xs flex-1 flex items-center justify-center">
+                No trend data yet. Insights will accumulate as students study.
               </div>
+            ) : (
+              <div className="space-y-3.5 flex-1 flex flex-col justify-center">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#6366f1] shrink-0 shadow-sm">
+                    <Clock className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <span className="text-[8px] text-zinc-400 font-extrabold uppercase tracking-wide">Most Active Time</span>
+                    <div className="text-[11px] font-black text-white">7:00 PM - 10:00 PM</div>
+                  </div>
+                </div>
 
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
-                  <BookOpen className="h-4.5 w-4.5" />
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
+                    <BookOpen className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <span className="text-[8px] text-zinc-400 font-extrabold uppercase tracking-wide">Most Studied Subject</span>
+                    <div className="text-[11px] font-black text-white">DBMS (Database Mgmt)</div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[8px] text-zinc-400 font-extrabold uppercase tracking-wide">Most Studied Subject</span>
-                  <div className="text-[11px] font-black text-white">DBMS (Database Mgmt)</div>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-red-400 shrink-0 shadow-sm">
-                  <TrendingUp className="h-4.5 w-4.5 rotate-180" />
-                </div>
-                <div>
-                  <span className="text-[8px] text-zinc-400 font-extrabold uppercase tracking-wide">Lowest Engagement</span>
-                  <div className="text-[11px] font-black text-red-400">Operating Systems</div>
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-red-400 shrink-0 shadow-sm">
+                    <TrendingUp className="h-4.5 w-4.5 rotate-180" />
+                  </div>
+                  <div>
+                    <span className="text-[8px] text-zinc-400 font-extrabold uppercase tracking-wide">Lowest Engagement</span>
+                    <div className="text-[11px] font-black text-red-400">Operating Systems</div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
         </div>
@@ -1626,7 +1785,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
           <div className="lg:col-span-4 p-6 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] border border-white/10 rounded-[24px] shadow-lg flex flex-col justify-between text-white">
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">Mentor Actions</h3>
-              <p className="text-[10px] text-zinc-400 mb-4">Command panel to dispatch events, notes, and metrics reports</p>
+              <p className="text-[10px] text-zinc-450 mb-4">Command panel to dispatch events, notes, and metrics reports</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 flex-1 justify-center">
@@ -1684,34 +1843,40 @@ Based on your desking logs and consistency, the AI tutor recommends:
               <p className="text-[10px] text-zinc-450 mb-4">Syllabus trackers and focus hours in Vijayawada cluster</p>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-white/10 text-zinc-400 text-[10px] uppercase font-black tracking-wider">
-                    <th className="pb-2">Student</th>
-                    <th className="pb-2">Study Hours</th>
-                    <th className="pb-2 text-right">Streak Count</th>
-                  </tr>
-                </thead>
-                <tbody className="font-extrabold text-zinc-300">
-                  {[
-                    { name: user?.fullName ? `${user.fullName} Vijayawada` : 'Swathi Vijayawada', hours: 18.2, streak: 8, avatar: user?.avatarUrl || getAvatarByName(user?.fullName || 'Swathi') },
-                    { name: 'Bhagya Guntur', hours: 15.0, streak: 6, avatar: '/bhagya-avatar.png' },
-                    { name: 'Rathna Visakhapatnam', hours: 13.5, streak: 5, avatar: '/rathna-avatar.png' }
-                  ].map((student, idx) => (
-                    <tr key={idx} className="border-b border-white/5 last:border-0">
-                      <td className="py-2.5 flex items-center gap-2.5">
-                        <div className="h-7 w-7 rounded-full overflow-hidden bg-slate-800 border border-white/10 shrink-0">
-                          <img src={student.avatar} className="h-full w-full object-cover" alt={student.name} />
-                        </div>
-                        <span className="text-white truncate">{student.name}</span>
-                      </td>
-                      <td className="py-2.5">{student.hours}h Logged</td>
-                      <td className="py-2.5 text-right font-black text-orange-400">{student.streak} Days 🔥</td>
+            <div className="overflow-x-auto flex-1 flex flex-col justify-center">
+              {isNewMentor ? (
+                <div className="py-12 text-center text-zinc-450 font-bold border border-dashed border-white/10 rounded-2xl bg-slate-950/20 text-xs">
+                  No student logs recorded.
+                </div>
+              ) : (
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-white/10 text-zinc-450 text-[10px] uppercase font-black tracking-wider">
+                      <th className="pb-2">Student</th>
+                      <th className="pb-2">Study Hours</th>
+                      <th className="pb-2 text-right">Streak Count</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="font-extrabold text-zinc-300">
+                    {[
+                      { name: user?.fullName ? `${user.fullName} Vijayawada` : 'Swathi Vijayawada', hours: 18.2, streak: 8, avatar: user?.avatarUrl || getAvatarByName(user?.fullName || 'Swathi') },
+                      { name: 'Bhagya Guntur', hours: 15.0, streak: 6, avatar: '/bhagya-avatar.png' },
+                      { name: 'Rathna Visakhapatnam', hours: 13.5, streak: 5, avatar: '/rathna-avatar.png' }
+                    ].map((student, idx) => (
+                      <tr key={idx} className="border-b border-white/5 last:border-0">
+                        <td className="py-2.5 flex items-center gap-2.5">
+                          <div className="h-7 w-7 rounded-full overflow-hidden bg-slate-800 border border-white/10 shrink-0">
+                            <img src={student.avatar} className="h-full w-full object-cover" alt={student.name} />
+                          </div>
+                          <span className="text-white truncate">{student.name}</span>
+                        </td>
+                        <td className="py-2.5">{student.hours}h Logged</td>
+                        <td className="py-2.5 text-right font-black text-orange-400">{student.streak} Days 🔥</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
 
@@ -2205,8 +2370,6 @@ Based on your desking logs and consistency, the AI tutor recommends:
               )}
             </div>
           )}
-
-          {/* Tab 4: Notes */}
           {activeTab === 'notes' && (
             <div className="space-y-6 text-left">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
@@ -2217,35 +2380,57 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <div className="lg:col-span-2 space-y-4">
                   <div className="grid sm:grid-cols-2 gap-4">
                     {notesList.map((note) => (
-                      <div key={note.id} className="p-5 bg-white border border-slate-200 rounded-[24px] shadow-sm flex flex-col justify-between gap-4">
-                        <div className="space-y-2">
+                      <div key={note.id} className="bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] border border-white/10 rounded-[24px] shadow-lg p-5 flex flex-col justify-between gap-4 text-white hover:border-[#5227EB]/40 hover:shadow-indigo-900/10 transition-all duration-300 group">
+                        <div className="space-y-3">
                           <div className="flex justify-between items-start">
-                            <span className="text-[8px] font-extrabold uppercase px-2 py-0.5 rounded bg-indigo-550/10 text-[#5227EB] border border-indigo-500/10">
-                              {note.type}
+                            <span className={`text-[8px] font-black uppercase px-2.5 py-1 rounded-full border ${
+                              note.type === 'exam' ? 'bg-rose-500/15 border-rose-400/20 text-rose-450' :
+                              note.type === 'lecture' ? 'bg-emerald-500/15 border-emerald-400/20 text-emerald-400' :
+                              'bg-indigo-500/15 border-indigo-400/20 text-indigo-400'
+                            }`}>
+                              {note.type || 'syllabus'}
                             </span>
-                            <span className="text-[9px] text-slate-400 font-semibold">{note.size}</span>
+                            <span className="text-[10px] text-zinc-455 font-bold">{note.size}</span>
                           </div>
-                          <h4 className="text-sm font-extrabold text-slate-900">{note.name}</h4>
-                          {note.publishedBy && (
-                            <div className="text-[9px] text-slate-500 font-bold bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1 inline-flex items-center gap-1 mt-1">
-                              <span>👤 Published by:</span>
-                              <span className="text-[#5227EB]">{note.publishedBy}</span>
+                          
+                          <div className="flex gap-2.5 items-start">
+                            <div className="h-9 w-9 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center text-indigo-400 shrink-0 font-black">
+                              <FileText className="h-4.5 w-4.5" />
                             </div>
-                          )}
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-black text-white group-hover:text-indigo-300 transition-colors truncate">{note.name}</h4>
+                              {note.publishedBy && (
+                                <p className="text-[9px] text-zinc-500 font-bold mt-1">
+                                  by <span className="text-indigo-400 font-black">{note.publishedBy}</span>
+                                </p>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        
+                        <div className="flex items-center gap-2 pt-1.5 border-t border-white/5">
                           <button
                             onClick={() => handleToggleNoteBookmark(note.id)}
-                            className={`flex-1 py-1.5 border text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer ${note.isBookmarked ? 'bg-indigo-50 border-indigo-200 text-[#5227EB]' : 'bg-slate-50 border-slate-200 text-slate-655 hover:text-[#5227EB] hover:border-indigo-550'}`}
+                            className={`p-2 rounded-xl border text-[10px] font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${note.isBookmarked ? 'bg-indigo-950/40 border-indigo-500/30 text-indigo-400' : 'bg-slate-900 border-white/10 text-zinc-400 hover:text-white'}`}
                           >
-                            <Bookmark className={`h-3.5 w-3.5 ${note.isBookmarked ? 'fill-[#5227EB]' : ''}`} /> {note.isBookmarked ? 'Bookmarked' : 'Bookmark'}
+                            <Bookmark className={`h-3.5 w-3.5 ${note.isBookmarked ? 'fill-current' : ''}`} />
                           </button>
+                          
                           <button
                             onClick={() => handleDownloadNote(note.id, note.name)}
-                            className="flex-1 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            className="flex-1 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer"
                           >
                             <Download className="h-3.5 w-3.5" /> {note.downloaded ? 'Saved' : 'Download'}
                           </button>
+                          
+                          {(user?.role === 'mentor' || user?.role === 'admin') && (
+                            <button
+                              onClick={() => triggerEditNote(note)}
+                              className="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-white/10 text-zinc-350 hover:text-white text-[10px] font-black rounded-xl transition-all cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -2340,20 +2525,52 @@ Based on your desking logs and consistency, the AI tutor recommends:
               <div className="grid lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-4">
                   {mockSessions.map((sess) => (
-                    <div key={sess.id} className="p-4 bg-white border border-slate-200 rounded-[24px] shadow-sm flex items-center justify-between gap-4">
+                    <div key={sess.id} className="bg-gradient-to-r from-[#1E293B] via-[#0F172A] to-[#1E293B] border border-white/10 rounded-[24px] shadow-lg p-5 flex items-center justify-between gap-4 text-white hover:border-indigo-500/20 transition-all duration-300">
                       <div className="flex items-center gap-4 min-w-0">
-                        <div className="h-10 w-10 rounded-xl bg-indigo-50 border border-indigo-100 text-[#5227EB] flex items-center justify-center font-bold text-sm shrink-0">
+                        <div className="h-10 w-10 rounded-xl bg-slate-900 border border-white/5 text-[#5227EB] flex items-center justify-center font-black text-xs shrink-0 uppercase tracking-widest bg-gradient-to-tr from-indigo-500/10 to-indigo-400/5">
                           {sess.subject.substring(0, 2)}
                         </div>
-                        <div className="min-w-0">
-                          <h4 className="text-sm font-extrabold text-slate-900 truncate">{sess.title}</h4>
-                          <p className="text-xs text-slate-400 font-semibold mt-0.5">{sess.time}</p>
+                        <div className="min-w-0 text-left">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-xs font-black text-white truncate">{sess.title}</h4>
+                            <span className={`px-2 py-0.5 text-[8px] font-black rounded uppercase tracking-wide shrink-0 ${
+                              sess.status === 'Live Now' ? 'bg-emerald-500/15 border border-emerald-400/20 text-emerald-400 animate-pulse' : 'bg-indigo-500/15 border border-indigo-400/20 text-indigo-400'
+                            }`}>
+                              {sess.status}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-zinc-400 font-bold mt-1 flex items-center gap-1.5">
+                            <Calendar className="h-3 w-3 text-indigo-400" /> {sess.time}
+                          </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2.5 py-1 text-[9px] font-black rounded-lg uppercase tracking-wide shrink-0 ${sess.status === 'Live Now' ? 'bg-emerald-50 border border-emerald-100 text-emerald-600 animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
-                          {sess.status}
-                        </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {(user?.role === 'mentor' || user?.role === 'admin') && (
+                          <button
+                            onClick={() => triggerEditSession(sess)}
+                            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-white/10 text-zinc-350 hover:text-white text-[10px] font-black rounded-xl transition-all cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        <a
+                          href={sess.status === 'Live Now' ? '#rooms' : '#'}
+                          onClick={(e) => {
+                            if (sess.status === 'Live Now') {
+                              e.preventDefault();
+                              setActiveRoom(sess.title);
+                              setRoomSeconds(0);
+                              setActiveTab('dashboard');
+                            }
+                          }}
+                          className={`px-4 py-1.5 rounded-xl text-[10px] font-black transition-all ${
+                            sess.status === 'Live Now'
+                              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20'
+                              : 'bg-slate-800 text-zinc-400 cursor-not-allowed'
+                          }`}
+                        >
+                          {sess.status === 'Live Now' ? 'Join Lounge' : 'Booked'}
+                        </a>
                       </div>
                     </div>
                   ))}
@@ -2974,6 +3191,162 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-xl text-xs font-bold"
                 >
                   Create Session
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Note Modal */}
+      {showEditNoteModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="max-w-md w-full bg-white border border-slate-200 rounded-[32px] p-6 space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-indigo-650" />
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">Edit Shared Note</h3>
+              </div>
+              <button onClick={() => setShowEditNoteModal(false)} className="text-slate-450 font-bold text-xs">✕</button>
+            </div>
+
+            <form onSubmit={handleEditSharedNote} className="space-y-4 text-left">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Note Name</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. DBMS Normalization.pdf"
+                  value={editNoteName}
+                  onChange={(e) => setEditNoteName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-[#5227EB] rounded-xl text-xs text-slate-800 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">File Size</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="e.g. 1.8 MB"
+                    value={editNoteSize}
+                    onChange={(e) => setEditNoteSize(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-[#5227EB] rounded-xl text-xs text-slate-800 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Category</label>
+                  <select 
+                    value={editNoteCategory}
+                    onChange={(e) => setEditNoteCategory(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-[#5227EB] rounded-xl text-xs text-slate-700 outline-none"
+                  >
+                    <option value="syllabus">Syllabus</option>
+                    <option value="lecture">Lecture</option>
+                    <option value="exam">Exam Prep</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditNoteModal(false)}
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-655 rounded-xl text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editingNote}
+                  className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-xl text-xs font-bold flex items-center gap-1.5"
+                >
+                  {editingNote ? (
+                    <>
+                      <RefreshCw className="h-3 w-3 animate-spin" /> Saving...
+                    </>
+                  ) : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Session Modal */}
+      {showEditSessionModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="max-w-md w-full bg-white border border-slate-200 rounded-[32px] p-6 space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-indigo-650" />
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">Edit Scheduled Session</h3>
+              </div>
+              <button onClick={() => setShowEditSessionModal(false)} className="text-slate-450 font-bold text-xs">✕</button>
+            </div>
+
+            <form onSubmit={handleEditSessionSubmit} className="space-y-4 text-left">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Subject / Course Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Computer Networks"
+                  value={editSessSubject}
+                  onChange={(e) => setEditSessSubject(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-[#5227EB] rounded-xl text-xs text-slate-800 outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Session Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Unit 3 Core Concepts Review"
+                  value={editSessTitle}
+                  onChange={(e) => setEditSessTitle(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-[#5227EB] rounded-xl text-xs text-slate-800 outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Scheduled Date & Time Description</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Today, 07:00 PM - 08:30 PM"
+                  value={editSessTime}
+                  onChange={(e) => setEditSessTime(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-[#5227EB] rounded-xl text-xs text-slate-800 outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</label>
+                <select
+                  value={editSessStatus}
+                  onChange={(e) => setEditSessStatus(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-[#5227EB] rounded-xl text-xs text-slate-800 outline-none"
+                >
+                  <option value="Upcoming">Upcoming</option>
+                  <option value="Live Now">Live Now</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditSessionModal(false)}
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-655 rounded-xl text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-xl text-xs font-bold"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>
