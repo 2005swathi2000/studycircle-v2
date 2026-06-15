@@ -35,21 +35,39 @@ export const clearUserInfo = (): void => {
 };
 
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
-    const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-          ...(options.headers as Record<string, string> || {}),
-    };
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> || {}),
+  };
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
-        ...options,
-        credentials: 'include',
-        headers: headers as HeadersInit,
+    ...options,
+    credentials: 'include',
+    headers: headers as HeadersInit,
   });
 
-  const data = await response.json();
+  let data: any = null;
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    try {
+      data = await response.json();
+    } catch (e) {
+      // JSON parsing failed, remain null
+    }
+  }
 
   if (!response.ok) {
-        throw new Error(data.error || data.message || 'API request failed');
+    const errorMsg = data?.error || data?.message || `API request failed with status ${response.status}`;
+    throw new Error(errorMsg);
+  }
+
+  if (data === null) {
+    try {
+      const text = await response.text();
+      return text ? { message: text } : {};
+    } catch (e) {
+      return {};
+    }
   }
 
   return data;
