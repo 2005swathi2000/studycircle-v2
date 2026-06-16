@@ -297,8 +297,12 @@ export default function RegisterPage() {
 
   const handleStudentRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!studentFirstName.trim() || !studentLastName.trim() || !studentPass || !studentConfirmPass || !studentContact.trim() || !studentPhone.trim() || !studentOtp || !studentGender) {
-      showToast('All fields (including name, email, phone, passwords, and gender) are required.', 'error');
+    if (!studentFirstName.trim() || !studentLastName.trim() || !studentUser.trim() || !studentPass || !studentConfirmPass || !studentContact.trim() || !studentPhone.trim() || !studentOtp || !studentGender) {
+      showToast('All fields (including name, username, email, phone, passwords, and gender) are required.', 'error');
+      return;
+    }
+    if (usernameStatus && !usernameStatus.available) {
+      showToast('Username is already taken. Please choose another.', 'error');
       return;
     }
     if (studentPass !== studentConfirmPass) {
@@ -311,13 +315,12 @@ export default function RegisterPage() {
     }
     setFormLoading(true);
     try {
-      const generatedUser = studentContact.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') + Math.floor(Math.random() * 1000);
       const data = await apiRequest('/auth/register', {
         method: 'POST',
         body: JSON.stringify({
           firstName: studentFirstName.trim(),
           lastName: studentLastName.trim(),
-          username: generatedUser,
+          username: studentUser.trim().toLowerCase(),
           password: studentPass,
           role: 'student',
           email: studentContact.trim().toLowerCase(),
@@ -338,8 +341,12 @@ export default function RegisterPage() {
 
   const handleMentorRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mentorFirstName.trim() || !mentorLastName.trim() || !mentorPass || !mentorConfirmPass || !mentorContact.trim() || !mentorPhone.trim() || !mentorInstitution || !mentorOtp || !mentorGender) {
-      showToast('All fields (including name, email, phone, passwords, role, and college) are required.', 'error');
+    if (!mentorFirstName.trim() || !mentorLastName.trim() || !mentorUser.trim() || !mentorPass || !mentorConfirmPass || !mentorContact.trim() || !mentorPhone.trim() || !mentorInstitution || !mentorOtp || !mentorGender) {
+      showToast('All fields (including name, username, email, phone, passwords, role, and college) are required.', 'error');
+      return;
+    }
+    if (usernameStatus && !usernameStatus.available) {
+      showToast('Username is already taken. Please choose another.', 'error');
       return;
     }
     if (mentorPass !== mentorConfirmPass) {
@@ -352,13 +359,12 @@ export default function RegisterPage() {
     }
     setFormLoading(true);
     try {
-      const generatedUser = mentorContact.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') + Math.floor(Math.random() * 1000);
       const data = await apiRequest('/auth/register', {
         method: 'POST',
         body: JSON.stringify({
           firstName: mentorFirstName.trim(),
           lastName: mentorLastName.trim(),
-          username: generatedUser,
+          username: mentorUser.trim().toLowerCase(),
           password: mentorPass,
           role: mentorRole,
           email: mentorContact.trim().toLowerCase(),
@@ -483,6 +489,38 @@ export default function RegisterPage() {
                         required
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* Username Field */}
+                <div className="space-y-1 text-left">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Username</label>
+                    {studentUser.trim() && usernameStatus && usernameStatus.checked && (
+                      <span className={`text-[9px] font-black uppercase ${usernameStatus.available ? 'text-[#00b074]' : 'text-red-400'}`}>
+                        {usernameStatus.available ? 'Available ✓' : 'Already taken ⨯'}
+                      </span>
+                    )}
+                    {studentUser.trim() && checkingUsername && (
+                      <span className="text-[9px] font-black uppercase text-slate-400">Checking...</span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <input
+                      type="text"
+                      placeholder="Choose a unique username"
+                      value={studentUser}
+                      onChange={(e) => handleUsernameChange(e.target.value, 'student')}
+                      className={`w-full bg-[#070b19]/80 border rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:bg-[#070b19] outline-none transition-all ${
+                        studentUser.trim() && usernameStatus && usernameStatus.checked
+                          ? usernameStatus.available 
+                            ? 'border-[#00b074]/40 focus:border-[#00b074]' 
+                            : 'border-red-500/40 focus:border-red-500'
+                          : 'border-white/5 focus:border-[#00b074]/50'
+                      }`}
+                      required
+                    />
                   </div>
                 </div>
 
@@ -732,6 +770,38 @@ export default function RegisterPage() {
                         required
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* Username Field */}
+                <div className="space-y-1 text-left">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Username</label>
+                    {mentorUser.trim() && usernameStatus && usernameStatus.checked && (
+                      <span className={`text-[9px] font-black uppercase ${usernameStatus.available ? 'text-[#818CF8]' : 'text-red-400'}`}>
+                        {usernameStatus.available ? 'Available ✓' : 'Already taken ⨯'}
+                      </span>
+                    )}
+                    {mentorUser.trim() && checkingUsername && (
+                      <span className="text-[9px] font-black uppercase text-slate-400">Checking...</span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <input
+                      type="text"
+                      placeholder="Choose a unique username"
+                      value={mentorUser}
+                      onChange={(e) => handleUsernameChange(e.target.value, 'mentor')}
+                      className={`w-full bg-[#070b19]/80 border rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:bg-[#070b19] outline-none transition-all ${
+                        mentorUser.trim() && usernameStatus && usernameStatus.checked
+                          ? usernameStatus.available 
+                            ? 'border-[#5046E5]/40 focus:border-[#5046E5]' 
+                            : 'border-red-500/40 focus:border-red-500'
+                          : 'border-white/5 focus:border-[#5046E5]/50'
+                      }`}
+                      required
+                    />
                   </div>
                 </div>
 

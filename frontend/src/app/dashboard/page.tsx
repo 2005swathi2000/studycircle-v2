@@ -11,6 +11,8 @@ import {
   LogOut, 
   Plus, 
   ChevronRight, 
+  ArrowRight,
+  ArrowLeft,
   LayoutDashboard,
   GraduationCap,
   Shield,
@@ -80,10 +82,22 @@ type TabType =
   | 'reports' 
   | 'settings' 
   | 'admin'
-  | 'bookmarks';
+  | 'bookmarks'
+  | 'messages'
+  | 'users'
+  | 'announcements'
+  | 'feedback'
+  | 'roles'
+  | 'profile';
 
 // Helper to determine gender-based profile picture dynamically
-const getAvatarByName = (fullName: string | null | undefined): string => {
+const getAvatarByName = (fullName: string | null | undefined, gender?: string): string => {
+  if (gender === 'female') return '/swathi-avatar.png';
+  if (gender === 'male') return '/charan-avatar.png';
+  if (gender === 'other' || gender === 'neutral') {
+    return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+  }
+
   if (!fullName) return '/charan-avatar.png'; // default
   
   const firstName = fullName.trim().split(' ')[0].toLowerCase();
@@ -130,9 +144,17 @@ export default function DashboardPage() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    const firstName = user?.firstName || user?.fullName?.split(' ')[0] || 'User';
+    
+    if (hour >= 5 && hour < 12) {
+      return `Good Morning, ${firstName} ☀️`;
+    } else if (hour >= 12 && hour < 17) {
+      return `Good Afternoon, ${firstName} 🌤️`;
+    } else if (hour >= 17 && hour < 22) {
+      return `Good Evening, ${firstName} 🌙`;
+    } else {
+      return `Good Night, ${firstName} 🌌`;
+    }
   };
   
   const { 
@@ -965,60 +987,125 @@ Based on your desking logs and consistency, the AI tutor recommends:
   // DYNAMIC SIDEBAR RENDER
   // ==========================================
   const renderSidebar = () => {
-    const links = [];
     if (user?.role === 'student') {
-      links.push(
-        { id: 'dashboard', label: 'My Learning Space', icon: LayoutDashboard },
-        { id: 'groups', label: 'Study Circles', icon: Users },
-        { id: 'rooms', label: 'Live Rooms', icon: Wifi },
-        { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark },
-        { id: 'notes', label: 'My Notes', icon: FileText },
-        { id: 'sessions', label: 'Sessions', icon: Clock },
-        { id: 'progress', label: 'Progress Tracking', icon: TrendingUp },
+      const studentLinks = [
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'groups', label: 'Study Rooms', icon: Users },
+        { id: 'notes', label: 'Notes', icon: FileText },
+        { id: 'doubts', label: 'Doubts', icon: HelpCircle },
+        { id: 'sessions', label: 'Schedule', icon: Calendar },
+        { id: 'progress', label: 'Progress', icon: TrendingUp },
         { id: 'leaderboard', label: 'Leaderboard', icon: Award },
+        { id: 'messages', label: 'Messages', icon: MessageSquare },
+        { id: 'resources', label: 'Resources', icon: BookOpen },
         { id: 'settings', label: 'Settings', icon: Settings }
-      );
-    } else if (user?.role === 'mentor') {
-      links.push(
-        { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard },
-        { id: 'groups', label: 'Manage Circles', icon: Users },
-        { id: 'notes', label: 'Shared Notes', icon: FileText },
-        { id: 'sessions', label: 'Class Schedules', icon: Calendar },
-        { id: 'progress', label: 'Class Analytics', icon: BarChart2 },
-        { id: 'settings', label: 'Settings', icon: Settings }
-      );
-    } else if (user?.role === 'admin') {
-      links.push(
-        { id: 'dashboard', label: 'Platform Monitor', icon: LayoutDashboard },
-        { id: 'notes', label: 'Platform Shared Notes', icon: FileText },
-        { id: 'admin', label: 'Coordinator Approvals', icon: Shield },
-        { id: 'settings', label: 'System Settings', icon: Settings }
+      ];
+      
+      return (
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto text-left">
+          {studentLinks.map((link) => {
+            const Icon = link.icon;
+            const isActive = activeTab === link.id;
+            const activeStyles = 'bg-[#10B981]/10 text-[#10B981] border-l-4 border-[#10B981] shadow-sm';
+            return (
+              <button
+                key={link.id}
+                onClick={() => {
+                  if (link.id === 'doubts') {
+                    setActiveTab('discussions');
+                  } else if (link.id === 'resources') {
+                    setActiveTab('bookmarks');
+                  } else {
+                    setActiveTab(link.id as TabType);
+                  }
+                }}
+                className={`w-full px-3 py-2.5 rounded-xl text-[11px] font-bold flex items-center gap-3 transition-all cursor-pointer text-left ${
+                  isActive || (link.id === 'doubts' && activeTab === 'discussions') || (link.id === 'resources' && activeTab === 'bookmarks')
+                    ? activeStyles 
+                    : 'text-slate-400 hover:bg-white/[0.02] hover:text-white'
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" /> {link.label}
+              </button>
+            );
+          })}
+        </nav>
       );
     }
 
+    // Mentor / Admin Sidebar Groupings
+    const groups = [
+      {
+        title: null,
+        links: [{ id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }]
+      },
+      {
+        title: 'MANAGE',
+        links: [
+          { id: 'users', label: 'Users', icon: Users },
+          { id: 'groups', label: 'Study Rooms', icon: BookOpen },
+          { id: 'sessions', label: 'Sessions', icon: Calendar },
+          { id: 'notes', label: 'Notes & Resources', icon: FileText },
+          { id: 'reports', label: 'Reports', icon: BarChart2 }
+        ]
+      },
+      {
+        title: 'COMMUNITY',
+        links: [
+          { id: 'announcements', label: 'Announcements', icon: Bell },
+          { id: 'messages', label: 'Messages', icon: MessageSquare },
+          { id: 'feedback', label: 'Feedback', icon: HelpCircle }
+        ]
+      },
+      {
+        title: 'SETTINGS',
+        links: [
+          { id: 'settings', label: 'System Settings', icon: Settings },
+          { id: 'roles', label: 'Roles & Permissions', icon: Shield },
+          { id: 'profile', label: 'Profile Settings', icon: UserCheck }
+        ]
+      }
+    ];
+
     return (
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {links.map((link) => {
-          const Icon = link.icon;
-          const isActive = activeTab === link.id;
-          let activeStyles = 'bg-[#5227EB] text-white shadow-sm';
-          if (link.id === 'admin') {
-            activeStyles = 'bg-rose-600 text-white shadow-sm';
-          }
-          return (
-            <button
-              key={link.id}
-              onClick={() => setActiveTab(link.id as TabType)}
-              className={`w-full px-3 py-2.5 rounded-xl text-[11px] font-bold flex items-center gap-3 transition-all cursor-pointer text-left ${
-                isActive 
-                  ? activeStyles 
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-              }`}
-            >
-              <Icon className="h-4 w-4 shrink-0" /> {link.label}
-            </button>
-          );
-        })}
+      <nav className="flex-1 p-4 space-y-4 overflow-y-auto text-left scrollbar-thin">
+        {groups.map((group, idx) => (
+          <div key={idx} className="space-y-1.5">
+            {group.title && (
+              <h5 className="px-3 text-[9px] font-black tracking-widest text-zinc-500 uppercase">
+                {group.title}
+              </h5>
+            )}
+            <div className="space-y-0.5">
+              {group.links.map((link) => {
+                const Icon = link.icon;
+                const isActive = activeTab === link.id;
+                // Soft neon/indigo accent styling for Admin/Mentor active tab
+                const activeStyles = 'bg-[#5227EB]/10 text-indigo-400 border-l-4 border-indigo-500 shadow-sm';
+                
+                return (
+                  <button
+                    key={link.id}
+                    onClick={() => {
+                      if (link.id === 'profile') {
+                        router.push('/profile');
+                      } else {
+                        setActiveTab(link.id as TabType);
+                      }
+                    }}
+                    className={`w-full px-3 py-2 rounded-xl text-[11px] font-bold flex items-center gap-3 transition-all cursor-pointer text-left ${
+                      isActive 
+                        ? activeStyles 
+                        : 'text-slate-400 hover:bg-white/[0.02] hover:text-white'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" /> {link.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
     );
   };
@@ -1038,19 +1125,19 @@ Based on your desking logs and consistency, the AI tutor recommends:
     const offset = circ - (progressPercent / 100) * circ;
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 text-white">
         {/* Top Header details */}
         <div className="flex items-center justify-between">
           <div className="text-left">
-            <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
+            <h1 className="text-xl font-black text-white flex items-center gap-2">
               My Learning Space 🎓
             </h1>
-            <p className="text-xs text-slate-500 mt-1">Focus on what matters. Track your streaks and coordinate sessions.</p>
+            <p className="text-xs text-slate-400 mt-1">Focus on what matters. Track your streaks and coordinate sessions.</p>
           </div>
           
-          <div className="flex items-center gap-2 bg-white px-3.5 py-2 border border-slate-200 rounded-xl shadow-sm">
-            <Calendar className="h-4 w-4 text-[#5227EB]" />
-            <span className="text-[11px] font-extrabold text-slate-700">{formattedDate}</span>
+          <div className="flex items-center gap-2 bg-[#0B0F19] px-3.5 py-2 border border-white/5 rounded-xl shadow-md">
+            <Calendar className="h-4 w-4 text-[#10B981]" />
+            <span className="text-[11px] font-extrabold text-slate-300">{formattedDate}</span>
           </div>
         </div>
 
@@ -1060,36 +1147,50 @@ Based on your desking logs and consistency, the AI tutor recommends:
           {/* Main Left/Center column span 7 */}
           <div className="lg:col-span-7 space-y-6">
             {/* Stats Row */}
-            <div className="grid grid-cols-3 gap-4 animate-in slide-in-from-top-4 duration-300">
-              <div className="bg-white border border-slate-200 rounded-[20px] p-4 flex items-center gap-3 shadow-sm text-left">
-                <div className="h-9 w-9 rounded-xl bg-indigo-50 text-[#5227EB] flex items-center justify-center shrink-0">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-in slide-in-from-top-4 duration-300">
+              <div className="bg-[#0B0F19] border border-white/5 rounded-[20px] p-4 flex items-center gap-3 shadow-lg text-left">
+                <div className="h-9 w-9 rounded-xl bg-[#10B981]/10 text-[#10B981] flex items-center justify-center shrink-0">
                   <Users className="h-4.5 w-4.5" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block truncate">Classes Joined</span>
-                  <div className="text-base font-black text-slate-900 leading-tight mt-0.5">{myGroups.length}</div>
+                  <span className="text-[9px] text-slate-450 font-extrabold uppercase tracking-wide block truncate">Joined Rooms</span>
+                  <div className="text-base font-black text-white leading-tight mt-0.5">{myGroups.length}</div>
+                  <span className="text-[8px] text-slate-500 font-bold block mt-0.5">+0 this week</span>
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200 rounded-[20px] p-4 flex items-center gap-3 shadow-sm text-left">
-                <div className="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                  <Wifi className="h-4.5 w-4.5" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block truncate">Active Rooms</span>
-                  <div className="text-base font-black text-slate-900 leading-tight mt-0.5">{activeRoom ? 1 : 0}</div>
-                </div>
-              </div>
-
-              <div className="bg-white border border-slate-200 rounded-[20px] p-4 flex items-center gap-3 shadow-sm text-left">
-                <div className="h-9 w-9 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
+              <div className="bg-[#0B0F19] border border-white/5 rounded-[20px] p-4 flex items-center gap-3 shadow-lg text-left">
+                <div className="h-9 w-9 rounded-xl bg-[#38BDF8]/10 text-[#38BDF8] flex items-center justify-center shrink-0">
                   <FileText className="h-4.5 w-4.5" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block truncate">Resources Uploaded</span>
-                  <div className="text-base font-black text-slate-900 leading-tight mt-0.5">
+                  <span className="text-[9px] text-slate-455 font-extrabold uppercase tracking-wide block truncate">Shared Notes</span>
+                  <div className="text-base font-black text-white leading-tight mt-0.5">
                     {notesList.filter(n => n.publishedBy === user?.username).length}
                   </div>
+                  <span className="text-[8px] text-slate-500 font-bold block mt-0.5">+0 this week</span>
+                </div>
+              </div>
+
+              <div className="bg-[#0B0F19] border border-white/5 rounded-[20px] p-4 flex items-center gap-3 shadow-lg text-left">
+                <div className="h-9 w-9 rounded-xl bg-[#A78BFA]/10 text-[#A78BFA] flex items-center justify-center shrink-0">
+                  <HelpCircle className="h-4.5 w-4.5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[9px] text-slate-450 font-extrabold uppercase tracking-wide block truncate">Solved Doubts</span>
+                  <div className="text-base font-black text-white leading-tight mt-0.5">0</div>
+                  <span className="text-[8px] text-slate-500 font-bold block mt-0.5">+0 this week</span>
+                </div>
+              </div>
+
+              <div className="bg-[#0B0F19] border border-white/5 rounded-[20px] p-4 flex items-center gap-3 shadow-lg text-left">
+                <div className="h-9 w-9 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0">
+                  <Flame className="h-4.5 w-4.5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[9px] text-slate-450 font-extrabold uppercase tracking-wide block truncate">Study Streak</span>
+                  <div className="text-base font-black text-white leading-tight mt-0.5">{stats.streakCount} Days</div>
+                  <span className="text-[8px] text-slate-500 font-bold block mt-0.5">Keep desking!</span>
                 </div>
               </div>
             </div>
@@ -1293,28 +1394,28 @@ Based on your desking logs and consistency, the AI tutor recommends:
           <div className="lg:col-span-3 space-y-6">
             
             {/* User Profile Card */}
-            <div className="p-5 bg-gradient-to-b from-[#5227EB] to-[#6366f1] rounded-[24px] text-center text-white flex flex-col justify-center items-center gap-3 shadow-md relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-xl" />
-              <div className="h-16 w-16 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center text-3xl font-black text-white shadow-inner relative overflow-hidden">
-                <img src={user?.avatarUrl || getAvatarByName(user?.fullName)} className="absolute inset-0 h-full w-full object-cover" alt="Avatar" />
+            <div className="p-5 bg-gradient-to-b from-[#0B0F19] to-[#0d1629] border border-white/5 rounded-[24px] text-center text-white flex flex-col justify-center items-center gap-3 shadow-lg relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#10B981]/5 rounded-full blur-xl pointer-events-none" />
+              <div className="h-16 w-16 rounded-full bg-slate-900 border-2 border-[#10B981]/25 flex items-center justify-center text-3xl font-black text-white shadow-inner relative overflow-hidden group-hover:border-[#10B981]/50 transition-colors">
+                <img src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)} className="absolute inset-0 h-full w-full object-cover" alt="Avatar" />
               </div>
               <div className="text-center">
                 <h3 className="text-sm font-black truncate max-w-[150px]">{user?.fullName || 'User'}</h3>
-                <p className="text-[9px] text-indigo-100 font-bold capitalize mt-0.5">{user?.role === 'mentor' ? 'Mentor' : user?.role === 'admin' ? 'Admin' : 'B.Tech Student'}</p>
+                <p className="text-[9px] text-[#10B981] font-bold capitalize mt-0.5">{user?.role === 'mentor' ? 'Mentor' : user?.role === 'admin' ? 'Admin' : 'B.Tech Student'}</p>
               </div>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/10 border border-white/15 rounded-full text-[9px] font-bold tracking-wide">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-[#10B981]/10 border border-[#10B981]/20 text-[#10B981] rounded-full text-[9px] font-bold tracking-wide">
                 Level {Math.max(1, Math.floor(stats.totalStudyHours / 15) + 1)} ⭐️
               </span>
-              <button 
-                onClick={() => setActiveTab('settings')}
-                className="mt-1 px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-xl text-[9px] font-extrabold transition-all cursor-pointer flex items-center gap-1 border border-white/10"
+              <Link 
+                href="/profile"
+                className="mt-1 px-3 py-1 bg-white/[0.04] hover:bg-white/[0.08] text-white rounded-xl text-[9px] font-extrabold transition-all cursor-pointer flex items-center gap-1 border border-white/5"
               >
-                <Settings className="h-3 w-3" /> Edit Profile
-              </button>
+                <Settings className="h-3 w-3 text-[#10B981]" /> Edit Profile
+              </Link>
             </div>
 
             {/* Overall Content Progress Circle Card */}
-            <div className="p-5 bg-gradient-to-br from-[#0F172A] via-[#312E81]/40 to-[#1E293B] border border-white/10 rounded-[24px] shadow-lg text-left text-white">
+            <div className="p-5 bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] border border-white/10 rounded-[24px] shadow-lg text-left text-white">
               <h3 className="text-xs font-black uppercase tracking-wider text-white mb-3">Overall Progress</h3>
               <div className="flex flex-col items-center justify-center py-2">
                 <div className="relative h-28 w-28 flex items-center justify-center">
@@ -1324,7 +1425,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                       cx="56" 
                       cy="56" 
                       r="46" 
-                      stroke="#38BDF8" 
+                      stroke="#10B981" 
                       strokeWidth="8" 
                       fill="transparent" 
                       strokeDasharray="289.02" 
@@ -1337,14 +1438,14 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     <span className="text-base font-black text-white leading-none">
                       {Math.round((Math.min(stats.totalStudyHours, 20) / 20) * 100)}%
                     </span>
-                    <span className="text-[7px] text-zinc-400 font-black uppercase tracking-wide block mt-0.5">Weekly Goal</span>
+                    <span className="text-[7px] text-zinc-450 font-black uppercase tracking-wide block mt-0.5">Weekly Goal</span>
                   </div>
                 </div>
                 <div className="text-center mt-3 space-y-1">
                   <p className="text-[10px] font-extrabold text-zinc-200">
                     {stats.totalStudyHours.toFixed(1)} / 20.0 Hours Completed
                   </p>
-                  <p className="text-[8px] text-zinc-450 font-bold">
+                  <p className="text-[8px] text-zinc-500 font-bold">
                     Targeting B.Tech placement readiness logs
                   </p>
                 </div>
@@ -1352,28 +1453,89 @@ Based on your desking logs and consistency, the AI tutor recommends:
             </div>
 
             {/* Streak card */}
-            <div className="p-5 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#312E81]/40 border border-white/10 rounded-[24px] shadow-lg text-left text-white">
+            <div className="p-5 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#0B0F19] border border-white/10 rounded-[24px] shadow-lg text-left text-white">
               <div className="flex items-center gap-1.5 mb-3">
                 <Flame className="h-4.5 w-4.5 text-orange-500 fill-orange-500/10" />
                 <h3 className="text-xs font-black uppercase tracking-wider text-white">Consistency Streak</h3>
               </div>
               
-              <div className="flex items-center gap-3 p-3 bg-orange-950/20 border border-orange-500/20 rounded-2xl">
+              <div className="flex items-center gap-3 p-3 bg-orange-950/25 border border-orange-500/20 rounded-2xl">
                 <div className="h-8 w-8 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
                   <Flame className="h-4.5 w-4.5 fill-orange-500/20" />
                 </div>
                 <div>
                   <div className="text-sm font-black text-orange-400">{stats.streakCount} Days active</div>
-                  <p className="text-[8px] text-zinc-400 font-bold">You are in the top 5% of your cluster!</p>
+                  <p className="text-[8px] text-zinc-450 font-bold">You are in the top 5% of your cluster!</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Calendar Card */}
+            <div className="p-5 bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] border border-white/10 rounded-[24px] shadow-lg text-left text-white">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-xs font-black uppercase tracking-wider text-white">June 2026</h3>
+                <span className="text-[9px] font-black text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/20 uppercase">Cohort Calendar</span>
+              </div>
+              
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-extrabold mb-1">
+                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+                  <span key={d} className="text-zinc-500 font-black">{d}</span>
+                ))}
+              </div>
+              
+              <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-bold">
+                <span />
+                {Array.from({ length: 30 }).map((_, i) => {
+                  const day = i + 1;
+                  const isToday = day === 16;
+                  return (
+                    <span 
+                      key={day} 
+                      className={`py-1 rounded-md transition-all ${
+                        isToday 
+                          ? 'bg-[#10B981] text-white font-black shadow-lg shadow-[#10B981]/25 scale-105' 
+                          : 'text-zinc-300 hover:bg-white/5 cursor-pointer'
+                      }`}
+                    >
+                      {day}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* B.B. King Quote Card */}
+            <div className="p-5 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] border border-white/10 rounded-[24px] shadow-lg text-left text-white relative overflow-hidden group">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-amber-500/10 blur-xl group-hover:bg-amber-500/20 transition-all duration-500 pointer-events-none" />
+              
+              <div className="flex gap-4 items-start relative z-10">
+                <div className="shrink-0 bg-amber-500/10 border border-amber-500/25 p-2 rounded-xl text-amber-400 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 20H18C18 20 17 21 16 21H8C7 21 6 20 6 20Z" fill="currentColor" />
+                    <path d="M12 20V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M12 12L15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M13 5C13 5 11 4 10 5C9 6 8.5 7.5 8.5 7.5L16.5 10.5C16.5 10.5 16.5 9 16 8C15.5 7 13.5 5.5 13 5Z" fill="currentColor" />
+                    <path d="M6 14L8 11.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeDasharray="1 1" />
+                    <path d="M4 17L7 13" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeDasharray="1 1" />
+                    <path d="M8 18L9 15" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeDasharray="1 1" />
+                  </svg>
+                </div>
+                
+                <div className="min-w-0">
+                  <span className="text-[8px] font-black uppercase text-amber-400 tracking-wider block mb-1">Daily Inspiration</span>
+                  <p className="text-[11px] font-bold text-zinc-200 leading-relaxed italic">
+                    "The beautiful thing about learning is nobody can take it away from you."
+                  </p>
+                  <span className="text-[9px] text-zinc-400 font-extrabold block mt-2">— B.B. King</span>
                 </div>
               </div>
             </div>
 
             {/* Leaderboard Card */}
-            <div className="p-5 bg-gradient-to-br from-[#0F172A] via-[#312E81]/40 to-[#1E293B] border border-white/10 rounded-[24px] shadow-lg text-left text-white">
+            <div className="p-5 bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] border border-white/10 rounded-[24px] shadow-lg text-left text-white">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-xs font-black uppercase tracking-wider text-white">Leaderboard</h3>
-                <button onClick={() => setActiveTab('leaderboard')} className="text-[8px] font-black text-zinc-450 hover:text-indigo-400 uppercase cursor-pointer">
+                <button onClick={() => setActiveTab('leaderboard')} className="text-[8px] font-black text-zinc-450 hover:text-[#10B981] uppercase cursor-pointer">
                   Details
                 </button>
               </div>
@@ -1381,12 +1543,12 @@ Based on your desking logs and consistency, the AI tutor recommends:
               <div className="space-y-2.5">
                 {[
                   { name: 'Charan', hours: 18.2, streak: 8, avatar: '/charan-avatar.png' },
-                  { name: user?.fullName ? `${user.fullName} (You)` : 'Swathi (You)', hours: 15.5, streak: 7, avatar: user?.avatarUrl || getAvatarByName(user?.fullName || 'Swathi') },
+                  { name: user?.fullName ? `${user.fullName} (You)` : 'Swathi (You)', hours: 15.5, streak: 7, avatar: user?.avatarUrl || getAvatarByName(user?.fullName || 'Swathi', user?.gender) },
                   { name: 'Bhagya', hours: 12.0, streak: 6, avatar: '/bhagya-avatar.png' }
                 ].map((student, rank) => (
                   <div key={rank} className="flex items-center justify-between gap-2 border-b border-white/5 pb-2 last:border-0 last:pb-0">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-[10px] font-black text-zinc-450 w-4">#{rank + 1}</span>
+                      <span className="text-[10px] font-black text-zinc-455 w-4">#{rank + 1}</span>
                       <div className="h-7 w-7 rounded-full overflow-hidden bg-slate-800 border border-white/10 shrink-0">
                         <img src={student.avatar} className="h-full w-full object-cover" alt={student.name} />
                       </div>
@@ -1402,10 +1564,10 @@ Based on your desking logs and consistency, the AI tutor recommends:
             </div>
 
             {/* Notes Quick Widget */}
-            <div className="p-5 bg-gradient-to-br from-[#134E4A] via-[#1F3A35] to-[#0F172A] border border-white/10 rounded-[24px] shadow-lg text-left text-white">
+            <div className="p-5 bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] border border-white/10 rounded-[24px] shadow-lg text-left text-white">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-xs font-black uppercase tracking-wider text-white">My Study Notes</h3>
-                <button onClick={() => setActiveTab('notes')} className="text-[8px] font-black text-zinc-450 hover:text-teal-400 uppercase cursor-pointer">
+                <button onClick={() => setActiveTab('notes')} className="text-[8px] font-black text-[#10B981] hover:text-[#10B981] uppercase cursor-pointer">
                   All Notes
                 </button>
               </div>
@@ -1416,21 +1578,21 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     <div className="min-w-0 flex items-center gap-2">
                       <FileText className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
                       <div className="min-w-0">
-                        <h4 className="text-[10px] font-extrabold text-zinc-200 truncate leading-tight">{note.name}</h4>
-                        <span className="text-[8px] text-zinc-450 font-semibold">{note.size}</span>
+                        <h4 className="text-[10px] font-extrabold text-zinc-250 truncate leading-tight">{note.name}</h4>
+                        <span className="text-[8px] text-zinc-500 font-semibold">{note.size}</span>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-1 shrink-0">
                       <button 
                         onClick={() => handleToggleNoteBookmark(note.id)} 
-                        className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${note.type === 'bookmark' ? 'bg-indigo-950/40 border-indigo-500/30 text-indigo-400' : 'bg-slate-900 border-white/10 text-zinc-400 hover:text-white'}`}
+                        className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${note.type === 'bookmark' ? 'bg-[#10B981]/10 border-[#10B981]/25 text-[#10B981]' : 'bg-slate-900 border-white/10 text-zinc-400 hover:text-white'}`}
                       >
                         <Bookmark className="h-3 w-3 fill-current" />
                       </button>
                       <button 
                         onClick={() => handleDownloadNote(note.id, note.name)}
-                        className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${note.downloaded ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400' : 'bg-slate-900 border-white/10 text-zinc-400 hover:text-white'}`}
+                        className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${note.downloaded ? 'bg-[#10B981]/10 border-[#10B981]/25 text-[#10B981]' : 'bg-slate-900 border-white/10 text-zinc-400 hover:text-white'}`}
                       >
                         <Download className="h-3 w-3" />
                       </button>
@@ -1441,567 +1603,385 @@ Based on your desking logs and consistency, the AI tutor recommends:
             </div>
 
           </div>
-
         </div>
       </div>
     );
   };
 
   // ==========================================
-  // MENTOR DASHBOARD ("CLASSROOM COMMAND CENTER")
+  // UNIFIED ADMIN/MENTOR DASHBOARD (ZERO-STATE)
   // ==========================================
-  const renderMentorDashboard = () => {
+  const renderAdminMentorDashboard = () => {
+    // Dynamic onboarding checks
+    const hasBio = !!user?.bio || !!user?.phone;
+    const hasGroups = myGroups.length > 0;
+    const hasSessions = mockSessions.length > 0;
+    const hasNotes = notesList.length > 0;
 
+    const onboardingSteps = [
+      { id: 1, label: 'Complete your profile details', desc: 'Fill out your bio and contact details in settings.', checked: hasBio, action: () => router.push('/profile') },
+      { id: 2, label: 'Create your first study room', desc: 'Set up a workspace circle for student cohorts.', checked: hasGroups, action: () => setShowCreateModal(true) },
+      { id: 3, label: 'Invite students to join', desc: 'Share circle invite codes with your batch students.', checked: hasGroups, action: () => { setActiveTab('groups'); } },
+      { id: 4, label: 'Schedule your first live session', desc: 'Book a virtual room for active recall review.', checked: hasSessions, action: () => setShowSessionModal(true) },
+      { id: 5, label: 'Share learning resources', desc: 'Publish syllabus reference notes or study files.', checked: hasNotes, action: () => { setActiveTab('notes'); } }
+    ];
 
-    const managedGroupsCount = myGroups.length;
-    const publishedNotesCount = notesList.filter(n => n.publishedBy?.includes(user?.fullName || '')).length;
-    const scheduledSessionsCount = mockSessions.length;
-
-    // Dynamic stats that start at 0 and grow
-    const healthPercent = isNewMentor ? 0 : Math.min(100, 50 + managedGroupsCount * 10 + publishedNotesCount * 5 + scheduledSessionsCount * 5);
-    const attendanceRate = isNewMentor ? 0 : Math.min(100, 65 + scheduledSessionsCount * 4);
-    const activeStudentsPercent = isNewMentor ? 0 : Math.min(100, 70 + managedGroupsCount * 5 + publishedNotesCount * 3);
-    const activeSessionsPercent = isNewMentor ? 0 : Math.min(100, 60 + scheduledSessionsCount * 5);
-
-    const healthText = healthPercent === 0 ? 'N/A' : healthPercent >= 85 ? 'Excellent' : healthPercent >= 60 ? 'Good' : 'Needs Focus';
-    const healthStrokeColor = healthPercent >= 85 ? '#10B981' : healthPercent >= 60 ? '#F59E0B' : healthPercent > 0 ? '#EF4444' : '#64748B';
-
-    // Insights text
-    const dynamicObservation = isNewMentor
-      ? "Initialize study circles and schedule sessions to gather student attendance benchmarks."
-      : `Mid-week active study rooms helped drive student engagement up to ${attendanceRate}%. Operating systems sessions still show minor delays.`;
-
-    // AI recommendations
-    const dynamicRecommendations = [];
-    if (isNewMentor) {
-      dynamicRecommendations.push({
-        id: 'rec-1',
-        title: 'Initialize Your First Study Circle',
-        description: 'You have not created any study circles yet. Get started by initializing a workspace.',
-        type: 'primary',
-        actionLabel: 'Initialize Circle',
-        action: () => setShowCreateModal(true)
-      });
-      dynamicRecommendations.push({
-        id: 'rec-2',
-        title: 'Publish Syllabus Reference Notes',
-        description: 'New mentors are encouraged to upload lecture summaries or midterm study plans.',
-        type: 'info',
-        actionLabel: 'Publish Shared Note',
-        action: () => setActiveTab('notes')
-      });
-    } else {
-      dynamicRecommendations.push({
-        id: 'rec-1',
-        title: 'CN study group engagement dropped 12% in the last 3 days.',
-        description: 'Schedule a revision session to help students recover focus.',
-        type: 'warning',
-        actionLabel: 'Schedule revision session',
-        action: () => triggerEditSession(mockSessions[1] || mockSessions[0])
-      });
-      dynamicRecommendations.push({
-        id: 'rec-2',
-        title: 'DBMS study group completed 100% of weekly goal metrics!',
-        description: 'Post congratulations to the group channel to keep motivation high.',
-        type: 'success',
-        actionLabel: 'Post Congratulations',
-        action: () => triggerPrefilledAnnouncement("Outstanding progress, DBMS scholars! Your streak consistency and live study room attendance this week are exemplary. Let's maintain this momentum.")
-      });
-    }
-
-    const dynamicGroupsPerformance = isNewMentor
-      ? []
-      : myGroups.map((g, idx) => {
-          const percents = [91, 65, 43, 80, 55];
-          const colors = ['bg-emerald-500', 'bg-orange-500', 'bg-rose-500', 'bg-indigo-500', 'bg-amber-500'];
-          return {
-            name: g.name,
-            percent: percents[idx % percents.length],
-            color: colors[idx % colors.length]
-          };
-        });
+    const completedCount = onboardingSteps.filter(s => s.checked).length;
+    const progressPercent = Math.round((completedCount / onboardingSteps.length) * 100);
 
     return (
-      <div className="space-y-6 text-left">
+      <div className="space-y-6 text-white text-left animate-in fade-in duration-350">
+        
         {/* Banner greeting */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-black text-slate-900">Classroom Command Center 👨‍🏫</h1>
-            <p className="text-xs text-slate-500 mt-1">Real-time statistics, active syllabus cohorts, and consistency risk monitors.</p>
+            <h1 className="text-xl font-black text-white tracking-tight">
+              {getGreeting()} 👋
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">Here's what's happening in your StudyCircle workspace.</p>
           </div>
-          <div className="flex items-center gap-2 bg-white px-3.5 py-2 border border-slate-200 rounded-xl shadow-sm">
-            <Calendar className="h-4 w-4 text-[#5227EB]" />
-            <span className="text-[11px] font-extrabold text-slate-700">{formattedDate}</span>
+          <div className="flex items-center gap-2 bg-[#0B0F19] px-3.5 py-2 border border-white/5 rounded-xl shadow-sm self-start sm:self-auto shrink-0">
+            <Calendar className="h-4 w-4 text-[#818CF8]" />
+            <span className="text-[11px] font-extrabold text-slate-300">{formattedDate}</span>
           </div>
         </div>
 
-        {/* Dashboard layout rows */}
-        <div className="grid lg:grid-cols-3 gap-6">
+        {/* Welcome Onboarding Checklist (Glassmorphism card) */}
+        <div className="p-6 bg-gradient-to-br from-[#1E293B]/60 via-[#0F172A]/70 to-[#1F3A35]/30 border border-white/5 rounded-[24px] shadow-2xl relative overflow-hidden backdrop-blur-md">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-[#10B981]/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
           
-          {/* Col 1: Community Health Score */}
-          <div className="p-6 bg-gradient-to-br from-[#134E4A] via-[#1F3A35] to-[#0F172A] border border-white/10 rounded-[24px] shadow-lg flex flex-col justify-between text-white">
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">Community Health</h3>
-              <p className="text-[10px] text-zinc-450 leading-tight">Average student participation across syllabus groups</p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-4 border-b border-white/5">
+            <div className="space-y-1">
+              <h2 className="text-sm font-black text-white flex items-center gap-2">
+                <span>Welcome to StudyCircle! 🚀</span>
+              </h2>
+              <p className="text-[11px] text-zinc-400 font-semibold">Complete these steps to get started with your workspace coordinator console:</p>
             </div>
-
-            <div className="py-6 flex flex-col items-center justify-center">
-              <div className="relative h-32 w-32 flex items-center justify-center">
+            
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="text-right">
+                <span className="text-xs font-black text-white block">{completedCount} / 5 Completed</span>
+                <span className="text-[9px] text-[#10B981] font-bold block mt-0.5">{progressPercent}% Progress</span>
+              </div>
+              <div className="relative h-14 w-14 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90">
-                  <circle cx="64" cy="64" r="52" stroke="rgba(255,255,255,0.05)" strokeWidth="10" fill="transparent" />
+                  <circle cx="28" cy="28" r="22" stroke="rgba(255,255,255,0.05)" strokeWidth="5" fill="transparent" />
                   <circle 
-                    cx="64" 
-                    cy="64" 
-                    r="52" 
-                    stroke={healthStrokeColor} 
-                    strokeWidth="10" 
+                    cx="28" 
+                    cy="28" 
+                    r="22" 
+                    stroke="#10B981" 
+                    strokeWidth="5" 
                     fill="transparent" 
-                    strokeDasharray="326.72" 
-                    strokeDashoffset={326.72 - (326.72 * (healthPercent / 100))}
+                    strokeDasharray="138.23" 
+                    strokeDashoffset={138.23 - (138.23 * (progressPercent / 100))}
                     strokeLinecap="round"
                     className="transition-all duration-700 ease-out"
                   />
                 </svg>
-                <div className="absolute text-center">
-                  <span className="text-2xl font-black text-white leading-none">{healthPercent}%</span>
-                  <span className="text-[8px] font-extrabold uppercase tracking-wide block mt-1" style={{ color: healthStrokeColor }}>{healthText}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t border-white/10 pt-4 space-y-2 text-[10px] font-bold text-zinc-350">
-              <div className="flex justify-between">
-                <span>Active Attendance rate:</span>
-                <span className="text-white">{attendanceRate}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Monthly Active Students:</span>
-                <span className="text-white">{activeStudentsPercent}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Shared Syllabus Notes:</span>
-                <span className="text-white">{publishedNotesCount} shared</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Session Participation:</span>
-                <span className="text-white">{activeSessionsPercent}%</span>
+                <span className="absolute text-[10px] font-black text-white">{progressPercent}%</span>
               </div>
             </div>
           </div>
 
-          {/* Col 2: Attendance Insights */}
-          <div className="p-6 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-[24px] shadow-lg flex flex-col justify-between text-white">
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">Attendance Insights</h3>
-              <p className="text-[10px] text-zinc-450 leading-tight">Weekly average session attendance benchmarks</p>
-            </div>
-
-            <div className="py-6 flex items-center justify-around gap-4">
-              <div className="text-center p-4 bg-slate-955/40 border border-white/5 rounded-2xl flex-1">
-                <span className="text-[8px] text-zinc-400 font-extrabold uppercase block mb-1">Last Week</span>
-                <span className="text-xl font-black text-zinc-400">{isNewMentor ? 0 : 72}%</span>
-              </div>
-              
-              <div className="text-center p-4 bg-[#5227EB]/10 border border-[#5227EB]/30 rounded-2xl flex-1 relative">
-                <span className="text-[8px] text-indigo-400 font-extrabold uppercase block mb-1">This Week</span>
-                <span className="text-xl font-black text-indigo-200">{attendanceRate}%</span>
-                {!isNewMentor && (
-                  <span className="absolute -top-2 -right-1.5 bg-emerald-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-sm">
-                    +13%
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="text-[10px] text-zinc-300 font-semibold leading-relaxed bg-slate-955/40 p-3.5 rounded-xl border border-white/5">
-              💡 <b>Observation:</b> {dynamicObservation}
-            </div>
-          </div>
-
-          {/* Col 3: AI Recommendations (Actionable) */}
-          <div className="p-6 bg-gradient-to-br from-[#0F172A] via-[#312E81]/40 to-[#1E293B] border border-white/10 rounded-[24px] shadow-lg flex flex-col justify-between text-white">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Sparkles className="h-4.5 w-4.5 text-indigo-400" />
-              <h3 className="text-xs font-black uppercase tracking-wider text-white">AI Recommendations</h3>
-            </div>
-
-            <div className="space-y-3 flex-1 flex flex-col justify-center">
-              {dynamicRecommendations.map((rec) => (
-                <div key={rec.id} className={`p-3 rounded-xl space-y-2 border ${
-                  rec.type === 'primary' ? 'bg-indigo-950/20 border-indigo-500/20 text-indigo-300' :
-                  rec.type === 'warning' ? 'bg-red-950/20 border-red-500/20 text-red-300' :
-                  rec.type === 'success' ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300' :
-                  'bg-slate-900/40 border-white/10 text-slate-350'
-                }`}>
-                  <div className="flex items-start gap-1.5">
-                    <Sparkles className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-[10px] font-extrabold leading-tight text-white">{rec.title}</p>
-                      <p className="text-[9px] text-zinc-400 mt-0.5 font-semibold leading-snug">{rec.description}</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={rec.action}
-                    className={`w-full py-1 text-[8px] font-extrabold rounded-lg border uppercase tracking-wider cursor-pointer transition-colors ${
-                      rec.type === 'primary' ? 'bg-indigo-950/40 hover:bg-indigo-900/40 border-indigo-500/30 text-indigo-300' :
-                      rec.type === 'warning' ? 'bg-red-950/40 hover:bg-red-900/40 border-red-500/30 text-red-300' :
-                      rec.type === 'success' ? 'bg-emerald-950/40 hover:bg-emerald-900/40 border-emerald-500/30 text-emerald-300' :
-                      'bg-slate-900/40 hover:bg-slate-800 border-white/10 text-slate-300'
-                    }`}
-                  >
-                    {rec.actionLabel}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
-
-        {/* Next Row: At-risk students, Group heatmap & Study trends */}
-        <div className="grid lg:grid-cols-10 gap-6">
-          
-          {/* At-Risk Students card (4 columns span) */}
-          <div className="lg:col-span-4 p-6 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-[24px] shadow-lg flex flex-col justify-between text-white">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
-                  <AlertTriangle className="h-4.5 w-4.5 text-red-400" /> Students Losing Consistency
-                </h3>
-                <span className="text-[8px] bg-red-950/40 border border-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-black uppercase tracking-wide">
-                  Attention required
-                </span>
-              </div>
-              <p className="text-[10px] text-zinc-450 mb-4">Prompt nudge alerts encourage focus recovery</p>
-            </div>
-
-            <div className="space-y-3 flex-1 overflow-y-auto">
-              {isNewMentor ? (
-                <div className="py-12 text-center text-zinc-450 font-bold border border-dashed border-white/10 rounded-2xl bg-slate-950/20 text-xs">
-                  All students are consistent!
-                </div>
-              ) : (
-                atRiskStudents.map((stud) => (
-                  <div key={stud.id} className="p-3 bg-slate-955/40 border border-white/5 rounded-xl flex items-center justify-between gap-3 font-semibold">
-                    <div>
-                      <h4 className="text-xs font-extrabold text-white">{stud.name}</h4>
-                      <span className="text-[9px] font-semibold text-zinc-400 block mt-0.5">{stud.detail}</span>
-                    </div>
-                    
-                    {stud.nudged ? (
-                      <span className="px-2.5 py-1 bg-emerald-950/20 border border-emerald-500/20 text-emerald-400 text-[9px] font-black rounded-lg uppercase tracking-wide shrink-0">
-                        Nudged ⚡
-                      </span>
+          <div className="grid md:grid-cols-5 gap-4 pt-4 text-left">
+            {onboardingSteps.map((step, idx) => (
+              <div 
+                key={step.id} 
+                onClick={step.action}
+                className={`p-3 border rounded-2xl flex flex-col justify-between gap-3 transition-all cursor-pointer group hover:scale-[1.02] ${
+                  step.checked 
+                    ? 'bg-[#10B981]/5 border-[#10B981]/20' 
+                    : 'bg-white/[0.01] border-white/5 hover:border-white/10'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-black text-zinc-500">STEP 0{step.id}</span>
+                    {step.checked ? (
+                      <span className="h-4.5 w-4.5 rounded-full bg-[#10B981]/15 text-[#10B981] flex items-center justify-center text-[10px] font-black shadow-sm">✓</span>
                     ) : (
-                      <button 
-                        onClick={() => handleNudgeStudent(stud.id, stud.name)}
-                        className="px-2.5 py-1 bg-red-600 hover:bg-red-750 text-white text-[9px] font-black rounded-lg uppercase tracking-wide shrink-0 transition-colors cursor-pointer"
-                      >
-                        Nudge Student
-                      </button>
+                      <span className="h-4.5 w-4.5 rounded-full border border-white/20 group-hover:border-white/40 transition-colors" />
                     )}
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Group Performance Heatmap card (3 columns span) */}
-          <div className="lg:col-span-3 p-6 bg-gradient-to-br from-[#1E293B] via-[#134E4A]/50 to-[#0F172A] border border-white/10 rounded-[24px] shadow-lg flex flex-col justify-between text-white">
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">Group Performance</h3>
-              <p className="text-[10px] text-zinc-400 mb-4">Instantly know which study circles are active or failing</p>
-            </div>
-
-            <div className="space-y-4 flex-1 flex flex-col justify-center">
-              {isNewMentor ? (
-                <div className="py-12 text-center text-zinc-455 font-bold border border-dashed border-white/10 rounded-2xl bg-slate-950/20 text-xs">
-                  No active groups.
+                  <h4 className="text-[11px] font-black text-white leading-tight mt-1 group-hover:text-indigo-300 transition-colors">{step.label}</h4>
+                  <p className="text-[9px] text-zinc-500 font-semibold leading-snug">{step.desc}</p>
                 </div>
-              ) : (
-                dynamicGroupsPerformance.map((grp, idx) => (
-                  <div key={idx} className="space-y-1.5">
-                    <div className="flex justify-between text-[10px] font-extrabold text-zinc-300">
-                      <span>{grp.name}</span>
-                      <span>{grp.percent}%</span>
-                    </div>
-                    <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden border border-white/10">
-                      <div className={`h-full ${grp.color} rounded-full transition-all duration-500`} style={{ width: `${grp.percent}%` }} />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Study Trends Analytics card (3 columns span) */}
-          <div className="lg:col-span-3 p-6 bg-gradient-to-br from-[#0F172A] via-[#312E81]/40 to-[#1E293B] border border-white/10 rounded-[24px] shadow-lg flex flex-col justify-between text-white">
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">Study Trends Analytics</h3>
-              <p className="text-[10px] text-zinc-450 mb-4">Aggregated student behavior patterns</p>
-            </div>
-
-            {isNewMentor ? (
-              <div className="py-12 text-center text-zinc-450 font-bold border border-dashed border-white/10 rounded-2xl bg-slate-950/20 text-xs flex-1 flex items-center justify-center">
-                No trend data yet. Insights will accumulate as students study.
+                
+                <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 group-hover:underline mt-2 inline-flex items-center gap-1">
+                  Configure <ArrowRight className="h-3 w-3" />
+                </span>
               </div>
-            ) : (
-              <div className="space-y-3.5 flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#6366f1] shrink-0 shadow-sm">
-                    <Clock className="h-4.5 w-4.5" />
-                  </div>
-                  <div>
-                    <span className="text-[8px] text-zinc-400 font-extrabold uppercase tracking-wide">Most Active Time</span>
-                    <div className="text-[11px] font-black text-white">7:00 PM - 10:00 PM</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
-                    <BookOpen className="h-4.5 w-4.5" />
-                  </div>
-                  <div>
-                    <span className="text-[8px] text-zinc-400 font-extrabold uppercase tracking-wide">Most Studied Subject</span>
-                    <div className="text-[11px] font-black text-white">DBMS (Database Mgmt)</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-red-400 shrink-0 shadow-sm">
-                    <TrendingUp className="h-4.5 w-4.5 rotate-180" />
-                  </div>
-                  <div>
-                    <span className="text-[8px] text-zinc-400 font-extrabold uppercase tracking-wide">Lowest Engagement</span>
-                    <div className="text-[11px] font-black text-red-400">Operating Systems</div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-        </div>
-
-        {/* Row 3: Actions Panel, Rankings Table */}
-        <div className="grid lg:grid-cols-10 gap-6">
-          
-          {/* Actions Panel (4 columns span) */}
-          <div className="lg:col-span-4 p-6 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] border border-white/10 rounded-[24px] shadow-lg flex flex-col justify-between text-white">
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">Mentor Actions</h3>
-              <p className="text-[10px] text-zinc-450 mb-4">Command panel to dispatch events, notes, and metrics reports</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 flex-1 justify-center">
-              <button 
-                onClick={() => setShowSessionModal(true)}
-                className="p-3 bg-slate-955/40 border border-white/5 hover:border-[#5227EB] rounded-2xl text-center flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer"
-              >
-                <div className="h-8 w-8 rounded-lg bg-indigo-950/40 text-[#6366f1] flex items-center justify-center">
-                  <Calendar className="h-4 w-4" />
-                </div>
-                <span className="text-[9px] font-black text-zinc-200">Create Session</span>
-              </button>
-
-              <button 
-                onClick={() => setShowAssignmentModal(true)}
-                className="p-3 bg-slate-955/40 border border-white/5 hover:border-[#5227EB] rounded-2xl text-center flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer"
-              >
-                <div className="h-8 w-8 rounded-lg bg-purple-955/40 text-purple-400 flex items-center justify-center">
-                  <FileText className="h-4 w-4" />
-                </div>
-                <span className="text-[9px] font-black text-zinc-200">Create Assignment</span>
-              </button>
-
-              <button 
-                onClick={() => setShowAnnouncementModal(true)}
-                className="p-3 bg-slate-955/40 border border-white/5 hover:border-[#5227EB] rounded-2xl text-center flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer"
-              >
-                <div className="h-8 w-8 rounded-lg bg-emerald-955/40 text-emerald-400 flex items-center justify-center">
-                  <MessageSquare className="h-4 w-4" />
-                </div>
-                <span className="text-[9px] font-black text-zinc-200">Post Announcement</span>
-              </button>
-
-              <button 
-                onClick={() => {
-                  showToast('Preparing performance analytics report...', 'info');
-                  setTimeout(() => {
-                    showToast('Report CSV compiled and downloaded.', 'success');
-                  }, 1500);
-                }}
-                className="p-3 bg-slate-955/40 border border-white/5 hover:border-[#5227EB] rounded-2xl text-center flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer"
-              >
-                <div className="h-8 w-8 rounded-lg bg-pink-955/40 text-pink-400 flex items-center justify-center">
-                  <BarChart2 className="h-4 w-4" />
-                </div>
-                <span className="text-[9px] font-black text-zinc-200">Generate Report</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Student Ranking Table (6 columns span) */}
-          <div className="lg:col-span-6 p-6 bg-gradient-to-br from-[#0F172A] via-[#312E81]/40 to-[#1E293B] border border-white/10 rounded-[24px] shadow-lg flex flex-col justify-between text-white">
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">Student consistency board</h3>
-              <p className="text-[10px] text-zinc-450 mb-4">Syllabus trackers and focus hours in Vijayawada cluster</p>
-            </div>
-
-            <div className="overflow-x-auto flex-1 flex flex-col justify-center">
-              {isNewMentor ? (
-                <div className="py-12 text-center text-zinc-450 font-bold border border-dashed border-white/10 rounded-2xl bg-slate-950/20 text-xs">
-                  No student logs recorded.
-                </div>
-              ) : (
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-white/10 text-zinc-450 text-[10px] uppercase font-black tracking-wider">
-                      <th className="pb-2">Student</th>
-                      <th className="pb-2">Study Hours</th>
-                      <th className="pb-2 text-right">Streak Count</th>
-                    </tr>
-                  </thead>
-                  <tbody className="font-extrabold text-zinc-300">
-                    {[
-                      { name: user?.fullName ? `${user.fullName} Vijayawada` : 'Swathi Vijayawada', hours: 18.2, streak: 8, avatar: user?.avatarUrl || getAvatarByName(user?.fullName || 'Swathi') },
-                      { name: 'Bhagya Guntur', hours: 15.0, streak: 6, avatar: '/bhagya-avatar.png' },
-                      { name: 'Rathna Visakhapatnam', hours: 13.5, streak: 5, avatar: '/rathna-avatar.png' }
-                    ].map((student, idx) => (
-                      <tr key={idx} className="border-b border-white/5 last:border-0">
-                        <td className="py-2.5 flex items-center gap-2.5">
-                          <div className="h-7 w-7 rounded-full overflow-hidden bg-slate-800 border border-white/10 shrink-0">
-                            <img src={student.avatar} className="h-full w-full object-cover" alt={student.name} />
-                          </div>
-                          <span className="text-white truncate">{student.name}</span>
-                        </td>
-                        <td className="py-2.5">{student.hours}h Logged</td>
-                        <td className="py-2.5 text-right font-black text-orange-400">{student.streak} Days 🔥</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    );
-  };
-
-  // ==========================================
-  // ADMIN DASHBOARD ("PLATFORM MONITOR")
-  // ==========================================
-  const renderAdminDashboard = () => {
-    return (
-      <div className="space-y-6 text-left">
-        {/* Title greeting */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-black text-slate-900">Platform Command Console 🛡️</h1>
-            <p className="text-xs text-slate-500 mt-1">Platform health diagnostics, active socket streams, and coordinator permissions.</p>
-          </div>
-          <div className="flex items-center gap-2 bg-white px-3.5 py-2 border border-slate-200 rounded-xl shadow-sm">
-            <Calendar className="h-4 w-4 text-[#5227EB]" />
-            <span className="text-[11px] font-extrabold text-slate-700">{formattedDate}</span>
+            ))}
           </div>
         </div>
 
         {/* Row 1: KPI Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { label: 'Total Users Registered', val: '1,248', change: '+12% this week', bg: 'bg-indigo-950/40 border-indigo-500/20 text-indigo-400' },
-            { label: 'Certified Mentors Approved', val: '56', change: '+4 this week', bg: 'bg-purple-955/40 border-purple-500/20 text-purple-400' },
-            { label: 'Active Study Circles', val: '84', change: 'Across 3 clusters', bg: 'bg-emerald-955/40 border-emerald-500/20 text-emerald-400' },
-            { label: 'Active Video Rooms', val: '12', change: '24 students active', bg: 'bg-orange-955/40 border-orange-500/20 text-orange-400' }
-          ].map((card, idx) => (
-            <div key={idx} className="p-5 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] border border-white/10 rounded-[24px] shadow-lg flex items-center gap-4 text-white">
-              <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 border ${card.bg.split(' ')[0]} ${card.bg.split(' ')[1]} ${card.bg.split(' ')[2]}`}>
-                <Users className="h-5 w-5" />
+            { label: 'Total Users', val: '0', change: '+0 this week', color: 'text-[#10B981]', bg: 'bg-[#10B981]/10 border-[#10B981]/20', icon: Users },
+            { label: 'Active Study Rooms', val: '0', change: '+0 this week', color: 'text-[#3B82F6]', bg: 'bg-[#3B82F6]/10 border-[#3B82F6]/20', icon: BookOpen },
+            { label: 'Sessions Conducted', val: '0', change: '+0 this week', color: 'text-[#8B5CF6]', bg: 'bg-[#8B5CF6]/10 border-[#8B5CF6]/20', icon: Calendar },
+            { label: 'Total Notes Shared', val: '0', change: '+0 this week', color: 'text-[#F59E0B]', bg: 'bg-[#F59E0B]/10 border-[#F59E0B]/20', icon: FileText }
+          ].map((card, idx) => {
+            const CardIcon = card.icon;
+            return (
+              <div key={idx} className="p-5 bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A] to-[#1E293B]/80 border border-white/5 rounded-[24px] shadow-lg flex items-center gap-4 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-white/[0.01] rounded-full blur-xl pointer-events-none" />
+                <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 border ${card.bg}`}>
+                  <CardIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <span className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-wide">{card.label}</span>
+                  <div className="text-2xl font-black text-white leading-none mt-1">{card.val}</div>
+                  <span className="text-[8px] text-zinc-500 font-bold block mt-1">{card.change}</span>
+                </div>
               </div>
-              <div>
-                <span className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-wide">{card.label}</span>
-                <div className="text-lg font-black text-white leading-tight mt-0.5">{card.val}</div>
-                <span className="text-[8px] text-zinc-400 font-bold block mt-0.5">{card.change}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Row 2: Approvals, real-time Logs terminal */}
+        {/* Row 2: Analytics Grid */}
         <div className="grid lg:grid-cols-10 gap-6">
           
-          {/* Coordinator approvals console span 5 */}
-          <div className="lg:col-span-5 p-6 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-[24px] shadow-lg flex flex-col justify-between text-white">
+          {/* User Overview donut card (4 columns span) */}
+          <div className="lg:col-span-4 p-6 bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A] to-[#1E293B]/80 border border-white/5 rounded-[24px] shadow-lg flex flex-col justify-between">
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">User Overview</h3>
+              <p className="text-[10px] text-zinc-500 leading-tight">Registered user roles and activity distribution</p>
+            </div>
+
+            <div className="py-6 flex flex-col items-center justify-center relative">
+              <div className="relative h-36 w-36 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle cx="72" cy="72" r="58" stroke="rgba(255,255,255,0.02)" strokeWidth="12" fill="transparent" />
+                  <circle 
+                    cx="72" 
+                    cy="72" 
+                    r="58" 
+                    stroke="rgba(255,255,255,0.05)" 
+                    strokeWidth="12" 
+                    fill="transparent" 
+                    strokeDasharray="364.42" 
+                    strokeDashoffset="364.42"
+                    strokeLinecap="round"
+                    className="transition-all duration-700 ease-out"
+                  />
+                </svg>
+                <div className="absolute text-center">
+                  <span className="text-2xl font-black text-white leading-none">0</span>
+                  <span className="text-[8px] text-zinc-500 font-extrabold uppercase tracking-wide block mt-1">Total Users</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-white/5 pt-4 grid grid-cols-2 gap-2 text-[10px] font-bold text-zinc-400">
+              <div className="flex items-center gap-1.5 justify-start">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#10B981]/50 shrink-0" />
+                <span>Students (0%)</span>
+              </div>
+              <div className="flex items-center gap-1.5 justify-start">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#3B82F6]/50 shrink-0" />
+                <span>Mentors (0%)</span>
+              </div>
+              <div className="flex items-center gap-1.5 justify-start">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#8B5CF6]/50 shrink-0" />
+                <span>Admins (0%)</span>
+              </div>
+              <div className="flex items-center gap-1.5 justify-start">
+                <span className="h-2.5 w-2.5 rounded-full bg-zinc-500/50 shrink-0" />
+                <span>Inactive (0%)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* User Growth line card (6 columns span) */}
+          <div className="lg:col-span-6 p-6 bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A] to-[#1E293B]/80 border border-white/5 rounded-[24px] shadow-lg flex flex-col justify-between">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">User Growth</h3>
+                <p className="text-[10px] text-zinc-500 leading-tight">Weekly registrations across cohort clusters</p>
+              </div>
+              <span className="text-[9px] bg-slate-900 border border-white/5 text-zinc-400 px-2 py-0.5 rounded font-black uppercase tracking-wider">
+                This Month
+              </span>
+            </div>
+
+            {/* Dotted empty chart grid */}
+            <div className="h-48 border border-dashed border-white/5 rounded-xl bg-slate-950/20 my-4 flex flex-col items-center justify-center relative p-6">
+              <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none opacity-30">
+                <div className="border-b border-white/5 w-full h-px" />
+                <div className="border-b border-white/5 w-full h-px" />
+                <div className="border-b border-white/5 w-full h-px" />
+                <div className="border-b border-white/5 w-full h-px" />
+              </div>
+              <TrendingUp className="h-7 w-7 text-zinc-500 mb-2" />
+              <h4 className="text-[11px] font-black text-white">Empty State: No growth data</h4>
+              <p className="text-[9px] text-zinc-500 font-semibold text-center mt-1 max-w-xs leading-normal">
+                User registration metrics will graph here dynamically as student and coordinator cohorts join.
+              </p>
+            </div>
+
+            <div className="flex justify-between text-[8px] font-mono text-zinc-500 font-extrabold uppercase px-1">
+              <span>May 1</span>
+              <span>May 8</span>
+              <span>May 15</span>
+              <span>May 22</span>
+              <span>May 29</span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Row 3: Study Rooms & Top Mentors tables */}
+        <div className="grid lg:grid-cols-10 gap-6">
+          
+          {/* Active Study Rooms (6 columns span) */}
+          <div className="lg:col-span-6 p-6 bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A] to-[#1E293B]/80 border border-white/5 rounded-[24px] shadow-lg flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
-                  <UserCheck className="h-4.5 w-4.5 text-rose-400" /> Pending Coordinator Registrations
+                  <BookOpen className="h-4.5 w-4.5 text-indigo-400" /> Active Study Rooms
                 </h3>
+                <button 
+                  onClick={() => setShowCreateModal(true)} 
+                  className="text-[9px] font-black text-indigo-400 hover:text-indigo-300 uppercase tracking-wide hover:underline cursor-pointer"
+                >
+                  Create Room
+                </button>
               </div>
-              <p className="text-[10px] text-zinc-400 mb-4">Approved credentials receive full syllabus editing rights</p>
+              <p className="text-[10px] text-zinc-500 mb-4">Real-time engagement within cohort circles</p>
             </div>
 
-            <div className="flex-1 space-y-3 max-h-[280px] overflow-y-auto pr-1">
-              {pendingApprovals.length === 0 ? (
-                <div className="py-12 border border-dashed border-white/10 rounded-2xl text-center space-y-2 bg-slate-950/20">
-                  <UserCheck className="h-7 w-7 text-zinc-400 mx-auto" />
-                  <p className="text-xs text-zinc-300 font-bold">All Coordinators verified!</p>
-                  <p className="text-[9px] text-zinc-455">No registrations are awaiting approvals.</p>
-                </div>
-              ) : (
-                pendingApprovals.map((pUser) => (
-                  <div key={pUser.id} className="p-3 bg-slate-955/40 border border-white/5 rounded-xl flex items-center justify-between gap-3 hover:border-white/10 transition-colors">
-                    <div>
-                      <h4 className="text-xs font-black text-white leading-none">{pUser.fullName}</h4>
-                      <div className="text-[9px] text-zinc-400 flex items-center gap-1.5 mt-1 capitalize">
-                        <span className="font-mono text-zinc-400">@{pUser.username}</span>
-                        <span>•</span>
-                        <span className="text-rose-400 font-bold">{pUser.role}</span>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => handleApproveUser(pUser.id)}
-                      className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-[9px] font-black rounded-lg uppercase tracking-wide shrink-0 shadow-sm transition-colors cursor-pointer"
-                    >
-                      Approve Coordinator
-                    </button>
-                  </div>
-                ))
-              )}
+            <div className="flex-1 flex flex-col justify-center py-6 border border-dashed border-white/5 rounded-2xl bg-slate-950/20">
+              <div className="text-center space-y-1.5 p-4">
+                <BookOpen className="h-7 w-7 text-zinc-500 mx-auto" />
+                <h4 className="text-[11px] font-black text-white">No rooms available yet</h4>
+                <p className="text-[9px] text-zinc-500 font-semibold max-w-xs mx-auto leading-normal">
+                  Initialize a study circle and add subject categories to launch your first workspace.
+                </p>
+                <button 
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-3.5 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[9px] font-black rounded-lg uppercase tracking-wide transition-colors cursor-pointer mt-2 inline-block"
+                >
+                  Create First Circle
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* System logs live terminal span 5 */}
-          <div className="lg:col-span-5 p-6 bg-slate-950 border border-slate-900 rounded-[24px] text-slate-200 flex flex-col justify-between h-[380px] shadow-2xl relative">
-            <div className="absolute top-4 right-4 flex items-center gap-1 bg-[#5227EB]/10 border border-[#5227EB]/25 px-2 py-0.5 rounded text-[8px] font-black text-[#6366f1] tracking-widest uppercase">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
-              Live Server Monitoring
-            </div>
-
+          {/* Top Mentors card (4 columns span) */}
+          <div className="lg:col-span-4 p-6 bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A] to-[#1E293B]/80 border border-white/5 rounded-[24px] shadow-lg flex flex-col justify-between">
             <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5 mb-2 font-mono">
-                <Terminal className="h-4.5 w-4.5 text-[#5227EB]" /> System Diagnostic Logs
-              </h3>
-              <p className="text-[8px] text-slate-500 mb-4 font-mono">Real-time platform updates from backend routing modules</p>
+              <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">Top Mentors</h3>
+              <p className="text-[10px] text-zinc-500 mb-4">Highly active workspace facilitators</p>
             </div>
 
-            {/* Terminal console */}
-            <div className="flex-1 bg-black/50 border border-slate-900/50 p-4 rounded-xl font-mono text-[9px] text-[#22c55e] overflow-y-auto space-y-1 text-left scrollbar-thin">
-              {adminLogs.map((log, index) => (
-                <div key={index} className="leading-normal hover:bg-white/5 px-1 rounded transition-colors whitespace-pre-wrap">
-                  {log}
-                </div>
+            <div className="flex-1 flex flex-col justify-center py-6 border border-dashed border-white/5 rounded-2xl bg-slate-950/20">
+              <div className="text-center space-y-1.5 p-4">
+                <Award className="h-7 w-7 text-zinc-500 mx-auto" />
+                <h4 className="text-[11px] font-black text-white">No mentors available yet</h4>
+                <p className="text-[9px] text-zinc-500 font-semibold max-w-xs mx-auto leading-normal">
+                  Mentors will rank here based on the hours of live review sessions conducted.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Row 4: Recent Activity & Announcements */}
+        <div className="grid lg:grid-cols-10 gap-6">
+          
+          {/* Recent Activity card (6 columns span) */}
+          <div className="lg:col-span-6 p-6 bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A] to-[#1E293B]/80 border border-white/5 rounded-[24px] shadow-lg flex flex-col justify-between">
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-wider text-white mb-2">Recent Activity</h3>
+              <p className="text-[10px] text-zinc-500 mb-4">Audit log of coordinator and user interactions</p>
+            </div>
+
+            <div className="flex-1 flex flex-col justify-center py-6 border border-dashed border-white/5 rounded-2xl bg-slate-950/20">
+              <div className="text-center space-y-1.5 p-4">
+                <Clock className="h-7 w-7 text-zinc-500 mx-auto" />
+                <h4 className="text-[11px] font-black text-white">No activity yet</h4>
+                <p className="text-[9px] text-zinc-500 font-semibold max-w-xs mx-auto leading-normal">
+                  Activity logs will populate here dynamically as students and mentors interact.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Announcements card (4 columns span) */}
+          <div className="lg:col-span-4 p-6 bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A] to-[#1E293B]/80 border border-white/5 rounded-[24px] shadow-lg flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-white">Announcements</h3>
+                <button 
+                  onClick={() => setShowAnnouncementModal(true)}
+                  className="text-[9px] font-black text-indigo-400 hover:text-indigo-300 uppercase tracking-wide hover:underline cursor-pointer"
+                >
+                  Post
+                </button>
+              </div>
+              <p className="text-[10px] text-zinc-500 mb-4">Platform broadcasts and maintenance bulletins</p>
+            </div>
+
+            <div className="flex-1 flex flex-col justify-center py-6 border border-dashed border-white/5 rounded-2xl bg-slate-950/20">
+              <div className="text-center space-y-1.5 p-4">
+                <Bell className="h-7 w-7 text-zinc-500 mx-auto" />
+                <h4 className="text-[11px] font-black text-white">No announcements yet</h4>
+                <p className="text-[9px] text-zinc-500 font-semibold max-w-xs mx-auto leading-normal">
+                  Announcements published by platform administrators will broadcast here.
+                </p>
+                <button 
+                  onClick={() => setShowAnnouncementModal(true)}
+                  className="px-3.5 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[9px] font-black rounded-lg uppercase tracking-wide transition-colors cursor-pointer mt-2 inline-block"
+                >
+                  Post Announcement
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Row 5: Platform Analytics panel */}
+        <div className="p-6 bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A] to-[#1E293B]/80 border border-white/5 rounded-[24px] shadow-lg text-white">
+          <h3 className="text-xs font-black uppercase tracking-wider text-white mb-4">Platform Analytics</h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+            {[
+              { label: 'Page Views', val: '0', change: '+0%' },
+              { label: 'Engagement Rate', val: '0%', change: '+0%' },
+              { label: 'Avg. Session Duration', val: '0 mins', change: '+0%' },
+              { label: 'Bounce Rate', val: '0%', change: '+0%' }
+            ].map((stat, idx) => (
+              <div key={idx} className="p-4 bg-slate-955/40 border border-white/5 rounded-2xl">
+                <span className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-wide block">{stat.label}</span>
+                <div className="text-xl font-black text-white mt-1 leading-none">{stat.val}</div>
+                <span className="text-[8px] text-zinc-500 font-bold block mt-1">{stat.change}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="h-32 border border-dashed border-white/5 rounded-xl bg-slate-950/20 flex flex-col items-center justify-center relative p-4">
+            <div className="absolute inset-0 flex items-end justify-between p-4 pointer-events-none opacity-20">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(i => (
+                <div key={i} className="w-2.5 bg-white/10 rounded-sm h-1" />
               ))}
             </div>
+            <BarChart2 className="h-6 w-6 text-zinc-500 mb-1" />
+            <h4 className="text-[10px] font-black text-zinc-400">Empty State: No traffic analytics logged</h4>
           </div>
-
         </div>
 
       </div>
     );
   };
+
+  const renderMentorDashboard = () => renderAdminMentorDashboard();
+  const renderAdminDashboard = () => renderAdminMentorDashboard();
 
   const filteredNotifications = notifications.filter(notif => {
     if (notif.groupName) {
@@ -2014,71 +1994,74 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
   return (
     <div 
-      className="min-h-screen text-slate-800 font-sans flex relative overflow-hidden bg-[#D4D4FF]"
+      className="min-h-screen text-slate-100 font-sans flex relative overflow-hidden bg-[#060913]"
     >
       
       {/* 1. Left Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 h-screen sticky top-0 z-30">
+      <aside className="w-64 bg-[#0B0F19] border-r border-white/5 flex flex-col shrink-0 h-screen sticky top-0 z-30">
         
         {/* Branding header */}
-        <div className="h-16 px-6 border-b border-slate-100 flex items-center gap-3">
+        <Link 
+          href="/"
+          className="h-16 px-6 border-b border-white/5 flex items-center gap-3 hover:opacity-85 transition-opacity cursor-pointer text-left shrink-0"
+        >
           {/* Unique collaborative ring logo */}
           <div className="relative h-9 w-9 flex items-center justify-center shrink-0">
             {/* Outer gradient ring representing collaborative circle */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#5227EB] via-indigo-400 to-[#E11D48] opacity-90 shadow-md animate-pulse" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#10B981] via-indigo-500 to-[#E11D48] opacity-90 shadow-md animate-pulse" />
             {/* Inner center */}
-            <div className="absolute inset-[3px] rounded-full bg-white flex items-center justify-center text-white font-bold">
-              <BookOpen className="h-4 w-4 text-[#5227EB]" />
+            <div className="absolute inset-[3px] rounded-full bg-[#0B0F19] flex items-center justify-center text-white font-bold">
+              <BookOpen className="h-4 w-4 text-[#10B981]" />
             </div>
           </div>
-          <div className="text-left leading-none">
-            <span className="font-extrabold text-sm tracking-tight text-slate-900 block">
+          <div className="leading-none">
+            <span className="font-extrabold text-sm tracking-tight text-white block">
               StudyCircle
             </span>
-            <span className="text-[8px] font-semibold text-slate-400">
+            <span className="text-[8px] font-semibold text-slate-450">
               Collaborative Learning Workspace
             </span>
           </div>
-        </div>
+        </Link>
 
         {/* Profile Card */}
         <div 
           onClick={() => setActiveTab('settings')}
-          className="p-4 border-b border-slate-150 bg-slate-50/30 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-100/50 transition-all group"
+          className="p-4 border-b border-white/5 bg-white/[0.01] flex items-center justify-between gap-3 cursor-pointer hover:bg-white/[0.04] transition-all group"
           title="Click to Edit Profile"
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden group-hover:border-indigo-300 transition-colors">
+            <div className="h-10 w-10 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden group-hover:border-[#10B981]/50 transition-colors">
               <img 
-                src={user?.avatarUrl || getAvatarByName(user?.fullName)} 
+                src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)} 
                 className="absolute inset-0 h-full w-full object-cover" 
                 alt="Avatar" 
               />
             </div>
             <div className="min-w-0 text-left">
-              <div className="text-xs font-extrabold text-slate-900 group-hover:text-indigo-650 transition-colors truncate">{user?.fullName || 'User'}</div>
+              <div className="text-xs font-extrabold text-white group-hover:text-[#10B981] transition-colors truncate">{user?.fullName || 'User'}</div>
               <div className="text-[10px] font-bold text-slate-400 capitalize mt-0.5">{user?.role || 'Guest'}</div>
             </div>
           </div>
-          <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-[#5227EB] transition-colors shrink-0" />
+          <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-[#10B981] transition-colors shrink-0" />
         </div>
 
         {/* Dynamic Sidebar Links */}
         {renderSidebar()}
 
         {/* Sidebar Bottom illustration */}
-        <div className="p-4 border-t border-slate-100 bg-[#F8FAFC]/50 m-4 rounded-[20px] border border-slate-200/60 text-center space-y-3 shadow-sm shrink-0">
-          <div className="h-20 w-full rounded-xl overflow-hidden bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center border border-indigo-100/50">
+        <div className="p-4 bg-white/[0.01] m-4 rounded-[20px] border border-white/5 text-center space-y-3 shadow-md shrink-0">
+          <div className="h-20 w-full rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 to-indigo-950/40 flex items-center justify-center border border-white/5">
             <img src="/students-illustration.png" className="h-16 w-auto object-contain" alt="Study illustration" />
           </div>
           <div>
-            <h4 className="text-[11px] font-extrabold text-slate-800">Focus Together.</h4>
-            <h4 className="text-[11px] font-extrabold text-slate-800">Achieve More.</h4>
-            <p className="text-[9px] text-slate-400 mt-1 leading-snug">StudyCircle makes studying structured and effective.</p>
+            <h4 className="text-[11px] font-extrabold text-slate-200">Focus Together.</h4>
+            <h4 className="text-[11px] font-extrabold text-slate-200">Achieve More.</h4>
+            <p className="text-[9px] text-slate-450 mt-1 leading-snug">StudyCircle makes studying structured and effective.</p>
           </div>
           <button 
             onClick={() => setShowCreateModal(true)}
-            className="w-full py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer"
+            className="w-full py-2 bg-[#10B981] hover:bg-[#0d9488] text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer"
           >
             Create Group
           </button>
@@ -2086,17 +2069,17 @@ Based on your desking logs and consistency, the AI tutor recommends:
       </aside>
 
       {/* 2. Main Content Wrapper */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto bg-[#060913]">
         
         {/* Header toolbar */}
-        <header className="w-full h-16 border-b border-slate-200 bg-white flex items-center justify-between px-8 shrink-0 sticky top-0 z-20">
+        <header className="w-full h-16 border-b border-white/5 bg-[#060913]/80 backdrop-blur-md flex items-center justify-between px-8 shrink-0 sticky top-0 z-20">
           
           <div className="relative w-96 text-left">
-            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-500" />
             <input 
               type="text" 
               placeholder="Search groups, notes, sessions..." 
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all text-slate-700 placeholder-slate-400"
+              className="w-full pl-10 pr-4 py-2 bg-[#0B0F19] border border-white/5 rounded-xl text-xs outline-none focus:border-[#10B981]/50 focus:bg-[#0B0F19]/90 transition-all text-white placeholder-slate-500 font-medium font-sans"
             />
           </div>
 
@@ -2104,7 +2087,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
             <button 
               onClick={handleRefresh}
               disabled={refreshing}
-              className="p-2 border border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-all cursor-pointer"
+              className="p-2 border border-white/5 hover:border-white/10 bg-[#0B0F19] hover:bg-white/[0.02] rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer shadow-sm"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
@@ -2113,7 +2096,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
             <div className="relative" ref={notificationsRef}>
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative cursor-pointer p-2 hover:bg-slate-50 rounded-xl text-slate-500 hover:text-slate-800 transition-colors border border-transparent hover:border-slate-200"
+                className="relative cursor-pointer p-2 hover:bg-white/[0.02] rounded-xl text-slate-400 hover:text-white transition-colors border border-transparent hover:border-white/5"
               >
                 <Bell className="h-4.5 w-4.5" />
                 {unreadCount > 0 && (
@@ -2152,7 +2135,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                         >
                           <div className={`p-1.5 rounded-lg shrink-0 ${
                             notif.type === 'doubt' ? 'bg-rose-500/10 text-rose-400' :
-                            notif.type === 'report' ? 'bg-indigo-50/10 text-indigo-400' :
+                            notif.type === 'report' ? 'bg-[#10B981]/10 text-[#10B981]' :
                             notif.type === 'system' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'
                           }`}>
                             {notif.type === 'doubt' ? <HelpCircle className="h-3.5 w-3.5" /> :
@@ -2163,7 +2146,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             <p className={`text-[10px] leading-tight ${notif.unread ? 'font-bold text-white' : 'text-zinc-400'}`}>
                               {notif.message}
                             </p>
-                            <span className="text-[8px] text-zinc-500 font-mono block">{new Date(notif.createdAt).toLocaleString()}</span>
+                            <span className="text-[8px] text-zinc-555 font-mono block">{new Date(notif.createdAt).toLocaleString()}</span>
                           </div>
                         </div>
                       ))
@@ -2173,16 +2156,23 @@ Based on your desking logs and consistency, the AI tutor recommends:
               )}
             </div>
 
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-              <div className="h-8 w-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-xs text-indigo-700">
-                {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
+            <Link 
+              href="/profile"
+              className="flex items-center gap-2 pl-2 border-l border-white/10 hover:opacity-80 transition-opacity cursor-pointer group"
+            >
+              <div className="h-8 w-8 rounded-full bg-[#10B981]/15 border border-[#10B981]/30 flex items-center justify-center font-black text-xs text-[#10B981] overflow-hidden relative">
+                <img 
+                  src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)} 
+                  className="absolute inset-0 h-full w-full object-cover" 
+                  alt="Avatar" 
+                />
               </div>
-              <span className="text-xs font-bold text-slate-700">{user?.fullName ? user.fullName.split(' ')[0] : 'User'}</span>
-            </div>
+              <span className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors">{user?.fullName || 'User'}</span>
+            </Link>
 
             <button 
               onClick={handleLogout}
-              className="px-3 py-2 border border-red-200 hover:border-red-300 bg-red-50 hover:bg-red-100 text-red-650 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ml-2"
+              className="px-3 py-2 border border-red-500/20 hover:border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ml-2 shadow-sm"
             >
               <LogOut className="h-3.5 w-3.5" /> Logout
             </button>
@@ -2786,25 +2776,25 @@ Based on your desking logs and consistency, the AI tutor recommends:
                      </button>
                    </div>
                  </div>
-               )}
-             </div>
-           )}
+              )}
+            </div>
+          )}
 
           {/* Tab 8: Discussions Info */}
           {activeTab === 'discussions' && (
-            <div className="space-y-6 text-left">
+            <div className="space-y-6 text-left animate-in fade-in duration-350">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                <MessageSquare className="h-4.5 w-4.5 text-[#5227EB]" /> Workspace Discussions
+                <MessageSquare className="h-4.5 w-4.5 text-[#10B981]" /> Workspace Discussions
               </h3>
-              <div className="p-8 bg-white border border-slate-200 rounded-[24px] text-center space-y-4 shadow-sm max-w-2xl">
-                <div className="h-14 w-14 rounded-full bg-indigo-50 text-[#5227EB] flex items-center justify-center mx-auto shadow-sm">
+              <div className="p-8 bg-[#0B0F19] border border-white/5 rounded-[24px] text-center space-y-4 shadow-lg max-w-2xl text-white">
+                <div className="h-14 w-14 rounded-full bg-[#10B981]/15 text-[#10B981] flex items-center justify-center mx-auto shadow-sm">
                   <MessageSquare className="h-6 w-6" />
                 </div>
-                <h4 className="text-sm font-black text-slate-900">Interactive Message Boards</h4>
-                <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
+                <h4 className="text-sm font-black text-white">Interactive Message Boards</h4>
+                <p className="text-xs text-zinc-400 leading-relaxed max-w-md mx-auto font-medium">
                   Post doubts, share coding tips, and discuss interview questions with peers in real-time. Discussions are managed inside study circle channels.
                 </p>
-                <button onClick={() => setActiveTab('groups')} className="px-4 py-2 bg-[#5227EB] text-white text-xs font-bold rounded-xl shadow-md">
+                <button onClick={() => setActiveTab('groups')} className="px-4 py-2 bg-[#10B981] hover:bg-[#0d9488] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer">
                   Browse Group Channels
                 </button>
               </div>
@@ -2813,37 +2803,126 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
           {/* Tab 9: Leaderboard info */}
           {activeTab === 'leaderboard' && (
-            <div className="space-y-6 text-left">
+            <div className="space-y-6 text-left animate-in fade-in duration-350">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                <Award className="h-4.5 w-4.5 text-[#5227EB]" /> Batch Leaderboard
+                <Award className="h-4.5 w-4.5 text-[#10B981]" /> Batch Leaderboard
               </h3>
-              <div className="p-8 bg-white border border-slate-200 rounded-[24px] text-center space-y-4 shadow-sm max-w-2xl">
-                <div className="h-14 w-14 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mx-auto shadow-sm">
+              <div className="p-8 bg-[#0B0F19] border border-white/5 rounded-[24px] text-center space-y-4 shadow-lg max-w-2xl text-white">
+                <div className="h-14 w-14 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto shadow-sm">
                   <Award className="h-6 w-6" />
                 </div>
-                <h4 className="text-sm font-black text-slate-900">Study Hours Leaderboard</h4>
-                <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
+                <h4 className="text-sm font-black text-white">Study Hours Leaderboard</h4>
+                <p className="text-xs text-zinc-455 leading-relaxed max-w-md mx-auto font-medium">
                   Earn points and placement badges by keeping focus streaks alive. Top study groups and individual learners are listed on the batch ranking dashboard.
                 </p>
-                <button onClick={() => setActiveTab('groups')} className="px-4 py-2 bg-[#5227EB] text-white text-xs font-bold rounded-xl shadow-md">
+                <button onClick={() => setActiveTab('groups')} className="px-4 py-2 bg-[#10B981] hover:bg-[#0d9488] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer">
                   View Leaderboards inside Workspaces
                 </button>
               </div>
             </div>
           )}
 
+          {/* Tab 10: Messages */}
+          {activeTab === 'messages' && (
+            <div className="space-y-6 text-left animate-in fade-in duration-350">
+              <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                <MessageSquare className="h-4.5 w-4.5 text-[#10B981]" /> General Message Board
+              </h3>
+              
+              <div className="grid lg:grid-cols-4 gap-6">
+                {/* Chat Channels Sidebar */}
+                <div className="p-4 bg-[#0B0F19] border border-white/5 rounded-[24px] space-y-4 shadow-lg text-white">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Study Clusters</h4>
+                  <div className="space-y-2 text-xs font-extrabold">
+                    {[
+                      { name: 'general-lobby', active: true, unread: false },
+                      { name: 'dbms-circle', active: false, unread: true },
+                      { name: 'operating-systems', active: false, unread: false },
+                      { name: 'placement-prep', active: false, unread: false }
+                    ].map((chan, idx) => (
+                      <button 
+                        key={idx}
+                        className={`w-full px-3 py-2 rounded-xl flex items-center justify-between transition-colors ${chan.active ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/25' : 'hover:bg-white/[0.02] text-slate-400 hover:text-white'}`}
+                      >
+                        <span className="flex items-center gap-2 font-mono">
+                          <span>#</span> {chan.name}
+                        </span>
+                        {chan.unread && <span className="h-2 w-2 rounded-full bg-[#10B981]" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Main Chat Panel */}
+                <div className="lg:col-span-3 bg-[#0B0F19] border border-white/5 rounded-[24px] shadow-lg flex flex-col h-[520px] overflow-hidden text-white relative">
+                  {/* Chat Header */}
+                  <div className="p-4 border-b border-white/5 bg-slate-950/20 flex justify-between items-center shrink-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-black text-slate-350">#</span>
+                      <h4 className="text-xs font-black text-white">general-lobby</h4>
+                      <span className="text-[9px] text-slate-550 font-semibold">• Main cohort discussions</span>
+                    </div>
+                    <span className="text-[8px] bg-slate-900 text-slate-400 border border-white/5 px-2 py-0.5 rounded font-black uppercase tracking-wider">
+                      Live Socket Connected
+                    </span>
+                  </div>
+
+                  {/* Message Stream */}
+                  <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs font-bold scrollbar-thin">
+                    {[
+                      { user: 'Charan', role: 'student', text: 'Hey guys, did anyone finish the OS Semaphore practice sheet? Having a doubt on problem 3.', time: '09:12 AM', avatar: '/charan-avatar.png' },
+                      { user: 'Bhagya', role: 'student', text: 'Yes! You need to release the mutex before signal(empty). Check page 4 of the notes shared by mentor.', time: '09:15 AM', avatar: '/bhagya-avatar.png' },
+                      { user: 'Mentor Prasad', role: 'mentor', text: 'Good discussion. I will be live in the DBMS Room at 6:00 PM today to review this schema design.', time: '09:30 AM', avatar: '/charan-avatar.png' }
+                    ].map((msg, idx) => (
+                      <div key={idx} className="flex gap-3 items-start">
+                        <div className="h-8 w-8 rounded-full overflow-hidden bg-slate-800 border border-white/10 shrink-0 shadow-sm">
+                          <img src={msg.avatar} className="h-full w-full object-cover" alt={msg.user} />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-white font-extrabold text-xs">{msg.user}</span>
+                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${msg.role === 'mentor' ? 'bg-[#5227EB]/10 text-indigo-400 border border-[#5227EB]/20' : 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/20'}`}>{msg.role}</span>
+                            <span className="text-[8px] text-zinc-500 font-mono font-bold">{msg.time}</span>
+                          </div>
+                          <p className="text-zinc-350 font-medium leading-relaxed">{msg.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Chat input */}
+                  <div className="p-4 border-t border-white/5 bg-slate-950/20 shrink-0">
+                    <form onSubmit={(e) => { e.preventDefault(); showToast('Chat sandbox: messages are simulated.', 'info'); }} className="flex gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="Type message in #general-lobby..." 
+                        className="flex-1 px-4 py-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-500 focus:bg-slate-900 focus:border-[#10B981]/50 font-medium"
+                      />
+                      <button 
+                        type="submit" 
+                        className="px-4 py-2 bg-[#10B981] hover:bg-[#0d9488] text-white text-xs font-black rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Send
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Tab 13: Settings info */}
           {activeTab === 'settings' && (
-            <div className="space-y-6 text-left">
+            <div className="space-y-6 text-left animate-in fade-in duration-350">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                <Settings className="h-4.5 w-4.5 text-[#5227EB]" /> Portal Settings
+                <Settings className="h-4.5 w-4.5 text-[#10B981]" /> Portal Settings
               </h3>
-              <div className="p-8 bg-white border border-slate-200 rounded-[24px] shadow-sm max-w-2xl space-y-6">
+              <div className="p-8 bg-[#0B0F19] border border-white/5 rounded-[24px] shadow-lg max-w-2xl space-y-6 text-white">
                 {!isEditingProfile ? (
                   <div className="space-y-6">
-                    <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+                    <div className="flex justify-between items-start border-b border-white/5 pb-4">
                       <div>
-                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider text-left">Account Settings</h4>
+                        <h4 className="text-xs font-black text-white uppercase tracking-wider text-left">Account Settings</h4>
                         <p className="text-[10px] text-slate-400 text-left">View and manage your profile details</p>
                       </div>
                       <button
@@ -2857,49 +2936,49 @@ Based on your desking logs and consistency, the AI tutor recommends:
                           setEditBio(user?.bio || '');
                           setIsEditingProfile(true);
                         }}
-                        className="px-3 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-extrabold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                        className="px-3 py-1.5 bg-[#10B981] hover:bg-[#0d9488] text-white text-[10px] font-extrabold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
                       >
                         <Edit3 className="h-3.5 w-3.5" /> Edit Profile
                       </button>
                     </div>
 
                     {/* Profile Presentation */}
-                    <div className="flex items-center gap-6 p-4 bg-slate-50 border border-slate-150 rounded-[20px] shadow-inner">
-                      <div className="w-16 h-16 rounded-full overflow-hidden border border-indigo-100 shadow-sm shrink-0 bg-white relative">
+                    <div className="flex items-center gap-6 p-4 bg-slate-950/40 border border-white/5 rounded-[20px] shadow-inner">
+                      <div className="w-16 h-16 rounded-full overflow-hidden border border-white/10 shadow-sm shrink-0 bg-slate-900 relative">
                         <img 
-                          src={user?.avatarUrl || getAvatarByName(user?.fullName)} 
+                          src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)} 
                           className="absolute inset-0 h-full w-full object-cover" 
                           alt="Avatar" 
                         />
                       </div>
                       <div className="text-left space-y-1">
-                        <h3 className="text-sm font-black text-slate-900">{user?.fullName || 'User'}</h3>
+                        <h3 className="text-sm font-black text-white">{user?.fullName || 'User'}</h3>
                         <p className="text-[10px] text-slate-400 font-extrabold font-mono">@{user?.username || 'username'}</p>
-                        <span className="inline-flex items-center px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-[8px] font-black uppercase tracking-wider rounded-md">
+                        <span className="inline-flex items-center px-2 py-0.5 bg-[#10B981]/10 border border-[#10B981]/20 text-[#10B981] text-[8px] font-black uppercase tracking-wider rounded-md">
                           {user?.role || 'student'}
                         </span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 text-xs font-bold text-left">
-                      <div className="space-y-1 p-3 bg-slate-50 border border-slate-150 rounded-xl">
-                        <span className="text-slate-400 block text-[8px] uppercase tracking-wide">First Name</span>
-                        <span className="text-slate-800 font-semibold">{user?.firstName || 'Not Set'}</span>
+                      <div className="space-y-1 p-3 bg-slate-950/20 border border-white/5 rounded-xl">
+                        <span className="text-slate-500 block text-[8px] uppercase tracking-wide">First Name</span>
+                        <span className="text-slate-200 font-semibold">{user?.firstName || 'Not Set'}</span>
                       </div>
-                      <div className="space-y-1 p-3 bg-slate-50 border border-slate-150 rounded-xl">
-                        <span className="text-slate-400 block text-[8px] uppercase tracking-wide">Last Name</span>
-                        <span className="text-slate-800 font-semibold">{user?.lastName || 'Not Set'}</span>
+                      <div className="space-y-1 p-3 bg-slate-950/20 border border-white/5 rounded-xl">
+                        <span className="text-slate-500 block text-[8px] uppercase tracking-wide">Last Name</span>
+                        <span className="text-slate-200 font-semibold">{user?.lastName || 'Not Set'}</span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 text-xs font-bold text-left">
-                      <div className="space-y-1 p-3 bg-slate-50 border border-slate-150 rounded-xl">
-                        <span className="text-slate-400 block text-[8px] uppercase tracking-wide">Email Address</span>
-                        <span className="text-slate-800 font-semibold truncate block">{user?.email || 'Not Set'}</span>
+                      <div className="space-y-1 p-3 bg-slate-950/20 border border-white/5 rounded-xl">
+                        <span className="text-slate-500 block text-[8px] uppercase tracking-wide">Email Address</span>
+                        <span className="text-slate-200 font-semibold truncate block">{user?.email || 'Not Set'}</span>
                       </div>
-                      <div className="space-y-1 p-3 bg-slate-50 border border-slate-150 rounded-xl">
-                        <span className="text-slate-400 block text-[8px] uppercase tracking-wide">Phone Number</span>
-                        <span className="text-slate-800 font-semibold">{user?.phone || 'Not Set'}</span>
+                      <div className="space-y-1 p-3 bg-slate-950/20 border border-white/5 rounded-xl">
+                        <span className="text-slate-500 block text-[8px] uppercase tracking-wide">Phone Number</span>
+                        <span className="text-slate-200 font-semibold">{user?.phone || 'Not Set'}</span>
                       </div>
                     </div>
 
@@ -2920,7 +2999,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                       <div className="flex items-center gap-5 mt-4">
                         <div className="relative group w-20 h-20 rounded-full overflow-hidden border-2 border-indigo-100 shadow-sm shrink-0 bg-slate-50">
                           <img 
-                            src={previewAvatar || getAvatarByName(user?.fullName)} 
+                            src={previewAvatar || getAvatarByName(user?.fullName, user?.gender)} 
                             className="h-full w-full object-cover animate-fade-in" 
                             alt="Avatar Preview" 
                           />
@@ -3585,7 +3664,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-slate-900 flex items-center justify-center">
                   <div className="text-center space-y-2 relative z-10">
                     <div className="h-16 w-16 rounded-full overflow-hidden bg-white/10 border border-white/20 mx-auto shadow-inner relative">
-                      <img src={user?.avatarUrl || getAvatarByName(user?.fullName)} className="absolute inset-0 h-full w-full object-cover" alt="Avatar" />
+                      <img src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)} className="absolute inset-0 h-full w-full object-cover" alt="Avatar" />
                     </div>
                     <span className="text-[10px] font-bold text-indigo-200">{user?.fullName || 'Swathi'} (You)</span>
                   </div>
