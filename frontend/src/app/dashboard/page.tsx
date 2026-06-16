@@ -3176,21 +3176,152 @@ Based on your desking logs and consistency, the AI tutor recommends:
             </section>
           )}
 
+          {/* Tab 15: Users panel */}
+          {activeTab === 'users' && (
+            <section id="users-management-section" className="p-6 bg-gradient-to-br from-[#0B0F19] to-[#0d1629] border border-white/5 rounded-[24px] shadow-lg space-y-6 text-left text-white animate-in fade-in duration-300">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                    <Users className="h-5 w-5 text-indigo-400" /> Roster Management
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">Manage and audit student users registered in this workspace.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2 h-3.5 w-3.5 text-zinc-555" />
+                    <input 
+                      type="text" 
+                      placeholder="Search students..." 
+                      className="pl-8.5 pr-4 py-1.5 bg-slate-955/80 border border-white/5 rounded-xl text-[10px] outline-none text-white focus:border-indigo-500 w-48"
+                      disabled
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-12 border border-dashed border-white/10 rounded-2xl text-center space-y-3 bg-slate-950/20">
+                <div className="h-10 w-10 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center mx-auto">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-zinc-200 font-bold">No students registered yet</p>
+                  <p className="text-[10px] text-zinc-400 max-w-sm mx-auto">Once students register using your workspace invite codes or join study lounges, their profile details and study statistics will appear here.</p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Tab 16: Reports panel */}
+          {activeTab === 'reports' && (
+            <section id="reports-analytics-section" className="p-6 bg-gradient-to-br from-[#0B0F19] to-[#0d1629] border border-white/5 rounded-[24px] shadow-lg space-y-6 text-left text-white animate-in fade-in duration-300">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                  <BarChart2 className="h-5 w-5 text-[#38BDF8]" /> Workspace Analytics & Reports
+                </h3>
+                <p className="text-[10px] text-zinc-400 mt-0.5">Export study records, active hours audit logs, and performance metrics.</p>
+              </div>
+
+              <div className="p-12 border border-dashed border-white/10 rounded-2xl text-center space-y-3 bg-slate-950/20">
+                <div className="h-10 w-10 bg-[#38BDF8]/10 text-[#38BDF8] rounded-xl flex items-center justify-center mx-auto">
+                  <BarChart2 className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-zinc-200 font-bold">No reports generated yet</p>
+                  <p className="text-[10px] text-zinc-400 max-w-sm mx-auto">Analytics logs compile study circle metrics on a weekly schedule. Reports will generate automatically once workspace activities start logging.</p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Tab 17: Announcements panel */}
+          {activeTab === 'announcements' && (
+            <section id="announcements-section" className="p-6 bg-gradient-to-br from-[#0B0F19] to-[#0d1629] border border-white/5 rounded-[24px] shadow-lg space-y-6 text-left text-white animate-in fade-in duration-300">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                    <Bell className="h-5 w-5 text-amber-400" /> Broadcaster Announcement Board
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">Publish alerts, syllabus schedules, or study milestones to all circles.</p>
+                </div>
+                <button
+                  onClick={() => setShowAnnouncementModal(true)}
+                  className="px-3.5 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-bold rounded-xl flex items-center gap-1 transition-all cursor-pointer shadow-md"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Post Announcement
+                </button>
+              </div>
+
+              <div className="p-12 border border-dashed border-white/10 rounded-2xl text-center space-y-3 bg-slate-950/20">
+                <div className="h-10 w-10 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center mx-auto">
+                  <Bell className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-zinc-200 font-bold">No announcements posted yet</p>
+                  <p className="text-[10px] text-zinc-400 max-w-sm mx-auto">Create and broadcast announcements to notify students instantly on their notification headers and dashboards.</p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Tab 18: Feedback panel */}
+          {activeTab === 'feedback' && (
+            <section id="feedback-section" className="p-6 bg-gradient-to-br from-[#0B0F19] to-[#0d1629] border border-white/5 rounded-[24px] shadow-lg space-y-6 text-left text-white animate-in fade-in duration-300">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                  <HelpCircle className="h-5 w-5 text-emerald-400" /> Doubt Feedback Review
+                </h3>
+                <p className="text-[10px] text-zinc-400 mt-0.5">Audit feedback forms, doubt reports, and study circle quality reviews.</p>
+              </div>
+
+              <div className="p-12 border border-dashed border-white/10 rounded-2xl text-center space-y-3 bg-slate-950/20">
+                <div className="h-10 w-10 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center mx-auto">
+                  <HelpCircle className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-zinc-200 font-bold">No feedback received yet</p>
+                  <p className="text-[10px] text-zinc-400 max-w-sm mx-auto">Student feedback forms and reviews submitted in your workspace lounges will show up here to monitor engagement.</p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Tab 19: Roles panel */}
+          {activeTab === 'roles' && (
+            <section id="roles-section" className="p-6 bg-gradient-to-br from-[#0B0F19] to-[#0d1629] border border-white/5 rounded-[24px] shadow-lg space-y-6 text-left text-white animate-in fade-in duration-300">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-rose-400" /> System Roles & Access Controls
+                </h3>
+                <p className="text-[10px] text-zinc-400 mt-0.5">Audit user types and manage circle creation access privileges.</p>
+              </div>
+
+              <div className="p-12 border border-dashed border-white/10 rounded-2xl text-center space-y-3 bg-slate-950/20">
+                <div className="h-10 w-10 bg-rose-500/10 text-rose-400 rounded-xl flex items-center justify-center mx-auto">
+                  <Shield className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-zinc-200 font-bold">Roles configuration at baseline</p>
+                  <p className="text-[10px] text-zinc-400 max-w-sm mx-auto">Default access roles (Student, Mentor, Administrator) are active. Role-level privilege modifiers can be configured as your workspace size scales.</p>
+                </div>
+              </div>
+            </section>
+          )}
+
         </main>
       </div>
 
       {/* Create Circle modal overlay */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="max-w-md w-full bg-white border border-slate-200 rounded-[32px] p-6 space-y-6 shadow-2xl">
+          <div className="max-w-md w-full bg-white border border-slate-200 rounded-[32px] p-6 space-y-6 shadow-2xl text-slate-900">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <PlusCircle className="h-5 w-5 text-indigo-650" />
+                <PlusCircle className="h-5 w-5 text-indigo-600" />
                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">Initialize Study Circle</h3>
               </div>
               <button 
                 onClick={() => setShowCreateModal(false)}
-                className="text-slate-450 hover:text-slate-600 font-bold text-xs"
+                className="text-slate-400 hover:text-slate-600 font-bold text-xs"
               >
                 ✕
               </button>
@@ -3204,7 +3335,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
                   placeholder="e.g. AP-Telangana B.Tech Prep"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-550 rounded-xl text-xs text-slate-850 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs text-slate-900 outline-none"
                 />
               </div>
 
@@ -3215,7 +3346,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   value={groupSubject}
                   onChange={(e) => setGroupSubject(e.target.value)}
                   placeholder="e.g. Data Structures & Algorithms"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-550 rounded-xl text-xs text-slate-850 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs text-slate-900 outline-none"
                 />
               </div>
 
@@ -3226,7 +3357,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   onChange={(e) => setGroupDesc(e.target.value)}
                   placeholder="Goals, topics, and schedule details."
                   rows={3}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-550 rounded-xl text-xs text-slate-855 outline-none resize-none"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs text-slate-900 outline-none resize-none"
                 />
               </div>
 
@@ -3239,7 +3370,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   type="checkbox"
                   checked={groupIsPublic}
                   onChange={(e) => setGroupIsPublic(e.target.checked)}
-                  className="h-4 w-4 bg-white border-slate-350 focus:ring-indigo-500 text-indigo-600 rounded-lg cursor-pointer"
+                  className="h-4 w-4 bg-white border-slate-300 focus:ring-indigo-500 text-indigo-600 rounded-lg cursor-pointer"
                 />
               </div>
 
@@ -3247,7 +3378,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-650 rounded-xl text-xs font-bold transition-all"
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-bold transition-all"
                 >
                   Cancel
                 </button>
