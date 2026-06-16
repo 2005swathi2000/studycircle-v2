@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   let token = null;
 
   // 1. Try to read token from cookies
@@ -26,9 +26,61 @@ const authMiddleware = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_study_circle_token_2026_key_ap_telangana');
     req.user = decoded;
-    next();
+    return next();
   } catch (err) {
-    return res.status(403).json({ error: 'Invalid or expired session. Please login again.' });
+    // Access token is invalid or expired. Let's see if there is a refresh token cookie.
+    let refreshToken = null;
+    if (req.headers.cookie) {
+      const match = req.headers.cookie.match(/(^| )refreshToken=([^;]+)/);
+      if (match) {
+        refreshToken = match[2];
+      }
+    }
+
+    if (!refreshToken) {
+      return res.status(401).json({ error: 'Session expired. Please login again.' });
+    }
+
+    try {
+      const decodedRefresh = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'refresh_secret_study_circle_2026');
+      if (decodedRefresh.type !== 'refresh') {
+        return res.status(401).json({ error: 'Session expired. Please login again.' });
+      }
+
+      // Fetch user to verify they still exist and are approved
+      const { User } = require('../models');
+      const user = await User.findByPk(decodedRefresh.id);
+      if (!user) {
+        return res.status(401).json({ error: 'User account not found.' });
+      }
+      if (!user.isApproved) {
+        return res.status(403).json({ error: 'Your account is pending administrator approval.' });
+      }
+
+      // Generate a new access token
+      const remember = !!decodedRefresh.rememberMe;
+      const newAccessToken = jwt.sign(
+        { id: user.id, username: user.username, role: user.role },
+        process.env.JWT_SECRET || 'super_secret_study_circle_token_2026_key_ap_telangana',
+        { expiresIn: remember ? '1d' : '15m' }
+      );
+
+      // Set new access token cookie
+      const isProduction = process.env.NODE_ENV === 'production';
+      res.cookie('token', newAccessToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
+        maxAge: remember ? 24 * 60 * 60 * 1000 : 15 * 60 * 1000 // 1 day vs 15 mins
+      });
+
+      req.user = { id: user.id, username: user.username, role: user.role };
+      req.newAccessToken = newAccessToken; // Expose to the request
+      return next();
+    } catch (refreshErr) {
+      console.error('[authMiddleware] Refresh token error:', refreshErr);
+      return res.status(401).json({ error: 'Session expired. Please login again.' });
+    }
   }
 };
 

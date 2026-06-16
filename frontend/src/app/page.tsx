@@ -99,6 +99,7 @@ export default function Home() {
   const [formLoading, setFormLoading] = useState(false);
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Student Register States
   const [studentName, setStudentName] = useState('');
@@ -667,7 +668,8 @@ export default function Home() {
         body: JSON.stringify({
           username: loginUser,
           password: loginPass,
-          portal: activePortal
+          portal: activePortal,
+          rememberMe
         })
       });
       setCurrentUser(data.user, data.token);
@@ -1553,12 +1555,12 @@ export default function Home() {
 
                 <div className="space-y-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Username</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Email or Username</label>
                     <div className="relative">
                       <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                       <input
                         type="text"
-                        placeholder="Enter your username"
+                        placeholder="Enter your email or username"
                         value={loginUser}
                         onChange={(e) => setLoginUser(e.target.value)}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#0E3E31]/50 focus:bg-white outline-none transition-all"
@@ -1591,6 +1593,15 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center justify-between text-[10px] font-bold">
+                  <label className="flex items-center gap-1.5 text-slate-500 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded accent-[#0E3E31] border-slate-300 text-[#0E3E31] focus:ring-0 cursor-pointer"
+                    />
+                    <span>Remember Me</span>
+                  </label>
                   <button
                     type="button"
                     onClick={() => setAuthMode('forgot')}

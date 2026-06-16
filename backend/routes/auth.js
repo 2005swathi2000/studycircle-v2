@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const dns = require('dns').promises;
 const { User, Otp, Notification } = require('../models');
+const { Op } = require('sequelize');
 const { authMiddleware } = require('../middleware/auth');
 const BloomFilter = require('../utils/bloom');
 const { sendMail, sendSMS, hasSmtpConfig } = require('../utils/notifier');
@@ -27,6 +28,14 @@ const otpLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // Limit each IP to 50 login requests per windowMs
+  message: { error: 'Too many login attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const emailInbox = [];
 
 // Seed Bloom Filter function called from server after database sync
@@ -43,11 +52,11 @@ const seedBloomFilter = async () => {
 };
 router.seedBloomFilter = seedBloomFilter;
 
-const signToken = (user) => {
+const signToken = (user, rememberMe = false) => {
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role },
     process.env.JWT_SECRET || 'super_secret_study_circle_token_2026_key_ap_telangana',
-    { expiresIn: '7d' }
+    { expiresIn: rememberMe ? '30d' : '1d' }
   );
 };
 
@@ -321,15 +330,30 @@ router.post('/register', async (req, res) => {
     // Add new username to Bloom Filter
     bloomFilter.add(normalizedUsername);
 
-    const token = signToken(newUser);
+    const token = jwt.sign(
+      { id: newUser.id, username: newUser.username, role: newUser.role },
+      process.env.JWT_SECRET || 'super_secret_study_circle_token_2026_key_ap_telangana',
+      { expiresIn: '15m' }
+    );
+    const refreshToken = jwt.sign(
+      { id: newUser.id, type: 'refresh', rememberMe: false },
+      process.env.JWT_REFRESH_SECRET || 'refresh_secret_study_circle_2026',
+      { expiresIn: '1d' }
+    );
 
-    // Set HttpOnly cookie
+    // Set HttpOnly cookies
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('token', token, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 15 * 60 * 1000 // 15 mins
+    });
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000 // 1 day
     });
 
     return res.status(201).json({
@@ -356,9 +380,9 @@ router.post('/register', async (req, res) => {
 });
 
 // Login Route
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
-    const { username, password, portal } = req.body;
+    const { username, password, portal, rememberMe } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required.' });
@@ -366,9 +390,17 @@ router.post('/login', async (req, res) => {
 
     const normalizedUsername = username.trim().toLowerCase();
 
-    const user = await User.findOne({ where: { username: normalizedUsername } });
+    const user = await User.findOne({
+      where: {
+        [Op.or]: [
+          { username: normalizedUsername },
+          { email: normalizedUsername },
+          { phoneOrEmail: normalizedUsername }
+        ]
+      }
+    });
     if (!user) {
-      return res.status(400).json({ error: 'Invalid username or password.' });
+      return res.status(400).json({ error: 'Invalid email/username or password.' });
     }
 
     const isMatch = await user.comparePassword(password);
@@ -392,15 +424,31 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ error: 'Your account is pending administrator approval. Please contact an existing admin.' });
     }
 
-    const token = signToken(user);
+    const remember = !!rememberMe;
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      process.env.JWT_SECRET || 'super_secret_study_circle_token_2026_key_ap_telangana',
+      { expiresIn: remember ? '1d' : '15m' }
+    );
+    const refreshToken = jwt.sign(
+      { id: user.id, type: 'refresh', rememberMe: remember },
+      process.env.JWT_REFRESH_SECRET || 'refresh_secret_study_circle_2026',
+      { expiresIn: remember ? '30d' : '1d' }
+    );
 
-    // Set cookie
+    // Set HttpOnly cookies
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('token', token, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: remember ? 24 * 60 * 60 * 1000 : 15 * 60 * 1000 // 1 day vs 15 min
+    });
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000 // 30 days vs 1 day
     });
 
     return res.json({
@@ -432,6 +480,11 @@ router.post('/login', async (req, res) => {
 router.post('/logout', (req, res) => {
   const isProduction = process.env.NODE_ENV === 'production';
   res.clearCookie('token', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax'
+  });
+  res.clearCookie('refreshToken', {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax'
@@ -492,7 +545,22 @@ router.get('/me', authMiddleware, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
     }
-    return res.json({ user });
+    
+    // Resolve current token to pass back to front end context
+    let activeToken = req.newAccessToken;
+    if (!activeToken) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        activeToken = authHeader.split(' ')[1];
+      } else if (req.headers.cookie) {
+        const match = req.headers.cookie.match(/(^| )token=([^;]+)/);
+        if (match) {
+          activeToken = match[2];
+        }
+      }
+    }
+
+    return res.json({ user, token: activeToken });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error retrieving user profile.' });
@@ -576,6 +644,122 @@ router.put('/update-profile', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error updating user profile.' });
+  }
+});
+
+// Get all registered students (Mentor/Admin only)
+router.get('/students', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'mentor' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Mentor or Administrator privileges required.' });
+    }
+    const { Op } = require('sequelize');
+    const students = await User.findAll({
+      where: { role: 'student' },
+      attributes: ['id', 'fullName', 'username', 'email', 'phone', 'gender', 'streakCount', 'totalStudyHours', 'xp', 'focusCoins', 'level', 'department', 'badges', 'createdAt']
+    });
+    return res.json({ students });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error retrieving students roster.' });
+  }
+});
+
+// Assign a challenge to a student (Mentor/Admin only)
+router.post('/assign-challenge', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'mentor' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Mentor or Administrator privileges required.' });
+    }
+    const { studentId, challengeText, xpReward, coinReward } = req.body;
+    if (!studentId || !challengeText) {
+      return res.status(400).json({ error: 'Student ID and challenge description are required.' });
+    }
+
+    const student = await User.findByPk(studentId);
+    if (!student || student.role !== 'student') {
+      return res.status(404).json({ error: 'Student user not found.' });
+    }
+
+    // We can create a notification for the student
+    const notification = await Notification.create({
+      userId: student.id,
+      message: `🎯 New Mentor Challenge assigned: "${challengeText}" (Reward: ${xpReward || 150} XP, ${coinReward || 50} Focus Coins)`,
+      type: 'doubt',
+      unread: true,
+      actionTab: 'progress'
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user-${student.id}`).emit('new-notification', notification);
+    }
+
+    return res.json({ message: `Successfully assigned challenge to student @${student.username}!` });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error assigning challenge.' });
+  }
+});
+
+// Toggle Campus Ambassador Status (Mentor/Admin only)
+router.post('/toggle-ambassador', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'mentor' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Mentor or Administrator privileges required.' });
+    }
+    const { studentId } = req.body;
+    if (!studentId) {
+      return res.status(400).json({ error: 'Student ID is required.' });
+    }
+
+    const student = await User.findByPk(studentId);
+    if (!student || student.role !== 'student') {
+      return res.status(404).json({ error: 'Student not found.' });
+    }
+
+    // Toggle badge
+    let badges = [];
+    try {
+      badges = JSON.parse(student.badges || '[]');
+    } catch (e) {
+      badges = [];
+    }
+
+    const index = badges.indexOf('Campus Ambassador');
+    let isAmbassador = false;
+    if (index > -1) {
+      badges.splice(index, 1);
+    } else {
+      badges.push('Campus Ambassador');
+      isAmbassador = true;
+    }
+    student.badges = JSON.stringify(badges);
+    await student.save();
+
+    // Create notification
+    const notification = await Notification.create({
+      userId: student.id,
+      message: isAmbassador 
+        ? '👑 Congratulations! You have been appointed as a Campus Ambassador!' 
+        : 'Ambassador status removed from your profile.',
+      type: 'system',
+      unread: true,
+      actionTab: 'profile'
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user-${student.id}`).emit('new-notification', notification);
+    }
+
+    return res.json({ 
+      message: isAmbassador ? 'User is now a Campus Ambassador!' : 'Ambassador status removed.',
+      badges
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error toggling ambassador status.' });
   }
 });
 

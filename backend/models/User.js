@@ -72,6 +72,26 @@ const User = sequelize.define('User', {
   gender: {
     type: DataTypes.ENUM('male', 'female', 'other'),
     allowNull: true
+  },
+  xp: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  focusCoins: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  level: {
+    type: DataTypes.INTEGER,
+    defaultValue: 1
+  },
+  department: {
+    type: DataTypes.STRING,
+    defaultValue: 'CSE'
+  },
+  badges: {
+    type: DataTypes.TEXT,
+    defaultValue: '[]'
   }
 }, {
   hooks: {

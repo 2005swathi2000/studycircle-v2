@@ -8,14 +8,19 @@ const router = express.Router();
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: ['streakCount', 'totalStudyHours']
+      attributes: ['streakCount', 'totalStudyHours', 'xp', 'focusCoins', 'level', 'department', 'badges']
     });
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
     }
     return res.json({
       streakCount: user.streakCount || 0,
-      totalStudyHours: user.totalStudyHours || 0.0
+      totalStudyHours: user.totalStudyHours || 0.0,
+      xp: user.xp || 0,
+      focusCoins: user.focusCoins || 0,
+      level: user.level || 1,
+      department: user.department || 'CSE',
+      badges: user.badges || '[]'
     });
   } catch (err) {
     console.error(err);
@@ -134,6 +139,92 @@ router.get('/group/:groupId/logs', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error retrieving logs.' });
+  }
+});
+
+// Claim Daily Mission Reward
+router.post('/claim-mission', authMiddleware, async (req, res) => {
+  try {
+    const { missionId, xpReward, coinReward } = req.body;
+    if (!missionId) {
+      return res.status(400).json({ error: 'Mission ID is required.' });
+    }
+
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Update XP and Coins
+    user.xp = (user.xp || 0) + Number(xpReward || 50);
+    user.focusCoins = (user.focusCoins || 0) + Number(coinReward || 20);
+
+    // Calculate level up: 100 XP per level
+    const newLevel = Math.floor(user.xp / 100) + 1;
+    let leveledUp = false;
+    if (newLevel > user.level) {
+      user.level = newLevel;
+      leveledUp = true;
+    }
+
+    await user.save();
+
+    return res.json({
+      message: `Mission '${missionId}' claimed!`,
+      xp: user.xp,
+      focusCoins: user.focusCoins,
+      level: user.level,
+      leveledUp
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error claiming mission.' });
+  }
+});
+
+// Purchase Custom Themes / Avatars / Badges
+router.post('/purchase-reward', authMiddleware, async (req, res) => {
+  try {
+    const { rewardId, cost, type, value } = req.body;
+    if (!rewardId || cost === undefined) {
+      return res.status(400).json({ error: 'Reward ID and cost are required.' });
+    }
+
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    if (user.focusCoins < cost) {
+      return res.status(400).json({ error: 'Insufficient Focus Coins.' });
+    }
+
+    user.focusCoins -= cost;
+
+    // If type is a badge, add it to badges array
+    if (type === 'badge') {
+      let currentBadges = [];
+      try {
+        currentBadges = JSON.parse(user.badges || '[]');
+      } catch (e) {
+        currentBadges = [];
+      }
+      if (!currentBadges.includes(value)) {
+        currentBadges.push(value);
+        user.badges = JSON.stringify(currentBadges);
+      }
+    }
+
+    await user.save();
+
+    return res.json({
+      message: `Successfully unlocked ${rewardId}!`,
+      focusCoins: user.focusCoins,
+      badges: user.badges
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error purchasing reward.' });
   }
 });
 
