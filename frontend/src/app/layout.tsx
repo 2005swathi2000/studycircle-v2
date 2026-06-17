@@ -1,3 +1,4 @@
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import './globals.css';
 import { ToastProvider } from './components/ToastProvider';
 import { FloatingLogo } from './components/FloatingLogo';
@@ -21,11 +22,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className="bg-[#0A0B10] text-zinc-100 min-h-screen antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
-        <AppProvider>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
-        </AppProvider>
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
+          <AppProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </AppProvider>
+        </GoogleOAuthProvider>
         <FloatingLogo />
       </body>
     </html>

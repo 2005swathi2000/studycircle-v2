@@ -102,3 +102,12 @@ The database is pre-seeded with these credentials:
 * **Student**: `student.demo@studycircle.com` (Password: `Demo@123`)
 * **Mentor**: `mentor.demo@studycircle.com` (Password: `Demo@123`)
 * **Admin**: `admin.demo@studycircle.com` (Password: `Demo@123`)
+
+---
+
+## 🔒 Resolved Authentication Bugs & Fixed Issues
+
+### Case-Insensitive Username Resolution (SQLite)
+* **Issue**: When registering, the username is saved in lowercase in the database, but SQLite's string comparison (`=`) is case-sensitive by default. This led to random "Invalid username or password" errors on return logins when the username was typed with mixed casing (e.g. `Swathi_Hani21` vs `swathi_hani21`).
+* **Fix**: Normalized all auth validation and database login checks to be case-insensitive.
+* **Auto-Login Persistence**: On login/registration success, the user credentials are automatically saved to `localStorage` and active sessions are seamlessly redirected to avoid manual login entries.

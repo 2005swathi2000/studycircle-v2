@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { GoogleLogin } from '@react-oauth/google';
 import { apiRequest } from './utils/api';
 import { useApp } from './context/AppContext';
 import { useToast } from './components/ToastProvider';
@@ -678,6 +679,29 @@ export default function Home() {
       }
     } catch (err: any) {
       showToast(err.message || 'Registration failed.', 'error');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // Google Sign-In Success Handler
+  const handleGoogleSuccess = async (credential: string | undefined) => {
+    if (!credential) {
+      showToast('Google credential token is missing.', 'error');
+      return;
+    }
+    setFormLoading(true);
+    try {
+      const data = await apiRequest('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ credential })
+      });
+      setCurrentUser(data.user, data.token);
+      showToast('Welcome to StudyCircle, ' + data.user.fullName + '!', 'success');
+      setShowAuthModal(false);
+      router.push('/dashboard');
+    } catch (err: any) {
+      showToast(err.message || 'Google Login failed.', 'error');
     } finally {
       setFormLoading(false);
     }
@@ -1652,6 +1676,36 @@ export default function Home() {
                   {formLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
                   Log In to {activePortal === 'student' ? 'Student' : 'Mentor/Admin'} Desk
                 </button>
+
+                <div className="flex items-center my-3 gap-2">
+                  <div className="flex-1 h-px bg-slate-200"></div>
+                  <span className="text-[10px] text-slate-400 font-extrabold uppercase">or</span>
+                  <div className="flex-1 h-px bg-slate-200"></div>
+                </div>
+
+                {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
+                  <div className="w-full flex justify-center">
+                    <GoogleLogin
+                      onSuccess={(response) => handleGoogleSuccess(response.credential)}
+                      onError={() => showToast('Google Sign-In failed.', 'error')}
+                      theme="filled_blue"
+                      shape="pill"
+                      size="large"
+                      width="350"
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => showToast('Google Sign-In is not configured yet. Please use Email & Password login.', 'warning')}
+                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl text-xs font-bold border border-slate-200 transition-all flex items-center justify-center gap-2 cursor-pointer opacity-70"
+                  >
+                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-6.887 4.114-4.694 0-8.503-3.809-8.503-8.5s3.81-8.5 8.503-8.5c2.297 0 4.387.873 5.966 2.484l3.056-3.056C19.121 1.129 15.89 0 12.24 0 5.481 0 0 5.48 0 12.24s5.481 12.24 12.24 12.24c7.058 0 11.726-4.958 11.726-11.914 0-.8-.073-1.427-.18-2.281H12.24z"/>
+                    </svg>
+                    <span>Continue with Google</span>
+                  </button>
+                )}
                 <div className="text-center pt-2">
                   <span className="text-[10px] text-slate-500">Don't have an account? </span>
                   <button

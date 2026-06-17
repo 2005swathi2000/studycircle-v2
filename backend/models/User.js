@@ -92,6 +92,10 @@ const User = sequelize.define('User', {
   badges: {
     type: DataTypes.TEXT,
     defaultValue: '[]'
+  },
+  provider: {
+    type: DataTypes.STRING,
+    defaultValue: 'local'
   }
 }, {
   hooks: {

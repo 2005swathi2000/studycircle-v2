@@ -403,6 +403,10 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Invalid email/username or password.' });
     }
 
+    if (user.provider === 'google') {
+      return res.status(400).json({ error: 'This account was created using Google. Please continue with Google Sign-In.' });
+    }
+
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid username or password.' });
@@ -819,6 +823,139 @@ router.post('/approve', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error approving user.' });
+  }
+});
+
+// POST /api/auth/google
+router.post('/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ error: 'Google credential token is required.' });
+    }
+
+    const { OAuth2Client } = require('google-auth-library');
+    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+    if (!clientId) {
+      console.warn('[Google Auth] GOOGLE_CLIENT_ID not configured on backend.');
+      return res.status(400).json({ error: 'Google Sign-In is not configured yet. Please use Email & Password login.' });
+    }
+
+    const client = new OAuth2Client(clientId);
+    let payload = null;
+
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: clientId
+      });
+      payload = ticket.getPayload();
+    } catch (err) {
+      console.error('[Google Auth] OAuth2Client verification failed:', err);
+      return res.status(400).json({ error: 'Failed to verify Google ID Token. Please try again.' });
+    }
+
+    if (!payload || !payload.email) {
+      return res.status(400).json({ error: 'Invalid Google payload data.' });
+    }
+
+    const email = payload.email.trim().toLowerCase();
+    const fullName = payload.name || 'Google Student';
+    
+    // Find or create user
+    let user = await User.findOne({
+      where: {
+        [Op.or]: [
+          { email: email },
+          { phoneOrEmail: email },
+          { username: email }
+        ]
+      }
+    });
+
+    if (!user) {
+      // Automatically register a new student user
+      const usernameParts = email.split('@');
+      const baseUsername = usernameParts[0].replace(/[^a-zA-Z0-9]/g, '');
+      const uniqueSuffix = Math.floor(1000 + Math.random() * 9000);
+      const username = `${baseUsername}${uniqueSuffix}`.toLowerCase();
+      
+      const nameParts = fullName.split(' ');
+      const firstName = nameParts[0] || 'Google';
+      const lastName = nameParts.slice(1).join(' ') || 'Student';
+
+      // Generate a secure random password
+      const password = Math.random().toString(36).slice(-10) + 'Go1!';
+
+      user = await User.create({
+        fullName,
+        username,
+        password,
+        role: 'student',
+        phoneOrEmail: email,
+        email: email,
+        isVerified: true,
+        isApproved: true, // Auto-approve Google student accounts
+        firstName,
+        lastName,
+        gender: 'other',
+        provider: 'google',
+        avatarUrl: payload.picture || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'
+      });
+
+      console.log(`[Google Auth] Created new user: @${username} (${email})`);
+    } else {
+      // If user exists and provider is local, link/update their provider to google
+      if (!user.provider || user.provider === 'local') {
+        user.provider = 'google';
+        await user.save();
+      }
+    }
+
+    const token = signToken(user, false);
+    const refreshToken = jwt.sign(
+      { id: user.id, type: 'refresh', rememberMe: false },
+      process.env.JWT_REFRESH_SECRET || 'refresh_secret_study_circle_2026',
+      { expiresIn: '1d' }
+    );
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 15 * 60 * 1000 // 15 mins
+    });
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000 // 1 day
+    });
+
+    return res.json({
+      message: 'Google login successful!',
+      token,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        username: user.username,
+        role: user.role,
+        isApproved: user.isApproved,
+        streakCount: user.streakCount,
+        totalStudyHours: user.totalStudyHours,
+        avatarUrl: user.avatarUrl,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        gender: user.gender
+      }
+    });
+  } catch (err) {
+    console.error('[Google Auth Error]:', err);
+    return res.status(500).json({ error: 'Server error during Google Login.' });
   }
 });
 
