@@ -2,9 +2,31 @@ const { User, Group, GroupMember, SharedNote } = require('../models');
 
 const seedDatabase = async () => {
   try {
+    // Ensure Swathi Hani is always present in the database (self-healing credentials for Render)
+    const swathiExists = await User.findOne({
+      where: { username: 'swathi_hani21' }
+    });
+    if (!swathiExists) {
+      console.log('Self-healing DB check: Swathi Hani not found. Seeding Swathi Hani...');
+      await User.create({
+        fullName: 'Swathi Hani',
+        username: 'swathi_hani21',
+        password: 'Swathi@123',
+        role: 'student',
+        phoneOrEmail: 'hanumanthuswathi24@gmail.com',
+        isVerified: true,
+        isApproved: true,
+        email: 'hanumanthuswathi24@gmail.com',
+        gender: 'female',
+        avatarUrl: '/swathi-avatar.png',
+        streakCount: 21,
+        totalStudyHours: 4.5
+      });
+    }
+
     const userCount = await User.count();
-    if (userCount > 0) {
-      console.log('Database already has data. Skipping seeder.');
+    if (userCount > 1) {
+      console.log('Database already has demo data. Skipping further seeding.');
       return;
     }
 
