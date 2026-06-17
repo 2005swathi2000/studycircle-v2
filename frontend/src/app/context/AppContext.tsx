@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Socket } from 'socket.io-client';
 import { getSocket, disconnectSocket } from '../utils/socket';
 import { apiRequest } from '../utils/api';
+import { googleLogout } from '@react-oauth/google';
 
 export interface User {
   id: string;
@@ -103,6 +104,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    try {
+      googleLogout();
+    } catch (googleErr) {
+      console.error('Google logout error:', googleErr);
+    }
     try {
       await apiRequest('/auth/logout', { method: 'POST' });
     } catch (err) {
