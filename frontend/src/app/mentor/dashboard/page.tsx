@@ -13,7 +13,12 @@ export default function MentorDashboard() {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        router.push('/?login=true');
+        if (typeof window !== 'undefined' && sessionStorage.getItem('explicit_logout') === 'true') {
+          sessionStorage.removeItem('explicit_logout');
+          router.push('/');
+        } else {
+          router.push('/?login=true');
+        }
       } else if (user.role !== 'mentor' && user.role !== 'admin') {
         router.push(`/${user.role}/dashboard`);
       }

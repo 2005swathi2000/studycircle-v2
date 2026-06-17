@@ -13,7 +13,12 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        router.push('/?login=true');
+        if (typeof window !== 'undefined' && sessionStorage.getItem('explicit_logout') === 'true') {
+          sessionStorage.removeItem('explicit_logout');
+          router.push('/');
+        } else {
+          router.push('/?login=true');
+        }
       } else if (user.role !== 'student') {
         router.push(`/${user.role}/dashboard`);
       }
