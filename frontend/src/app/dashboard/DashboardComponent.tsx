@@ -331,6 +331,12 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   // Resources States
   const [resourcesSearch, setResourcesSearch] = useState('');
   const [resourcesFilter, setResourcesFilter] = useState('All');
+
+  // Study Rooms View States
+  const [roomViewMode, setRoomViewMode] = useState<'first-time' | 'returning'>(() => {
+    return stats.totalStudyHours === 0 ? 'first-time' : 'returning';
+  });
+  const [selectedInterests, setSelectedInterests] = useState<string[]>(['Programming & DSA']);
   const [unlockedResources, setUnlockedResources] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('studycircle_unlocked_resources');
@@ -2581,52 +2587,829 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
           {/* Tab 3: Rooms */}
           {activeTab === 'rooms' && (
-            <div className="space-y-6 text-left">
-              <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                <Wifi className="h-4.5 w-4.5 text-[#5227EB]" /> Live Study Rooms Board
-              </h3>
+            <div className="space-y-6 text-left animate-in fade-in duration-350 text-white">
+              {/* Header and Toggle */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                  <Wifi className="h-4.5 w-4.5 text-indigo-400 animate-pulse" /> Live Study Worlds Board
+                </h3>
+                {/* Premium view mode selector */}
+                <div className="bg-[#1E293B]/60 border border-white/5 p-1 rounded-xl flex items-center gap-1">
+                  <button
+                    onClick={() => setRoomViewMode('first-time')}
+                    className={`px-3.5 py-1.5 rounded-lg text-[10px] font-black tracking-wider uppercase transition-all cursor-pointer border-none ${
+                      roomViewMode === 'first-time'
+                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md shadow-indigo-500/10'
+                        : 'bg-transparent text-slate-455 hover:text-slate-200'
+                    }`}
+                  >
+                    First-Time View
+                  </button>
+                  <button
+                    onClick={() => setRoomViewMode('returning')}
+                    className={`px-3.5 py-1.5 rounded-lg text-[10px] font-black tracking-wider uppercase transition-all cursor-pointer border-none ${
+                      roomViewMode === 'returning'
+                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md shadow-indigo-500/10'
+                        : 'bg-transparent text-slate-455 hover:text-slate-200'
+                    }`}
+                  >
+                    Returning View
+                  </button>
+                </div>
+              </div>
 
-              <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-4">
-                  {availableGroups.length === 0 ? (
-                    <div className="p-12 bg-white border border-slate-200 rounded-[24px] text-center shadow-sm">
-                      <p className="text-xs text-slate-500 font-semibold">No other public study circles are available to join.</p>
+              {/* ──────────────────────────────────────────────────────── */}
+              {/* 1. FIRST-TIME USER VIEW                                 */}
+              {/* ──────────────────────────────────────────────────────── */}
+              {roomViewMode === 'first-time' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  {/* Hero Section */}
+                  <div className="relative rounded-[28px] overflow-hidden p-8 md:p-12 text-center bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E1B4B] border border-white/5 shadow-2xl">
+                    <div className="absolute top-0 left-1/4 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="relative max-w-2xl mx-auto space-y-6">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-extrabold text-indigo-400 uppercase tracking-wider">
+                        🚀 Welcome to StudyCircle
+                      </span>
+                      
+                      <h1 className="text-3xl md:text-4xl font-black text-white leading-tight tracking-tight">
+                        Find your study community, <br className="hidden sm:inline"/>
+                        stay consistent, and achieve your goals together.
+                      </h1>
+                      
+                      <p className="text-xs text-slate-400 leading-relaxed font-semibold max-w-lg mx-auto">
+                        Collaborate in real-time with focused peers. Complete daily missions, earn badges, and unlock exclusive academic vaults as you desk.
+                      </p>
+                      
+                      {/* Hero CTAs */}
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+                        <button
+                          onClick={() => {
+                            const firstRoom = availableGroups[0];
+                            if (firstRoom) {
+                              handleJoinPublicCircle(firstRoom.id);
+                            } else {
+                              showToast("Joining your first study room: Coding Galaxy!", "success");
+                            }
+                          }}
+                          className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-650 hover:to-purple-650 text-white text-xs font-black rounded-xl transition-all shadow-lg shadow-indigo-500/10 cursor-pointer border-none uppercase tracking-wider"
+                        >
+                          Join Your First Study Room
+                        </button>
+                        <button
+                          onClick={() => {
+                            const exploreSection = document.getElementById('explore-rooms-section');
+                            exploreSection?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          className="w-full sm:w-auto px-6 py-3 bg-[#1E293B]/60 border border-white/5 hover:bg-[#1E293B]/90 text-slate-350 hover:text-white text-xs font-black rounded-xl transition-all cursor-pointer uppercase tracking-wider"
+                        >
+                          Explore Rooms
+                        </button>
+                      </div>
+                      
+                      {/* Global Live Counters */}
+                      <div className="grid grid-cols-3 gap-4 border-t border-white/5 pt-8 mt-4 text-left sm:text-center">
+                        <div>
+                          <p className="text-lg font-black text-white">5,000+</p>
+                          <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider mt-0.5">👨‍🎓 Active Students</p>
+                        </div>
+                        <div>
+                          <p className="text-lg font-black text-white">120+</p>
+                          <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider mt-0.5">📚 Communities</p>
+                        </div>
+                        <div>
+                          <p className="text-lg font-black text-white">25,000+</p>
+                          <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider mt-0.5">🔥 Hours Studied This Week</p>
+                        </div>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      {availableGroups.map((g) => (
-                        <div key={g.id} className="p-5 bg-white border border-slate-200 rounded-[24px] transition-all duration-300 flex flex-col justify-between gap-4 shadow-sm group">
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-start">
-                              <span className="text-[8px] font-extrabold uppercase bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded">
-                                Public Lounge
-                              </span>
-                              <span className="text-[9px] font-mono text-slate-400 font-bold">Code: {g.inviteCode}</span>
-                            </div>
-                            <h4 className="text-sm font-extrabold text-slate-900 group-hover:text-indigo-650 transition-colors">{g.name}</h4>
-                            <p className="text-xs text-slate-500">{g.description || 'No description provided.'}</p>
-                          </div>
+                  </div>
+
+                  {/* Interest Selection Section */}
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">What do you want to learn today?</h3>
+                      <p className="text-[10px] text-slate-500 font-bold">Select interests to view recommended communities</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { id: 'Programming & DSA', label: '💻 Programming & DSA' },
+                        { id: 'Web Development', label: '🌐 Web Dev' },
+                        { id: 'AI & Machine Learning', label: '🤖 AI & ML' },
+                        { id: 'Aptitude & Reasoning', label: '📊 Aptitude' },
+                        { id: 'Interview Preparation', label: '🎯 Interviews' },
+                        { id: 'UPSC', label: '🏛 UPSC' },
+                        { id: 'GATE', label: '📖 GATE' },
+                        { id: 'Mathematics', label: '🧮 Mathematics' }
+                      ].map((interest) => {
+                        const isSelected = selectedInterests.includes(interest.id);
+                        return (
                           <button
-                            onClick={() => handleJoinPublicCircle(g.id)}
-                            className="w-full py-2 bg-slate-50 border border-slate-200 hover:bg-[#5227EB] hover:text-white text-slate-650 text-xs font-bold rounded-xl transition-all"
+                            key={interest.id}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedInterests(prev => prev.filter(i => i !== interest.id));
+                              } else {
+                                setSelectedInterests(prev => [...prev, interest.id]);
+                              }
+                            }}
+                            className={`p-3.5 rounded-2xl border text-left text-xs font-black transition-all cursor-pointer relative overflow-hidden ${
+                              isSelected
+                                ? 'bg-[#5227EB]/10 border-indigo-500/40 text-white shadow-lg shadow-indigo-500/5'
+                                : 'bg-[#1E293B]/40 border-white/5 text-slate-455 hover:bg-[#1E293B]/80 hover:text-white'
+                            }`}
                           >
-                            Quick Join Public Room
+                            {isSelected && (
+                              <div className="absolute top-0 right-0 h-2 w-2 rounded-bl-lg bg-indigo-500" />
+                            )}
+                            {interest.label}
                           </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Recommended Study Rooms */}
+                  <div id="explore-rooms-section" className="space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                      <Sparkles className="h-4.5 w-4.5 text-indigo-400 animate-pulse" /> Recommended Study Rooms
+                    </h3>
+                    
+                    <div className="grid md:grid-cols-3 gap-6">
+                      {/* Dynamic Backend integration for public groups */}
+                      {availableGroups.length > 0 && (
+                        availableGroups.slice(0, 3).map((g) => (
+                          <div 
+                            key={g.id}
+                            className="bg-gradient-to-br from-indigo-650/10 to-purple-600/10 border border-indigo-500/20 rounded-[24px] p-5 shadow-lg flex flex-col justify-between gap-4 transition-all duration-300 hover:scale-[1.01] text-left"
+                          >
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-start">
+                                <span className="h-10 w-10 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-xl shrink-0">
+                                  🏫
+                                </span>
+                                <span className="text-[8px] font-black uppercase px-2.5 py-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/15 rounded-full">
+                                  Active Room
+                                </span>
+                              </div>
+                              <div className="space-y-1">
+                                <h4 className="text-sm font-black text-white">{g.name}</h4>
+                                <p className="text-[10px] text-slate-400 font-bold leading-normal">{g.description || 'Virtual study workspace circle.'}</p>
+                              </div>
+                              <span className="text-[8px] font-black bg-white/5 text-slate-350 px-2 py-0.5 rounded">
+                                Code: {g.inviteCode}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-1">
+                              <span className="text-[9px] font-extrabold text-indigo-400 flex items-center gap-1">
+                                🟢 Active Peer World
+                              </span>
+                              <button
+                                onClick={() => handleJoinPublicCircle(g.id)}
+                                className="px-4 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[9px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-wide shadow-md"
+                              >
+                                Join Now
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+
+                      {/* Mock community rooms to ensure rich visual aesthetic */}
+                      {[
+                        {
+                          id: 'coding-galaxy',
+                          title: '🚀 Coding Galaxy',
+                          learners: 1200,
+                          desc: 'Perfect for beginners starting code algorithms.',
+                          tags: ['Programming & DSA', 'Beginner', 'DSA'],
+                          difficulty: 'Beginner',
+                          color: 'from-blue-600/10 to-indigo-600/10 border-blue-500/20',
+                          illustration: '🌌'
+                        },
+                        {
+                          id: 'dsa-arena',
+                          title: '🧠 DSA Arena',
+                          learners: 850,
+                          desc: 'Live competitive coding discussions and syntax tests.',
+                          tags: ['Programming & DSA', 'Interview Preparation', 'Intermediate'],
+                          difficulty: 'Intermediate',
+                          color: 'from-purple-600/10 to-pink-600/10 border-purple-500/20',
+                          illustration: '🤺'
+                        },
+                        {
+                          id: 'ai-universe',
+                          title: '🤖 AI Universe',
+                          learners: 620,
+                          desc: 'Projects, research papers, and deep machine learning concepts.',
+                          tags: ['AI & Machine Learning', 'Advanced', 'ML'],
+                          difficulty: 'Advanced',
+                          color: 'from-emerald-600/10 to-teal-600/10 border-emerald-500/20',
+                          illustration: '👾'
+                        },
+                        {
+                          id: 'web-dev-lab',
+                          title: '🌐 Web Dev Lab',
+                          learners: 940,
+                          desc: 'Build frontend frameworks, backend APIs and modern SaaS.',
+                          tags: ['Web Development', 'Intermediate', 'HTML/JS'],
+                          difficulty: 'Intermediate',
+                          color: 'from-cyan-600/10 to-blue-600/10 border-cyan-500/20',
+                          illustration: '💻'
+                        },
+                        {
+                          id: 'aptitude-hub',
+                          title: '📊 Aptitude Hub',
+                          learners: 410,
+                          desc: 'Solve quantitative reasoning puzzles and logical questions.',
+                          tags: ['Aptitude & Reasoning', 'UPSC', 'GATE'],
+                          difficulty: 'Intermediate',
+                          color: 'from-amber-600/10 to-orange-600/10 border-amber-500/20',
+                          illustration: '📐'
+                        }
+                      ]
+                        .filter(room => 
+                          selectedInterests.length === 0 || 
+                          room.tags.some(tag => selectedInterests.includes(tag))
+                        )
+                        .map((room) => (
+                          <div 
+                            key={room.id}
+                            className={`bg-gradient-to-br ${room.color} border rounded-[24px] p-5 shadow-lg flex flex-col justify-between gap-4 transition-all duration-300 hover:scale-[1.01] text-left`}
+                          >
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-start">
+                                <span className="h-10 w-10 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-xl shrink-0">
+                                  {room.illustration}
+                                </span>
+                                <span className="text-[8px] font-black uppercase px-2.5 py-1 bg-white/5 border border-white/10 rounded-full text-slate-350">
+                                  {room.difficulty}
+                                </span>
+                              </div>
+                              <div className="space-y-1">
+                                <h4 className="text-sm font-black text-white">{room.title}</h4>
+                                <p className="text-[10px] text-slate-400 font-bold leading-normal">{room.desc}</p>
+                              </div>
+                              
+                              <div className="flex flex-wrap gap-1.5">
+                                {room.tags.slice(0, 2).map((t, idx) => (
+                                  <span key={idx} className="text-[8px] font-black bg-white/5 text-slate-350 px-2 py-0.5 rounded">
+                                    #{t.split(' ')[0]}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-1">
+                              <span className="text-[9px] font-extrabold text-indigo-400 flex items-center gap-1">
+                                🟢 {room.learners.toLocaleString()} Online
+                              </span>
+                              <button
+                                onClick={() => showToast(`Successfully joined ${room.title}! Welcome to the circle.`, "success")}
+                                className="px-4 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[9px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-wide shadow-md shadow-indigo-650/10 active:scale-95"
+                              >
+                                Join Now
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Beginner Missions and Rewards Grid */}
+                  <div className="grid md:grid-cols-3 gap-6">
+                    
+                    {/* Beginner Missions */}
+                    <div className="md:col-span-2 bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                          🎯 Beginner Missions
+                        </h4>
+                        <span className="text-[9px] text-indigo-455 font-black uppercase">Earn XP</span>
+                      </div>
+                      
+                      <div className="grid sm:grid-cols-2 gap-3.5">
+                        {[
+                          { id: 'bm1', num: 1, title: 'Join Your First Study Room', reward: '+20 XP', desc: 'Interact with peers in workspace channels.' },
+                          { id: 'bm2', num: 2, title: 'Study for 30 Minutes', reward: '+50 XP', desc: 'Log focus log on note boards.' },
+                          { id: 'bm3', num: 3, title: 'Introduce Yourself', reward: '+20 XP', desc: 'Write a bio or say hello in chat lobby.' },
+                          { id: 'bm4', num: 4, title: 'Maintain a 3-Day Streak', reward: 'Unlock Vault', desc: 'Maintain study consistency logs.' }
+                        ].map((mission) => (
+                          <div key={mission.id} className="p-3 bg-[#0B0F19]/60 border border-white/5 rounded-2xl flex gap-3 items-start hover:border-white/10 transition-all">
+                            <div className="h-7 w-7 rounded-xl bg-indigo-500/10 text-indigo-450 border border-indigo-500/15 flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
+                              {mission.num}
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[11px] font-black text-slate-200">{mission.title}</p>
+                              <p className="text-[9px] text-slate-450 leading-normal">{mission.desc}</p>
+                              <span className="text-[8px] font-black text-indigo-400 bg-indigo-500/10 border border-indigo-500/10 rounded px-1.5 py-0.25 inline-block mt-1">
+                                {mission.reward}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Welcome Rewards */}
+                    <div className="bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A]/90 to-[#1F3A35]/30 border border-[#10B981]/25 rounded-[24px] p-6 space-y-4 text-left flex flex-col justify-between">
+                      <div className="space-y-3">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-[#10B981] flex items-center gap-1.5">
+                          🎁 New Member Rewards
+                        </h4>
+                        <p className="text-[10px] text-slate-400 leading-normal font-bold">Special starter bonuses to kick off your consistency journey!</p>
+                      </div>
+                      
+                      <div className="space-y-3 text-[10px] font-bold text-slate-350">
+                        <div className="flex justify-between items-center p-2 bg-[#0B0F19]/60 border border-white/5 rounded-xl">
+                          <span>Join First Room</span>
+                          <span className="text-[#10B981] font-extrabold">+50 Coins 🪙</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-[#0B0F19]/60 border border-white/5 rounded-xl">
+                          <span>Complete First Study Session</span>
+                          <span className="text-[#10B981] font-extrabold">+100 XP 🏆</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-[#0B0F19]/60 border border-white/5 rounded-xl">
+                          <span>Complete All Beginner Missions</span>
+                          <span className="text-amber-450 font-extrabold">Unlock Notes Pack 🔒</span>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => {
+                          showToast("Starter rewards activated! Go complete your beginner missions.", "success");
+                        }}
+                        className="w-full py-2 bg-[#10B981] hover:bg-[#059669] text-white text-[10px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-wide active:scale-95"
+                      >
+                        Activate Rewards
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Locked Preview & Testimonials */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    
+                    {/* Locked Features */}
+                    <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Locked Features Preview</h4>
+                      <div className="space-y-2.5">
+                        {[
+                          { id: 'lf1', title: '🔒 Elite Coding Room', req: 'Requires Level 5 Scholar' },
+                          { id: 'lf2', title: '🔒 Mentor Circle', req: 'Requires 7 completed study days' },
+                          { id: 'lf3', title: '🔒 Premium Resources Vault', req: 'Requires 5 focus sessions logged' }
+                        ].map((feat) => (
+                          <div key={feat.id} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-center justify-between opacity-75">
+                            <span className="text-xs font-black text-slate-300">{feat.title}</span>
+                            <span className="text-[8px] font-black bg-white/5 text-slate-500 px-2 py-0.5 rounded border border-white/5">
+                              {feat.req}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Success Stories */}
+                    <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Success Stories</h4>
+                      <div className="space-y-3">
+                        {[
+                          { id: 't1', text: '"StudyCircle helped me stay consistent for 45 days."', author: 'Ananya', role: 'Scholar Level 15', badge: 'Silver 🔥' },
+                          { id: 't2', text: '"Found amazing coding partners and cracked interviews."', author: 'Rohan', role: 'Master Level 20', badge: 'FAANG 🏆' }
+                        ].map((story) => (
+                          <div key={story.id} className="p-3.5 bg-[#0B0F19]/40 border border-white/5 rounded-2xl space-y-1.5">
+                            <p className="text-[10px] font-semibold text-slate-300 leading-normal italic">{story.text}</p>
+                            <div className="flex justify-between items-center text-[9px] text-slate-455 font-bold">
+                              <span>👤 {story.author} • {story.role}</span>
+                              <span className="text-indigo-400 font-black uppercase">{story.badge}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Motivational Banner */}
+                  <div className="bg-gradient-to-r from-indigo-500/10 via-[#0F172A] to-purple-500/10 border border-indigo-500/20 rounded-[28px] p-8 text-center space-y-5 relative overflow-hidden">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+                    <div className="relative space-y-2">
+                      <p className="text-sm font-black text-slate-200">"Every expert was once a beginner."</p>
+                      <p className="text-xs text-slate-450 font-bold">Start your first study session today and build your focus streak.</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActiveTab('dashboard');
+                        showToast('Welcome to your first study desk! Starting session...', 'success');
+                      }}
+                      className="relative px-6 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-wide shadow-md shadow-indigo-650/20 active:scale-95"
+                    >
+                      Start Learning
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ──────────────────────────────────────────────────────── */}
+              {/* 2. RETURNING USER VIEW                                   */}
+              {/* ──────────────────────────────────────────────────────── */}
+              {roomViewMode === 'returning' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  {/* Hero Section */}
+                  <div className="relative rounded-[28px] overflow-hidden p-8 md:p-10 text-left bg-gradient-to-br from-[#060913] via-[#0F172A] to-[#1E1B4B] border border-white/5 shadow-2xl">
+                    <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="grid md:grid-cols-3 gap-6 items-center">
+                      <div className="md:col-span-2 space-y-4">
+                        <span className="inline-flex items-center gap-1 px-3 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[9px] font-black text-indigo-400 uppercase tracking-wider">
+                          Study Worlds Directory
+                        </span>
+                        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight">
+                          Explore Study Worlds
+                        </h1>
+                        <p className="text-xs text-slate-400 leading-normal font-semibold max-w-lg">
+                          Join focused learners, build streaks, unlock achievements, and grow together.
+                        </p>
+                      </div>
+                      
+                      {/* Live counters box */}
+                      <div className="bg-[#0B0F19]/80 border border-white/5 rounded-2xl p-4.5 space-y-3.5 shadow-sm text-left">
+                        <div>
+                          <p className="text-base font-black text-white">4,281</p>
+                          <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider mt-0.5">🟢 Students Studying Now</p>
+                        </div>
+                        <div>
+                          <p className="text-base font-black text-white">183</p>
+                          <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider mt-0.5">🌐 Active Worlds</p>
+                        </div>
+                        <div>
+                          <p className="text-base font-black text-white">12,450</p>
+                          <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider mt-0.5">⚡ Hours Focused This Week</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Featured Worlds Grid */}
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Featured Study Worlds</h3>
+                    <div className="grid md:grid-cols-3 gap-6">
+                      {/* Real database circles listed dynamically if they exist */}
+                      {availableGroups.length > 0 && (
+                        availableGroups.map((g) => (
+                          <div 
+                            key={g.id}
+                            className="bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] border border-white/5 hover:border-[#5227EB]/30 rounded-[24px] p-5 shadow-lg flex flex-col justify-between gap-4 transition-all duration-300 hover:scale-[1.01]"
+                          >
+                            <div className="space-y-3.5 text-left">
+                              <div className="flex justify-between items-start">
+                                <span className="h-10 w-10 bg-[#0B0F19] border border-white/5 rounded-2xl flex items-center justify-center text-xl shrink-0">
+                                  🌐
+                                </span>
+                                <span className="text-[8px] font-black uppercase bg-[#5227EB]/10 border border-[#5227EB]/10 text-indigo-400 px-2 py-0.5 rounded">
+                                  Lvl 12
+                                </span>
+                              </div>
+                              <div className="space-y-1">
+                                <h4 className="text-sm font-black text-white">{g.name}</h4>
+                                <p className="text-[10px] text-slate-400 font-bold leading-normal">{g.description || 'Database study group world.'}</p>
+                              </div>
+                              
+                              <div className="bg-[#0B0F19]/60 border border-white/5 rounded-xl p-2.5 space-y-1 text-[9px] font-black text-slate-400">
+                                <div className="flex justify-between">
+                                  <span>Invite Code:</span>
+                                  <span className="text-[#818CF8]">{g.inviteCode}</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between items-center pt-3 border-t border-white/5 mt-1">
+                              <span className="text-[9px] font-extrabold text-slate-400 flex items-center gap-1">
+                                🟢 Peer World
+                              </span>
+                              <button
+                                onClick={() => handleJoinPublicCircle(g.id)}
+                                className="px-4 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[9px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-wide shadow-md"
+                              >
+                                Join World
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+
+                      {/* Mock community rooms to ensure visually complete gaming-inspired experience */}
+                      {[
+                        {
+                          id: 'coding-galaxy',
+                          title: '🚀 Coding Galaxy',
+                          learners: 1248,
+                          level: 23,
+                          focusScore: 92,
+                          streak: 12,
+                          desc: 'Algorithms and systems dev logs.',
+                          illustration: '🌌'
+                        },
+                        {
+                          id: 'dsa-arena',
+                          title: '🧠 DSA Arena',
+                          learners: 850,
+                          level: 19,
+                          focusScore: 89,
+                          streak: 9,
+                          desc: 'Competitive coding challenges and battles.',
+                          illustration: '🤺'
+                        },
+                        {
+                          id: 'ai-universe',
+                          title: '🤖 AI Universe',
+                          learners: 620,
+                          level: 15,
+                          focusScore: 85,
+                          streak: 5,
+                          desc: 'Machine learning & AI concepts.',
+                          illustration: '👾'
+                        },
+                        {
+                          id: 'interview-battleground',
+                          title: '⚡ Interview Battleground',
+                          learners: 450,
+                          level: 12,
+                          focusScore: 94,
+                          streak: 7,
+                          desc: 'Mock interviews and resume reviews.',
+                          illustration: '💥'
+                        },
+                        {
+                          id: 'focus-temple',
+                          title: '🎯 Focus Temple',
+                          learners: 710,
+                          level: 8,
+                          focusScore: 97,
+                          streak: 15,
+                          desc: 'Deep work and productivity sessions.',
+                          illustration: '⛩️'
+                        }
+                      ].map((world) => (
+                        <div 
+                          key={world.id}
+                          className="bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] border border-white/5 hover:border-[#5227EB]/30 rounded-[24px] p-5 shadow-lg flex flex-col justify-between gap-4 transition-all duration-300 hover:scale-[1.01]"
+                        >
+                          <div className="space-y-3.5 text-left">
+                            <div className="flex justify-between items-start">
+                              <span className="h-10 w-10 bg-[#0B0F19] border border-white/5 rounded-2xl flex items-center justify-center text-xl shrink-0">
+                                {world.illustration}
+                              </span>
+                              <span className="text-[8px] font-black uppercase bg-[#5227EB]/10 border border-[#5227EB]/10 text-indigo-400 px-2 py-0.5 rounded">
+                                Lvl {world.level}
+                              </span>
+                            </div>
+                            <div className="space-y-1">
+                              <h4 className="text-sm font-black text-white">{world.title}</h4>
+                              <p className="text-[10px] text-slate-400 font-bold leading-normal">{world.desc}</p>
+                            </div>
+                            
+                            {/* Stats block */}
+                            <div className="bg-[#0B0F19]/60 border border-white/5 rounded-xl p-2.5 space-y-1 text-[9px] font-black text-slate-400">
+                              <div className="flex justify-between">
+                                <span>Focus Score:</span>
+                                <span className="text-emerald-400">{world.focusScore}%</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Active Streak:</span>
+                                <span className="text-orange-500">{world.streak} Days 🔥</span>
+                              </div>
+                            </div>
+
+                            {/* Avatars simulation */}
+                            <div className="flex items-center gap-1 pt-1">
+                              <div className="flex -space-x-2.5 overflow-hidden">
+                                <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-[#0F172A]" src="/swathi-avatar.png" alt="" />
+                                <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-[#0F172A]" src="/bhagya-avatar.png" alt="" />
+                                <img className="inline-block h-5.5 w-5.5 rounded-full ring-2 ring-[#0F172A]" src="/rathna-avatar.png" alt="" />
+                              </div>
+                              <span className="text-[8px] font-bold text-slate-455 ml-1.5">+{world.learners - 3} studying</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-between items-center pt-3 border-t border-white/5 mt-1">
+                            <span className="text-[9px] font-extrabold text-slate-400 flex items-center gap-1">
+                              🟢 {world.learners} Online
+                            </span>
+                            <button
+                              onClick={() => showToast(`Welcome back to ${world.title}! Entering room...`, "success")}
+                              className="px-4 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[9px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-wide shadow-md shadow-indigo-650/10 active:scale-95"
+                            >
+                              Join World
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                <div>
-                  <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-3 shadow-sm">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">Virtual Study Lounge</h3>
-                    <p className="text-[10px] text-slate-500 leading-relaxed">
-                      Public workspaces do not require private invite codes. B.Tech & degree students from Vijayawada, Guntur, and Vizag clusters can enter directly to co-study.
-                    </p>
+                  {/* Daily Quests, Progress & Live Activity Sidebars */}
+                  <div className="grid md:grid-cols-3 gap-6">
+                    
+                    {/* 1. Daily Quest Panel */}
+                    <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Daily Quests</h4>
+                        <span className="text-[9px] text-[#10B981] font-black uppercase">Active</span>
+                      </div>
+                      
+                      <div className="space-y-2.5">
+                        {[
+                          { text: 'Study 60 Minutes', comp: true },
+                          { text: 'Join 1 Study World', comp: true },
+                          { text: 'Complete 3 Tasks', comp: false },
+                          { text: 'Help a Student', comp: false }
+                        ].map((q, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
+                            <span className={`text-[10px] font-bold ${q.comp ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{q.text}</span>
+                            <span className="text-[8px] font-black">{q.comp ? '✓ Done' : '⏳ Pending'}</span>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="pt-2 border-t border-white/5 flex justify-between items-center text-[9px] font-black">
+                        <span className="text-slate-455">Reward Package:</span>
+                        <span className="text-[#10B981]">+100 XP • +50 Coins</span>
+                      </div>
+                    </div>
+
+                    {/* 2. User Progress Widget */}
+                    <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left flex flex-col justify-between">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Student Progress</h4>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)}
+                            className="h-9 w-9 rounded-full border border-indigo-500"
+                            alt=""
+                          />
+                          <div>
+                            <h4 className="text-xs font-black text-slate-100">{user?.fullName || 'User'}</h4>
+                            <p className="text-[9px] text-slate-455 font-bold">Level {stats.level} Scholar</p>
+                          </div>
+                        </div>
+                        
+                        {/* XP Progress */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[9px] font-black text-slate-455">
+                            <span>XP Progress</span>
+                            <span>{stats.xp} / {stats.level * 100} XP</span>
+                          </div>
+                          <div className="w-full bg-[#0B0F19] h-2 rounded-full overflow-hidden">
+                            <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${Math.min(100, (stats.xp / (stats.level * 105)) * 100)}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-center text-[10px] font-black mt-2 pt-2 border-t border-white/5 text-slate-300">
+                        <div className="p-2 bg-[#0B0F19]/40 rounded-xl">
+                          <p className="text-orange-500">{stats.streakCount} Days 🔥</p>
+                          <p className="text-[8px] text-slate-500 uppercase mt-0.5">Streak</p>
+                        </div>
+                        <div className="p-2 bg-[#0B0F19]/40 rounded-xl">
+                          <p className="text-amber-500">{stats.focusCoins} 🪙</p>
+                          <p className="text-[8px] text-slate-500 uppercase mt-0.5">Coins</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. Live Activity Feed */}
+                    <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Live Activity Feed</h4>
+                      
+                      <div className="space-y-2">
+                        {[
+                          { text: 'Priya completed a 2-hour focus session', time: '2m ago' },
+                          { text: 'Rahul unlocked Elite Room access', time: '10m ago' },
+                          { text: 'Charan reached a 21-day streak', time: '25m ago' },
+                          { text: 'AI Universe reached Level 18', time: '1h ago' }
+                        ].map((feed, idx) => (
+                          <div key={idx} className="text-[9px] font-semibold text-slate-350 p-2 bg-[#0B0F19]/20 border border-white/5 rounded-xl flex justify-between items-center">
+                            <span className="truncate pr-2">⚡ {feed.text}</span>
+                            <span className="text-[8px] text-slate-500 shrink-0">{feed.time}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Study Battle and AI Suggestions */}
+                  <div className="grid md:grid-cols-3 gap-6">
+                    
+                    {/* Study Battle (Competitive gamification) */}
+                    <div className="md:col-span-2 bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                          ⚔️ Study Battle
+                        </h4>
+                        <span className="text-[8px] text-rose-500 font-black uppercase bg-rose-500/10 px-2 py-0.5 border border-rose-500/10 rounded">LIVE WEEKLY MATCH</span>
+                      </div>
+                      
+                      <div className="p-4 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E1B4B] border border-white/5 rounded-2xl space-y-4">
+                        <div className="flex justify-between items-center text-xs font-black text-white">
+                          <span>🚀 Coding Galaxy</span>
+                          <span className="text-rose-500">VS</span>
+                          <span>🤖 AI Universe</span>
+                        </div>
+                        
+                        {/* Animated Progress Bars for battle */}
+                        <div className="space-y-1.5">
+                          <div className="w-full bg-[#0B0F19] h-2.5 rounded-full overflow-hidden flex">
+                            <div className="bg-indigo-500 h-full" style={{ width: '62%' }} />
+                            <div className="bg-emerald-500 h-full" style={{ width: '38%' }} />
+                          </div>
+                          <div className="flex justify-between text-[8px] text-slate-455 font-extrabold">
+                            <span>62% Focus Strength</span>
+                            <span>38% Focus Strength</span>
+                          </div>
+                        </div>
+                        
+                        <p className="text-[9px] text-slate-450 leading-relaxed font-bold text-center">
+                          The winning study community gains an exclusive +25% StudyCoin multiplier next week. Log study hours inside these rooms to contribute!
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* AI Smart Suggestions */}
+                    <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left flex flex-col justify-between">
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">AI Smart Suggestions</h4>
+                        <p className="text-[9px] text-slate-550 font-bold">Based on your recent workspace logs:</p>
+                      </div>
+                      
+                      <div className="space-y-2.5 my-auto">
+                        {[
+                          { name: '🌐 React Mastery World', code: 'react' },
+                          { name: '🧠 DSA Arena', code: 'dsa' },
+                          { name: '🏛 System Design Kingdom', code: 'sys' }
+                        ].map((sug, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => showToast(`Entering suggested room: ${sug.name}`, "info")}
+                            className="w-full p-2 bg-[#0B0F19]/40 border border-white/5 hover:border-indigo-500/30 text-left text-[10px] font-black text-slate-350 hover:text-white rounded-xl transition-all flex items-center justify-between cursor-pointer"
+                          >
+                            <span>✨ {sug.name}</span>
+                            <ChevronRight className="h-3 w-3 text-slate-500" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Locked Worlds & Bottom Stats */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    
+                    {/* Locked Worlds */}
+                    <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Locked Premium Realms</h4>
+                      <div className="space-y-2.5">
+                        {[
+                          { id: 'lw1', title: '🔒 Elite Coders Realm', req: 'Requires 50 completed study hours' },
+                          { id: 'lw2', title: '🔒 FAANG Prep Kingdom', req: 'Requires Level 15 Scholar' },
+                          { id: 'lw3', title: '🔒 Mentor Mastermind Circle', req: 'Requires 30-day consistency streak' }
+                        ].map((world) => (
+                          <div key={world.id} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-center justify-between opacity-75">
+                            <span className="text-xs font-black text-slate-300">{world.title}</span>
+                            <span className="text-[8px] font-black bg-white/5 text-slate-500 px-2 py-0.5 rounded border border-white/5">
+                              {world.req}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Bottom Global Statistics */}
+                    <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Global Focus Stats</h4>
+                      <div className="grid grid-cols-2 gap-4 mt-2">
+                        <div className="p-3 bg-[#0B0F19]/50 border border-white/5 rounded-2xl text-left">
+                          <p className="text-base font-black text-indigo-400">1,24,560 hr</p>
+                          <p className="text-[8px] text-slate-500 font-extrabold uppercase mt-0.5">Total Community Hours</p>
+                        </div>
+                        <div className="p-3 bg-[#0B0F19]/50 border border-white/5 rounded-2xl text-left">
+                          <p className="text-base font-black text-emerald-400">92.4%</p>
+                          <p className="text-[8px] text-slate-500 font-extrabold uppercase mt-0.5">Global Focus Score</p>
+                        </div>
+                        <div className="p-3 bg-[#0B0F19]/50 border border-white/5 rounded-2xl text-left">
+                          <p className="text-base font-black text-orange-400">895 Worlds</p>
+                          <p className="text-[8px] text-slate-500 font-extrabold uppercase mt-0.5">Resources Unlocked</p>
+                        </div>
+                        <div className="p-3 bg-[#0B0F19]/50 border border-white/5 rounded-2xl text-left">
+                          <p className="text-base font-black text-amber-500">12,500+</p>
+                          <p className="text-[8px] text-slate-500 font-extrabold uppercase mt-0.5">Active Learners Today</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
