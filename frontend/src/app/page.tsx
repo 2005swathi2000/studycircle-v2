@@ -73,6 +73,7 @@ export default function Home() {
   const router = useRouter();
   const { showToast } = useToast();
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [shouldHideContent, setShouldHideContent] = useState(false);
 
   const { user: currentUser, setUser: setCurrentUser, loading: globalLoading } = useApp();
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
@@ -388,6 +389,11 @@ export default function Home() {
       fetchPublicCircles();
 
       if (typeof window !== 'undefined') {
+        const savedUser = localStorage.getItem('saved_login_user');
+        const savedPass = localStorage.getItem('saved_login_pass');
+        if (savedUser) setLoginUser(savedUser);
+        if (savedPass) setLoginPass(savedPass);
+
         const params = new URLSearchParams(window.location.search);
         if (params.get('login') === 'true') {
           setAuthMode('login');
@@ -411,6 +417,9 @@ export default function Home() {
   // Keep redirect in its own effect — runs only when user actually
   // exists after context is fully resolved. No flash.
   useEffect(() => {
+    if (currentUser) {
+      setShouldHideContent(true);
+    }
     if (!globalLoading && currentUser) {
       router.push('/dashboard');
     }
@@ -568,6 +577,10 @@ export default function Home() {
         })
       });
       setCurrentUser(data.user, data.token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('saved_login_user', studentUser.trim());
+        localStorage.setItem('saved_login_pass', studentPass);
+      }
       showToast(data.message || 'Student account created successfully!', 'success');
       setShowAuthModal(false);
       router.push('/dashboard');
@@ -605,10 +618,18 @@ export default function Home() {
       showToast(data.message || 'Mentor registered. Awaiting Admin Approval.', 'success');
       if (data.user && data.user.isApproved) {
         setCurrentUser(data.user, data.token);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('saved_login_user', mentorUser.trim());
+          localStorage.setItem('saved_login_pass', mentorPass);
+        }
         showToast('Approved automatically. Redirecting...', 'success');
         setShowAuthModal(false);
         router.push('/dashboard');
       } else {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('saved_login_user', mentorUser.trim());
+          localStorage.setItem('saved_login_pass', mentorPass);
+        }
         setAuthMode('login');
       }
     } catch (err: any) {
@@ -641,9 +662,17 @@ export default function Home() {
       showToast(data.message || 'Admin registered. Awaiting Admin Approval.', 'success');
       if (data.user && data.user.isApproved) {
         setCurrentUser(data.user, data.token);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('saved_login_user', adminUser.trim());
+          localStorage.setItem('saved_login_pass', adminPass);
+        }
         showToast('Approved automatically. Redirecting...', 'success');
         router.push('/dashboard');
       } else {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('saved_login_user', adminUser.trim());
+          localStorage.setItem('saved_login_pass', adminPass);
+        }
         setAuthMode('login');
         scrollToSection('auth-gates');
       }
@@ -673,6 +702,10 @@ export default function Home() {
         })
       });
       setCurrentUser(data.user, data.token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('saved_login_user', loginUser);
+        localStorage.setItem('saved_login_pass', loginPass);
+      }
       showToast('Welcome back, ' + data.user.fullName + '!', 'success');
       setShowAuthModal(false);
       router.push('/dashboard');
@@ -759,7 +792,7 @@ export default function Home() {
   // Show spinner while globalLoading is true.
   // This avoids the double-render glitch.
   // ─────────────────────────────────────────────
-  if (globalLoading) {
+  if (globalLoading || shouldHideContent) {
     return (
       <div className="min-h-screen bg-[#FAFCFB] flex items-center justify-center">
         <RefreshCw className="h-8 w-8 text-[#0E3E31] animate-spin" />
