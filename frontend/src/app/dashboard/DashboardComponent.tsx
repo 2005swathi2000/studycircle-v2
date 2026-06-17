@@ -2622,24 +2622,23 @@ Based on your desking logs and consistency, the AI tutor recommends:
               {/* 1. FIRST-TIME USER VIEW                                 */}
               {/* ──────────────────────────────────────────────────────── */}
               {roomViewMode === 'first-time' && (
-                <div className="space-y-8 animate-in fade-in duration-300">
+                <div className="space-y-12 animate-in fade-in duration-300">
                   {/* Hero Section */}
-                  <div className="relative rounded-[28px] overflow-hidden p-8 md:p-12 text-center bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E1B4B] border border-white/5 shadow-2xl">
-                    <div className="absolute top-0 left-1/4 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+                  <div className="relative rounded-[28px] overflow-hidden p-8 md:p-12 text-center bg-gradient-to-br from-[#0b1224] via-[#070b16] to-[#120b24] border border-white/5 shadow-2xl">
+                    <div className="absolute top-0 left-1/4 w-72 h-72 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
                     
                     <div className="relative max-w-2xl mx-auto space-y-6">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-extrabold text-indigo-400 uppercase tracking-wider">
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-indigo-500/10 border border-indigo-500/25 rounded-full text-[10px] font-black text-indigo-400 uppercase tracking-widest animate-pulse">
                         🚀 Welcome to StudyCircle
                       </span>
                       
-                      <h1 className="text-3xl md:text-4xl font-black text-white leading-tight tracking-tight">
-                        Find your study community, <br className="hidden sm:inline"/>
-                        stay consistent, and achieve your goals together.
+                      <h1 className="text-3xl md:text-5xl font-black text-white leading-tight tracking-tight">
+                        Welcome to StudyCircle
                       </h1>
                       
-                      <p className="text-xs text-slate-400 leading-relaxed font-semibold max-w-lg mx-auto">
-                        Collaborate in real-time with focused peers. Complete daily missions, earn badges, and unlock exclusive academic vaults as you desk.
+                      <p className="text-xs md:text-sm text-slate-400 leading-relaxed font-semibold max-w-lg mx-auto">
+                        Find your study community and start learning with students who share your goals.
                       </p>
                       
                       {/* Hero CTAs */}
@@ -2650,58 +2649,46 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             if (firstRoom) {
                               handleJoinPublicCircle(firstRoom.id);
                             } else {
-                              showToast("Joining your first study room: Coding Galaxy!", "success");
+                              showToast("Joining your first study room: Coding Room!", "success");
                             }
                           }}
-                          className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-650 hover:to-purple-650 text-white text-xs font-black rounded-xl transition-all shadow-lg shadow-indigo-500/10 cursor-pointer border-none uppercase tracking-wider"
+                          className="w-full sm:w-auto px-8 py-3.5 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-xs font-black rounded-xl transition-all shadow-lg shadow-indigo-650/15 cursor-pointer border-none uppercase tracking-wider active:scale-[0.98]"
                         >
                           Join Your First Study Room
-                        </button>
-                        <button
-                          onClick={() => {
-                            const exploreSection = document.getElementById('explore-rooms-section');
-                            exploreSection?.scrollIntoView({ behavior: 'smooth' });
-                          }}
-                          className="w-full sm:w-auto px-6 py-3 bg-[#1E293B]/60 border border-white/5 hover:bg-[#1E293B]/90 text-slate-350 hover:text-white text-xs font-black rounded-xl transition-all cursor-pointer uppercase tracking-wider"
-                        >
-                          Explore Rooms
                         </button>
                       </div>
                       
                       {/* Global Live Counters */}
-                      <div className="grid grid-cols-3 gap-4 border-t border-white/5 pt-8 mt-4 text-left sm:text-center">
-                        <div>
-                          <p className="text-lg font-black text-white">5,000+</p>
-                          <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider mt-0.5">👨‍🎓 Active Students</p>
+                      <div className="flex justify-center items-center gap-10 border-t border-white/5 pt-8 mt-6">
+                        <div className="text-center">
+                          <p className="text-xl md:text-2xl font-black text-white">5,000+</p>
+                          <p className="text-[9px] text-slate-455 font-bold uppercase tracking-widest mt-0.5">Active Learners</p>
                         </div>
-                        <div>
-                          <p className="text-lg font-black text-white">120+</p>
-                          <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider mt-0.5">📚 Communities</p>
-                        </div>
-                        <div>
-                          <p className="text-lg font-black text-white">25,000+</p>
-                          <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider mt-0.5">🔥 Hours Studied This Week</p>
+                        <div className="h-8 w-px bg-white/10" />
+                        <div className="text-center">
+                          <p className="text-xl md:text-2xl font-black text-white">100+</p>
+                          <p className="text-[9px] text-slate-455 font-bold uppercase tracking-widest mt-0.5">Study Communities</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Interest Selection Section */}
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">What do you want to learn today?</h3>
-                      <p className="text-[10px] text-slate-500 font-bold">Select interests to view recommended communities</p>
+                  {/* Choose Your Interest Section */}
+                  <div className="space-y-6">
+                    <div className="text-center md:text-left space-y-1">
+                      <h3 className="text-sm font-black uppercase tracking-wider text-slate-350">Choose Your Interest</h3>
+                      <p className="text-[10px] text-slate-500 font-bold">Select a topic below to instantly customize your recommended study spaces.</p>
                     </div>
                     
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       {[
                         { id: 'Programming & DSA', label: '💻 Programming & DSA' },
-                        { id: 'Web Development', label: '🌐 Web Dev' },
-                        { id: 'AI & Machine Learning', label: '🤖 AI & ML' },
+                        { id: 'Web Development', label: '🌐 Web Development' },
+                        { id: 'AI & Machine Learning', label: '🤖 AI & Machine Learning' },
                         { id: 'Aptitude & Reasoning', label: '📊 Aptitude' },
-                        { id: 'Interview Preparation', label: '🎯 Interviews' },
-                        { id: 'UPSC', label: '🏛 UPSC' },
+                        { id: 'Interview Preparation', label: '🎯 Interview Preparation' },
                         { id: 'GATE', label: '📖 GATE' },
+                        { id: 'UPSC', label: '🏛 UPSC' },
                         { id: 'Mathematics', label: '🧮 Mathematics' }
                       ].map((interest) => {
                         const isSelected = selectedInterests.includes(interest.id);
@@ -2715,16 +2702,19 @@ Based on your desking logs and consistency, the AI tutor recommends:
                                 setSelectedInterests(prev => [...prev, interest.id]);
                               }
                             }}
-                            className={`p-3.5 rounded-2xl border text-left text-xs font-black transition-all cursor-pointer relative overflow-hidden ${
+                            className={`p-4 rounded-2xl border text-left text-xs font-black transition-all cursor-pointer relative overflow-hidden active:scale-[0.98] ${
                               isSelected
-                                ? 'bg-[#5227EB]/10 border-indigo-500/40 text-white shadow-lg shadow-indigo-500/5'
-                                : 'bg-[#1E293B]/40 border-white/5 text-slate-455 hover:bg-[#1E293B]/80 hover:text-white'
+                                ? 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/40 text-white shadow-lg shadow-indigo-500/5'
+                                : 'bg-[#121829]/60 border-white/5 text-slate-455 hover:bg-[#161f36] hover:border-white/10 hover:text-white'
                             }`}
+                            style={{
+                              boxShadow: isSelected ? '0 0 15px -3px rgba(79, 70, 229, 0.15)' : 'none'
+                            }}
                           >
                             {isSelected && (
-                              <div className="absolute top-0 right-0 h-2 w-2 rounded-bl-lg bg-indigo-500" />
+                              <div className="absolute top-0 right-0 h-1.5 w-1.5 bg-indigo-500 rounded-bl-sm" />
                             )}
-                            {interest.label}
+                            <span className="relative z-10">{interest.label}</span>
                           </button>
                         );
                       })}
@@ -2732,258 +2722,114 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   </div>
 
                   {/* Recommended Study Rooms */}
-                  <div id="explore-rooms-section" className="space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                      <Sparkles className="h-4.5 w-4.5 text-indigo-400 animate-pulse" /> Recommended Study Rooms
-                    </h3>
+                  <div className="space-y-6">
+                    <div className="text-center md:text-left space-y-1">
+                      <h3 className="text-sm font-black uppercase tracking-wider text-slate-350">Recommended Study Rooms</h3>
+                      <p className="text-[10px] text-slate-500 font-bold">Hop directly into one of our high-activity beginner workspaces.</p>
+                    </div>
                     
                     <div className="grid md:grid-cols-3 gap-6">
-                      {/* Dynamic Backend integration for public groups */}
-                      {availableGroups.length > 0 && (
-                        availableGroups.slice(0, 3).map((g) => (
-                          <div 
-                            key={g.id}
-                            className="bg-gradient-to-br from-indigo-650/10 to-purple-600/10 border border-indigo-500/20 rounded-[24px] p-5 shadow-lg flex flex-col justify-between gap-4 transition-all duration-300 hover:scale-[1.01] text-left"
-                          >
-                            <div className="space-y-3">
-                              <div className="flex justify-between items-start">
-                                <span className="h-10 w-10 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-xl shrink-0">
-                                  🏫
-                                </span>
-                                <span className="text-[8px] font-black uppercase px-2.5 py-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/15 rounded-full">
-                                  Active Room
-                                </span>
-                              </div>
-                              <div className="space-y-1">
-                                <h4 className="text-sm font-black text-white">{g.name}</h4>
-                                <p className="text-[10px] text-slate-400 font-bold leading-normal">{g.description || 'Virtual study workspace circle.'}</p>
-                              </div>
-                              <span className="text-[8px] font-black bg-white/5 text-slate-350 px-2 py-0.5 rounded">
-                                Code: {g.inviteCode}
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-1">
-                              <span className="text-[9px] font-extrabold text-indigo-400 flex items-center gap-1">
-                                🟢 Active Peer World
-                              </span>
-                              <button
-                                onClick={() => handleJoinPublicCircle(g.id)}
-                                className="px-4 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[9px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-wide shadow-md"
-                              >
-                                Join Now
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-
-                      {/* Mock community rooms to ensure rich visual aesthetic */}
                       {[
                         {
-                          id: 'coding-galaxy',
-                          title: '🚀 Coding Galaxy',
-                          learners: 1200,
-                          desc: 'Perfect for beginners starting code algorithms.',
-                          tags: ['Programming & DSA', 'Beginner', 'DSA'],
-                          difficulty: 'Beginner',
+                          id: 'coding-room',
+                          title: '🚀 Coding Room',
+                          desc: 'Perfect for beginners',
+                          learners: 120,
                           color: 'from-blue-600/10 to-indigo-600/10 border-blue-500/20',
                           illustration: '🌌'
                         },
                         {
-                          id: 'dsa-arena',
-                          title: '🧠 DSA Arena',
-                          learners: 850,
-                          desc: 'Live competitive coding discussions and syntax tests.',
-                          tags: ['Programming & DSA', 'Interview Preparation', 'Intermediate'],
-                          difficulty: 'Intermediate',
+                          id: 'dsa-room',
+                          title: '🧠 DSA Room',
+                          desc: 'Practice coding and problem solving',
+                          learners: 95,
                           color: 'from-purple-600/10 to-pink-600/10 border-purple-500/20',
                           illustration: '🤺'
                         },
                         {
-                          id: 'ai-universe',
-                          title: '🤖 AI Universe',
-                          learners: 620,
-                          desc: 'Projects, research papers, and deep machine learning concepts.',
-                          tags: ['AI & Machine Learning', 'Advanced', 'ML'],
-                          difficulty: 'Advanced',
+                          id: 'ai-room',
+                          title: '🤖 AI Room',
+                          desc: 'Explore AI concepts and projects',
+                          learners: 80,
                           color: 'from-emerald-600/10 to-teal-600/10 border-emerald-500/20',
                           illustration: '👾'
-                        },
-                        {
-                          id: 'web-dev-lab',
-                          title: '🌐 Web Dev Lab',
-                          learners: 940,
-                          desc: 'Build frontend frameworks, backend APIs and modern SaaS.',
-                          tags: ['Web Development', 'Intermediate', 'HTML/JS'],
-                          difficulty: 'Intermediate',
-                          color: 'from-cyan-600/10 to-blue-600/10 border-cyan-500/20',
-                          illustration: '💻'
-                        },
-                        {
-                          id: 'aptitude-hub',
-                          title: '📊 Aptitude Hub',
-                          learners: 410,
-                          desc: 'Solve quantitative reasoning puzzles and logical questions.',
-                          tags: ['Aptitude & Reasoning', 'UPSC', 'GATE'],
-                          difficulty: 'Intermediate',
-                          color: 'from-amber-600/10 to-orange-600/10 border-amber-500/20',
-                          illustration: '📐'
                         }
-                      ]
-                        .filter(room => 
-                          selectedInterests.length === 0 || 
-                          room.tags.some(tag => selectedInterests.includes(tag))
-                        )
-                        .map((room) => (
-                          <div 
-                            key={room.id}
-                            className={`bg-gradient-to-br ${room.color} border rounded-[24px] p-5 shadow-lg flex flex-col justify-between gap-4 transition-all duration-300 hover:scale-[1.01] text-left`}
-                          >
-                            <div className="space-y-3">
-                              <div className="flex justify-between items-start">
-                                <span className="h-10 w-10 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-xl shrink-0">
-                                  {room.illustration}
-                                </span>
-                                <span className="text-[8px] font-black uppercase px-2.5 py-1 bg-white/5 border border-white/10 rounded-full text-slate-350">
-                                  {room.difficulty}
-                                </span>
-                              </div>
-                              <div className="space-y-1">
-                                <h4 className="text-sm font-black text-white">{room.title}</h4>
-                                <p className="text-[10px] text-slate-400 font-bold leading-normal">{room.desc}</p>
-                              </div>
-                              
-                              <div className="flex flex-wrap gap-1.5">
-                                {room.tags.slice(0, 2).map((t, idx) => (
-                                  <span key={idx} className="text-[8px] font-black bg-white/5 text-slate-350 px-2 py-0.5 rounded">
-                                    #{t.split(' ')[0]}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-1">
-                              <span className="text-[9px] font-extrabold text-indigo-400 flex items-center gap-1">
-                                🟢 {room.learners.toLocaleString()} Online
+                      ].map((room) => (
+                        <div 
+                          key={room.id}
+                          className={`bg-gradient-to-br ${room.color} border rounded-[24px] p-6 shadow-lg flex flex-col justify-between gap-5 transition-all duration-300 hover:scale-[1.01] text-left relative overflow-hidden`}
+                        >
+                          <div className="space-y-3 relative z-10">
+                            <div className="flex justify-between items-start">
+                              <span className="h-10 w-10 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-xl shrink-0">
+                                {room.illustration}
                               </span>
-                              <button
-                                onClick={() => showToast(`Successfully joined ${room.title}! Welcome to the circle.`, "success")}
-                                className="px-4 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[9px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-wide shadow-md shadow-indigo-650/10 active:scale-95"
-                              >
-                                Join Now
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Beginner Missions and Rewards Grid */}
-                  <div className="grid md:grid-cols-3 gap-6">
-                    
-                    {/* Beginner Missions */}
-                    <div className="md:col-span-2 bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left">
-                      <div className="flex justify-between items-center">
-                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                          🎯 Beginner Missions
-                        </h4>
-                        <span className="text-[9px] text-indigo-455 font-black uppercase">Earn XP</span>
-                      </div>
-                      
-                      <div className="grid sm:grid-cols-2 gap-3.5">
-                        {[
-                          { id: 'bm1', num: 1, title: 'Join Your First Study Room', reward: '+20 XP', desc: 'Interact with peers in workspace channels.' },
-                          { id: 'bm2', num: 2, title: 'Study for 30 Minutes', reward: '+50 XP', desc: 'Log focus log on note boards.' },
-                          { id: 'bm3', num: 3, title: 'Introduce Yourself', reward: '+20 XP', desc: 'Write a bio or say hello in chat lobby.' },
-                          { id: 'bm4', num: 4, title: 'Maintain a 3-Day Streak', reward: 'Unlock Vault', desc: 'Maintain study consistency logs.' }
-                        ].map((mission) => (
-                          <div key={mission.id} className="p-3 bg-[#0B0F19]/60 border border-white/5 rounded-2xl flex gap-3 items-start hover:border-white/10 transition-all">
-                            <div className="h-7 w-7 rounded-xl bg-indigo-500/10 text-indigo-450 border border-indigo-500/15 flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
-                              {mission.num}
+                              <span className="text-[9px] font-black uppercase px-2.5 py-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 rounded-full flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Online
+                              </span>
                             </div>
                             <div className="space-y-1">
-                              <p className="text-[11px] font-black text-slate-200">{mission.title}</p>
-                              <p className="text-[9px] text-slate-450 leading-normal">{mission.desc}</p>
-                              <span className="text-[8px] font-black text-indigo-400 bg-indigo-500/10 border border-indigo-500/10 rounded px-1.5 py-0.25 inline-block mt-1">
-                                {mission.reward}
-                              </span>
+                              <h4 className="text-sm font-black text-white">{room.title}</h4>
+                              <p className="text-[10px] text-slate-400 font-bold leading-normal">{room.desc}</p>
+                            </div>
+                            
+                            {/* Member Avatars simulation */}
+                            <div className="flex items-center gap-1.5 pt-2">
+                              <div className="flex -space-x-2 overflow-hidden">
+                                <img className="inline-block h-5 w-5 rounded-full ring-2 ring-[#0a0f1d]" src="/swathi-avatar.png" alt="" />
+                                <img className="inline-block h-5 w-5 rounded-full ring-2 ring-[#0a0f1d]" src="/bhagya-avatar.png" alt="" />
+                                <img className="inline-block h-5 w-5 rounded-full ring-2 ring-[#0a0f1d]" src="/rathna-avatar.png" alt="" />
+                              </div>
+                              <span className="text-[8px] font-black text-slate-450 uppercase tracking-wide">{room.learners} learners online</span>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Welcome Rewards */}
-                    <div className="bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A]/90 to-[#1F3A35]/30 border border-[#10B981]/25 rounded-[24px] p-6 space-y-4 text-left flex flex-col justify-between">
-                      <div className="space-y-3">
-                        <h4 className="text-xs font-black uppercase tracking-wider text-[#10B981] flex items-center gap-1.5">
-                          🎁 New Member Rewards
-                        </h4>
-                        <p className="text-[10px] text-slate-400 leading-normal font-bold">Special starter bonuses to kick off your consistency journey!</p>
-                      </div>
-                      
-                      <div className="space-y-3 text-[10px] font-bold text-slate-350">
-                        <div className="flex justify-between items-center p-2 bg-[#0B0F19]/60 border border-white/5 rounded-xl">
-                          <span>Join First Room</span>
-                          <span className="text-[#10B981] font-extrabold">+50 Coins 🪙</span>
+                          
+                          <div className="pt-4 border-t border-white/5 mt-1 relative z-10">
+                            <button
+                              onClick={() => {
+                                const realGroup = availableGroups.find(g => g.name.toLowerCase().includes(room.id.split('-')[0]));
+                                if (realGroup) {
+                                  handleJoinPublicCircle(realGroup.id);
+                                } else {
+                                  showToast(`Successfully joined the ${room.title}! Welcome to the circle.`, "success");
+                                }
+                              }}
+                              className="w-full py-2.5 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-[10px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-widest shadow-md shadow-indigo-650/15 active:scale-[0.98]"
+                            >
+                              Join Room
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center p-2 bg-[#0B0F19]/60 border border-white/5 rounded-xl">
-                          <span>Complete First Study Session</span>
-                          <span className="text-[#10B981] font-extrabold">+100 XP 🏆</span>
-                        </div>
-                        <div className="flex justify-between items-center p-2 bg-[#0B0F19]/60 border border-white/5 rounded-xl">
-                          <span>Complete All Beginner Missions</span>
-                          <span className="text-amber-450 font-extrabold">Unlock Notes Pack 🔒</span>
-                        </div>
-                      </div>
-                      
-                      <button
-                        onClick={() => {
-                          showToast("Starter rewards activated! Go complete your beginner missions.", "success");
-                        }}
-                        className="w-full py-2 bg-[#10B981] hover:bg-[#059669] text-white text-[10px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-wide active:scale-95"
-                      >
-                        Activate Rewards
-                      </button>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Locked Preview & Testimonials */}
-                  <div className="grid md:grid-cols-2 gap-6">
-                    
-                    {/* Locked Features */}
-                    <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left">
-                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Locked Features Preview</h4>
-                      <div className="space-y-2.5">
-                        {[
-                          { id: 'lf1', title: '🔒 Elite Coding Room', req: 'Requires Level 5 Scholar' },
-                          { id: 'lf2', title: '🔒 Mentor Circle', req: 'Requires 7 completed study days' },
-                          { id: 'lf3', title: '🔒 Premium Resources Vault', req: 'Requires 5 focus sessions logged' }
-                        ].map((feat) => (
-                          <div key={feat.id} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-center justify-between opacity-75">
-                            <span className="text-xs font-black text-slate-300">{feat.title}</span>
-                            <span className="text-[8px] font-black bg-white/5 text-slate-500 px-2 py-0.5 rounded border border-white/5">
-                              {feat.req}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                  {/* Beginner Journey Section */}
+                  <div className="space-y-6">
+                    <div className="text-center md:text-left space-y-1">
+                      <h3 className="text-sm font-black uppercase tracking-wider text-slate-350">Beginner Journey</h3>
+                      <p className="text-[10px] text-slate-500 font-bold">Follow this roadmap to unlock the full potential of StudyCircle.</p>
                     </div>
 
-                    {/* Success Stories */}
-                    <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-6 space-y-4 text-left">
-                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Success Stories</h4>
-                      <div className="space-y-3">
+                    <div className="relative p-8 bg-[#121829]/30 border border-white/5 rounded-[28px] overflow-hidden">
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 relative z-10 text-center sm:text-left">
                         {[
-                          { id: 't1', text: '"StudyCircle helped me stay consistent for 45 days."', author: 'Ananya', role: 'Scholar Level 15', badge: 'Silver 🔥' },
-                          { id: 't2', text: '"Found amazing coding partners and cracked interviews."', author: 'Rohan', role: 'Master Level 20', badge: 'FAANG 🏆' }
-                        ].map((story) => (
-                          <div key={story.id} className="p-3.5 bg-[#0B0F19]/40 border border-white/5 rounded-2xl space-y-1.5">
-                            <p className="text-[10px] font-semibold text-slate-300 leading-normal italic">{story.text}</p>
-                            <div className="flex justify-between items-center text-[9px] text-slate-455 font-bold">
-                              <span>👤 {story.author} • {story.role}</span>
-                              <span className="text-indigo-400 font-black uppercase">{story.badge}</span>
+                          { step: 1, title: 'Join Your First Study Room', desc: 'Find a community and claim your focus desk.' },
+                          { step: 2, title: 'Attend One Study Session', desc: 'Study quietly or chat with your peers.' },
+                          { step: 3, title: 'Unlock Resources', desc: 'Gain access to notes, cheat sheets, and guidelines.' },
+                          { step: 4, title: 'Build Your Study Streak', desc: 'Desk consistently every day to establish habits.' }
+                        ].map((journey, idx) => (
+                          <div key={journey.step} className="space-y-3 relative">
+                            {/* Visual connector line between steps (only on desktop) */}
+                            {idx < 3 && (
+                              <div className="hidden sm:block absolute top-4 left-[60%] right-[-40%] h-0.5 bg-gradient-to-r from-indigo-500/30 to-indigo-500/10 pointer-events-none z-0" />
+                            )}
+                            <div className="inline-flex h-9 w-9 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 items-center justify-center font-black text-xs relative z-10 shadow-sm">
+                              {journey.step}
+                            </div>
+                            <div className="space-y-1">
+                              <h4 className="text-[11px] font-black text-slate-200">{journey.title}</h4>
+                              <p className="text-[9px] text-slate-455 leading-relaxed font-semibold">{journey.desc}</p>
                             </div>
                           </div>
                         ))}
@@ -2992,18 +2838,18 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   </div>
 
                   {/* Motivational Banner */}
-                  <div className="bg-gradient-to-r from-indigo-500/10 via-[#0F172A] to-purple-500/10 border border-indigo-500/20 rounded-[28px] p-8 text-center space-y-5 relative overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-500/10 via-[#0a0f1d] to-purple-500/10 border border-indigo-500/20 rounded-[28px] p-8 text-center space-y-5 relative overflow-hidden">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
                     <div className="relative space-y-2">
                       <p className="text-sm font-black text-slate-200">"Every expert was once a beginner."</p>
-                      <p className="text-xs text-slate-450 font-bold">Start your first study session today and build your focus streak.</p>
                     </div>
                     <button
                       onClick={() => {
-                        setActiveTab('dashboard');
-                        showToast('Welcome to your first study desk! Starting session...', 'success');
+                        const exploreSection = document.getElementById('explore-rooms-section');
+                        exploreSection?.scrollIntoView({ behavior: 'smooth' });
+                        showToast('Choose an interest or join a featured study room above!', 'info');
                       }}
-                      className="relative px-6 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-wide shadow-md shadow-indigo-650/20 active:scale-95"
+                      className="relative px-8 py-2.5 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-[10px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-widest shadow-md shadow-indigo-650/20 active:scale-[0.98]"
                     >
                       Start Learning
                     </button>
