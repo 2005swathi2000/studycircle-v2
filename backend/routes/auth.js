@@ -839,8 +839,8 @@ router.post('/google', async (req, res) => {
     if (credential === 'mock_google_credential_token') {
       console.log('[Google Auth] Using local sandbox verification fallback.');
       payload = {
-        email: 'google.demo@studycircle.com',
-        name: 'Google Demo Student',
+        email: 'student.demo@studycircle.com',
+        name: 'Vijay Kumar (Google Demo)',
         picture: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'
       };
     } else {
@@ -873,7 +873,7 @@ router.post('/google', async (req, res) => {
     const email = payload.email.trim().toLowerCase();
     const fullName = payload.name || 'Google Student';
     
-    // Find or create user
+    // Find user
     let user = await User.findOne({
       where: {
         [Op.or]: [
@@ -885,42 +885,9 @@ router.post('/google', async (req, res) => {
     });
 
     if (!user) {
-      // Automatically register a new student user
-      const usernameParts = email.split('@');
-      const baseUsername = usernameParts[0].replace(/[^a-zA-Z0-9]/g, '');
-      const uniqueSuffix = Math.floor(1000 + Math.random() * 9000);
-      const username = `${baseUsername}${uniqueSuffix}`.toLowerCase();
-      
-      const nameParts = fullName.split(' ');
-      const firstName = nameParts[0] || 'Google';
-      const lastName = nameParts.slice(1).join(' ') || 'Student';
-
-      // Generate a secure random password
-      const password = Math.random().toString(36).slice(-10) + 'Go1!';
-
-      user = await User.create({
-        fullName,
-        username,
-        password,
-        role: 'student',
-        phoneOrEmail: email,
-        email: email,
-        isVerified: true,
-        isApproved: true, // Auto-approve Google student accounts
-        firstName,
-        lastName,
-        gender: 'other',
-        provider: 'google',
-        avatarUrl: payload.picture || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'
+      return res.status(400).json({
+        error: "This Google account is not linked to StudyCircle. Please continue with your registered email address."
       });
-
-      console.log(`[Google Auth] Created new user: @${username} (${email})`);
-    } else {
-      // If user exists and provider is local, link/update their provider to google
-      if (!user.provider || user.provider === 'local') {
-        user.provider = 'google';
-        await user.save();
-      }
     }
 
     const token = signToken(user, false);
