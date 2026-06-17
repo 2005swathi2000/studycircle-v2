@@ -53,7 +53,9 @@ import {
   ChevronUp,
   Download,
   Bookmark,
-  HelpCircle
+  HelpCircle,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
 interface Group {
@@ -89,7 +91,8 @@ type TabType =
   | 'announcements'
   | 'feedback'
   | 'roles'
-  | 'profile';
+  | 'profile'
+  | 'resources';
 
 // Helper to determine gender-based profile picture dynamically
 const getAvatarByName = (fullName: string | null | undefined, gender?: string): string => {
@@ -174,7 +177,12 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   useEffect(() => {
     if (!globalLoading && !bypassRedirect) {
       if (!user) {
-        router.push('/?login=true');
+        if (typeof window !== 'undefined' && sessionStorage.getItem('explicit_logout') === 'true') {
+          sessionStorage.removeItem('explicit_logout');
+          router.push('/');
+        } else {
+          router.push('/?login=true');
+        }
       } else {
         router.push(`/${user.role}/dashboard`);
       }
@@ -319,6 +327,180 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
 
   // Navigation tab state matching sidebar clicks
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+
+  // Resources States
+  const [resourcesSearch, setResourcesSearch] = useState('');
+  const [resourcesFilter, setResourcesFilter] = useState('All');
+  const [unlockedResources, setUnlockedResources] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('studycircle_unlocked_resources');
+      return saved ? JSON.parse(saved) : ['dsa-notes'];
+    }
+    return ['dsa-notes'];
+  });
+
+  const [claimedTodayReward, setClaimedTodayReward] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('studycircle_claimed_today_reward') === 'true';
+    }
+    return false;
+  });
+
+  const resourcesList = [
+    {
+      id: 'dsa-notes',
+      title: 'DSA Complete Notes',
+      category: 'Notes',
+      description: 'Comprehensive Data Structures and Algorithms lecture reference notes.',
+      coinsReq: 150,
+      streakReq: 7,
+      hoursReq: 0,
+      levelReq: 1
+    },
+    {
+      id: 'dsa-cheatsheet',
+      title: 'DSA Cheat Sheet',
+      category: 'Cheatsheets',
+      description: 'Quick reference cheat sheet for standard algorithms and complexities.',
+      coinsReq: 50,
+      streakReq: 0,
+      hoursReq: 0,
+      levelReq: 1
+    },
+    {
+      id: 'interview-quest-bank',
+      title: 'Interview Question Bank',
+      category: 'Practice',
+      description: 'Frequently asked interview coding questions, logic tests, and solutions.',
+      coinsReq: 350,
+      streakReq: 0,
+      hoursReq: 0,
+      levelReq: 1
+    },
+    {
+      id: 'system-design',
+      title: 'System Design Basics',
+      category: 'Videos',
+      description: 'Beginner to advanced system design video lectures and architectures.',
+      coinsReq: 200,
+      streakReq: 0,
+      hoursReq: 5,
+      levelReq: 3
+    },
+    {
+      id: 'leetcode-patterns',
+      title: 'LeetCode Patterns',
+      category: 'Practice',
+      description: 'Top coding patterns with curated problems, explanations and solutions.',
+      coinsReq: 250,
+      streakReq: 0,
+      hoursReq: 10,
+      levelReq: 5
+    },
+    {
+      id: 'clean-code',
+      title: 'Clean Code (PDF)',
+      category: 'Books',
+      description: 'A handbook of agile software craftsmanship, code styling and readability.',
+      coinsReq: 300,
+      streakReq: 5,
+      hoursReq: 12,
+      levelReq: 5
+    },
+    {
+      id: 'aptitude-guide',
+      title: 'Aptitude Master Guide',
+      category: 'Practice',
+      description: 'Complete quantitative and logical aptitude preparation with tips.',
+      coinsReq: 500,
+      streakReq: 0,
+      hoursReq: 20,
+      levelReq: 6
+    },
+    {
+      id: 'interview-kit',
+      title: 'Interview Preparation Kit',
+      category: 'Practice',
+      description: 'Comprehensive HR, technical, coding interview guide with answers.',
+      coinsReq: 700,
+      streakReq: 15,
+      hoursReq: 25,
+      levelReq: 8
+    },
+    {
+      id: 'cs-fundamentals',
+      title: 'CS Fundamentals',
+      category: 'Notes',
+      description: 'Crucial Operating Systems, DBMS and Computer Networks concepts.',
+      coinsReq: 800,
+      streakReq: 0,
+      hoursReq: 30,
+      levelReq: 10
+    },
+    {
+      id: 'faang-pack',
+      title: 'FAANG Resource Pack',
+      category: 'Courses',
+      description: 'Mock interviews, resume templates and coding sheets from FAANG engineers.',
+      coinsReq: 1000,
+      streakReq: 30,
+      hoursReq: 50,
+      levelReq: 12
+    }
+  ];
+
+  const handleUnlockResource = (id: string, coinsReq: number) => {
+    if (typeof window !== 'undefined') {
+      const updated = [...unlockedResources, id];
+      setUnlockedResources(updated);
+      localStorage.setItem('studycircle_unlocked_resources', JSON.stringify(updated));
+      showToast('Resource unlocked successfully!', 'success');
+    }
+  };
+
+  const handleClaimTodayReward = () => {
+    setClaimedTodayReward(true);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('studycircle_claimed_today_reward', 'true');
+    }
+    if (!unlockedResources.includes('dsa-cheatsheet')) {
+      const updated = [...unlockedResources, 'dsa-cheatsheet'];
+      setUnlockedResources(updated);
+      localStorage.setItem('studycircle_unlocked_resources', JSON.stringify(updated));
+    }
+    showToast('Success! DSA Cheat Sheet has been added to your unlocked resources.', 'success');
+  };
+
+  const getNextUnlockProgress = (res: any) => {
+    const reqs = [];
+    if (res.coinsReq > 0) reqs.push(Math.min(100, (stats.focusCoins / res.coinsReq) * 100));
+    if (res.streakReq > 0) reqs.push(Math.min(100, (stats.streakCount / res.streakReq) * 100));
+    if (res.hoursReq > 0) reqs.push(Math.min(100, (stats.totalStudyHours / res.hoursReq) * 100));
+    if (res.levelReq > 1) reqs.push(Math.min(100, (stats.level / res.levelReq) * 100));
+    
+    if (reqs.length === 0) return 100;
+    const sum = reqs.reduce((a, b) => a + b, 0);
+    return Math.round(sum / reqs.length);
+  };
+
+  const getNextUnlockNudge = (res: any) => {
+    const missing = [];
+    if (stats.focusCoins < res.coinsReq) {
+      missing.push(`${res.coinsReq - stats.focusCoins} more coins`);
+    }
+    if (res.streakReq > 0 && stats.streakCount < res.streakReq) {
+      missing.push(`${res.streakReq - stats.streakCount} more streak days`);
+    }
+    if (res.hoursReq > 0 && stats.totalStudyHours < res.hoursReq) {
+      missing.push(`${(res.hoursReq - stats.totalStudyHours).toFixed(1)} more study hours`);
+    }
+    if (res.levelReq > 1 && stats.level < res.levelReq) {
+      missing.push(`Level ${res.levelReq} (currently Level ${stats.level})`);
+    }
+    
+    if (missing.length === 0) return "Ready to unlock!";
+    return `Need: ${missing.join(', ')}`;
+  };
 
   // Join Circle States
   const [inviteCode, setInviteCode] = useState('');
@@ -1091,6 +1273,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
   };
 
   const handleLogout = async () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('explicit_logout', 'true');
+    }
     await logout();
     showToast('Logged out successfully!', 'success');
     router.push('/');
@@ -1148,14 +1333,12 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 onClick={() => {
                   if (link.id === 'doubts') {
                     setActiveTab('discussions');
-                  } else if (link.id === 'resources') {
-                    setActiveTab('bookmarks');
                   } else {
                     setActiveTab(link.id as TabType);
                   }
                 }}
                 className={`w-full px-3 py-2.5 rounded-xl text-[11px] font-bold flex items-center gap-3 transition-all cursor-pointer text-left ${
-                  isActive || (link.id === 'doubts' && activeTab === 'discussions') || (link.id === 'resources' && activeTab === 'bookmarks')
+                  isActive || (link.id === 'doubts' && activeTab === 'discussions')
                     ? activeStyles 
                     : 'text-slate-400 hover:bg-white/[0.02] hover:text-white'
                 }`}
@@ -1336,7 +1519,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
               <div className="bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-[24px] shadow-lg p-6 flex flex-col justify-between text-left relative overflow-hidden group text-white">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h2 className="text-lg font-black text-white leading-tight">{getGreeting()} {user?.fullName ? user.fullName.split(' ')[0] : 'User'} 👋</h2>
+                    <h2 className="text-lg font-black text-white leading-tight">{getGreeting()} 👋</h2>
                     <p className="text-[10px] text-zinc-450 font-extrabold tracking-wide uppercase mt-1">Today's Goals</p>
                   </div>
                   {/* Overall progress ring */}
@@ -2497,6 +2680,507 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Tab: Resources (Gamified progression vault) */}
+          {activeTab === 'resources' && (
+            <div className="space-y-6 text-left animate-in fade-in duration-350 text-white">
+              {/* Header Banner */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-r from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-[24px] shadow-lg p-6 relative overflow-hidden">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-indigo-400" />
+                    <h2 className="text-xl font-black text-white">Resources</h2>
+                  </div>
+                  <p className="text-xs text-slate-350">Learn. Earn. Unlock. Grow. ✨</p>
+                </div>
+                
+                {/* Stats Panel matching the top bar header of mockup */}
+                <div className="flex flex-wrap items-center gap-4">
+                  {/* StudyCoins */}
+                  <div className="flex items-center gap-2 bg-[#0B0F19] border border-white/5 rounded-2xl px-4 py-2.5 shadow-sm">
+                    <span className="text-amber-500 font-extrabold text-sm flex items-center justify-center bg-amber-500/10 h-7 w-7 rounded-lg">🪙</span>
+                    <div>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Balance</p>
+                      <p className="text-xs font-black text-slate-200">{stats.focusCoins.toLocaleString()} StudyCoins</p>
+                    </div>
+                  </div>
+                  {/* Streak */}
+                  <div className="flex items-center gap-2 bg-[#0B0F19] border border-white/5 rounded-2xl px-4 py-2.5 shadow-sm">
+                    <Flame className="h-4.5 w-4.5 text-orange-500" />
+                    <div>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Streak</p>
+                      <p className="text-xs font-black text-slate-200">{stats.streakCount} Day Streak</p>
+                    </div>
+                  </div>
+                  {/* Level */}
+                  <div className="flex items-center gap-2 bg-[#0B0F19] border border-white/5 rounded-2xl px-4 py-2.5 shadow-sm">
+                    <img 
+                      src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)}
+                      className="h-8 w-8 rounded-full border border-[#5227EB]"
+                      alt="Avatar"
+                    />
+                    <div>
+                      <p className="text-[9px] text-slate-450 font-bold uppercase tracking-wider">{user?.fullName?.split(' ')[0] || 'User'}</p>
+                      <p className="text-xs font-black text-slate-200">Level {stats.level}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Engagement Cards (Interactive Next Unlock, Daily Reward, Study Quest) */}
+              <div className="grid md:grid-cols-3 gap-6">
+                {/* 1. Next Unlock */}
+                {(() => {
+                  const nextResource = resourcesList.find(res => !unlockedResources.includes(res.id)) || null;
+                  if (!nextResource) {
+                    return (
+                      <div className="bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A]/90 to-[#312E81]/30 border border-indigo-500/25 rounded-[24px] p-5 space-y-4 shadow-lg text-left">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                            🔥 Next Unlock
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-black text-slate-100">All Unlocked!</h4>
+                          <p className="text-[10px] text-slate-400 leading-normal font-bold">You have unlocked all premium resources. Great work! 🏆</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center text-[10px] font-black text-slate-350">
+                            <span>Progress</span>
+                            <span>100%</span>
+                          </div>
+                          <div className="w-full bg-[#0B0F19] h-2 rounded-full overflow-hidden">
+                            <div className="bg-indigo-500 h-full rounded-full" style={{ width: '100%' }} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  const progress = getNextUnlockProgress(nextResource);
+                  const nudge = getNextUnlockNudge(nextResource);
+                  return (
+                    <div className="bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A]/90 to-[#312E81]/30 border border-[#818CF8]/25 rounded-[24px] p-5 space-y-4 shadow-lg text-left flex flex-col justify-between">
+                      <div className="space-y-3.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                            🔥 Next Unlock
+                          </span>
+                          <span className="text-[9px] font-black text-slate-450 uppercase tracking-wider">In Progress</span>
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-black text-slate-100">{nextResource.title}</h4>
+                          <p className="text-[10px] text-[#818CF8] font-black">{nudge}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2.5">
+                        <div className="flex justify-between items-center text-[10px] font-black text-slate-350">
+                          <span>Progress</span>
+                          <span>{progress}%</span>
+                        </div>
+                        <div className="w-full bg-[#0B0F19] h-2 rounded-full overflow-hidden">
+                          <div className="bg-indigo-500 h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 2. Today's Reward */}
+                {(() => {
+                  const studyMins = Math.floor(timerSeconds / 60);
+                  const studyPercent = Math.min(100, Math.round((timerSeconds / 3600) * 100));
+                  const isCompleted = studyPercent >= 100;
+                  
+                  return (
+                    <div className="bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A]/90 to-[#064E3B]/30 border border-[#10B981]/25 rounded-[24px] p-5 space-y-4 shadow-lg text-left flex flex-col justify-between">
+                      <div className="space-y-3.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                            🎁 Today's Reward
+                          </span>
+                          {claimedTodayReward ? (
+                            <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/10 rounded px-1.5 py-0.5">Claimed ✓</span>
+                          ) : isCompleted ? (
+                            <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/10 rounded px-1.5 py-0.5 animate-pulse">Ready!</span>
+                          ) : (
+                            <span className="text-[9px] font-black text-slate-455 uppercase tracking-wider">Daily Goal</span>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-black text-slate-100">Study 60 mins</h4>
+                          <p className="text-[10px] text-emerald-450 font-black">Reward: DSA Cheat Sheet</p>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-[10px] font-black text-slate-350">
+                          <span>Progress</span>
+                          <span>{studyMins} / 60 mins</span>
+                        </div>
+                        <div className="w-full bg-[#0B0F19] h-2 rounded-full overflow-hidden">
+                          <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${studyPercent}%` }} />
+                        </div>
+                        
+                        {!claimedTodayReward && isCompleted ? (
+                          <button
+                            onClick={handleClaimTodayReward}
+                            className="w-full py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black rounded-xl transition-all cursor-pointer border-none text-center shadow-md shadow-emerald-500/20 active:scale-95 mt-1"
+                          >
+                            Claim Cheat Sheet
+                          </button>
+                        ) : claimedTodayReward ? (
+                          <button
+                            disabled
+                            className="w-full py-1.5 bg-white/5 border border-white/5 text-slate-500 text-[10px] font-black rounded-xl text-center mt-1 cursor-not-allowed opacity-60"
+                          >
+                            Claimed Successfully
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setActiveTab('dashboard');
+                              showToast('Start the focus timer to log study sessions and complete this goal!', 'info');
+                            }}
+                            className="w-full py-1.5 bg-white/5 border border-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-black rounded-xl transition-all cursor-pointer text-center mt-1"
+                          >
+                            Start Focus Timer
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 3. Study Quest */}
+                {(() => {
+                  const questPercent = 80;
+                  return (
+                    <div className="bg-gradient-to-br from-[#1E293B]/80 via-[#0F172A]/90 to-[#78350F]/30 border border-amber-500/25 rounded-[24px] p-5 space-y-4 shadow-lg text-left flex flex-col justify-between">
+                      <div className="space-y-3.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-amber-450 uppercase tracking-wider flex items-center gap-1.5">
+                            🏆 Weekly Quest
+                          </span>
+                          <span className="text-[9px] font-black text-slate-455 uppercase tracking-wider">Active</span>
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-black text-slate-100">Complete 5 sessions this week</h4>
+                          <p className="text-[10px] text-amber-500 font-black">Reward: Interview Question Bank</p>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-[10px] font-black text-slate-350">
+                          <span>Quest Progress</span>
+                          <span>4 / 5 sessions</span>
+                        </div>
+                        <div className="w-full bg-[#0B0F19] h-2 rounded-full overflow-hidden">
+                          <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${questPercent}%` }} />
+                        </div>
+                        
+                        <button
+                          onClick={() => {
+                            setActiveTab('rooms');
+                            showToast('Join study rooms or log focus sessions to complete the weekly quest!', 'info');
+                          }}
+                          className="w-full py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black rounded-xl transition-all cursor-pointer text-center border-none shadow-md shadow-indigo-650/15"
+                        >
+                          Join Study Room
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Main Content Area */}
+              <div className="grid lg:grid-cols-3 gap-6">
+                
+                {/* Left Area (70%): Filters & Grid */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Filters and Search Bar */}
+                  <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+                    {/* Category Filter Chips */}
+                    <div className="flex flex-wrap gap-2">
+                      {['All', 'Notes', 'Courses', 'Videos', 'Practice', 'Books', 'Cheatsheets'].map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setResourcesFilter(cat)}
+                          className={`px-3.5 py-1.5 rounded-full text-[10px] font-extrabold border transition-all cursor-pointer ${
+                            resourcesFilter === cat
+                              ? 'bg-[#5227EB] border-[#5227EB] text-white shadow-md shadow-[#5227EB]/20'
+                              : 'bg-[#1E293B]/40 border-white/5 text-slate-450 hover:bg-[#1E293B]/80 hover:text-white'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Search */}
+                    <div className="relative flex-1 sm:max-w-xs">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search resources..."
+                        value={resourcesSearch}
+                        onChange={(e) => setResourcesSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 bg-[#1E293B]/40 border border-white/5 rounded-xl text-xs font-bold text-white placeholder-slate-400 focus:outline-none focus:border-[#5227EB]/40 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Explore Grid */}
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                      <Sparkles className="h-4.5 w-4.5 text-indigo-400" /> Explore Resources
+                    </h3>
+                    
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {resourcesList
+                        .filter(res => {
+                          const matchesFilter = resourcesFilter === 'All' || res.category === resourcesFilter;
+                          const matchesSearch = res.title.toLowerCase().includes(resourcesSearch.toLowerCase()) ||
+                                                res.description.toLowerCase().includes(resourcesSearch.toLowerCase());
+                          return matchesFilter && matchesSearch;
+                        })
+                        .map((resource) => {
+                          const isUnlocked = unlockedResources.includes(resource.id);
+                          const isEligible = 
+                            stats.focusCoins >= resource.coinsReq && 
+                            stats.streakCount >= resource.streakReq && 
+                            stats.totalStudyHours >= resource.hoursReq && 
+                            stats.level >= resource.levelReq;
+                          
+                          return (
+                            <div 
+                              key={resource.id} 
+                              className={`bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] border rounded-[24px] shadow-lg p-5 flex flex-col justify-between gap-4 transition-all duration-300 hover:shadow-xl ${
+                                isUnlocked 
+                                  ? 'border-emerald-500/35 hover:border-emerald-500/50' 
+                                  : isEligible
+                                    ? 'border-indigo-500/35 hover:border-[#5227EB]/50'
+                                    : 'border-white/5 hover:border-white/10 opacity-80'
+                              }`}
+                            >
+                              <div className="space-y-3">
+                                <div className="flex justify-between items-start">
+                                  <span className={`text-[8px] font-black uppercase px-2.5 py-1 rounded-full border ${
+                                    resource.category === 'Notes' ? 'bg-indigo-500/15 border-indigo-400/20 text-indigo-400' :
+                                    resource.category === 'Videos' ? 'bg-emerald-500/15 border-emerald-400/20 text-emerald-400' :
+                                    resource.category === 'Practice' ? 'bg-amber-500/15 border-amber-400/20 text-amber-500' :
+                                    'bg-sky-500/15 border-sky-400/20 text-sky-400'
+                                  }`}>
+                                    {resource.category}
+                                  </span>
+                                  
+                                  {isUnlocked ? (
+                                    <span className="text-[8px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/15">
+                                      Unlocked
+                                    </span>
+                                  ) : (
+                                    <span className="text-[8px] font-extrabold uppercase px-2 py-0.5 rounded bg-rose-500/15 text-rose-450 border border-rose-500/15 flex items-center gap-1">
+                                      <Lock className="h-2.5 w-2.5" /> Locked
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="space-y-1">
+                                  <h4 className="text-xs font-black text-white">{resource.title}</h4>
+                                  <p className="text-[10px] text-slate-400 font-bold leading-normal">{resource.description}</p>
+                                </div>
+                                
+                                {/* Lock Requirements Overview */}
+                                {!isUnlocked && (
+                                  <div className="bg-[#0B0F19]/60 border border-white/5 rounded-xl p-2.5 space-y-1.5 text-[9px] font-bold">
+                                    <p className="text-slate-400 uppercase tracking-wide text-[8px] font-black">Requirements to Unlock:</p>
+                                    <div className="grid grid-cols-2 gap-1.5 text-slate-350">
+                                      <div className={`flex items-center gap-1 ${stats.focusCoins >= resource.coinsReq ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                        <span>🪙</span> {resource.coinsReq} Coins
+                                      </div>
+                                      {resource.streakReq > 0 && (
+                                        <div className={`flex items-center gap-1 ${stats.streakCount >= resource.streakReq ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                          <Flame className="h-2.5 w-2.5" /> {resource.streakReq} Day Streak
+                                        </div>
+                                      )}
+                                      {resource.hoursReq > 0 && (
+                                        <div className={`flex items-center gap-1 ${stats.totalStudyHours >= resource.hoursReq ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                          <Clock className="h-2.5 w-2.5" /> {resource.hoursReq} Study Hours
+                                        </div>
+                                      )}
+                                      {resource.levelReq > 1 && (
+                                        <div className={`flex items-center gap-1 ${stats.level >= resource.levelReq ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                          <Shield className="h-2.5 w-2.5" /> Level {resource.levelReq}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <div className="pt-2 border-t border-white/5">
+                                {isUnlocked ? (
+                                  <button
+                                    onClick={() => showToast(`Accessing ${resource.title}...`, 'success')}
+                                    className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-700/10"
+                                  >
+                                    <Download className="h-3 w-3" /> Access Resource
+                                  </button>
+                                ) : isEligible ? (
+                                  <button
+                                    onClick={() => handleUnlockResource(resource.id, resource.coinsReq)}
+                                    className="w-full py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-indigo-650/10 hover:shadow-indigo-600/20 active:scale-[0.98]"
+                                  >
+                                    <Unlock className="h-3 w-3" /> Unlock Resource
+                                  </button>
+                                ) : (
+                                  <button
+                                    disabled
+                                    className="w-full py-1.5 bg-white/5 border border-white/5 text-slate-500 text-[10px] font-black rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5 opacity-60"
+                                  >
+                                    <Lock className="h-3 w-3" /> Locked (Inconsistent)
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Area (30%): Sidebar */}
+                <div className="space-y-6">
+                  {/* Balance details */}
+                  <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-5 space-y-4 text-left">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Your Balance</h4>
+                    <div className="space-y-3">
+                      <div className="p-4 bg-[#0B0F19] border border-white/5 rounded-2xl flex items-center justify-between">
+                        <div>
+                          <p className="text-[14px] font-black text-slate-100">{stats.focusCoins.toLocaleString()}</p>
+                          <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider mt-0.5">StudyCoins</p>
+                        </div>
+                        <span className="text-xl">🪙</span>
+                      </div>
+                      <button
+                        onClick={() => showToast('Transaction history is empty.', 'info')}
+                        className="w-full py-2 bg-white/5 border border-white/5 hover:bg-white/10 text-slate-350 text-[10px] font-extrabold rounded-xl transition-all cursor-pointer text-center"
+                      >
+                        View Transaction History
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Rules of consistency */}
+                  <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-5 space-y-4 text-left">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Unlock Rules</h4>
+                    <div className="space-y-3.5 text-[10px] font-bold text-slate-300">
+                      <div className="flex gap-2.5 items-start">
+                        <div className="h-6 w-6 rounded-lg bg-emerald-500/10 border border-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 font-extrabold text-xs">🪙</div>
+                        <div>
+                          <p className="text-slate-100 font-extrabold text-[11px]">Study & earn coins</p>
+                          <p className="text-[9px] text-slate-400 leading-normal mt-0.5">Log focus sessions and complete goals to earn currency.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5 items-start">
+                        <div className="h-6 w-6 rounded-lg bg-orange-500/10 border border-orange-500/10 flex items-center justify-center text-orange-400 shrink-0 font-extrabold text-xs">🔥</div>
+                        <div>
+                          <p className="text-slate-100 font-extrabold text-[11px]">Maintain streak</p>
+                          <p className="text-[9px] text-slate-400 leading-normal mt-0.5">Daily study consistency unlocks badge rewards and bonus multipliers.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5 items-start">
+                        <div className="h-6 w-6 rounded-lg bg-[#5227EB]/10 border border-[#5227EB]/10 flex items-center justify-center text-[#5227EB] shrink-0 font-extrabold text-xs">🔒</div>
+                        <div>
+                          <p className="text-slate-100 font-extrabold text-[11px]">Unlock resources</p>
+                          <p className="text-[9px] text-slate-400 leading-normal mt-0.5">Access advanced notes and mentor resources by maintaining study logs.</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab('rooms')}
+                        className="w-full py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black rounded-xl transition-all cursor-pointer text-center border-none"
+                      >
+                        Earn More Coins
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Daily Reward Box */}
+                  <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-5 space-y-4 text-left">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Daily Reward</h4>
+                    <div className="p-4 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-2xl flex flex-col items-center text-center space-y-3">
+                      <div className="h-16 w-16 bg-[#5227EB]/10 border border-[#5227EB]/20 rounded-2xl flex items-center justify-center text-3xl animate-bounce duration-1000">
+                        🎁
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-extrabold text-slate-200">Daily Treasure Box</p>
+                        <p className="text-[9px] text-slate-450 leading-normal">Complete today's goals to open the treasure box!</p>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab('dashboard')}
+                        className="w-full py-1.5 bg-[#10B981] hover:bg-[#059669] text-white text-[10px] font-black rounded-xl transition-all cursor-pointer text-center border-none"
+                      >
+                        Go to Dashboard
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* Bottom Row - Contributors and community impact */}
+              <div className="grid md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
+                {/* Top Contributors */}
+                <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-5 space-y-4 text-left">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Top Contributors</h4>
+                    <button 
+                      onClick={() => setActiveTab('leaderboard')}
+                      className="text-[9px] font-extrabold text-[#818CF8] hover:text-indigo-300 transition-colors uppercase tracking-wider bg-transparent border-none cursor-pointer"
+                    >
+                      View Leaderboard
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {[
+                      { rank: 1, name: 'Rohan', coins: 12450, avatar: '/avatar-rohan.png' },
+                      { rank: 2, name: 'Ananya', coins: 9870, avatar: '/avatar-ananya.png' },
+                      { rank: 3, name: 'Vikram', coins: 8230, avatar: '/avatar-vikram.png' }
+                    ].map((leader) => (
+                      <div key={leader.rank} className="flex items-center justify-between p-2.5 bg-[#0B0F19]/60 border border-white/5 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <span className={`text-[10px] font-black h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${
+                            leader.rank === 1 ? 'bg-amber-500/25 text-amber-400 border border-amber-500/20' :
+                            leader.rank === 2 ? 'bg-slate-400/25 text-slate-300 border border-slate-400/20' :
+                            'bg-amber-800/25 text-amber-600 border border-amber-800/20'
+                          }`}>{leader.rank}</span>
+                          <span className="text-xs font-black text-slate-200">{leader.name}</span>
+                        </div>
+                        <span className="text-[10px] font-extrabold text-slate-300 flex items-center gap-1">
+                          🪙 {leader.coins.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Community impact card */}
+                <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-5 space-y-4 text-left flex flex-col justify-between">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Community Impact</h4>
+                  <div className="p-6 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-2xl flex items-center gap-5 my-auto">
+                    <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 border border-[#5227EB]/20 flex items-center justify-center text-[#818CF8] shrink-0 text-xl font-bold">
+                      👥
+                    </div>
+                    <div>
+                      <p className="text-lg font-black text-slate-100">1,24,560</p>
+                      <p className="text-[10px] text-slate-455 font-bold uppercase tracking-wider mt-0.5">Minutes Studied Together</p>
+                      <span className="text-[9px] text-emerald-400 font-extrabold bg-emerald-500/10 border border-emerald-500/10 rounded px-1.5 py-0.5 inline-block mt-1.5">+12% this week</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           )}
           {activeTab === 'notes' && (
