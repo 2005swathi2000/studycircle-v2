@@ -19,8 +19,8 @@ const seedDatabase = async () => {
         email: 'hanumanthuswathi24@gmail.com',
         gender: 'female',
         avatarUrl: '/swathi-avatar.png',
-        streakCount: 21,
-        totalStudyHours: 4.5
+        streakCount: 0,
+        totalStudyHours: 0.0
       });
     }
 
@@ -70,23 +70,37 @@ const seedDatabase = async () => {
     });
 
     // 2. Create study circles
-    const dsaGroup = await Group.create({
-      name: 'DSA Vijayawada Prep',
-      description: 'Daily practice and doubts room for Data Structures and Algorithms. Focused on placement preparations.',
-      subject: 'Algorithms',
-      inviteCode: 'dsa2026x',
+    const codingGroup = await Group.create({
+      name: 'Coding Room',
+      description: 'Perfect for beginners. Learn syntax, basic logic flow, and build small scripts together.',
+      subject: 'Programming',
+      inviteCode: 'code2026',
       isPublic: true
     });
 
-    const semesterGroup = await Group.create({
-      name: 'Semester Exam Guntur Batch',
-      description: 'Study room for upcoming semester examinations. Notes sharing and syllabus tracking.',
-      subject: 'Computer Networks',
-      inviteCode: 'sem2026x',
+    const dsaGroup = await Group.create({
+      name: 'DSA Room',
+      description: 'Practice coding and problem solving. Explore arrays, trees, dynamic programming, and complexity analyses.',
+      subject: 'Algorithms',
+      inviteCode: 'dsa2026',
+      isPublic: true
+    });
+
+    const aiGroup = await Group.create({
+      name: 'AI Room',
+      description: 'Explore AI concepts and projects. Discuss neural networks, deep learning, NLP, and model fine-tuning.',
+      subject: 'Artificial Intelligence',
+      inviteCode: 'ai2026',
       isPublic: true
     });
 
     // 3. Attach student to circles
+    await GroupMember.create({
+      userId: student.id,
+      groupId: codingGroup.id,
+      role: 'student'
+    });
+
     await GroupMember.create({
       userId: student.id,
       groupId: dsaGroup.id,
@@ -95,7 +109,7 @@ const seedDatabase = async () => {
 
     await GroupMember.create({
       userId: student.id,
-      groupId: semesterGroup.id,
+      groupId: aiGroup.id,
       role: 'student'
     });
 

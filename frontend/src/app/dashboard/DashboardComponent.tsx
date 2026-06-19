@@ -1227,9 +1227,13 @@ Based on your desking logs and consistency, the AI tutor recommends:
       });
       showToast(data.message || 'Successfully joined study circle!', 'success');
       loadDashboardData(user);
-      setActiveTab('groups');
+      router.push(`/group/${groupId}`);
     } catch (err: any) {
-      showToast(err.message || 'Failed to join public study circle.', 'error');
+      if (err.message && (err.message.includes('already') || err.message.includes('Already'))) {
+        router.push(`/group/${groupId}`);
+      } else {
+        showToast(err.message || 'Failed to join public study circle.', 'error');
+      }
     }
   };
 
@@ -1316,7 +1320,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
     if (user?.role === 'student') {
       const studentLinks = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'groups', label: 'Study Rooms', icon: Users },
+        { id: 'rooms', label: 'Study Rooms', icon: Wifi },
+        { id: 'groups', label: 'Workspaces', icon: GraduationCap },
         { id: 'notes', label: 'Notes', icon: FileText },
         { id: 'doubts', label: 'Doubts', icon: HelpCircle },
         { id: 'sessions', label: 'Schedule', icon: Calendar },
@@ -2515,15 +2520,15 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
           {/* Tab 2: Groups */}
           {activeTab === 'groups' && (
-            <div className="space-y-6 text-left">
+            <div className="space-y-6 text-left text-white animate-in fade-in duration-300">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
                   <Users className="h-4.5 w-4.5 text-[#5227EB]" /> Study Circles Workspace
                 </h3>
                 {(user?.role === 'admin' || user?.role === 'mentor') && (
                   <button
                     onClick={() => setShowCreateModal(true)}
-                    className="px-3 py-1.5 bg-indigo-50 border border-indigo-100 hover:bg-indigo-150 text-[#5227EB] rounded-xl text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                    className="px-3.5 py-1.5 bg-indigo-500/10 border border-indigo-500/25 hover:bg-indigo-500/20 text-[#818CF8] rounded-xl text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
                   >
                     <Plus className="h-3.5 w-3.5" /> Initialize Circle
                   </button>
@@ -2533,27 +2538,27 @@ Based on your desking logs and consistency, the AI tutor recommends:
               <div className="grid lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-4">
                   {myGroups.length === 0 ? (
-                    <div className="p-12 bg-white border border-slate-200 rounded-[24px] text-center space-y-3 shadow-sm">
-                      <Users className="h-8 w-8 text-slate-350 mx-auto" />
-                      <p className="text-xs text-slate-500 font-bold">No workspaces joined.</p>
+                    <div className="p-12 bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-[24px] text-center space-y-3 shadow-md">
+                      <Users className="h-8 w-8 text-slate-500 mx-auto" />
+                      <p className="text-xs text-slate-400 font-bold">No workspaces joined.</p>
                     </div>
                   ) : (
                     <div className="grid sm:grid-cols-2 gap-4">
                       {myGroups.map((group) => (
-                        <div key={group.id} className="p-5 bg-white border border-slate-200 hover:border-indigo-500/20 rounded-[24px] transition-all duration-300 flex flex-col justify-between gap-4 shadow-sm group">
+                        <div key={group.id} className="p-5 bg-[#0B0F19]/60 border border-white/5 hover:border-indigo-500/30 backdrop-blur-md rounded-[24px] transition-all duration-300 flex flex-col justify-between gap-4 shadow-lg group text-left">
                           <div className="space-y-2">
                             <div className="flex justify-between items-start">
-                              <span className="text-[8px] font-extrabold uppercase bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded">
+                              <span className="text-[8px] font-extrabold uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 px-2 py-0.5 rounded">
                                 {group.subject || 'Engineering'}
                               </span>
-                              <span className="text-[9px] font-mono text-slate-400 font-bold">Code: {group.inviteCode}</span>
+                              <span className="text-[9px] font-mono text-slate-500 font-bold">Code: {group.inviteCode}</span>
                             </div>
-                            <h4 className="text-sm font-extrabold text-slate-900 group-hover:text-indigo-650 transition-colors">{group.name}</h4>
-                            <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{group.description || 'No description provided.'}</p>
+                            <h4 className="text-sm font-black text-white group-hover:text-indigo-400 transition-colors">{group.name}</h4>
+                            <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">{group.description || 'No description provided.'}</p>
                           </div>
                           <Link
                             href={`/group/${group.id}`}
-                            className="w-full py-2 bg-slate-50 border border-slate-200 hover:border-[#5227EB] hover:bg-[#5227EB] hover:text-white text-slate-700 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-all text-center"
+                            className="w-full py-2.5 bg-slate-900/60 border border-white/10 hover:border-[#5227EB] hover:bg-[#5227EB] hover:text-white text-slate-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-all text-center"
                           >
                             Enter Workspace <ChevronRight className="h-3.5 w-3.5" />
                           </Link>
@@ -2564,18 +2569,18 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 </div>
 
                 <div>
-                  <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-4 shadow-sm">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">Join a New Group</h3>
-                    <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">Enter an invite code provided by your mentor or classmate to join their group study circle.</p>
+                  <div className="p-6 bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-[24px] space-y-4 shadow-lg text-left">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-white font-sans">Join a New Group</h3>
+                    <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">Enter an invite code provided by your mentor or classmate to join their group study circle.</p>
                     <form onSubmit={handleJoinCircle} className="space-y-3">
                       <input
                         type="text"
                         value={inviteCode}
                         onChange={(e) => setInviteCode(e.target.value)}
                         placeholder="Invite Code"
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl text-xs outline-none text-center font-mono tracking-widest text-slate-750"
+                        className="w-full px-3 py-2.5 bg-slate-950/80 border border-white/10 focus:border-indigo-500 rounded-xl text-xs outline-none text-center font-mono tracking-widest text-white placeholder-slate-600"
                       />
-                      <button type="submit" className="w-full py-2 bg-[#5227EB] text-white text-xs font-bold rounded-xl shadow-sm">
+                      <button type="submit" className="w-full py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer border-none uppercase tracking-wide">
                         Submit Code
                       </button>
                     </form>
@@ -2594,28 +2599,30 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   <Wifi className="h-4.5 w-4.5 text-indigo-400 animate-pulse" /> Live Study Worlds Board
                 </h3>
                 {/* Premium view mode selector */}
-                <div className="bg-[#1E293B]/60 border border-white/5 p-1 rounded-xl flex items-center gap-1">
-                  <button
-                    onClick={() => setRoomViewMode('first-time')}
-                    className={`px-3.5 py-1.5 rounded-lg text-[10px] font-black tracking-wider uppercase transition-all cursor-pointer border-none ${
-                      roomViewMode === 'first-time'
-                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md shadow-indigo-500/10'
-                        : 'bg-transparent text-slate-455 hover:text-slate-200'
-                    }`}
-                  >
-                    First-Time View
-                  </button>
-                  <button
-                    onClick={() => setRoomViewMode('returning')}
-                    className={`px-3.5 py-1.5 rounded-lg text-[10px] font-black tracking-wider uppercase transition-all cursor-pointer border-none ${
-                      roomViewMode === 'returning'
-                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md shadow-indigo-500/10'
-                        : 'bg-transparent text-slate-455 hover:text-slate-200'
-                    }`}
-                  >
-                    Returning View
-                  </button>
-                </div>
+                {stats.totalStudyHours > 0 && (
+                  <div className="bg-[#1E293B]/60 border border-white/5 p-1 rounded-xl flex items-center gap-1">
+                    <button
+                      onClick={() => setRoomViewMode('first-time')}
+                      className={`px-3.5 py-1.5 rounded-lg text-[10px] font-black tracking-wider uppercase transition-all cursor-pointer border-none ${
+                        roomViewMode === 'first-time'
+                          ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md shadow-indigo-500/10'
+                          : 'bg-transparent text-slate-455 hover:text-slate-200'
+                      }`}
+                    >
+                      First-Time View
+                    </button>
+                    <button
+                      onClick={() => setRoomViewMode('returning')}
+                      className={`px-3.5 py-1.5 rounded-lg text-[10px] font-black tracking-wider uppercase transition-all cursor-pointer border-none ${
+                        roomViewMode === 'returning'
+                          ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md shadow-indigo-500/10'
+                          : 'bg-transparent text-slate-455 hover:text-slate-200'
+                      }`}
+                    >
+                      Returning View
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* ──────────────────────────────────────────────────────── */}
@@ -2682,14 +2689,14 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       {[
-                        { id: 'Programming & DSA', label: '💻 Programming & DSA' },
-                        { id: 'Web Development', label: '🌐 Web Development' },
-                        { id: 'AI & Machine Learning', label: '🤖 AI & Machine Learning' },
-                        { id: 'Aptitude & Reasoning', label: '📊 Aptitude' },
-                        { id: 'Interview Preparation', label: '🎯 Interview Preparation' },
-                        { id: 'GATE', label: '📖 GATE' },
-                        { id: 'UPSC', label: '🏛 UPSC' },
-                        { id: 'Mathematics', label: '🧮 Mathematics' }
+                        { id: 'Programming & DSA', name: 'Programming & DSA', icon: '💻' },
+                        { id: 'Web Development', name: 'Web Development', icon: '🌐' },
+                        { id: 'AI & Machine Learning', name: 'AI & Machine Learning', icon: '🤖' },
+                        { id: 'Aptitude', name: 'Aptitude', icon: '📊' },
+                        { id: 'Interview Preparation', name: 'Interview Preparation', icon: '🎯' },
+                        { id: 'GATE', name: 'GATE', icon: '📖' },
+                        { id: 'UPSC', name: 'UPSC', icon: '🏛' },
+                        { id: 'Mathematics', name: 'Mathematics', icon: '🧮' }
                       ].map((interest) => {
                         const isSelected = selectedInterests.includes(interest.id);
                         return (
@@ -2702,19 +2709,15 @@ Based on your desking logs and consistency, the AI tutor recommends:
                                 setSelectedInterests(prev => [...prev, interest.id]);
                               }
                             }}
-                            className={`p-4 rounded-2xl border text-left text-xs font-black transition-all cursor-pointer relative overflow-hidden active:scale-[0.98] ${
+                            className={`p-5 rounded-[22px] border text-left transition-all duration-300 cursor-pointer relative overflow-hidden active:scale-[0.98] flex flex-col justify-between h-28 group ${
                               isSelected
-                                ? 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/40 text-white shadow-lg shadow-indigo-500/5'
-                                : 'bg-[#121829]/60 border-white/5 text-slate-455 hover:bg-[#161f36] hover:border-white/10 hover:text-white'
+                                ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-indigo-500/50 text-white shadow-lg shadow-indigo-500/10'
+                                : 'bg-[#0B0F19]/60 backdrop-blur-md border-white/5 text-slate-400 hover:bg-[#121829]/85 hover:border-white/15 hover:text-white'
                             }`}
-                            style={{
-                              boxShadow: isSelected ? '0 0 15px -3px rgba(79, 70, 229, 0.15)' : 'none'
-                            }}
                           >
-                            {isSelected && (
-                              <div className="absolute top-0 right-0 h-1.5 w-1.5 bg-indigo-500 rounded-bl-sm" />
-                            )}
-                            <span className="relative z-10">{interest.label}</span>
+                            <div className="absolute -inset-px bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-[22px] pointer-events-none" />
+                            <span className="text-2xl filter drop-shadow-[0_0_8px_rgba(99,102,241,0.2)]">{interest.icon}</span>
+                            <span className="text-[11px] font-black tracking-wide">{interest.name}</span>
                           </button>
                         );
                       })}
@@ -2722,7 +2725,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   </div>
 
                   {/* Recommended Study Rooms */}
-                  <div className="space-y-6">
+                  <div className="space-y-6" id="explore-rooms-section">
                     <div className="text-center md:text-left space-y-1">
                       <h3 className="text-sm font-black uppercase tracking-wider text-slate-350">Recommended Study Rooms</h3>
                       <p className="text-[10px] text-slate-500 font-bold">Hop directly into one of our high-activity beginner workspaces.</p>
@@ -2736,7 +2739,19 @@ Based on your desking logs and consistency, the AI tutor recommends:
                           desc: 'Perfect for beginners',
                           learners: 120,
                           color: 'from-blue-600/10 to-indigo-600/10 border-blue-500/20',
-                          illustration: '🌌'
+                          illustration: (
+                            <div className="w-full h-24 rounded-xl bg-slate-950/80 border border-white/10 p-3 font-mono text-[8px] overflow-hidden flex flex-col gap-1.5 shadow-inner">
+                              <div className="flex gap-1 mb-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                              </div>
+                              <div className="flex items-center gap-1 text-[#818CF8]"><span className="text-[#34D399]">&gt;</span> npm run study</div>
+                              <div className="h-1.5 w-3/4 rounded bg-slate-800 animate-pulse mt-0.5" />
+                              <div className="h-1.5 w-1/2 rounded bg-indigo-500/30" />
+                              <div className="h-1.5 w-5/6 rounded bg-slate-800" />
+                            </div>
+                          )
                         },
                         {
                           id: 'dsa-room',
@@ -2744,7 +2759,26 @@ Based on your desking logs and consistency, the AI tutor recommends:
                           desc: 'Practice coding and problem solving',
                           learners: 95,
                           color: 'from-purple-600/10 to-pink-600/10 border-purple-500/20',
-                          illustration: '🤺'
+                          illustration: (
+                            <div className="w-full h-24 rounded-xl bg-slate-950/80 border border-white/10 relative overflow-hidden shadow-inner flex items-center justify-center">
+                              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.15)_0,transparent_100%)]" />
+                              <svg className="w-full h-full p-2 opacity-80" viewBox="0 0 120 60">
+                                <line x1="20" y1="30" x2="50" y2="15" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+                                <line x1="20" y1="30" x2="50" y2="45" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+                                <line x1="50" y1="15" x2="90" y2="15" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+                                <line x1="50" y1="45" x2="90" y2="45" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+                                <line x1="90" y1="15" x2="110" y2="30" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+                                <line x1="90" y1="45" x2="110" y2="30" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+                                
+                                <circle cx="20" cy="30" r="4.5" fill="#6366F1" />
+                                <circle cx="50" cy="15" r="4.5" fill="#3B82F6" />
+                                <circle cx="50" cy="45" r="4.5" fill="#10B981" />
+                                <circle cx="90" cy="15" r="4.5" fill="#8B5CF6" />
+                                <circle cx="90" cy="45" r="4.5" fill="#EC4899" />
+                                <circle cx="110" cy="30" r="4.5" fill="#14B8A6" />
+                              </svg>
+                            </div>
+                          )
                         },
                         {
                           id: 'ai-room',
@@ -2752,46 +2786,91 @@ Based on your desking logs and consistency, the AI tutor recommends:
                           desc: 'Explore AI concepts and projects',
                           learners: 80,
                           color: 'from-emerald-600/10 to-teal-600/10 border-emerald-500/20',
-                          illustration: '👾'
+                          illustration: (
+                            <div className="w-full h-24 rounded-xl bg-slate-950/80 border border-white/10 relative overflow-hidden shadow-inner flex items-center justify-center">
+                              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(236,72,153,0.15)_0,transparent_100%)]" />
+                              <svg className="w-full h-full p-2 opacity-80" viewBox="0 0 120 60">
+                                <line x1="15" y1="15" x2="45" y2="15" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="15" y1="15" x2="45" y2="30" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="15" y1="15" x2="45" y2="45" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="15" y1="30" x2="45" y2="15" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="15" y1="30" x2="45" y2="30" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="15" y1="30" x2="45" y2="45" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="15" y1="45" x2="45" y2="15" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="15" y1="45" x2="45" y2="30" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="15" y1="45" x2="45" y2="45" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                
+                                <line x1="45" y1="15" x2="75" y2="15" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="45" y1="15" x2="75" y2="45" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="45" y1="30" x2="75" y2="15" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="45" y1="30" x2="75" y2="45" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="45" y1="45" x2="75" y2="15" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="45" y1="45" x2="75" y2="45" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                
+                                <line x1="75" y1="15" x2="105" y2="30" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                <line x1="75" y1="45" x2="105" y2="30" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                                
+                                <circle cx="15" cy="15" r="3.5" fill="#A78BFA" />
+                                <circle cx="15" cy="30" r="3.5" fill="#A78BFA" />
+                                <circle cx="15" cy="45" r="3.5" fill="#A78BFA" />
+                                
+                                <circle cx="45" cy="15" r="3.5" fill="#F472B6" />
+                                <circle cx="45" cy="30" r="3.5" fill="#F472B6" />
+                                <circle cx="45" cy="45" r="3.5" fill="#F472B6" />
+                                
+                                <circle cx="75" cy="15" r="3.5" fill="#FB7185" />
+                                <circle cx="75" cy="45" r="3.5" fill="#FB7185" />
+                                
+                                <circle cx="105" cy="30" r="5" fill="#F43F5E" className="animate-pulse" />
+                              </svg>
+                            </div>
+                          )
                         }
                       ].map((room) => (
                         <div 
                           key={room.id}
-                          className={`bg-gradient-to-br ${room.color} border rounded-[24px] p-6 shadow-lg flex flex-col justify-between gap-5 transition-all duration-300 hover:scale-[1.01] text-left relative overflow-hidden`}
+                          className={`bg-gradient-to-br ${room.color} border rounded-[24px] p-6 shadow-lg flex flex-col justify-between gap-5 transition-all duration-300 hover:scale-[1.01] hover:border-indigo-500/30 text-left relative overflow-hidden`}
                         >
-                          <div className="space-y-3 relative z-10">
-                            <div className="flex justify-between items-start">
-                              <span className="h-10 w-10 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-xl shrink-0">
-                                {room.illustration}
-                              </span>
+                          <div className="space-y-4 relative z-10">
+                            <div className="flex justify-between items-center">
                               <span className="text-[9px] font-black uppercase px-2.5 py-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 rounded-full flex items-center gap-1">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Online
                               </span>
                             </div>
+                            
+                            {/* SVG Illustration Container */}
+                            {room.illustration}
+
                             <div className="space-y-1">
                               <h4 className="text-sm font-black text-white">{room.title}</h4>
-                              <p className="text-[10px] text-slate-400 font-bold leading-normal">{room.desc}</p>
+                              <p className="text-[10px] text-slate-450 font-bold leading-normal">{room.desc}</p>
                             </div>
                             
                             {/* Member Avatars simulation */}
-                            <div className="flex items-center gap-1.5 pt-2">
+                            <div className="flex items-center gap-1.5 pt-1">
                               <div className="flex -space-x-2 overflow-hidden">
-                                <img className="inline-block h-5 w-5 rounded-full ring-2 ring-[#0a0f1d]" src="/swathi-avatar.png" alt="" />
-                                <img className="inline-block h-5 w-5 rounded-full ring-2 ring-[#0a0f1d]" src="/bhagya-avatar.png" alt="" />
-                                <img className="inline-block h-5 w-5 rounded-full ring-2 ring-[#0a0f1d]" src="/rathna-avatar.png" alt="" />
+                                <div className="inline-block h-6 w-6 rounded-full ring-2 ring-[#0a0f1d] bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[8px] font-black text-indigo-400">SH</div>
+                                <div className="inline-block h-6 w-6 rounded-full ring-2 ring-[#0a0f1d] bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-[8px] font-black text-purple-400">BK</div>
+                                <div className="inline-block h-6 w-6 rounded-full ring-2 ring-[#0a0f1d] bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-[8px] font-black text-pink-400">RN</div>
                               </div>
-                              <span className="text-[8px] font-black text-slate-450 uppercase tracking-wide">{room.learners} learners online</span>
+                              <span className="text-[8px] font-black text-slate-455 uppercase tracking-wide">{room.learners} learners online</span>
                             </div>
                           </div>
                           
                           <div className="pt-4 border-t border-white/5 mt-1 relative z-10">
                             <button
                               onClick={() => {
-                                const realGroup = availableGroups.find(g => g.name.toLowerCase().includes(room.id.split('-')[0]));
+                                const targetName = room.id === 'coding-room' ? 'Coding Room' : room.id === 'dsa-room' ? 'DSA Room' : 'AI Room';
+                                const realGroup = availableGroups.find(g => g.name === targetName);
                                 if (realGroup) {
                                   handleJoinPublicCircle(realGroup.id);
                                 } else {
-                                  showToast(`Successfully joined the ${room.title}! Welcome to the circle.`, "success");
+                                  const fallbackGroup = availableGroups.find(g => g.name.toLowerCase().includes(room.id.split('-')[0]));
+                                  if (fallbackGroup) {
+                                    handleJoinPublicCircle(fallbackGroup.id);
+                                  } else {
+                                    showToast(`Successfully joined the ${room.title}! Welcome to the circle.`, "success");
+                                  }
                                 }
                               }}
                               className="w-full py-2.5 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-[10px] font-black rounded-xl transition-all cursor-pointer border-none uppercase tracking-widest shadow-md shadow-indigo-650/15 active:scale-[0.98]"
@@ -2811,7 +2890,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                       <p className="text-[10px] text-slate-500 font-bold">Follow this roadmap to unlock the full potential of StudyCircle.</p>
                     </div>
 
-                    <div className="relative p-8 bg-[#121829]/30 border border-white/5 rounded-[28px] overflow-hidden">
+                    <div className="relative p-8 bg-slate-900/20 border border-white/5 rounded-[28px] overflow-hidden backdrop-blur-md">
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 relative z-10 text-center sm:text-left">
                         {[
                           { step: 1, title: 'Join Your First Study Room', desc: 'Find a community and claim your focus desk.' },
@@ -2824,7 +2903,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             {idx < 3 && (
                               <div className="hidden sm:block absolute top-4 left-[60%] right-[-40%] h-0.5 bg-gradient-to-r from-indigo-500/30 to-indigo-500/10 pointer-events-none z-0" />
                             )}
-                            <div className="inline-flex h-9 w-9 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 items-center justify-center font-black text-xs relative z-10 shadow-sm">
+                            <div className="inline-flex h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 text-indigo-400 border border-indigo-500/20 items-center justify-center font-black text-xs relative z-10 shadow-sm">
                               {journey.step}
                             </div>
                             <div className="space-y-1">
@@ -2838,7 +2917,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   </div>
 
                   {/* Motivational Banner */}
-                  <div className="bg-gradient-to-r from-indigo-500/10 via-[#0a0f1d] to-purple-500/10 border border-indigo-500/20 rounded-[28px] p-8 text-center space-y-5 relative overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-500/10 via-[#0a0f1d] to-purple-500/10 border border-indigo-500/25 rounded-[28px] p-8 text-center space-y-5 relative overflow-hidden backdrop-blur-sm">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
                     <div className="relative space-y-2">
                       <p className="text-sm font-black text-slate-200">"Every expert was once a beginner."</p>
