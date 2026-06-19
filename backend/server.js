@@ -86,7 +86,7 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     await sequelize.query('PRAGMA foreign_keys = OFF;');
-    await sequelize.sync();
+    await sequelize.sync({ alter: true });
     await sequelize.query('PRAGMA foreign_keys = ON;');
     console.log('Database synced successfully.');
 

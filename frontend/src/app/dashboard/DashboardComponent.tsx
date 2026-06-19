@@ -180,14 +180,20 @@ const practiceQuestions: Record<string, {
   options?: string[];
   correctOptionIndex?: number;
   expectedOutput?: string;
+  explanation?: string;
 }> = {
   'Programming & DSA': {
-    title: 'Code Challenge: Calculate Factorial',
-    type: 'code',
-    question: 'Write a JavaScript function factorial(n) that takes a positive integer n and returns its factorial. (e.g. factorial(5) should return 120).',
-    starterCode: 'function factorial(n) {\n  // Write your code here\n  \n}',
-    solution: '120',
-    expectedOutput: '120'
+    title: '🧠 30 Second Challenge: Time Complexity',
+    type: 'quiz',
+    question: 'What is the time complexity of the following code snippet?\n\nfor(i=0; i<n; i++)\n   for(j=0; j<n; j++)\n     // constant time operation',
+    options: [
+      'O(n)',
+      'O(log n)',
+      'O(n²)',
+      'O(n³)'
+    ],
+    correctOptionIndex: 2,
+    explanation: 'Since the outer loop runs n times and the inner loop runs n times for each outer loop iteration, the total operations are n * n = n², giving a time complexity of O(n²).'
   },
   'Web Development': {
     title: 'CSS Layout Check: Centering Elements',
@@ -199,7 +205,8 @@ const practiceQuestions: Record<string, {
       'flex-pack: center; vertical-align: middle;',
       'margin: auto;'
     ],
-    correctOptionIndex: 0
+    correctOptionIndex: 0,
+    explanation: 'justify-content aligns flex items along the main axis, while align-items aligns them along the cross axis. In flex-direction: row, main axis is horizontal and cross axis is vertical.'
   },
   'AI & Machine Learning': {
     title: 'Model Knowledge Check: Activation Functions',
@@ -211,7 +218,8 @@ const practiceQuestions: Record<string, {
       'Sigmoid Function',
       'Softplus Function'
     ],
-    correctOptionIndex: 2
+    correctOptionIndex: 2,
+    explanation: 'The Sigmoid function maps any real-valued number into a value between 0 and 1, representing a probability distribution.'
   },
   'Aptitude': {
     title: 'Logical Math Challenge: Work & Time Rate',
@@ -223,7 +231,8 @@ const practiceQuestions: Record<string, {
       '12 hours',
       '15 hours'
     ],
-    correctOptionIndex: 2
+    correctOptionIndex: 2,
+    explanation: 'In 1 hour, A fills 1/4 of the tank and B drains 1/6. Net rate per hour = 1/4 - 1/6 = 1/12. Thus, it will take 12 hours to fill the tank.'
   },
   'Interview Preparation': {
     title: 'Behavioral Skills Check: STAR Framework',
@@ -235,7 +244,8 @@ const practiceQuestions: Record<string, {
       'Story, Topic, Analysis, Resolution',
       'System, Target, Achievement, Report'
     ],
-    correctOptionIndex: 1
+    correctOptionIndex: 1,
+    explanation: 'STAR stands for Situation, Task, Action, and Result. It is a structured way to answer behavioral questions.'
   },
   'GATE': {
     title: 'Operating Systems: Deadlock Prevention',
@@ -247,7 +257,8 @@ const practiceQuestions: Record<string, {
       'Circular wait',
       'Preemptive scheduling'
     ],
-    correctOptionIndex: 3
+    correctOptionIndex: 3,
+    explanation: 'Deadlock prevention strategies seek to eliminate at least one of the four necessary conditions: Mutual exclusion, Hold and wait, No preemption, and Circular wait. Preemptive scheduling is an OS design choice, not a deadlock condition.'
   },
   'UPSC': {
     title: 'Polity & Constitution Check: Fundamental Rights',
@@ -259,7 +270,8 @@ const practiceQuestions: Record<string, {
       'Article 32',
       'Article 44'
     ],
-    correctOptionIndex: 2
+    correctOptionIndex: 2,
+    explanation: 'Article 32 provides the Right to Constitutional Remedies, which Dr. B.R. Ambedkar called the heart and soul of the Constitution.'
   },
   'Mathematics': {
     title: 'Calculus Limit Challenge: Special Limits',
@@ -271,7 +283,8 @@ const practiceQuestions: Record<string, {
       'Does not exist',
       'Infinity'
     ],
-    correctOptionIndex: 1
+    correctOptionIndex: 1,
+    explanation: 'Using L\'Hopital\'s rule or Taylor expansion, the limit of (sin x) / x as x approaches 0 is exactly 1.'
   }
 };
 
@@ -333,6 +346,23 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     department: 'CSE', 
     badges: '[]' 
   });
+
+  // Onboarding Wizard States
+  const [showOnboardingWizard, setShowOnboardingWizard] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [wizardGoal, setWizardGoal] = useState('');
+  const [wizardLevel, setWizardLevel] = useState('beginner');
+  const [wizardTarget, setWizardTarget] = useState(2.0);
+  const [savingOnboarding, setSavingOnboarding] = useState(false);
+  const [equippedTheme, setEquippedTheme] = useState('midnight');
+
+  // Dynamic Daily Missions States
+  const [dailyMissions, setDailyMissions] = useState<any[]>([
+    { id: 'quiz', text: 'Complete 1 Quiz', completed: false, xp: 30 },
+    { id: 'session', text: 'Join 1 Study Session', completed: false, xp: 30 },
+    { id: 'note', text: 'Read 1 Shared Note', completed: false, xp: 40 }
+  ]);
+  const [claimedDailyReward, setClaimedDailyReward] = useState(false);
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
 
@@ -737,6 +767,115 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     setTimerSeconds(0);
   };
 
+  // Onboarding Wizard Save
+  const handleSaveOnboardingWizard = async () => {
+    if (!wizardGoal) {
+      showToast('Please select a goal target.', 'error');
+      return;
+    }
+    setSavingOnboarding(true);
+    try {
+      const data = await apiRequest('/auth/update-profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          learningGoal: wizardGoal,
+          learningLevel: wizardLevel,
+          dailyTarget: wizardTarget
+        })
+      });
+      setUser(data.user);
+      setShowOnboardingWizard(false);
+      showToast('Curriculum personalized successfully! Welcome onboard.', 'success');
+      loadDashboardData(data.user);
+    } catch (err: any) {
+      showToast('Error saving personalization goal: ' + (err.message || err), 'error');
+    } finally {
+      setSavingOnboarding(false);
+    }
+  };
+
+  // Buy Shop Item
+  const handleBuyShopItem = async (itemId: string, cost: number, itemLabel: string) => {
+    if (stats.focusCoins < cost) {
+      showToast('Insufficient Focus Coins!', 'error');
+      return;
+    }
+    try {
+      const currentBadges = JSON.parse(stats.badges || '[]');
+      const updatedBadges = [...currentBadges, itemId];
+      const remainingCoins = stats.focusCoins - cost;
+
+      const data = await apiRequest('/auth/update-profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          badges: JSON.stringify(updatedBadges),
+          focusCoins: remainingCoins
+        })
+      });
+
+      setUser(data.user);
+      setStats(prev => ({
+        ...prev,
+        focusCoins: data.user.focusCoins,
+        badges: data.user.badges
+      }));
+
+      showToast(`Successfully unlocked ${itemLabel}!`, 'success');
+    } catch (err: any) {
+      showToast('Error unlocking item: ' + (err.message || err), 'error');
+    }
+  };
+
+  // Equip Title
+  const handleEquipTitle = async (title: string) => {
+    try {
+      const cleanTitle = title.replace(/"/g, '');
+      const data = await apiRequest('/auth/update-profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          bio: cleanTitle
+        })
+      });
+      setUser(data.user);
+      showToast(`Equipped title: ${cleanTitle}!`, 'success');
+    } catch (err: any) {
+      showToast('Error equipping title: ' + (err.message || err), 'error');
+    }
+  };
+
+  // Complete Mission Item
+  const completeMission = (missionId: string) => {
+    setDailyMissions(prev => {
+      const updated = prev.map(m => m.id === missionId ? { ...m, completed: true } : m);
+      const todayStr = new Date().toDateString();
+      if (user) {
+        localStorage.setItem(`missions_${user.id}_${todayStr}`, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
+  const handleClaimDailyReward = async () => {
+    if (claimedDailyReward) return;
+    try {
+      const data = await apiRequest('/progress/complete-practice', {
+        method: 'POST',
+        body: JSON.stringify({ interest: 'Daily Mission', challengeId: 'daily_mission', xpReward: 100, coinReward: 20 })
+      });
+      setStats(prev => ({
+        ...prev,
+        xp: data.xp,
+        focusCoins: data.focusCoins,
+        streakCount: data.streakCount,
+        level: data.level
+      }));
+      setClaimedDailyReward(true);
+      showToast('Daily Missions complete! +100 XP and +20 Focus Coins claimed.', 'success');
+    } catch (err: any) {
+      showToast('Error claiming mission reward: ' + (err.message || err), 'error');
+    }
+  };
+
   const handleVerifyQuizAnswer = async () => {
     if (practiceQuizAnswer === null) {
       showToast('Please select an option before verifying.', 'error');
@@ -759,6 +898,7 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
           level: data.level
         }));
         setCompletedPracticeChallenges(prev => [...prev, selectedInterest]);
+        completeMission('quiz');
         showToast('Correct! Streak updated. +50 XP and +20 Focus Coins added!', 'success');
       } catch (err: any) {
         showToast('Error saving practice progress: ' + (err.message || err), 'error');
@@ -1163,6 +1303,34 @@ Based on your desking logs and consistency, the AI tutor recommends:
       setEditPhone(user.phone || '');
       setPreviewAvatar(user.avatarUrl || '');
       setEditBio(user.bio || '');
+
+      // Trigger Onboarding Questionnaire if learningGoal is unset
+      if (user.role === 'student' && !user.learningGoal) {
+        setShowOnboardingWizard(true);
+      }
+
+      // Initialize daily missions from localStorage for today
+      const todayStr = new Date().toDateString();
+      const storedMissions = localStorage.getItem(`missions_${user.id}_${todayStr}`);
+      if (storedMissions) {
+        setDailyMissions(JSON.parse(storedMissions));
+      } else {
+        const fresh = [
+          { id: 'quiz', text: 'Complete 1 Quiz', completed: false, xp: 30 },
+          { id: 'session', text: 'Join 1 Study Session', completed: false, xp: 30 },
+          { id: 'note', text: 'Read 1 Shared Note', completed: false, xp: 40 }
+        ];
+        const day = new Date().getDay();
+        if (day % 3 === 1) {
+          fresh[0] = { id: 'doubt', text: 'Reply to 2 Doubts', completed: false, xp: 45 };
+          fresh[1] = { id: 'focus', text: 'Focus for 25 Minutes', completed: false, xp: 30 };
+        } else if (day % 3 === 2) {
+          fresh[1] = { id: 'note_publish', text: 'Publish 1 Shared Note', completed: false, xp: 40 };
+          fresh[2] = { id: 'doubt_view', text: 'Inspect 2 Discussion Boards', completed: false, xp: 30 };
+        }
+        setDailyMissions(fresh);
+        localStorage.setItem(`missions_${user.id}_${todayStr}`, JSON.stringify(fresh));
+      }
       
       if (!dataLoadedRef.current) {
         dataLoadedRef.current = true;
@@ -1653,10 +1821,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
   // STUDENT DASHBOARD ("MY LEARNING SPACE")
   // ==========================================
   const renderStudentDashboard = () => {
-    // Dynamic Goals Checklist calculations
-    const totalGoalsCount = goals.length;
-    const completedGoalsCount = goals.filter(g => g.completed).length;
-    const progressPercent = totalGoalsCount > 0 ? Math.round((completedGoalsCount / totalGoalsCount) * 100) : 0;
+    // Dynamic Daily Missions checklist calculations
+    const completedMissionsCount = dailyMissions.filter(m => m.completed).length;
+    const progressPercent = dailyMissions.length > 0 ? Math.round((completedMissionsCount / dailyMissions.length) * 100) : 0;
     
     // Circle dash stroke calculations
     const r = 26;
@@ -1741,7 +1908,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <div className="flex justify-between items-start">
                   <div>
                     <h2 className="text-lg font-black text-white leading-tight">{getGreeting()} 👋</h2>
-                    <p className="text-[10px] text-zinc-450 font-extrabold tracking-wide uppercase mt-1">Today's Goals</p>
+                    <p className="text-[10px] text-zinc-450 font-extrabold tracking-wide uppercase mt-1">🎯 Daily Mission</p>
                   </div>
                   {/* Overall progress ring */}
                   <div className="relative h-16 w-16 flex items-center justify-center shrink-0">
@@ -1764,41 +1931,62 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   </div>
                 </div>
 
-                {/* Goals Checklist */}
+                {/* Daily Missions Checklist */}
                 <div className="space-y-2 mt-4 flex-1">
-                  {goals.map(g => (
-                    <div key={g.id} className="flex items-center justify-between gap-2 p-2 bg-slate-950/40 rounded-xl border border-white/5 hover:border-white/10 transition-all">
-                      <label className="flex items-center gap-2 cursor-pointer text-left select-none flex-1 min-w-0">
-                        <input 
-                          type="checkbox" 
-                          checked={g.completed}
-                          onChange={() => handleToggleGoal(g.id)}
-                          className="h-4 w-4 text-teal-500 rounded border-white/10 bg-slate-955 focus:ring-teal-500 focus:ring-offset-slate-900"
-                        />
-                        <span className={`text-[11px] font-bold truncate ${g.completed ? 'line-through text-zinc-500 font-semibold' : 'text-zinc-200'}`}>
-                          {g.text}
+                  {dailyMissions.map(m => (
+                    <div key={m.id} className="flex items-center gap-3 p-3 bg-slate-955/40 rounded-xl border border-white/5 hover:border-white/10 transition-all text-left">
+                      <div className={`h-4 w-4 rounded border flex items-center justify-center ${m.completed ? 'bg-emerald-500/25 border-emerald-500 text-emerald-400' : 'border-slate-650 text-transparent'}`}>
+                        {m.completed && '✓'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-[11px] font-black block truncate ${m.completed ? 'line-through text-zinc-550' : 'text-slate-205 font-bold'}`}>
+                          {m.text}
                         </span>
-                      </label>
-                      <button onClick={() => handleDeleteGoal(g.id)} className="p-1 text-zinc-400 hover:text-red-400 transition-colors">
-                        <Trash2 className="h-3 w-3" />
-                      </button>
+                      </div>
+                      <span className="text-[9px] font-black text-indigo-400 font-mono">+{m.xp} XP</span>
                     </div>
                   ))}
                 </div>
 
-                {/* Add Quick Goal */}
-                <form onSubmit={handleAddGoal} className="mt-4 flex gap-2 pt-3 border-t border-white/10 shrink-0">
-                  <input 
-                    type="text" 
-                    placeholder="Add a study goal today..."
-                    value={newGoalText}
-                    onChange={(e) => setNewGoalText(e.target.value)}
-                    className="flex-1 px-3 py-1.5 bg-slate-950/80 border border-white/10 rounded-xl text-[10px] outline-none text-white placeholder-zinc-500 focus:bg-slate-900"
-                  />
-                  <button type="submit" className="p-2 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-xl transition-all cursor-pointer">
-                    <Plus className="h-3.5 w-3.5" />
+                {progressPercent === 100 && !claimedDailyReward && (
+                  <button
+                    onClick={handleClaimDailyReward}
+                    className="w-full mt-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-[10px] font-black rounded-xl uppercase tracking-widest transition-all cursor-pointer border-none"
+                  >
+                    Claim +100 XP & 20 Coins!
                   </button>
-                </form>
+                )}
+                {progressPercent === 100 && claimedDailyReward && (
+                  <div className="w-full mt-3 p-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black rounded-xl text-center">
+                    ✓ Missions Claimed
+                  </div>
+                )}
+
+                {/* Track Progress & Continue Learning */}
+                {user?.learningGoal && (
+                  <div className="mt-4 pt-3 border-t border-white/10 shrink-0 space-y-2">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="font-extrabold text-slate-350">{user.learningGoal} Path</span>
+                      <span className="font-black text-indigo-400">80% Complete</span>
+                    </div>
+                    {/* Visual Progress Bar */}
+                    <div className="h-2 bg-slate-950/80 rounded-full overflow-hidden border border-white/5">
+                      <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full animate-pulse" style={{ width: '80%' }} />
+                    </div>
+                    <button
+                      onClick={() => {
+                        const targetSlug = user.learningGoal === 'Become Full Stack Developer' ? 'web-development' :
+                                           user.learningGoal === 'Prepare for GATE' ? 'gate' :
+                                           user.learningGoal === 'Improve Aptitude' ? 'aptitude' :
+                                           user.learningGoal === 'Learn DSA' ? 'programming-dsa' : 'programming-dsa';
+                        router.push(`/workspace/${targetSlug}`);
+                      }}
+                      className="w-full mt-1.5 py-2.5 bg-indigo-650 hover:bg-indigo-550 text-white text-[10px] font-black rounded-xl uppercase tracking-widest transition-colors flex items-center justify-center gap-1 cursor-pointer border-none"
+                    >
+                      Continue Learning →
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Study Timer Stopwatch Widget */}
@@ -1940,7 +2128,11 @@ Based on your desking logs and consistency, the AI tutor recommends:
               </div>
               <div className="text-center">
                 <h3 className="text-sm font-black truncate max-w-[150px]">{user?.fullName || 'User'}</h3>
-                <p className="text-[9px] text-[#10B981] font-bold capitalize mt-0.5">{user?.role === 'mentor' ? 'Mentor' : user?.role === 'admin' ? 'Admin' : 'B.Tech Student'}</p>
+                {user?.bio ? (
+                  <p className="text-[9px] text-indigo-400 font-extrabold uppercase tracking-wide mt-0.5">🎖️ {user.bio}</p>
+                ) : (
+                  <p className="text-[9px] text-[#10B981] font-bold capitalize mt-0.5">{user?.role === 'mentor' ? 'Mentor' : user?.role === 'admin' ? 'Admin' : 'B.Tech Student'}</p>
+                )}
               </div>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-[#10B981]/10 border border-[#10B981]/20 text-[#10B981] rounded-full text-[9px] font-bold tracking-wide">
                 Level {Math.max(1, Math.floor(stats.totalStudyHours / 15) + 1)} ⭐️
@@ -2043,30 +2235,72 @@ Based on your desking logs and consistency, the AI tutor recommends:
               </div>
             </div>
 
-            {/* B.B. King Quote Card */}
-            <div className="p-5 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] border border-white/10 rounded-[24px] shadow-lg text-left text-white relative overflow-hidden group">
-              <div className="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-amber-500/10 blur-xl group-hover:bg-amber-500/20 transition-all duration-500 pointer-events-none" />
+            {/* Rewards Shop Card */}
+            <div className="p-5 bg-gradient-to-br from-[#0B0F19] to-[#120B24] border border-white/10 rounded-[24px] shadow-lg text-left text-white space-y-4">
+              <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
+                  <Award className="h-4 w-4 text-amber-400" /> Rewards Shop
+                </h3>
+                <span className="text-[10px] font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                  ¢ {stats.focusCoins} Coins
+                </span>
+              </div>
               
-              <div className="flex gap-4 items-start relative z-10">
-                <div className="shrink-0 bg-amber-500/10 border border-amber-500/25 p-2 rounded-xl text-amber-400 group-hover:scale-110 transition-transform duration-300">
-                  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 20H18C18 20 17 21 16 21H8C7 21 6 20 6 20Z" fill="currentColor" />
-                    <path d="M12 20V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M12 12L15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M13 5C13 5 11 4 10 5C9 6 8.5 7.5 8.5 7.5L16.5 10.5C16.5 10.5 16.5 9 16 8C15.5 7 13.5 5.5 13 5Z" fill="currentColor" />
-                    <path d="M6 14L8 11.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeDasharray="1 1" />
-                    <path d="M4 17L7 13" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeDasharray="1 1" />
-                    <path d="M8 18L9 15" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeDasharray="1 1" />
-                  </svg>
-                </div>
-                
-                <div className="min-w-0">
-                  <span className="text-[8px] font-black uppercase text-amber-400 tracking-wider block mb-1">Daily Inspiration</span>
-                  <p className="text-[11px] font-bold text-zinc-200 leading-relaxed italic">
-                    "The beautiful thing about learning is nobody can take it away from you."
-                  </p>
-                  <span className="text-[9px] text-zinc-400 font-extrabold block mt-2">— B.B. King</span>
-                </div>
+              <div className="space-y-2.5">
+                {[
+                  { id: 'cyberpunk', type: 'theme', label: 'Neon Cyberpunk Theme', desc: 'Futuristic purple & pink overlay glow.', cost: 50 },
+                  { id: 'zengarden', type: 'theme', label: 'Zen Sanctuary Theme', desc: 'Calming forest green workspace aesthetic.', cost: 75 },
+                  { id: 'badge_focus', type: 'title', label: '"Focus Guru" Title', desc: 'Equip badge next to your dashboard card.', cost: 100 },
+                  { id: 'badge_dsa', type: 'title', label: '"DSA Warrior" Title', desc: 'Showcase algorithm problem solver status.', cost: 150 }
+                ].map(item => {
+                  const parsedBadges = JSON.parse(stats.badges || '[]');
+                  const hasPurchased = parsedBadges.includes(item.id);
+                  const canBuy = stats.focusCoins >= item.cost;
+                  const isEquipped = item.type === 'theme' ? equippedTheme === item.id : user?.bio?.includes(item.label);
+
+                  return (
+                    <div key={item.id} className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5 flex flex-col gap-2">
+                      <div className="flex justify-between items-start">
+                        <div className="min-w-0 text-left">
+                          <div className="text-[10.5px] font-black text-slate-200 truncate">{item.label}</div>
+                          <p className="text-[8px] text-zinc-550 leading-tight mt-0.5 font-bold">{item.desc}</p>
+                        </div>
+                        <span className="text-[9px] font-black text-amber-500 shrink-0">¢ {item.cost}</span>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        {hasPurchased ? (
+                          <button
+                            onClick={() => {
+                              if (item.type === 'theme') {
+                                setEquippedTheme(item.id);
+                                localStorage.setItem('studycircle_theme', item.id);
+                                showToast(`Equipped ${item.label}!`, 'success');
+                              } else {
+                                handleEquipTitle(item.label);
+                              }
+                            }}
+                            className={`flex-1 py-1.5 text-[8.5px] font-black uppercase rounded transition-all border border-transparent cursor-pointer ${
+                              isEquipped 
+                                ? 'bg-emerald-500/25 text-emerald-450 border-emerald-500/30' 
+                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                            }`}
+                          >
+                            {isEquipped ? 'Equipped' : 'Equip'}
+                          </button>
+                        ) : (
+                          <button
+                            disabled={!canBuy}
+                            onClick={() => handleBuyShopItem(item.id, item.cost, item.label)}
+                            className="flex-1 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 disabled:opacity-40 border border-amber-500/30 text-amber-400 text-[8.5px] font-black uppercase rounded transition-all cursor-pointer"
+                          >
+                            Unlock Item
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -2533,7 +2767,11 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
   return (
     <div 
-      className="min-h-screen text-slate-100 font-sans flex relative overflow-hidden bg-[#060913]"
+      className={`min-h-screen text-slate-100 font-sans flex relative overflow-hidden transition-colors duration-500 ${
+        equippedTheme === 'cyberpunk' ? 'bg-[#0b0114] border-fuchsia-500/10' :
+        equippedTheme === 'zengarden' ? 'bg-[#020d06] border-emerald-500/10' :
+        'bg-[#060913]'
+      }`}
     >
       
       {/* 1. Left Sidebar */}
@@ -2978,6 +3216,13 @@ Based on your desking logs and consistency, the AI tutor recommends:
                                 </button>
                               );
                             })}
+
+                            {completedPracticeChallenges.includes(selectedInterest) && (
+                              <div className="mt-3 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl space-y-2 text-xs font-semibold leading-relaxed">
+                                <p className="font-extrabold text-white">💡 Explanation:</p>
+                                <p>{practiceQuestions[selectedInterest]?.explanation}</p>
+                              </div>
+                            )}
 
                             {!completedPracticeChallenges.includes(selectedInterest) && (
                               <div className="pt-2 flex justify-start">
@@ -6096,6 +6341,143 @@ Based on your desking logs and consistency, the AI tutor recommends:
               <Link href="/" className="text-[10px] font-black text-indigo-650 hover:underline">
                 Return to Homepage
               </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Onboarding Wizard Overlay Modal */}
+      {showOnboardingWizard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#060913]/95 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08)_0,transparent_100%)] pointer-events-none" />
+          
+          <div className="bg-[#0B0F19]/90 border border-white/10 backdrop-blur-xl shadow-2xl rounded-3xl p-8 max-w-md w-full relative space-y-6 text-left transform scale-100 transition-all duration-300">
+            {/* Header */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-indigo-500 animate-ping" />
+                <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">
+                  Onboarding Wizard • Step {onboardingStep} of 3
+                </span>
+              </div>
+              <h2 className="text-xl font-black text-white leading-tight">Welcome to StudyCircle!</h2>
+              <p className="text-xs text-slate-450 font-bold">Let's personalize your learning dashboard in 30 seconds.</p>
+            </div>
+
+            {/* STEP 1: Goal Milestone */}
+            {onboardingStep === 1 && (
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase text-slate-455 tracking-wide block">1. What is your target milestone?</label>
+                <div className="grid gap-2.5">
+                  {[
+                    { id: 'Crack Placements', title: '🎯 Crack Placements', desc: 'Prepare for technical interviews, DSA, and aptitude tests.' },
+                    { id: 'Become Full Stack Developer', title: '💻 Become Full Stack Developer', desc: 'Master HTML, CSS, React, Next.js, and API design.' },
+                    { id: 'Learn DSA', title: '🧠 Learn DSA', desc: 'Dive deep into sorting, trees, graphs, and algorithms.' },
+                    { id: 'Prepare for GATE', title: '📖 Prepare for GATE', desc: 'Study core computer engineering subjects for the GATE exam.' },
+                    { id: 'Improve Aptitude', title: '📊 Improve Aptitude', desc: 'Practice logical reasoning, math rates, and puzzle solving.' }
+                  ].map(g => (
+                    <button
+                      key={g.id}
+                      onClick={() => setWizardGoal(g.id)}
+                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                        wizardGoal === g.id
+                          ? 'bg-indigo-500/10 border-indigo-500 text-white shadow shadow-indigo-500/10 font-bold'
+                          : 'bg-[#070b16] border-white/5 text-slate-400 hover:bg-slate-900 hover:text-white'
+                      }`}
+                    >
+                      <div className="text-xs font-black">{g.title}</div>
+                      <div className="text-[9px] text-slate-500 mt-1 font-bold">{g.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: Learning Level */}
+            {onboardingStep === 2 && (
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase text-slate-455 tracking-wide block">2. What is your experience level?</label>
+                <div className="grid gap-2.5">
+                  {[
+                    { id: 'beginner', title: '🐣 Beginner Path', desc: 'Starting from scratch. Focus on fundamental logic and structures.' },
+                    { id: 'intermediate', title: '🚀 Intermediate Path', desc: 'Know some code. Solve complex algorithms and build projects.' },
+                    { id: 'advanced', title: '🏆 Advanced Path', desc: 'Proficient. Deep dive into system optimizations and hard limits.' }
+                  ].map(l => (
+                    <button
+                      key={l.id}
+                      onClick={() => setWizardLevel(l.id)}
+                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                        wizardLevel === l.id
+                          ? 'bg-indigo-500/10 border-indigo-500 text-white shadow shadow-indigo-500/10 font-bold'
+                          : 'bg-[#070b16] border-white/5 text-slate-400 hover:bg-slate-900 hover:text-white'
+                      }`}
+                    >
+                      <div className="text-xs font-black">{l.title}</div>
+                      <div className="text-[9px] text-slate-500 mt-1 font-bold">{l.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: Commitment Hours */}
+            {onboardingStep === 3 && (
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase text-slate-455 tracking-wide block">3. How many hours can you study daily?</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { val: 1.0, label: '⏱️ 1 Hour' },
+                    { val: 2.0, label: '🔥 2 Hours' },
+                    { val: 3.0, label: '⚡ 3 Hours' },
+                    { val: 4.0, label: '🚀 4+ Hours' }
+                  ].map(h => (
+                    <button
+                      key={h.val}
+                      onClick={() => setWizardTarget(h.val)}
+                      className={`p-5 rounded-2xl border text-center transition-all cursor-pointer ${
+                        wizardTarget === h.val
+                          ? 'bg-indigo-500/10 border-indigo-500 text-white shadow shadow-indigo-500/10 font-bold'
+                          : 'bg-[#070b16] border-white/5 text-slate-400 hover:bg-slate-900 hover:text-white'
+                      }`}
+                    >
+                      <div className="text-xs font-black">{h.label}</div>
+                      <div className="text-[9px] text-slate-500 mt-1 font-bold">per day target</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-between items-center pt-4 border-t border-white/5">
+              {onboardingStep > 1 ? (
+                <button
+                  onClick={() => setOnboardingStep(prev => prev - 1)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-black rounded-xl uppercase tracking-wider cursor-pointer"
+                >
+                  Back
+                </button>
+              ) : (
+                <div />
+              )}
+
+              {onboardingStep < 3 ? (
+                <button
+                  disabled={onboardingStep === 1 && !wizardGoal}
+                  onClick={() => setOnboardingStep(prev => prev + 1)}
+                  className="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-650 text-white text-[10px] font-black rounded-xl uppercase tracking-widest transition-all cursor-pointer"
+                >
+                  Continue
+                </button>
+              ) : (
+                <button
+                  onClick={handleSaveOnboardingWizard}
+                  disabled={savingOnboarding}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-[10px] font-black rounded-xl uppercase tracking-widest transition-all cursor-pointer"
+                >
+                  {savingOnboarding ? 'Saving...' : 'Finish & Personalize'}
+                </button>
+              )}
             </div>
           </div>
         </div>

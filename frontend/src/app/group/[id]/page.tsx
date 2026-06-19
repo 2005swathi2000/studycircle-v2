@@ -30,7 +30,20 @@ import {
   Coffee,
   Bookmark,
   Download,
-  RefreshCw
+  RefreshCw,
+  Play,
+  RotateCcw,
+  CheckCircle2,
+  ChevronRight,
+  TrendingUp,
+  AlertCircle,
+  Sparkles,
+  Trophy,
+  Flame,
+  BookOpen,
+  MessageSquare,
+  Settings,
+  LayoutDashboard
 } from 'lucide-react';
 
 interface Group {
@@ -80,6 +93,128 @@ interface ActiveLoungeUser {
   deskIndex: number | null;
   socketId: string;
 }
+
+const learningPathTopics = {
+  'programming-dsa': {
+    title: 'Programming & DSA',
+    levels: {
+      beginner: ['Arrays', 'Strings', 'Linked Lists', 'Stack'],
+      intermediate: ['Trees', 'Graphs', 'Heaps'],
+      advanced: ['DP', 'Tries', 'Segment Trees']
+    }
+  },
+  'web-development': {
+    title: 'Web Development',
+    levels: {
+      beginner: ['HTML Semantic Structure', 'CSS Flexbox', 'Basic DOM'],
+      intermediate: ['CSS Grid', 'React Hooks', 'Fetch API'],
+      advanced: ['Next.js App Router', 'Webpack optimization', 'Web Sockets']
+    }
+  },
+  'ai-ml': {
+    title: 'AI & Machine Learning',
+    levels: {
+      beginner: ['Intro to ML', 'Linear Regression', 'Gradient Descent'],
+      intermediate: ['Neural Networks', 'Activation Functions', 'Backpropagation'],
+      advanced: ['CNNs/Computer Vision', 'Transformers/NLP', 'PyTorch deployment']
+    }
+  },
+  'general': {
+    title: 'General Computer Science',
+    levels: {
+      beginner: ['Databases', 'Git Version Control', 'Basic Command Line'],
+      intermediate: ['REST APIs', 'SQL Queries', 'OOP Concepts'],
+      advanced: ['System Design', 'Microservices', 'Security & Cryptography']
+    }
+  }
+};
+
+const workspaceQuizzes = {
+  'programming-dsa': [
+    {
+      id: 'dsa_q1',
+      question: 'What is the time complexity of looking up an element in a Hash Map in the average case?',
+      options: ['O(1)', 'O(log N)', 'O(N)', 'O(N log N)'],
+      correctIndex: 0,
+      explanation: 'Average lookup time for a Hash Map is O(1) constant time because key hashing resolves to index storage addresses directly.'
+    },
+    {
+      id: 'dsa_q2',
+      question: 'Which data structure operates on a Last In, First Out (LIFO) basis?',
+      options: ['Queue', 'Stack', 'Min-Heap', 'Linked List'],
+      correctIndex: 1,
+      explanation: 'A stack pushes new items to the top and pops them from the top, making the last inserted element the first one to be removed.'
+    }
+  ],
+  'web-development': [
+    {
+      id: 'web_q1',
+      question: 'What is the main difference between useEffect dependencies [] and no dependencies array in React?',
+      options: [
+        '[] runs once on mount; no array runs on every render',
+        '[] runs on every render; no array runs once on mount',
+        'Both run once on mount',
+        'Both run on every render'
+      ],
+      correctIndex: 0,
+      explanation: 'Providing an empty dependency array tells React that the effect doesn\'t depend on any props or state, running it only once. Omitting the array entirely executes the effect on every single component render.'
+    },
+    {
+      id: 'web_q2',
+      question: 'Which CSS layout display value allows alignment of child items dynamically along row or column axes?',
+      options: ['display: block', 'display: grid', 'display: flex', 'display: inline'],
+      correctIndex: 2,
+      explanation: 'display: flex initializes a Flexbox container, enabling quick, dynamic alignment along a single main axis (row or column) and cross axis.'
+    }
+  ],
+  'ai-ml': [
+    {
+      id: 'ai_q1',
+      question: 'What does the term "Overfitting" mean in machine learning?',
+      options: [
+        'The model performs well on training data but poorly on unseen test data',
+        'The model performs poorly on training data but well on test data',
+        'The model has too few parameters',
+        'The model executes too slowly'
+      ],
+      correctIndex: 0,
+      explanation: 'Overfitting occurs when a statistical model fits its training data too closely, learning the noise and details to the point where it fails to generalize to new, unseen test data.'
+    },
+    {
+      id: 'ai_q2',
+      question: 'Which activation function outputs values in the range of 0 to 1, representing a probability?',
+      options: ['ReLU', 'Sigmoid', 'Tanh', 'LeakyReLU'],
+      correctIndex: 1,
+      explanation: 'The Sigmoid activation function squashes any real-valued number into a range between 0 and 1, which makes it perfect for output layers predicting binary probability outcomes.'
+    }
+  ],
+  'general': [
+    {
+      id: 'gen_q1',
+      question: 'What does ACID stand for in Database Management Systems?',
+      options: [
+        'Atomicity, Consistency, Isolation, Durability',
+        'Accuracy, Completeness, Integrity, Dependability',
+        'Action, Concurrency, Indexing, Distribution',
+        'Allocation, Compression, Isolation, Duplication'
+      ],
+      correctIndex: 0,
+      explanation: 'ACID represents the key set of properties (Atomicity, Consistency, Isolation, Durability) that guarantee database transactions are processed reliably.'
+    },
+    {
+      id: 'gen_q2',
+      question: 'What is the primary purpose of a reverse proxy like Nginx?',
+      options: [
+        'To build and compile frontend Next.js applications',
+        'To act as an intermediary, routing client requests to backend servers, handling load balancing and SSL termination',
+        'To write database schemas to disk',
+        'To optimize static image files'
+      ],
+      correctIndex: 1,
+      explanation: 'A reverse proxy sits in front of web servers and forwards client requests, providing load balancing, caching, security, and SSL decryption benefits.'
+    }
+  ]
+};
 
 export default function GroupPage() {
   const router = useRouter();
@@ -148,6 +283,271 @@ export default function GroupPage() {
   const [notesCreated, setNotesCreated] = useState(0);
   const [tasksCompleted, setTasksCompleted] = useState(0);
   const [loggingProgress, setLoggingProgress] = useState(false);
+
+  // Gamification & User Stats State
+  const [userStats, setUserStats] = useState({
+    streakCount: 0,
+    totalStudyHours: 0.0,
+    xp: 0,
+    focusCoins: 0,
+    level: 1,
+    badges: '[]'
+  });
+
+  // Learning Level State
+  const [learningLevel, setLearningLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+
+  // Pomodoro States
+  const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState(25 * 60);
+  const [pomodoroIsRunning, setPomodoroIsRunning] = useState(false);
+  const [pomodoroActivePreset, setPomodoroActivePreset] = useState<'25/5' | '50/10' | '90/15' | 'custom'>('25/5');
+  const [pomodoroMode, setPomodoroMode] = useState<'focus' | 'break'>('focus');
+  const [pomodoroTotalDuration, setPomodoroTotalDuration] = useState(25 * 60);
+  const [customDurationInput, setCustomDurationInput] = useState(25);
+
+  // Checked topics checklist
+  const [checkedTopics, setCheckedTopics] = useState<string[]>([]);
+
+  // Study Buddy Matcher states
+  const [isScanningBuddy, setIsScanningBuddy] = useState(false);
+  const [matchedBuddy, setMatchedBuddy] = useState<any>(null);
+
+  // Concept Quizzes states
+  const [activeQuizIndex, setActiveQuizIndex] = useState(0);
+  const [selectedQuizOption, setSelectedQuizOption] = useState<number | null>(null);
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+  // Helper to map custom group properties to standard slugs
+  const getCategoryKey = () => {
+    if (!group) return 'general';
+    const subject = (group.subject || '').toLowerCase();
+    const name = (group.name || '').toLowerCase();
+    if (subject.includes('programming') || subject.includes('dsa') || name.includes('dsa') || name.includes('coding') || name.includes('programming')) {
+      return 'programming-dsa';
+    }
+    if (subject.includes('web') || subject.includes('development') || name.includes('web') || name.includes('dev')) {
+      return 'web-development';
+    }
+    if (subject.includes('ai') || subject.includes('machine') || subject.includes('learning') || name.includes('ai') || name.includes('ml')) {
+      return 'ai-ml';
+    }
+    return 'general';
+  };
+
+  // Pomodoro countdown timer logic
+  useEffect(() => {
+    let intervalId: any = null;
+    if (pomodoroIsRunning) {
+      intervalId = setInterval(() => {
+        setPomodoroTimeLeft((prev) => {
+          if (prev <= 1) {
+            setPomodoroIsRunning(false);
+            
+            if (typeof window !== 'undefined') {
+              try {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-500.wav');
+                audio.play().catch(() => {});
+              } catch (e) {}
+            }
+
+            const currentDurationMin = Math.round(pomodoroTotalDuration / 60);
+
+            if (pomodoroMode === 'focus') {
+              showToast(`🎉 Focus session complete! You studied for ${currentDurationMin} mins. Logging progress...`, 'success');
+              
+              apiRequest('/progress/log', {
+                method: 'POST',
+                body: JSON.stringify({
+                  groupId,
+                  studyMinutes: currentDurationMin,
+                  notesCreated: 0,
+                  tasksCompleted: 0
+                })
+              })
+                .then((res) => {
+                  if (res.user) {
+                    setUserStats((prev) => ({
+                      ...prev,
+                      totalStudyHours: res.user.totalStudyHours,
+                      streakCount: res.user.streakCount
+                    }));
+                  }
+                  refreshStats();
+                })
+                .catch((err) => console.error('Error logging study session:', err));
+
+              apiRequest('/progress/complete-practice', {
+                method: 'POST',
+                body: JSON.stringify({
+                  interest: group?.subject || 'Programming & DSA',
+                  challengeId: 'pomodoro_' + Date.now(),
+                  xpReward: 30,
+                  coinReward: 15
+                })
+              })
+                .then((res) => {
+                  setUserStats((prev) => ({
+                    ...prev,
+                    xp: res.xp,
+                    focusCoins: res.focusCoins,
+                    level: res.level,
+                    streakCount: res.streakCount
+                  }));
+                })
+                .catch((err) => console.error('Error rewarding focus session:', err));
+
+              setPomodoroMode('break');
+              const breakDur = pomodoroActivePreset === '50/10' ? 10 * 60 : pomodoroActivePreset === '90/15' ? 15 * 60 : 5 * 60;
+              setPomodoroTimeLeft(breakDur);
+              setPomodoroTotalDuration(breakDur);
+            } else {
+              showToast("☀️ Break is over! Time to start focusing again.", 'info');
+              setPomodoroMode('focus');
+              const focusDur = pomodoroActivePreset === '50/10' ? 50 * 60 : pomodoroActivePreset === '90/15' ? 90 * 60 : 25 * 60;
+              setPomodoroTimeLeft(focusDur);
+              setPomodoroTotalDuration(focusDur);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [pomodoroIsRunning, pomodoroMode, pomodoroActivePreset, pomodoroTotalDuration, groupId, group?.subject]);
+
+  const handleSetPomodoroPreset = (preset: '25/5' | '50/10' | '90/15' | 'custom', customMin?: number) => {
+    setPomodoroIsRunning(false);
+    setPomodoroActivePreset(preset);
+    setPomodoroMode('focus');
+    let secs = 25 * 60;
+    if (preset === '50/10') secs = 50 * 60;
+    else if (preset === '90/15') secs = 90 * 60;
+    else if (preset === 'custom') secs = (customMin || 25) * 60;
+    setPomodoroTimeLeft(secs);
+    setPomodoroTotalDuration(secs);
+  };
+
+  const handleFindStudyBuddy = () => {
+    setIsScanningBuddy(true);
+    setMatchedBuddy(null);
+    setTimeout(() => {
+      setIsScanningBuddy(false);
+      const names = ['Swathi', 'Rahul', 'Swetha', 'Charan', 'Sneha', 'Aarav', 'Neha', 'Pranav', 'Deepika', 'Karthik', 'Ananya'];
+      const randomName = names[Math.floor(Math.random() * names.length)];
+      
+      const goalsMap: Record<string, string> = {
+        'programming-dsa': 'DSA Coding Mastery',
+        'web-development': 'Fullstack Web Development',
+        'ai-ml': 'AI/ML Engineering & Neural Nets',
+        'general': 'System Design & Computer Science'
+      };
+      
+      const catKey = getCategoryKey();
+      const sharedGoal = goalsMap[catKey as keyof typeof goalsMap];
+      
+      setMatchedBuddy({
+        name: randomName,
+        goal: sharedGoal,
+        level: learningLevel.charAt(0).toUpperCase() + learningLevel.slice(1),
+        action: `Let's focus for a session and solve challenges together!`
+      });
+      showToast(`🤝 Connected with ${randomName} for co-studying!`, 'success');
+    }, 2000);
+  };
+
+  const handleToggleTopic = async (topic: string) => {
+    const isChecked = checkedTopics.includes(topic);
+    if (!isChecked) {
+      try {
+        const data = await apiRequest('/progress/complete-practice', {
+          method: 'POST',
+          body: JSON.stringify({
+            interest: group?.subject || 'Programming & DSA',
+            challengeId: 'topic_' + topic.replace(/\s+/g, '_').toLowerCase(),
+            xpReward: 10,
+            coinReward: 5
+          })
+        });
+        
+        setUserStats(prev => ({
+          ...prev,
+          xp: data.xp,
+          focusCoins: data.focusCoins,
+          level: data.level,
+          streakCount: data.streakCount
+        }));
+        
+        setCheckedTopics(prev => [...prev, topic]);
+        showToast(`✅ Completed topic: ${topic}! +10 XP | +5 Focus Coins!`, 'success');
+        
+        if (data.leveledUp) {
+          showToast(`🎉 Level Up! You are now Level ${data.level}!`, 'success');
+        }
+      } catch (err: any) {
+        showToast('Error saving topic completion: ' + (err.message || err), 'error');
+      }
+    } else {
+      setCheckedTopics(prev => prev.filter(t => t !== topic));
+    }
+  };
+
+  const handleSelectQuizOption = (optionIdx: number) => {
+    if (quizSubmitted) return;
+    setSelectedQuizOption(optionIdx);
+  };
+
+  const handleVerifyQuiz = async () => {
+    if (selectedQuizOption === null || quizSubmitted) return;
+    
+    const catKey = getCategoryKey();
+    const currentQuiz = workspaceQuizzes[catKey as keyof typeof workspaceQuizzes][activeQuizIndex];
+    
+    if (selectedQuizOption === currentQuiz.correctIndex) {
+      try {
+        const data = await apiRequest('/progress/complete-practice', {
+          method: 'POST',
+          body: JSON.stringify({
+            interest: group?.subject || 'Programming & DSA',
+            challengeId: currentQuiz.id,
+            xpReward: 15,
+            coinReward: 5
+          })
+        });
+        
+        setUserStats(prev => ({
+          ...prev,
+          xp: data.xp,
+          focusCoins: data.focusCoins,
+          level: data.level,
+          streakCount: data.streakCount
+        }));
+        
+        setQuizSubmitted(true);
+        showToast('🎉 Correct! +15 XP | +5 Focus Coins!', 'success');
+        
+        if (data.leveledUp) {
+          showToast(`🎉 Level Up! You are now Level ${data.level}!`, 'success');
+        }
+      } catch (err: any) {
+        showToast('Error submitting quiz: ' + (err.message || err), 'error');
+      }
+    } else {
+      setQuizSubmitted(true);
+      showToast('❌ Incorrect answer. Review the explanation below.', 'error');
+    }
+  };
+
+  const handleNextQuiz = () => {
+    const catKey = getCategoryKey();
+    const totalQuizzes = workspaceQuizzes[catKey as keyof typeof workspaceQuizzes].length;
+    
+    setActiveQuizIndex((prev) => (prev + 1) % totalQuizzes);
+    setSelectedQuizOption(null);
+    setQuizSubmitted(false);
+  };
 
   // Group Stats & Leaderboard
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -293,6 +693,17 @@ export default function GroupPage() {
       // 6. Fetch doubts
       const doubtsData = await apiRequest(`/doubts/group/${groupId}`);
       setDoubts(doubtsData.doubts || []);
+
+      // 7. Fetch user stats
+      const progressData = await apiRequest('/progress/me');
+      setUserStats({
+        streakCount: progressData.streakCount || 0,
+        totalStudyHours: progressData.totalStudyHours || 0.0,
+        xp: progressData.xp || 0,
+        focusCoins: progressData.focusCoins || 0,
+        level: progressData.level || 1,
+        badges: progressData.badges || '[]'
+      });
 
     } catch (e: any) {
       console.error(e);
@@ -869,479 +1280,427 @@ export default function GroupPage() {
         {/* Workspace Operations (Left 2/3) */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* 1. Desking visual arena */}
-          {/* Coding Room Specialized Workspace */}
-          {group.name.toLowerCase().includes('coding room') && (
-            <section className="bg-gradient-to-br from-[#0B1224] via-[#070B16] to-[#120B24] border border-indigo-500/20 rounded-3xl shadow-lg p-6 space-y-5 relative">
-              <div className="absolute top-0 left-1/4 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white font-sans">
-                    <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" /> 🚀 Interactive Coding Workspace
-                  </div>
-                  <p className="text-[10px] text-slate-400 font-semibold">Perfect for beginners: write syntax and execute calculations.</p>
-                </div>
-                {codingCompleted ? (
-                  <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-550/20 rounded-xl text-[10px] font-black text-emerald-400 uppercase font-sans">
-                    ✓ Complete (+50 XP | +20 Coins)
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[10px] font-bold text-indigo-400 uppercase font-sans">
-                    🔥 Coding Challenge Active
-                  </span>
-                )}
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                {/* Left Side: Instructions */}
-                <div className="space-y-4 bg-slate-950/40 p-5 rounded-2xl border border-white/5 text-left">
-                  <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider font-sans">Problem: Factorial Calculator</h4>
-                  <p className="text-[11px] text-slate-350 leading-relaxed font-semibold">
-                    In mathematics, the factorial of a non-negative integer <code className="text-indigo-400 font-mono">n</code>, denoted by <code className="text-indigo-400 font-mono">n!</code>, is the product of all positive integers less than or equal to <code className="text-indigo-400 font-mono">n</code>.
-                  </p>
-                  <div className="bg-slate-950/60 p-3.5 rounded-xl border border-white/5 font-mono text-[9px] text-slate-400 space-y-1 shadow-inner">
-                    <div className="text-indigo-300 font-bold">// Examples:</div>
-                    <div>factorial(5) =&gt; 5 * 4 * 3 * 2 * 1 = 120</div>
-                    <div>factorial(1) =&gt; 1</div>
-                    <div>factorial(0) =&gt; 1</div>
-                  </div>
-                </div>
-
-                {/* Right Side: Code Editor Mock */}
-                <div className="space-y-4 flex flex-col justify-between">
-                  <div className="rounded-2xl overflow-hidden border border-white/5 bg-slate-950/90 shadow-2xl flex-1 flex flex-col min-h-[160px]">
-                    <div className="px-4 py-2 border-b border-white/5 bg-slate-950 flex items-center justify-between">
-                      <span className="text-[8px] font-black uppercase text-slate-500 font-mono">index.js</span>
-                      <div className="flex gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-rose-500" />
-                        <span className="h-2 w-2 rounded-full bg-amber-500" />
-                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      </div>
-                    </div>
-                    <textarea
-                      disabled={codingCompleted}
-                      value={codingCodeText}
-                      onChange={(e) => setCodingCodeText(e.target.value)}
-                      className="flex-1 p-4 bg-transparent outline-none text-[11px] text-indigo-300 font-mono resize-none leading-relaxed h-full min-h-[120px]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Output Console and CTA buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 border-t border-white/5 pt-4">
-                <div className="flex-1 space-y-1.5 text-left">
-                  <span className="text-[9px] font-black uppercase text-slate-500 block">Output Console</span>
-                  <div className="h-24 rounded-xl bg-slate-950/80 border border-white/10 p-3 font-mono text-[9px] text-[#A78BFA] overflow-y-auto space-y-1 shadow-inner">
-                    {codingOutput.length === 0 ? (
-                      <span className="text-zinc-650 italic">No output. Click "Run Tests" to execute the test suite.</span>
-                    ) : (
-                      codingOutput.map((log, idx) => (
-                        <div key={idx} className={log.includes('PASSED') || log.startsWith('All') ? 'text-emerald-400' : 'text-slate-400'}>{log}</div>
-                      ))
-                    )}
-                  </div>
-                </div>
+          {/* 1. Desking visual arena - Overhauled Focus Zone & Learning Path */}
+          <div className="grid md:grid-cols-2 gap-6 items-start">
+            
+            {/* COLUMN 1: FOCUS ZONE */}
+            <div className="space-y-6">
+              
+              {/* POMODORO TIMER CARD */}
+              <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
                 
-                <div className="flex sm:flex-col justify-end gap-3 shrink-0 self-end">
-                  {!codingCompleted ? (
-                    <>
+                <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-6">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
+                    <Clock className="h-4.5 w-4.5 text-indigo-400" /> Pomodoro Focus Arena
+                  </div>
+                  <span className={`text-[9px] px-2.5 py-1 rounded-lg font-black uppercase ${
+                    pomodoroMode === 'focus' 
+                      ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' 
+                      : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                  }`}>
+                    {pomodoroMode === 'focus' ? '🔥 Focus Mode' : '☀️ Break Time'}
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-center space-y-6">
+                  {/* Timer Display */}
+                  <div className="relative flex items-center justify-center h-40 w-40">
+                    {/* Circular track progress */}
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="80"
+                        cy="80"
+                        r="68"
+                        stroke="rgba(255, 255, 255, 0.03)"
+                        strokeWidth="7"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="80"
+                        cy="80"
+                        r="68"
+                        stroke={pomodoroMode === 'focus' ? '#EF4444' : '#10B981'}
+                        strokeWidth="7"
+                        fill="transparent"
+                        strokeDasharray="427.2"
+                        strokeDashoffset={427.2 * (1 - pomodoroTimeLeft / pomodoroTotalDuration)}
+                        className="transition-all duration-1000 ease-linear"
+                      />
+                    </svg>
+                    
+                    {/* Countdown text inside */}
+                    <div className="absolute flex flex-col items-center justify-center">
+                      <span className="text-2xl font-black text-white font-mono leading-none tracking-tight">
+                        {Math.floor(pomodoroTimeLeft / 60).toString().padStart(2, '0')}:
+                        {(pomodoroTimeLeft % 60).toString().padStart(2, '0')}
+                      </span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 mt-1">
+                        {pomodoroIsRunning ? 'Running' : 'Paused'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Presets Grid */}
+                  <div className="w-full grid grid-cols-4 gap-2">
+                    {(['25/5', '50/10', '90/15', 'custom'] as const).map((preset) => (
                       <button
-                        onClick={handleRunCodingTests}
-                        className="py-2.5 px-5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer transition-all active:scale-[0.98]"
-                      >
-                        Run Tests
-                      </button>
-                      <button
-                        disabled={!codingTested}
-                        onClick={handleSubmitCodingRoom}
-                        className={`py-2.5 px-5 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest transition-all ${
-                          codingTested 
-                            ? 'bg-indigo-650 hover:bg-indigo-500 cursor-pointer shadow-md shadow-indigo-650/15 active:scale-[0.98]' 
-                            : 'bg-zinc-800 text-zinc-550 cursor-not-allowed'
+                        key={preset}
+                        onClick={() => {
+                          if (preset !== 'custom') {
+                            handleSetPomodoroPreset(preset);
+                          } else {
+                            handleSetPomodoroPreset('custom', customDurationInput);
+                          }
+                        }}
+                        className={`py-2 px-1 text-[9px] font-black rounded-xl border transition-all uppercase tracking-wider cursor-pointer ${
+                          pomodoroActivePreset === preset
+                            ? 'bg-indigo-500/10 border-indigo-500/30 text-white font-black'
+                            : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-900'
                         }`}
                       >
-                        Submit Validation
+                        {preset === 'custom' ? 'Custom' : preset}
                       </button>
-                    </>
-                  ) : (
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 text-xs font-black rounded-xl text-center flex items-center justify-center gap-1.5 font-sans">
-                      ✓ Solved & Streak Saved
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* DSA Room Specialized Workspace */}
-          {group.name.toLowerCase().includes('dsa room') && (
-            <section className="bg-gradient-to-br from-[#1E1B4B] via-[#0F172A] to-[#111827] border border-purple-500/20 rounded-3xl shadow-lg p-6 space-y-5 relative">
-              <div className="absolute top-0 right-1/4 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white font-sans">
-                    <span className="h-2 w-2 rounded-full bg-purple-400 animate-pulse" /> 🧠 DSA Algorithm Visualizer
-                  </div>
-                  <p className="text-[10px] text-slate-400 font-semibold">Interactive workbench: visually inspect standard searches and complexities.</p>
-                </div>
-                {dsaCompleted ? (
-                  <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-550/20 rounded-xl text-[10px] font-black text-emerald-400 uppercase font-sans">
-                    ✓ Checkpoint Solved (+50 XP | +20 Coins)
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[10px] font-bold text-amber-400 uppercase font-sans">
-                    🔥 Checkpoint Active
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-5">
-                {/* Visual representation */}
-                <div className="bg-slate-950/60 p-5 rounded-2xl border border-white/5 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase text-slate-400 font-sans">Binary Search (Target = 69)</span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleDsaReset}
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[9px] font-black rounded-lg uppercase tracking-wider cursor-pointer transition-all border-none font-sans"
-                      >
-                        Reset
-                      </button>
-                      <button
-                        onClick={handleDsaNextStep}
-                        className="px-3 py-1.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[9px] font-black rounded-lg uppercase tracking-wider cursor-pointer transition-all border-none shadow-md font-sans"
-                      >
-                        Next Step
-                      </button>
-                    </div>
+                    ))}
                   </div>
 
-                  {/* Array visualization */}
-                  <div className="flex justify-center items-end gap-2 py-4 overflow-x-auto min-h-[90px]">
-                    {dsaArray.map((val, idx) => {
-                      const { low, high, mid } = dsaPointers;
-                      const isMid = idx === mid;
-                      const isLow = idx === low;
-                      const isHigh = idx === high;
-                      const inRange = idx >= low && idx <= high;
-
-                      return (
-                        <div key={idx} className="flex flex-col items-center gap-1.5">
-                          <div className="text-[8px] font-mono text-zinc-500">idx {idx}</div>
-                          <div
-                            className={`h-11 w-11 rounded-lg border flex items-center justify-center font-mono text-[11px] font-black transition-all duration-350 relative ${
-                              isMid 
-                                ? 'bg-rose-500/20 border-rose-500 text-rose-300 scale-105 shadow-lg shadow-rose-500/10'
-                                : isLow 
-                                  ? 'bg-blue-500/20 border-blue-500 text-blue-300'
-                                  : isHigh 
-                                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
-                                    : inRange
-                                      ? 'bg-[#1e1b4b] border-indigo-500/30 text-indigo-250'
-                                      : 'bg-zinc-950/40 border-white/5 text-slate-650'
-                            }`}
-                          >
-                            {val}
-                            {/* Floating badges */}
-                            {isMid && (
-                              <span className="absolute -top-3.5 px-1 bg-rose-500 text-white text-[7px] font-black rounded font-sans tracking-wide uppercase">mid</span>
-                            )}
-                            {isLow && !isMid && (
-                              <span className="absolute -top-3.5 px-1 bg-blue-500 text-white text-[7px] font-black rounded font-sans tracking-wide uppercase">low</span>
-                            )}
-                            {isHigh && !isMid && (
-                              <span className="absolute -top-3.5 px-1 bg-emerald-500 text-white text-[7px] font-black rounded font-sans tracking-wide uppercase">high</span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="bg-slate-950/80 border border-white/5 p-3 rounded-xl font-mono text-[9px] text-[#A78BFA] text-left">
-                    &gt; {dsaStepDesc}
-                  </div>
-                </div>
-
-                {/* DSA Quiz Challenge */}
-                <div className="space-y-4 bg-slate-950/40 p-5 rounded-2xl border border-white/5 text-left">
-                  <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider font-sans">Concept Checkpoint: Complexity Analysis</h4>
-                  <p className="text-[11px] text-slate-350 font-semibold leading-relaxed">
-                    What is the average-case time complexity of the Binary Search algorithm for a sorted array of size <code className="text-indigo-400 font-mono">N</code>?
-                  </p>
-
-                  <div className="grid sm:grid-cols-2 gap-3 pt-1">
-                    {[
-                      { id: 0, text: 'O(1) - Constant complexity' },
-                      { id: 1, text: 'O(log N) - Logarithmic complexity' },
-                      { id: 2, text: 'O(N) - Linear complexity' },
-                      { id: 3, text: 'O(N log N) - Linearithmic complexity' }
-                    ].map((option) => {
-                      const isSelected = dsaQuizAnswer === option.id;
-                      const isCorrect = option.id === 1;
-
-                      return (
-                        <button
-                          key={option.id}
-                          disabled={dsaCompleted}
-                          onClick={() => setDsaQuizAnswer(option.id)}
-                          className={`p-3.5 rounded-xl border text-left text-[11px] font-bold transition-all ${
-                            dsaCompleted
-                              ? isCorrect
-                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-450'
-                                : 'bg-[#0B0F19]/40 border-white/5 text-slate-500'
-                              : isSelected
-                                ? 'bg-indigo-500/10 border-indigo-500/50 text-white'
-                                : 'bg-slate-950/70 border-white/5 text-slate-400 hover:bg-[#121829]/95 hover:text-white cursor-pointer'
-                          }`}
-                        >
-                          <span className="mr-2 font-mono text-[10px] text-indigo-400 font-black">{String.fromCharCode(65 + option.id)})</span>
-                          {option.text}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {!dsaCompleted && (
-                    <div className="pt-2 flex justify-start">
-                      <button
-                        onClick={handleVerifyDsaQuiz}
-                        className="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow-md transition-all active:scale-[0.98] font-sans"
-                      >
-                        Submit Answer
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* AI Room Specialized Workspace */}
-          {group.name.toLowerCase().includes('ai room') && (
-            <section className="bg-gradient-to-br from-[#022C22] via-[#0F172A] to-[#1E1B4B] border border-emerald-500/20 rounded-3xl shadow-lg p-6 space-y-5 relative">
-              <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white font-sans">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> 🤖 AI Neural Network Model Builder
-                  </div>
-                  <p className="text-[10px] text-slate-400 font-semibold">ML training simulator: configure layers, set learning rate, and watch training logs.</p>
-                </div>
-                {aiCompleted ? (
-                  <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-550/20 rounded-xl text-[10px] font-black text-emerald-450 uppercase font-sans">
-                    ✓ Model Deployed (+50 XP | +20 Coins)
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 bg-[#4F46E5]/10 border border-[#4F46E5]/20 rounded-xl text-[10px] font-bold text-indigo-400 uppercase font-sans">
-                    🔥 Sandbox Active
-                  </span>
-                )}
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                {/* Left Side: Parameters */}
-                <div className="space-y-4 bg-slate-950/40 p-5 rounded-2xl border border-white/5 text-left">
-                  <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider font-sans">Hyper-Parameters</h4>
-                  
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-1">Dataset Selection</label>
-                      <select
-                        disabled={aiTraining || aiCompleted}
-                        value={aiDataset}
-                        onChange={(e) => setAiDataset(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-xl text-xs text-white outline-none focus:border-emerald-500/50 transition-all font-semibold font-sans cursor-pointer"
-                      >
-                        <option value="MNIST Digits">MNIST Handwriting Digits (60,000 images)</option>
-                        <option value="Boston Housing">Boston Housing Pricing (506 records)</option>
-                        <option value="Iris Flowers">Iris Flower Classification (150 plants)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-1">Activation Function</label>
-                      <select
-                        disabled={aiTraining || aiCompleted}
-                        value={aiActivation}
-                        onChange={(e) => setAiActivation(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-xl text-xs text-white outline-none focus:border-emerald-500/50 transition-all font-semibold font-sans cursor-pointer"
-                      >
-                        <option value="ReLU">Rectified Linear Unit (ReLU)</option>
-                        <option value="Sigmoid">Sigmoid function (probability output)</option>
-                        <option value="Tanh">Hyperbolic Tangent (tanh)</option>
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-1">Learning Rate</label>
-                        <input
-                          disabled={aiTraining || aiCompleted}
-                          type="number"
-                          step="0.001"
-                          min="0.001"
-                          max="0.5"
-                          value={aiLearningRate}
-                          onChange={(e) => setAiLearningRate(Number(e.target.value))}
-                          className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-xl text-xs text-white outline-none focus:border-emerald-500/50 transition-all font-mono font-semibold"
-                        />
+                  {/* Custom Range Slider if custom selected */}
+                  {pomodoroActivePreset === 'custom' && (
+                    <div className="w-full space-y-1.5 px-1">
+                      <div className="flex justify-between items-center text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                        <span>Duration</span>
+                        <span className="text-indigo-400 font-mono">{customDurationInput} Mins</span>
                       </div>
-                      <div>
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-1">Epochs count</label>
-                        <input
-                          disabled={aiTraining || aiCompleted}
-                          type="number"
-                          step="10"
-                          min="10"
-                          max="100"
-                          value={aiEpochs}
-                          onChange={(e) => setAiEpochs(Number(e.target.value))}
-                          className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-xl text-xs text-white outline-none focus:border-emerald-500/50 transition-all font-mono font-semibold"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Side: Training Studio Output */}
-                <div className="space-y-4 bg-slate-950/40 p-5 rounded-2xl border border-white/5 text-left flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider font-sans">Model Training Logs</h4>
-                    <div className="h-32 rounded-xl bg-slate-950 border border-white/5 p-3 font-mono text-[9px] text-emerald-450 overflow-y-auto space-y-1 shadow-inner">
-                      {aiLogs.length === 0 ? (
-                        <span className="text-zinc-650 italic">Configure hyperparameters on the left and click "Train Model" to begin optimizer convergence.</span>
-                      ) : (
-                        aiLogs.map((log, idx) => (
-                          <div key={idx} className={log.startsWith('✓') ? 'text-emerald-400 font-bold' : 'text-slate-405'}>{log}</div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="space-y-1.5 pt-2">
-                    <div className="flex justify-between items-center text-[9px] text-slate-500 uppercase font-black tracking-wider">
-                      <span>Optimizing Convergence</span>
-                      <span className="font-mono text-emerald-450 font-black">{aiProgress}%</span>
-                    </div>
-                    <div className="w-full bg-slate-950 h-2 border border-white/5 rounded-full overflow-hidden">
-                      <div
-                        style={{ width: `${aiProgress}%` }}
-                        className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-300"
+                      <input
+                        type="range"
+                        min="1"
+                        max="120"
+                        value={customDurationInput}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setCustomDurationInput(val);
+                          handleSetPomodoroPreset('custom', val);
+                        }}
+                        disabled={pomodoroIsRunning}
+                        className="w-full accent-indigo-500 cursor-pointer"
                       />
                     </div>
-                  </div>
-                </div>
-              </div>
+                  )}
 
-              <div className="flex justify-end border-t border-white/5 pt-4">
-                {!aiCompleted ? (
-                  <button
-                    disabled={aiTraining || aiProgress < 100}
-                    onClick={aiProgress < 100 ? handleTrainAiModel : handleClaimAiRewards}
-                    className={`py-2.5 px-6 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest transition-all ${
-                      aiTraining 
-                        ? 'bg-zinc-800 text-zinc-550 cursor-not-allowed'
-                        : aiProgress < 100 
-                          ? 'bg-emerald-600 hover:bg-emerald-500 cursor-pointer shadow-md shadow-emerald-650/15 font-sans'
-                          : 'bg-indigo-650 hover:bg-indigo-500 cursor-pointer shadow-md shadow-indigo-650/15 font-sans'
-                    } active:scale-[0.98]`}
-                  >
-                    {aiTraining 
-                      ? 'Training MLP Network...' 
-                      : aiProgress < 100 
-                        ? 'Train AI Model' 
-                        : 'Claim Training Rewards'}
-                  </button>
-                ) : (
-                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black rounded-xl text-center font-sans">
-                    ✓ Model Successfully Deployed & Streak Maintained
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-
-          {/* Standard public lounge desks */}
-          {!group.name.toLowerCase().includes('coding room') && !group.name.toLowerCase().includes('dsa room') && !group.name.toLowerCase().includes('ai room') && (
-            <section className="bg-gradient-to-br from-[#2D1612] via-[#1F100E] to-[#160B0A] border border-[#FF8A75]/25 rounded-3xl shadow-lg p-6 space-y-5 relative">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
-                    <Coffee className="h-4 w-4 text-[#FF8A75]" /> Live desking lobby
-                  </div>
-                  <p className="text-[10px] text-zinc-300 font-semibold">Pick a desk to sit and study together with your peer group.</p>
-                </div>
-
-                {myDeskIndex !== null && myDeskIndex !== undefined && (
-                  <button
-                    onClick={handleStandUp}
-                    className="px-3 py-1 bg-[#FF8A75]/15 hover:bg-[#FF8A75]/25 border border-[#FF8A75]/20 text-[#FF8A75] hover:text-[#FFA07A] text-[10px] font-bold rounded-xl cursor-pointer transition-all"
-                  >
-                    Stand Up
-                  </button>
-                )}
-              </div>
-
-              {/* Interactive Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {Array.from({ length: DESK_COUNT }).map((_, idx) => {
-                  const seatedUser = deskMap[idx];
-                  const isMe = seatedUser?.id === currentUser?.id;
-
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => {
-                        if (!seatedUser) {
-                          handleSitDesk(idx);
-                        }
-                      }}
-                      className={`p-3.5 rounded-2xl border flex flex-col items-center justify-between h-28 transition-all ${
-                        seatedUser 
-                          ? isMe
-                            ? 'bg-[#FF8A75]/30 border-[#FF8A75] shadow-md text-white'
-                            : 'bg-[#120A08] border-[#FF8A75]/10 text-zinc-150 hover:bg-[#1F100E]'
-                          : 'bg-white/5 border-dashed border-white/10 text-zinc-400 hover:bg-[#FF8A75]/10 hover:text-[#FF8A75] cursor-pointer'
+                  {/* Controls Buttons */}
+                  <div className="w-full flex gap-3 pt-2">
+                    <button
+                      onClick={() => setPomodoroIsRunning(!pomodoroIsRunning)}
+                      className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md cursor-pointer border-none flex items-center justify-center gap-1.5 ${
+                        pomodoroIsRunning
+                          ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                          : 'bg-indigo-650 hover:bg-indigo-500 text-white'
                       }`}
                     >
-                      <div className={`w-full flex justify-between items-center text-[9px] ${
-                        seatedUser ? 'text-zinc-400' : 'text-zinc-550'
-                      }`}>
-                        <span className="font-mono">Desk #{idx + 1}</span>
-                        {seatedUser && (
-                          <span className={`h-1.5 w-1.5 rounded-full ${isMe ? 'bg-[#FF8A75] animate-ping' : 'bg-[#FFA07A] animate-pulse'}`} />
-                        )}
+                      {pomodoroIsRunning ? (
+                        <>
+                          <span className="h-2.5 w-2.5 bg-white/20 rounded flex items-center justify-center" /> Pause Focus
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-3.5 w-3.5" /> Start Focus
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleSetPomodoroPreset(pomodoroActivePreset, customDurationInput)}
+                      className="px-4 py-3 bg-slate-800 hover:bg-slate-700 border-none text-slate-200 text-xs font-black rounded-xl transition-all uppercase tracking-widest cursor-pointer active:scale-[0.98] flex items-center justify-center"
+                      title="Reset Timer"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* COMMITMENT TRACKER CARD */}
+              <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+                
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans mb-4">🎯 Daily Commitment Tracker</h4>
+                
+                <div className="flex items-center gap-6">
+                  <div className="relative h-20 w-20 flex items-center justify-center shrink-0">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="40"
+                        cy="40"
+                        r="32"
+                        stroke="rgba(255, 255, 255, 0.03)"
+                        strokeWidth="4"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="40"
+                        cy="40"
+                        r="32"
+                        stroke="#10B981"
+                        strokeWidth="4"
+                        fill="transparent"
+                        strokeDasharray="201"
+                        strokeDashoffset={201 * (1 - Math.min(100, Math.round((userStats.totalStudyHours / (currentUser?.dailyTarget || 2.0)) * 100)) / 100)}
+                        className="transition-all duration-500 ease-out"
+                      />
+                    </svg>
+                    <div className="absolute flex flex-col items-center justify-center text-center">
+                      <span className="text-sm font-black text-white font-mono leading-none">
+                        {Math.min(100, Math.round((userStats.totalStudyHours / (currentUser?.dailyTarget || 2.0)) * 100))}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-left min-w-0">
+                    <div className="text-xs font-bold text-slate-200">
+                      Focused <strong className="text-indigo-400 text-sm font-black">{userStats.totalStudyHours.toFixed(1)}</strong> of <strong className="text-emerald-400 text-sm font-black">{(currentUser?.dailyTarget || 2.0).toFixed(1)}</strong> hours today
+                    </div>
+                    <p className="text-[10px] text-slate-455 font-bold leading-relaxed">
+                      Your daily target is synchronized with your onboarding choices. Complete focus blocks to level up your scholar ranking.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* STUDY BUDDY MATCHER CARD */}
+              <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl text-left relative overflow-hidden">
+                <div className="absolute bottom-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
+                
+                <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
+                    <Users className="h-4.5 w-4.5 text-purple-400 animate-pulse" /> Accountability Study Buddy
+                  </div>
+                </div>
+
+                {!matchedBuddy ? (
+                  <div className="space-y-4">
+                    <p className="text-[11px] text-slate-455 leading-relaxed font-bold">
+                      Find an active partner co-studying the same topics. Share goals and double your focus motivation.
+                    </p>
+                    
+                    {isScanningBuddy ? (
+                      <div className="p-4 bg-slate-950/40 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-3">
+                        <RefreshCw className="h-6 w-6 text-indigo-500 animate-spin" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 animate-pulse">Scanning lounge for matches...</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handleFindStudyBuddy}
+                        className="w-full py-2.5 bg-purple-650 hover:bg-purple-600 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow-md transition-all"
+                      >
+                        Find Study Buddy
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-purple-950/20 border border-purple-500/20 rounded-2xl space-y-2 text-left relative">
+                      <button
+                        onClick={() => setMatchedBuddy(null)}
+                        className="absolute top-2 right-2 text-[10px] text-slate-500 hover:text-white font-bold bg-transparent border-none cursor-pointer"
+                        title="Disconnect Buddy"
+                      >
+                        ✕
+                      </button>
+                      
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-8 w-8 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center font-black uppercase text-sm">
+                          {matchedBuddy.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="text-xs font-black text-white">@{matchedBuddy.name} matched!</div>
+                          <div className="text-[8px] text-purple-400 font-black uppercase tracking-wider">Goal: {matchedBuddy.goal}</div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-350 italic font-semibold leading-relaxed pt-1">
+                        "{matchedBuddy.action}"
+                      </p>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <span className="flex-1 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[9px] font-black text-emerald-400 uppercase text-center">
+                        🤝 Accountability Connected
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* COLUMN 2: LEARNING PATH & QUIZZES */}
+            <div className="space-y-6">
+              
+              {/* LEARNING PATH TOPIC MAP */}
+              <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl text-left relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+                
+                <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-white">🎓 Learning Path Checklist</h4>
+                    <p className="text-[9px] text-slate-500 font-bold">Track key concepts and verify completion for XP and Coins.</p>
+                  </div>
+                </div>
+
+                {/* Completion progress */}
+                {(() => {
+                  const catKey = getCategoryKey();
+                  const activePath = learningPathTopics[catKey as keyof typeof learningPathTopics];
+                  const allTopics = [
+                    ...activePath.levels.beginner,
+                    ...activePath.levels.intermediate,
+                    ...activePath.levels.advanced
+                  ];
+                  const completedCount = allTopics.filter(t => checkedTopics.includes(t)).length;
+                  const pct = Math.round((completedCount / allTopics.length) * 100);
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="bg-slate-955 p-4 rounded-2xl border border-white/5 space-y-2">
+                        <div className="flex justify-between items-center text-[10px] font-black text-slate-400">
+                          <span>Path Progress ({activePath.title})</span>
+                          <span className="text-indigo-400">{completedCount} / {allTopics.length} ({pct}%)</span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-slate-900 border border-white/5 overflow-hidden">
+                          <div className="h-full rounded-full bg-indigo-500 transition-all duration-300" style={{ width: `${pct}%` }} />
+                        </div>
                       </div>
 
-                      {seatedUser ? (
-                        <div className="flex flex-col items-center gap-1 text-center w-full min-w-0">
-                          <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${
-                            isMe 
-                              ? 'bg-[#FF8A75]/25 border border-[#FF8A75] text-white' 
-                              : 'bg-zinc-800 border border-zinc-700 text-zinc-350'
-                          }`}>
-                            {seatedUser.fullName.charAt(0)}
-                          </div>
-                          <div className="text-[10px] font-bold text-zinc-200 truncate w-full">{seatedUser.fullName}</div>
-                          <div className="text-[8px] text-zinc-400 font-semibold uppercase">{seatedUser.role}</div>
-                        </div>
+                      {/* Levels Checklists */}
+                      <div className="space-y-4 max-h-[280px] overflow-y-auto pr-2">
+                        {(['beginner', 'intermediate', 'advanced'] as const).map((level) => {
+                          const levelTopics = activePath.levels[level];
+                          return (
+                            <div key={level} className="space-y-2">
+                              <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                {level} track
+                              </div>
+                              <div className="grid gap-2">
+                                {levelTopics.map((topic) => {
+                                  const isChecked = checkedTopics.includes(topic);
+                                  return (
+                                    <div
+                                      key={topic}
+                                      onClick={() => handleToggleTopic(topic)}
+                                      className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                                        isChecked
+                                          ? 'bg-indigo-500/5 border-indigo-500/30 text-slate-200'
+                                          : 'bg-slate-950/30 border-white/5 text-slate-400 hover:bg-slate-900/40 hover:text-slate-250'
+                                      }`}
+                                    >
+                                      <span className="text-[11px] font-bold font-sans">{topic}</span>
+                                      <div className={`h-4.5 w-4.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                                        isChecked 
+                                          ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' 
+                                          : 'bg-transparent border-white/10 text-transparent'
+                                      }`}>
+                                        {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* CONCEPT QUIZ OF THE DAY */}
+              {(() => {
+                const catKey = getCategoryKey();
+                const activeQuizzes = workspaceQuizzes[catKey as keyof typeof workspaceQuizzes];
+                const currentQuiz = activeQuizzes[activeQuizIndex];
+                
+                return (
+                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl text-left relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-white">🧠 Concept Quiz Challenge</h4>
+                        <p className="text-[9px] text-slate-500 font-bold">Reinforce learning concepts. Correct answers award XP and Coins.</p>
+                      </div>
+                      <span className="text-[8px] font-mono bg-indigo-500/15 border border-indigo-500/25 px-2 py-0.5 rounded text-indigo-400 uppercase font-black">
+                        Q {activeQuizIndex + 1} / {activeQuizzes.length}
+                      </span>
+                    </div>
+
+                    <div className="space-y-4">
+                      <p className="text-xs font-bold text-slate-200 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-white/5">
+                        {currentQuiz.question}
+                      </p>
+
+                      <div className="grid gap-2">
+                        {currentQuiz.options.map((option, idx) => {
+                          const isSelected = selectedQuizOption === idx;
+                          const isCorrect = idx === currentQuiz.correctIndex;
+                          
+                          let optionStyle = 'bg-slate-950/30 border-white/5 text-slate-400 hover:bg-slate-900/40 cursor-pointer';
+                          if (quizSubmitted) {
+                            if (isCorrect) {
+                              optionStyle = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-black';
+                            } else if (isSelected) {
+                              optionStyle = 'bg-rose-500/10 border-rose-500/30 text-rose-400 font-black';
+                            } else {
+                              optionStyle = 'bg-slate-950/20 border-white/5 text-slate-650 opacity-60';
+                            }
+                          } else if (isSelected) {
+                            optionStyle = 'bg-indigo-500/10 border-indigo-500/50 text-white font-bold';
+                          }
+
+                          return (
+                            <button
+                              key={idx}
+                              disabled={quizSubmitted}
+                              onClick={() => handleSelectQuizOption(idx)}
+                              className={`p-3 rounded-xl border text-left text-xs font-bold transition-all ${optionStyle}`}
+                            >
+                              {option}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {!quizSubmitted ? (
+                        <button
+                          disabled={selectedQuizOption === null}
+                          onClick={handleVerifyQuiz}
+                          className={`w-full py-2.5 text-[10px] font-black rounded-xl border-none uppercase tracking-widest transition-all ${
+                            selectedQuizOption !== null
+                              ? 'bg-indigo-650 hover:bg-indigo-500 text-white cursor-pointer shadow-md'
+                              : 'bg-zinc-800 text-zinc-550 cursor-not-allowed'
+                          }`}
+                        >
+                          Submit Answer
+                        </button>
                       ) : (
-                        <div className="text-center py-2 flex flex-col items-center gap-1 text-zinc-450">
-                          <span className="text-xs">🛋️</span>
-                          <span className="text-[9px] font-bold uppercase tracking-wide">Sit Here</span>
+                        <div className="space-y-4 pt-2 border-t border-white/5">
+                          <div className="p-3 bg-slate-955 border border-white/5 rounded-xl text-[10px] text-slate-400 leading-relaxed font-semibold">
+                            <strong className="text-white block mb-0.5 uppercase tracking-wide text-[9px]">Explanation:</strong>
+                            {currentQuiz.explanation}
+                          </div>
+                          <button
+                            onClick={handleNextQuiz}
+                            className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer transition-all"
+                          >
+                            Next Challenge
+                          </button>
                         </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
+                  </div>
+                );
+              })()}
 
+            </div>
 
+          </div>
           {/* 2. Collaborative Workspace Tabs */}
           <section className="space-y-4">
             <div className="border-b border-zinc-900 flex gap-2">

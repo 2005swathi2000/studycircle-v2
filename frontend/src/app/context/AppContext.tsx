@@ -20,6 +20,13 @@ export interface User {
   gender?: string;
   streakCount?: number;
   totalStudyHours?: number;
+  learningGoal?: string;
+  learningLevel?: 'beginner' | 'intermediate' | 'advanced';
+  dailyTarget?: number;
+  xp?: number;
+  focusCoins?: number;
+  level?: number;
+  badges?: string;
   bio?: string;
   token?: string;
 }

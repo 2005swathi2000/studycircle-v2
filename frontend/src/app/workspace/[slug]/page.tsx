@@ -85,6 +85,128 @@ interface Session {
   };
 }
 
+const learningPathTopics = {
+  'programming-dsa': {
+    title: 'Programming & DSA',
+    levels: {
+      beginner: ['Arrays', 'Strings', 'Linked Lists', 'Stack'],
+      intermediate: ['Trees', 'Graphs', 'Heaps'],
+      advanced: ['DP', 'Tries', 'Segment Trees']
+    }
+  },
+  'web-development': {
+    title: 'Web Development',
+    levels: {
+      beginner: ['HTML Semantic Structure', 'CSS Flexbox', 'Basic DOM'],
+      intermediate: ['CSS Grid', 'React Hooks', 'Fetch API'],
+      advanced: ['Next.js App Router', 'Webpack optimization', 'Web Sockets']
+    }
+  },
+  'ai-ml': {
+    title: 'AI & Machine Learning',
+    levels: {
+      beginner: ['Intro to ML', 'Linear Regression', 'Gradient Descent'],
+      intermediate: ['Neural Networks', 'Activation Functions', 'Backpropagation'],
+      advanced: ['CNNs/Computer Vision', 'Transformers/NLP', 'PyTorch deployment']
+    }
+  },
+  'general': {
+    title: 'General Computer Science',
+    levels: {
+      beginner: ['Databases', 'Git Version Control', 'Basic Command Line'],
+      intermediate: ['REST APIs', 'SQL Queries', 'OOP Concepts'],
+      advanced: ['System Design', 'Microservices', 'Security & Cryptography']
+    }
+  }
+};
+
+const workspaceQuizzes = {
+  'programming-dsa': [
+    {
+      id: 'dsa_q1',
+      question: 'What is the time complexity of looking up an element in a Hash Map in the average case?',
+      options: ['O(1)', 'O(log N)', 'O(N)', 'O(N log N)'],
+      correctIndex: 0,
+      explanation: 'Average lookup time for a Hash Map is O(1) constant time because key hashing resolves to index storage addresses directly.'
+    },
+    {
+      id: 'dsa_q2',
+      question: 'Which data structure operates on a Last In, First Out (LIFO) basis?',
+      options: ['Queue', 'Stack', 'Min-Heap', 'Linked List'],
+      correctIndex: 1,
+      explanation: 'A stack pushes new items to the top and pops them from the top, making the last inserted element the first one to be removed.'
+    }
+  ],
+  'web-development': [
+    {
+      id: 'web_q1',
+      question: 'What is the main difference between useEffect dependencies [] and no dependencies array in React?',
+      options: [
+        '[] runs once on mount; no array runs on every render',
+        '[] runs on every render; no array runs once on mount',
+        'Both run once on mount',
+        'Both run on every render'
+      ],
+      correctIndex: 0,
+      explanation: 'Providing an empty dependency array tells React that the effect doesn\'t depend on any props or state, running it only once. Omitting the array entirely executes the effect on every single component render.'
+    },
+    {
+      id: 'web_q2',
+      question: 'Which CSS layout display value allows alignment of child items dynamically along row or column axes?',
+      options: ['display: block', 'display: grid', 'display: flex', 'display: inline'],
+      correctIndex: 2,
+      explanation: 'display: flex initializes a Flexbox container, enabling quick, dynamic alignment along a single main axis (row or column) and cross axis.'
+    }
+  ],
+  'ai-ml': [
+    {
+      id: 'ai_q1',
+      question: 'What does the term "Overfitting" mean in machine learning?',
+      options: [
+        'The model performs well on training data but poorly on unseen test data',
+        'The model performs poorly on training data but well on test data',
+        'The model has too few parameters',
+        'The model executes too slowly'
+      ],
+      correctIndex: 0,
+      explanation: 'Overfitting occurs when a statistical model fits its training data too closely, learning the noise and details to the point where it fails to generalize to new, unseen test data.'
+    },
+    {
+      id: 'ai_q2',
+      question: 'Which activation function outputs values in the range of 0 to 1, representing a probability?',
+      options: ['ReLU', 'Sigmoid', 'Tanh', 'LeakyReLU'],
+      correctIndex: 1,
+      explanation: 'The Sigmoid activation function squashes any real-valued number into a range between 0 and 1, which makes it perfect for output layers predicting binary probability outcomes.'
+    }
+  ],
+  'general': [
+    {
+      id: 'gen_q1',
+      question: 'What does ACID stand for in Database Management Systems?',
+      options: [
+        'Atomicity, Consistency, Isolation, Durability',
+        'Accuracy, Completeness, Integrity, Dependability',
+        'Action, Concurrency, Indexing, Distribution',
+        'Allocation, Compression, Isolation, Duplication'
+      ],
+      correctIndex: 0,
+      explanation: 'ACID represents the key set of properties (Atomicity, Consistency, Isolation, Durability) that guarantee database transactions are processed reliably.'
+    },
+    {
+      id: 'gen_q2',
+      question: 'What is the primary purpose of a reverse proxy like Nginx?',
+      options: [
+        'To build and compile frontend Next.js applications',
+        'To act as an intermediary, routing client requests to backend servers, handling load balancing and SSL termination',
+        'To write database schemas to disk',
+        'To optimize static image files'
+      ],
+      correctIndex: 1,
+      explanation: 'A reverse proxy sits in front of web servers and forwards client requests, providing load balancing, caching, security, and SSL decryption benefits.'
+    }
+  ]
+};
+
 export default function WorkspacePage() {
   const router = useRouter();
   const params = useParams();
@@ -201,6 +323,243 @@ export default function WorkspacePage() {
 
   // Socket Connection State
   const socketRef = useRef<any>(null);
+
+  // Pomodoro States
+  const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState(25 * 60);
+  const [pomodoroIsRunning, setPomodoroIsRunning] = useState(false);
+  const [pomodoroActivePreset, setPomodoroActivePreset] = useState<'25/5' | '50/10' | '90/15' | 'custom'>('25/5');
+  const [pomodoroMode, setPomodoroMode] = useState<'focus' | 'break'>('focus');
+  const [pomodoroTotalDuration, setPomodoroTotalDuration] = useState(25 * 60);
+  const [customDurationInput, setCustomDurationInput] = useState(25);
+
+  // Checked topics checklist
+  const [checkedTopics, setCheckedTopics] = useState<string[]>([]);
+
+  // Study Buddy Matcher states
+  const [isScanningBuddy, setIsScanningBuddy] = useState(false);
+  const [matchedBuddy, setMatchedBuddy] = useState<any>(null);
+
+  // Concept Quizzes states
+  const [activeQuizIndex, setActiveQuizIndex] = useState(0);
+  const [selectedQuizOption, setSelectedQuizOption] = useState<number | null>(null);
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+  // Pomodoro countdown timer logic
+  useEffect(() => {
+    let intervalId: any = null;
+    if (pomodoroIsRunning) {
+      intervalId = setInterval(() => {
+        setPomodoroTimeLeft((prev) => {
+          if (prev <= 1) {
+            setPomodoroIsRunning(false);
+            
+            if (typeof window !== 'undefined') {
+              try {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-500.wav');
+                audio.play().catch(() => {});
+              } catch (e) {}
+            }
+
+            const currentDurationMin = Math.round(pomodoroTotalDuration / 60);
+
+            if (pomodoroMode === 'focus') {
+              showToast(`🎉 Focus session complete! You studied for ${currentDurationMin} mins. Logging progress...`, 'success');
+              
+              if (group?.id) {
+                apiRequest('/progress/log', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    groupId: group.id,
+                    studyMinutes: currentDurationMin,
+                    notesCreated: 0,
+                    tasksCompleted: 0
+                  })
+                })
+                  .then((res) => {
+                    if (res.user) {
+                      setUserStats((prev) => ({
+                        ...prev,
+                        totalStudyHours: res.user.totalStudyHours,
+                        streakCount: res.user.streakCount
+                      }));
+                    }
+                    loadExtraGroupData(group.id);
+                  })
+                  .catch((err) => console.error('Error logging study session:', err));
+              }
+
+              apiRequest('/progress/complete-practice', {
+                method: 'POST',
+                body: JSON.stringify({
+                  interest: group?.subject || 'Programming & DSA',
+                  challengeId: 'pomodoro_' + Date.now(),
+                  xpReward: 30,
+                  coinReward: 15
+                })
+              })
+                .then((res) => {
+                  setUserStats((prev) => ({
+                    ...prev,
+                    xp: res.xp,
+                    focusCoins: res.focusCoins,
+                    level: res.level,
+                    streakCount: res.streakCount
+                  }));
+                })
+                .catch((err) => console.error('Error rewarding focus session:', err));
+
+              setPomodoroMode('break');
+              const breakDur = pomodoroActivePreset === '50/10' ? 10 * 60 : pomodoroActivePreset === '90/15' ? 15 * 60 : 5 * 60;
+              setPomodoroTimeLeft(breakDur);
+              setPomodoroTotalDuration(breakDur);
+            } else {
+              showToast("☀️ Break is over! Time to start focusing again.", 'info');
+              setPomodoroMode('focus');
+              const focusDur = pomodoroActivePreset === '50/10' ? 50 * 60 : pomodoroActivePreset === '90/15' ? 90 * 60 : 25 * 60;
+              setPomodoroTimeLeft(focusDur);
+              setPomodoroTotalDuration(focusDur);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [pomodoroIsRunning, pomodoroMode, pomodoroActivePreset, pomodoroTotalDuration, group?.id]);
+
+  const handleSetPomodoroPreset = (preset: '25/5' | '50/10' | '90/15' | 'custom', customMin?: number) => {
+    setPomodoroIsRunning(false);
+    setPomodoroActivePreset(preset);
+    setPomodoroMode('focus');
+    let secs = 25 * 60;
+    if (preset === '50/10') secs = 50 * 60;
+    else if (preset === '90/15') secs = 90 * 60;
+    else if (preset === 'custom') secs = (customMin || 25) * 60;
+    setPomodoroTimeLeft(secs);
+    setPomodoroTotalDuration(secs);
+  };
+
+  const handleFindStudyBuddy = () => {
+    setIsScanningBuddy(true);
+    setMatchedBuddy(null);
+    setTimeout(() => {
+      setIsScanningBuddy(false);
+      const names = ['Swathi', 'Rahul', 'Swetha', 'Charan', 'Sneha', 'Aarav', 'Neha', 'Pranav', 'Deepika', 'Karthik', 'Ananya'];
+      const randomName = names[Math.floor(Math.random() * names.length)];
+      
+      const goalsMap: Record<string, string> = {
+        'programming-dsa': 'DSA Coding Mastery',
+        'web-development': 'Fullstack Web Development',
+        'ai-ml': 'AI/ML Engineering & Neural Nets',
+        'general': 'System Design & Computer Science'
+      };
+      
+      const categoryKey = (slug && learningPathTopics[slug as keyof typeof learningPathTopics]) ? slug : 'general';
+      const sharedGoal = goalsMap[categoryKey as keyof typeof goalsMap];
+      
+      setMatchedBuddy({
+        name: randomName,
+        goal: sharedGoal,
+        level: learningLevel.charAt(0).toUpperCase() + learningLevel.slice(1),
+        action: `Let's focus for a session and solve challenges together!`
+      });
+      showToast(`🤝 Connected with ${randomName} for co-studying!`, 'success');
+    }, 2000);
+  };
+
+  const handleToggleTopic = async (topic: string) => {
+    const isChecked = checkedTopics.includes(topic);
+    if (!isChecked) {
+      try {
+        const data = await apiRequest('/progress/complete-practice', {
+          method: 'POST',
+          body: JSON.stringify({
+            interest: group?.subject || 'Programming & DSA',
+            challengeId: 'topic_' + topic.replace(/\s+/g, '_').toLowerCase(),
+            xpReward: 10,
+            coinReward: 5
+          })
+        });
+        
+        setUserStats(prev => ({
+          ...prev,
+          xp: data.xp,
+          focusCoins: data.focusCoins,
+          level: data.level,
+          streakCount: data.streakCount
+        }));
+        
+        setCheckedTopics(prev => [...prev, topic]);
+        showToast(`✅ Completed topic: ${topic}! +10 XP | +5 Focus Coins!`, 'success');
+        
+        if (data.leveledUp) {
+          showToast(`🎉 Level Up! You are now Level ${data.level}!`, 'success');
+        }
+      } catch (err: any) {
+        showToast('Error saving topic completion: ' + (err.message || err), 'error');
+      }
+    } else {
+      setCheckedTopics(prev => prev.filter(t => t !== topic));
+    }
+  };
+
+  const handleSelectQuizOption = (optionIdx: number) => {
+    if (quizSubmitted) return;
+    setSelectedQuizOption(optionIdx);
+  };
+
+  const handleVerifyQuiz = async () => {
+    if (selectedQuizOption === null || quizSubmitted) return;
+    
+    const categoryKey = (slug && workspaceQuizzes[slug as keyof typeof workspaceQuizzes]) ? slug : 'general';
+    const currentQuiz = workspaceQuizzes[categoryKey as keyof typeof workspaceQuizzes][activeQuizIndex];
+    
+    if (selectedQuizOption === currentQuiz.correctIndex) {
+      try {
+        const data = await apiRequest('/progress/complete-practice', {
+          method: 'POST',
+          body: JSON.stringify({
+            interest: group?.subject || 'Programming & DSA',
+            challengeId: currentQuiz.id,
+            xpReward: 15,
+            coinReward: 5
+          })
+        });
+        
+        setUserStats(prev => ({
+          ...prev,
+          xp: data.xp,
+          focusCoins: data.focusCoins,
+          level: data.level,
+          streakCount: data.streakCount
+        }));
+        
+        setQuizSubmitted(true);
+        showToast('🎉 Correct! +15 XP | +5 Focus Coins!', 'success');
+        
+        if (data.leveledUp) {
+          showToast(`🎉 Level Up! You are now Level ${data.level}!`, 'success');
+        }
+      } catch (err: any) {
+        showToast('Error submitting quiz: ' + (err.message || err), 'error');
+      }
+    } else {
+      setQuizSubmitted(true);
+      showToast('❌ Incorrect answer. Review the explanation below.', 'error');
+    }
+  };
+
+  const handleNextQuiz = () => {
+    const categoryKey = (slug && workspaceQuizzes[slug as keyof typeof workspaceQuizzes]) ? slug : 'general';
+    const totalQuizzes = workspaceQuizzes[categoryKey as keyof typeof workspaceQuizzes].length;
+    
+    setActiveQuizIndex((prev) => (prev + 1) % totalQuizzes);
+    setSelectedQuizOption(null);
+    setQuizSubmitted(false);
+  };
 
   // Load User Stats & Group from slug
   useEffect(() => {
@@ -1079,424 +1438,429 @@ export default function WorkspacePage() {
               </div>
             </section>
 
-            {/* TAB INTERFACE CONTENT */}
-
-            {/* T1: LIVE STUDY LOBBY (Visual Playgrounds) */}
+                     {/* T1: LIVE STUDY LOBBY (Visual Playgrounds) */}
             {activeTab === 'lobby' && (
-              <div className="space-y-6">
+              <div className="grid lg:grid-cols-2 gap-8 items-start">
                 
-                {/* Visualizer Header */}
-                <div className="flex justify-between items-center">
-                  <div className="space-y-0.5">
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Interactive Visual Laboratory</h4>
-                    <p className="text-[10px] text-slate-555 font-bold">Inspect layouts, evaluate logic, and execute compilers to solidify skills.</p>
-                  </div>
-                </div>
+                {/* COLUMN 1: FOCUS ZONE */}
+                <div className="space-y-6">
+                  
+                  {/* POMODORO TIMER CARD */}
+                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-6">
+                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
+                        <Clock className="h-4.5 w-4.5 text-indigo-400" /> Pomodoro Focus Arena
+                      </div>
+                      <span className={`text-[9px] px-2.5 py-1 rounded-lg font-black uppercase ${
+                        pomodoroMode === 'focus' 
+                          ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' 
+                          : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                      }`}>
+                        {pomodoroMode === 'focus' ? '🔥 Focus Mode' : '☀️ Break Time'}
+                      </span>
+                    </div>
 
-                {/* 1. Programming & DSA Lobby (IDE + Arrays pointer binary search) */}
-                {slug === 'programming-dsa' && (
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {/* Part A: Code Editor */}
-                    <div className="bg-[#0B0F19]/60 border border-white/5 rounded-3xl p-6 space-y-4 shadow-lg text-left relative">
-                      <div className="absolute top-0 left-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-                      <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
-                          <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" /> 🚀 Code Compiler IDE
+                    <div className="flex flex-col items-center space-y-6">
+                      {/* Timer Display */}
+                      <div className="relative flex items-center justify-center h-48 w-48">
+                        {/* Circular track progress */}
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle
+                            cx="96"
+                            cy="96"
+                            r="80"
+                            stroke="rgba(255, 255, 255, 0.03)"
+                            strokeWidth="8"
+                            fill="transparent"
+                          />
+                          <circle
+                            cx="96"
+                            cy="96"
+                            r="80"
+                            stroke={pomodoroMode === 'focus' ? '#EF4444' : '#10B981'}
+                            strokeWidth="8"
+                            fill="transparent"
+                            strokeDasharray="502.6"
+                            strokeDashoffset={502.6 * (1 - pomodoroTimeLeft / pomodoroTotalDuration)}
+                            className="transition-all duration-1000 ease-linear"
+                          />
+                        </svg>
+                        
+                        {/* Countdown text inside */}
+                        <div className="absolute flex flex-col items-center justify-center">
+                          <span className="text-3xl font-black text-white font-mono leading-none tracking-tight">
+                            {Math.floor(pomodoroTimeLeft / 60).toString().padStart(2, '0')}:
+                            {(pomodoroTimeLeft % 60).toString().padStart(2, '0')}
+                          </span>
+                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 mt-1">
+                            {pomodoroIsRunning ? 'Running' : 'Paused'}
+                          </span>
                         </div>
-                        {codingCompleted ? (
-                          <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg font-black uppercase">✓ Completed</span>
-                        ) : (
-                          <span className="text-[9px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2.5 py-1 rounded-lg font-black uppercase">Active Editor</span>
-                        )}
                       </div>
 
-                      <div className="space-y-3">
-                        <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5 text-[11px] text-slate-400 leading-relaxed font-semibold">
-                          <span className="text-slate-200 font-bold block mb-1">Challenge: Factorial Calculation</span>
-                          Write a function that calculates the product of integers up to n. E.g. factorial(5) returns 120.
-                        </div>
+                      {/* Presets Grid */}
+                      <div className="w-full grid grid-cols-4 gap-2">
+                        {(['25/5', '50/10', '90/15', 'custom'] as const).map((preset) => (
+                          <button
+                            key={preset}
+                            onClick={() => {
+                              if (preset !== 'custom') {
+                                handleSetPomodoroPreset(preset);
+                              } else {
+                                handleSetPomodoroPreset('custom', customDurationInput);
+                              }
+                            }}
+                            className={`py-2 px-1 text-[9px] font-black rounded-xl border transition-all uppercase tracking-wider cursor-pointer ${
+                              pomodoroActivePreset === preset
+                                ? 'bg-indigo-500/10 border-indigo-500/30 text-white font-black'
+                                : 'bg-slate-955 border-white/5 text-slate-400 hover:bg-slate-900'
+                            }`}
+                          >
+                            {preset === 'custom' ? 'Custom' : preset}
+                          </button>
+                        ))}
+                      </div>
 
-                        <div className="rounded-xl overflow-hidden border border-white/5 bg-slate-950">
-                          <div className="px-4 py-2 border-b border-white/5 bg-slate-950 flex items-center justify-between">
-                            <span className="text-[8px] font-black uppercase text-slate-650 font-mono">factorial.js</span>
-                            <div className="flex gap-1.5">
-                              <span className="h-2 w-2 rounded-full bg-rose-500" />
-                              <span className="h-2 w-2 rounded-full bg-amber-500" />
-                              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                            </div>
+                      {/* Custom Range Slider if custom selected */}
+                      {pomodoroActivePreset === 'custom' && (
+                        <div className="w-full space-y-1.5 px-1">
+                          <div className="flex justify-between items-center text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                            <span>Duration</span>
+                            <span className="text-indigo-400 font-mono">{customDurationInput} Mins</span>
                           </div>
-                          <textarea
-                            disabled={codingCompleted}
-                            value={codingCodeText}
-                            onChange={(e) => setCodingCodeText(e.target.value)}
-                            className="w-full p-4 bg-transparent outline-none text-[11px] text-indigo-300 font-mono resize-none leading-relaxed h-32"
+                          <input
+                            type="range"
+                            min="1"
+                            max="120"
+                            value={customDurationInput}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setCustomDurationInput(val);
+                              handleSetPomodoroPreset('custom', val);
+                            }}
+                            disabled={pomodoroIsRunning}
+                            className="w-full accent-indigo-500 cursor-pointer"
                           />
                         </div>
+                      )}
 
-                        <div className="bg-slate-950/80 border border-white/10 p-3 rounded-xl font-mono text-[9px] text-[#A78BFA] h-20 overflow-y-auto space-y-1 shadow-inner">
-                          {codingOutput.length === 0 ? (
-                            <span className="text-zinc-650 italic">No output. Click "Run Tests" to execute compiling.</span>
-                          ) : (
-                            codingOutput.map((log, idx) => (
-                              <div key={idx} className={log.includes('PASSED') ? 'text-emerald-400' : 'text-slate-400'}>{log}</div>
-                            ))
-                          )}
-                        </div>
-
-                        <div className="flex justify-end gap-3 border-t border-white/5 pt-3">
-                          {!codingCompleted ? (
+                      {/* Controls Buttons */}
+                      <div className="w-full flex gap-3 pt-2">
+                        <button
+                          onClick={() => setPomodoroIsRunning(!pomodoroIsRunning)}
+                          className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md cursor-pointer border-none flex items-center justify-center gap-1.5 ${
+                            pomodoroIsRunning
+                              ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                              : 'bg-indigo-650 hover:bg-indigo-500 text-white'
+                          }`}
+                        >
+                          {pomodoroIsRunning ? (
                             <>
-                              <button
-                                onClick={handleRunCodingTests}
-                                className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-black rounded-lg border-none uppercase tracking-widest cursor-pointer transition-all active:scale-[0.98]"
-                              >
-                                Run Tests
-                              </button>
-                              <button
-                                disabled={!codingTested}
-                                onClick={handleSubmitCodingRoom}
-                                className={`py-2 px-4 text-white text-[10px] font-black rounded-lg border-none uppercase tracking-widest transition-all ${
-                                  codingTested 
-                                    ? 'bg-indigo-650 hover:bg-indigo-500 cursor-pointer shadow active:scale-[0.98]' 
-                                    : 'bg-zinc-800 text-zinc-550 cursor-not-allowed'
-                                }`}
-                              >
-                                Submit Code
-                              </button>
+                              <span className="h-2.5 w-2.5 bg-white/20 rounded flex items-center justify-center" /> Pause Focus
                             </>
                           ) : (
-                            <div className="w-full p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black rounded-xl text-center">
-                              ✓ Solved & Progress Logged
-                            </div>
+                            <>
+                              <Play className="h-3.5 w-3.5" /> Start Focus
+                            </>
                           )}
+                        </button>
+                        <button
+                          onClick={() => handleSetPomodoroPreset(pomodoroActivePreset, customDurationInput)}
+                          className="px-4 py-3 bg-slate-800 hover:bg-slate-700 border-none text-slate-200 text-xs font-black rounded-xl transition-all uppercase tracking-widest cursor-pointer active:scale-[0.98] flex items-center justify-center"
+                          title="Reset Timer"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* COMMITMENT TRACKER CARD */}
+                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans mb-4">🎯 Daily Commitment Tracker</h4>
+                    
+                    <div className="flex items-center gap-6">
+                      {/* Circular target tracker */}
+                      <div className="relative h-24 w-24 flex items-center justify-center shrink-0">
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle
+                            cx="48"
+                            cy="48"
+                            r="38"
+                            stroke="rgba(255, 255, 255, 0.03)"
+                            strokeWidth="5"
+                            fill="transparent"
+                          />
+                          <circle
+                            cx="48"
+                            cy="48"
+                            r="38"
+                            stroke="#10B981"
+                            strokeWidth="5"
+                            fill="transparent"
+                            strokeDasharray="238.7"
+                            strokeDashoffset={238.7 * (1 - Math.min(100, Math.round((userStats.totalStudyHours / (currentUser?.dailyTarget || 2.0)) * 100)) / 100)}
+                            className="transition-all duration-500 ease-out"
+                          />
+                        </svg>
+                        <div className="absolute flex flex-col items-center justify-center text-center">
+                          <span className="text-base font-black text-white font-mono leading-none">
+                            {Math.min(100, Math.round((userStats.totalStudyHours / (currentUser?.dailyTarget || 2.0)) * 100))}%
+                          </span>
+                          <span className="text-[7px] font-black uppercase text-slate-500 tracking-wider mt-0.5">Target</span>
                         </div>
+                      </div>
+
+                      <div className="space-y-2 text-left">
+                        <div className="text-xs font-bold text-slate-200">
+                          Focused <strong className="text-indigo-400 text-sm font-black">{userStats.totalStudyHours.toFixed(1)}</strong> of <strong className="text-emerald-400 text-sm font-black">{(currentUser?.dailyTarget || 2.0).toFixed(1)}</strong> hours today
+                        </div>
+                        <p className="text-[10px] text-slate-455 font-bold leading-relaxed">
+                          Your daily target is synchronized with your onboarding choices. Complete focus blocks to level up your scholar ranking.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* STUDY BUDDY MATCHER CARD */}
+                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl text-left relative overflow-hidden">
+                    <div className="absolute bottom-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
+                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
+                        <Users className="h-4.5 w-4.5 text-purple-400 animate-pulse" /> Accountability Study Buddy
                       </div>
                     </div>
 
-                    {/* Part B: DSA Pointers Visualizer */}
-                    <div className="bg-[#0B0F19]/60 border border-white/5 rounded-3xl p-6 space-y-4 shadow-lg text-left relative">
-                      <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
-                      <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
-                          <span className="h-2 w-2 rounded-full bg-purple-400 animate-pulse" /> 🧠 DSA Array Pointers
-                        </div>
-                        {dsaCompleted ? (
-                          <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg font-black uppercase">✓ Completed</span>
+                    {!matchedBuddy ? (
+                      <div className="space-y-4">
+                        <p className="text-[11px] text-slate-455 leading-relaxed font-bold">
+                          Find an active partner co-studying the same topics. Share goals and double your focus motivation.
+                        </p>
+                        
+                        {isScanningBuddy ? (
+                          <div className="p-4 bg-slate-950/40 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-3">
+                            <RefreshCw className="h-6 w-6 text-indigo-500 animate-spin" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 animate-pulse">Scanning lounge for matches...</span>
+                          </div>
                         ) : (
-                          <span className="text-[9px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2.5 py-1 rounded-lg font-black uppercase">Active Visualization</span>
+                          <button
+                            onClick={handleFindStudyBuddy}
+                            className="w-full py-2.5 bg-purple-650 hover:bg-purple-600 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow-md transition-all"
+                          >
+                            Find Study Buddy
+                          </button>
                         )}
                       </div>
-
+                    ) : (
                       <div className="space-y-4">
-                        <div className="bg-slate-950/60 p-4 rounded-xl border border-white/5 text-center">
-                          <div className="flex justify-between items-center mb-4">
-                            <span className="text-[9px] font-black uppercase text-slate-500 font-mono">Binary Search Visualizer</span>
-                            <div className="flex gap-2">
-                              <button onClick={handleDsaReset} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[8px] font-black rounded border-none uppercase cursor-pointer">Reset</button>
-                              <button onClick={handleDsaNextStep} className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-500 text-white text-[8px] font-black rounded border-none uppercase cursor-pointer">Next Step</button>
+                        <div className="p-4 bg-purple-950/20 border border-purple-500/20 rounded-2xl space-y-2 text-left relative">
+                          <button
+                            onClick={() => setMatchedBuddy(null)}
+                            className="absolute top-2 right-2 text-[10px] text-slate-500 hover:text-white font-bold bg-transparent border-none cursor-pointer"
+                            title="Disconnect Buddy"
+                          >
+                            ✕
+                          </button>
+                          
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-8 w-8 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center font-black uppercase text-sm">
+                              {matchedBuddy.name.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="text-xs font-black text-white">@{matchedBuddy.name} matched!</div>
+                              <div className="text-[8px] text-purple-400 font-black uppercase tracking-wider">Goal: {matchedBuddy.goal}</div>
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-slate-350 italic font-semibold leading-relaxed pt-1">
+                            "{matchedBuddy.action}"
+                          </p>
+                        </div>
+                        <div className="flex gap-2.5">
+                          <span className="flex-1 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[9px] font-black text-emerald-400 uppercase text-center">
+                            🤝 Accountability Connected
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+
+                {/* COLUMN 2: LEARNING PATH & QUIZZES */}
+                <div className="space-y-6">
+                  
+                  {/* LEARNING PATH TOPIC MAP */}
+                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl text-left relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-white">🎓 Learning Path Checklist</h4>
+                        <p className="text-[9px] text-slate-500 font-bold">Track key concepts and verify completion for XP and Coins.</p>
+                      </div>
+                    </div>
+
+                    {/* Completion progress */}
+                    {(() => {
+                      const categoryKey = (slug && learningPathTopics[slug as keyof typeof learningPathTopics]) ? slug : 'general';
+                      const activePath = learningPathTopics[categoryKey as keyof typeof learningPathTopics];
+                      const allTopics = [
+                        ...activePath.levels.beginner,
+                        ...activePath.levels.intermediate,
+                        ...activePath.levels.advanced
+                      ];
+                      const completedCount = allTopics.filter(t => checkedTopics.includes(t)).length;
+                      const pct = Math.round((completedCount / allTopics.length) * 100);
+
+                      return (
+                        <div className="space-y-4">
+                          <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-2">
+                            <div className="flex justify-between items-center text-[10px] font-black text-slate-400">
+                              <span>Path Progress ({activePath.title})</span>
+                              <span className="text-indigo-400">{completedCount} / {allTopics.length} ({pct}%)</span>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-slate-900 border border-white/5 overflow-hidden">
+                              <div className="h-full rounded-full bg-indigo-500 transition-all duration-300" style={{ width: `${pct}%` }} />
                             </div>
                           </div>
 
-                          <div className="flex justify-center items-end gap-1.5 py-3 overflow-x-auto">
-                            {dsaArray.map((val, idx) => {
-                              const { low, high, mid } = dsaPointers;
-                              const isMid = idx === mid;
-                              const isLow = idx === low;
-                              const isHigh = idx === high;
-                              const inRange = idx >= low && idx <= high;
-
+                          {/* Levels Checklists */}
+                          <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
+                            {(['beginner', 'intermediate', 'advanced'] as const).map((level) => {
+                              const levelTopics = activePath.levels[level];
                               return (
-                                <div key={idx} className="flex flex-col items-center gap-1.5 scale-90">
-                                  <div className="text-[7px] font-mono text-zinc-500">idx {idx}</div>
-                                  <div
-                                    className={`h-9 w-9 rounded border flex items-center justify-center font-mono text-[10px] font-black relative ${
-                                      isMid 
-                                        ? 'bg-rose-500/25 border-rose-500 text-rose-350 scale-105 shadow shadow-rose-500/10'
-                                        : isLow 
-                                          ? 'bg-blue-500/25 border-blue-500 text-blue-355'
-                                          : isHigh 
-                                            ? 'bg-emerald-500/25 border-emerald-500 text-emerald-355'
-                                            : inRange
-                                              ? 'bg-indigo-900/30 border-indigo-500/20 text-indigo-300'
-                                              : 'bg-zinc-950/40 border-white/5 text-slate-700'
-                                    }`}
-                                  >
-                                    {val}
-                                    {isMid && <span className="absolute -top-3 px-0.5 bg-rose-500 text-white text-[5px] font-black rounded uppercase">mid</span>}
-                                    {isLow && !isMid && <span className="absolute -top-3 px-0.5 bg-blue-500 text-white text-[5px] font-black rounded uppercase">low</span>}
-                                    {isHigh && !isMid && <span className="absolute -top-3 px-0.5 bg-emerald-500 text-white text-[5px] font-black rounded uppercase">high</span>}
+                                <div key={level} className="space-y-2">
+                                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                    {level} track
+                                  </div>
+                                  <div className="grid gap-2">
+                                    {levelTopics.map((topic) => {
+                                      const isChecked = checkedTopics.includes(topic);
+                                      return (
+                                        <div
+                                          key={topic}
+                                          onClick={() => handleToggleTopic(topic)}
+                                          className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                                            isChecked
+                                              ? 'bg-indigo-500/5 border-indigo-500/30 text-slate-200'
+                                              : 'bg-slate-950/30 border-white/5 text-slate-400 hover:bg-slate-900/40 hover:text-slate-250'
+                                          }`}
+                                        >
+                                          <span className="text-xs font-bold font-sans">{topic}</span>
+                                          <div className={`h-4.5 w-4.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                                            isChecked 
+                                              ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' 
+                                              : 'bg-transparent border-white/10 text-transparent'
+                                          }`}>
+                                            {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               );
                             })}
                           </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
 
-                          <div className="bg-slate-955 border border-white/5 p-2 rounded text-[9px] font-mono text-left text-indigo-300">&gt; {dsaStepDesc}</div>
+                  {/* CONCEPT QUIZ OF THE DAY */}
+                  {(() => {
+                    const categoryKey = (slug && workspaceQuizzes[slug as keyof typeof workspaceQuizzes]) ? slug : 'general';
+                    const activeQuizzes = workspaceQuizzes[categoryKey as keyof typeof workspaceQuizzes];
+                    const currentQuiz = activeQuizzes[activeQuizIndex];
+                    
+                    return (
+                      <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl text-left relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                        
+                        <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
+                          <div className="space-y-0.5">
+                            <h4 className="text-xs font-black uppercase tracking-wider text-white">🧠 Concept Quiz Challenge</h4>
+                            <p className="text-[9px] text-slate-500 font-bold">Reinforce learning concepts. Correct answers award XP and Coins.</p>
+                          </div>
+                          <span className="text-[8px] font-mono bg-indigo-500/15 border border-indigo-500/25 px-2 py-0.5 rounded text-indigo-400 uppercase font-black">
+                            Q {activeQuizIndex + 1} / {activeQuizzes.length}
+                          </span>
                         </div>
 
-                        {/* Concept check */}
-                        <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5 space-y-3">
-                          <p className="text-[10px] font-black text-slate-350">Quiz: What is Binary Search complexity?</p>
-                          <div className="grid sm:grid-cols-2 gap-2">
-                            {[
-                              { id: 0, text: 'O(N)' },
-                              { id: 1, text: 'O(log N)' }
-                            ].map(opt => (
-                              <button
-                                key={opt.id}
-                                disabled={dsaCompleted}
-                                onClick={() => setDsaQuizAnswer(opt.id)}
-                                className={`p-2.5 rounded-lg border text-left text-[10px] font-bold ${
-                                  dsaCompleted 
-                                    ? opt.id === 1 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-transparent border-white/5 text-slate-500'
-                                    : dsaQuizAnswer === opt.id ? 'bg-indigo-500/10 border-indigo-500/50 text-white' : 'bg-slate-955 border-white/5 text-slate-400 hover:bg-slate-900 cursor-pointer'
-                                }`}
-                              >
-                                {opt.text}
-                              </button>
-                            ))}
+                        <div className="space-y-4">
+                          <p className="text-xs font-bold text-slate-200 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-white/5">
+                            {currentQuiz.question}
+                          </p>
+
+                          <div className="grid gap-2">
+                            {currentQuiz.options.map((option, idx) => {
+                              const isSelected = selectedQuizOption === idx;
+                              const isCorrect = idx === currentQuiz.correctIndex;
+                              
+                              let optionStyle = 'bg-slate-950/30 border-white/5 text-slate-400 hover:bg-slate-900/40 cursor-pointer';
+                              if (quizSubmitted) {
+                                if (isCorrect) {
+                                  optionStyle = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-black';
+                                } else if (isSelected) {
+                                  optionStyle = 'bg-rose-500/10 border-rose-500/30 text-rose-400 font-black';
+                                } else {
+                                  optionStyle = 'bg-slate-950/20 border-white/5 text-slate-650 opacity-60';
+                                }
+                              } else if (isSelected) {
+                                optionStyle = 'bg-indigo-500/10 border-indigo-500/50 text-white font-bold';
+                              }
+
+                              return (
+                                <button
+                                  key={idx}
+                                  disabled={quizSubmitted}
+                                  onClick={() => handleSelectQuizOption(idx)}
+                                  className={`p-3 rounded-xl border text-left text-xs font-bold transition-all ${optionStyle}`}
+                                >
+                                  {option}
+                                </button>
+                              );
+                            })}
                           </div>
-                          {!dsaCompleted && (
-                            <button onClick={handleVerifyDsaQuiz} className="px-4 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[9px] font-black rounded-lg border-none uppercase tracking-widest cursor-pointer shadow transition-all active:scale-[0.98]">Verify</button>
+
+                          {!quizSubmitted ? (
+                            <button
+                              disabled={selectedQuizOption === null}
+                              onClick={handleVerifyQuiz}
+                              className={`w-full py-2.5 text-[10px] font-black rounded-xl border-none uppercase tracking-widest transition-all ${
+                                selectedQuizOption !== null
+                                  ? 'bg-indigo-650 hover:bg-indigo-500 text-white cursor-pointer shadow-md'
+                                  : 'bg-zinc-800 text-zinc-550 cursor-not-allowed'
+                              }`}
+                            >
+                              Submit Answer
+                            </button>
+                          ) : (
+                            <div className="space-y-4 pt-2 border-t border-white/5">
+                              <div className="p-3 bg-slate-950/40 border border-white/5 rounded-xl text-[10px] text-slate-400 leading-relaxed font-semibold">
+                                <strong className="text-white block mb-0.5 uppercase tracking-wide text-[9px]">Explanation:</strong>
+                                {currentQuiz.explanation}
+                              </div>
+                              <button
+                                onClick={handleNextQuiz}
+                                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer transition-all"
+                              >
+                                Next Challenge
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
-                    </div>
-                  </div>
-                )}
+                    );
+                  })()}
 
-                {/* 2. AI & Machine Learning Lobby (Parameters + neural network epochs training) */}
-                {slug === 'ai-ml' && (
-                  <div className="bg-[#0B0F19]/60 border border-white/5 rounded-3xl p-6 space-y-6 shadow-lg text-left relative">
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-                    <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
-                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> 🤖 Neural Network Parameter Builder
-                      </div>
-                      {aiCompleted ? (
-                        <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg font-black uppercase">✓ Model Deployed</span>
-                      ) : (
-                        <span className="text-[9px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2.5 py-1 rounded-lg font-black uppercase">Model Tuning</span>
-                      )}
-                    </div>
+                </div>
 
-                    <div className="grid md:grid-cols-3 gap-6">
-                      {/* Hyperparams form */}
-                      <div className="space-y-4 bg-slate-950/40 p-5 rounded-2xl border border-white/5">
-                        <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider">Hyper-Parameters</h4>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-wider block mb-1">Dataset</label>
-                            <select value={aiDataset} onChange={e => setAiDataset(e.target.value)} disabled={aiTraining || aiCompleted} className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-lg text-xs text-white outline-none cursor-pointer">
-                              <option value="MNIST Digits">MNIST Handwriting Digits</option>
-                              <option value="Boston Housing">Boston Housing Pricing</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-wider block mb-1">Activation</label>
-                            <select value={aiActivation} onChange={e => setAiActivation(e.target.value)} disabled={aiTraining || aiCompleted} className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-lg text-xs text-white outline-none cursor-pointer">
-                              <option value="ReLU">ReLU</option>
-                              <option value="Sigmoid">Sigmoid</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-wider block mb-1">Learning Rate</label>
-                            <input type="number" step="0.01" value={aiLearningRate} onChange={e => setAiLearningRate(Number(e.target.value))} disabled={aiTraining || aiCompleted} className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-lg text-xs text-white outline-none" />
-                          </div>
-                          <div className="pt-2">
-                            {!aiCompleted ? (
-                              <button onClick={handleTrainAiModel} disabled={aiTraining} className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-800 disabled:text-zinc-550 text-white text-[10px] font-black rounded-lg border-none uppercase tracking-widest cursor-pointer shadow transition-all active:scale-[0.98]">
-                                {aiTraining ? 'Training NN...' : 'Begin Training'}
-                              </button>
-                            ) : (
-                              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 text-xs font-black rounded-xl text-center">✓ Parameters Saved</div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Training monitor logs */}
-                      <div className="md:col-span-2 space-y-4">
-                        <div className="bg-slate-955 border border-white/5 rounded-2xl p-6 relative">
-                          <div className="text-[8px] font-black uppercase text-slate-550 font-mono mb-2 text-left">Training Dashboard</div>
-                          
-                          {/* Progress bar */}
-                          <div className="h-2 w-full rounded-full bg-slate-900 border border-white/5 overflow-hidden mb-3">
-                            <div className="h-full rounded-full bg-emerald-500 transition-all duration-300" style={{ width: `${aiProgress}%` }} />
-                          </div>
-
-                          <div className="h-44 rounded-xl bg-slate-955 border border-white/5 p-4 font-mono text-[9px] text-[#34D399] overflow-y-auto space-y-1 shadow-inner">
-                            {aiLogs.length === 0 ? (
-                              <span className="text-zinc-650 italic">Waiting to fire training optimizer...</span>
-                            ) : (
-                              aiLogs.map((log, idx) => (
-                                <div key={idx} className={log.startsWith('✓') ? 'text-emerald-400' : 'text-slate-400'}>{log}</div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-
-                        {aiProgress === 100 && !aiCompleted && (
-                          <button onClick={handleClaimAiRewards} className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-xs font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow-md transition-all active:scale-[0.98]">
-                            Claim Training rewards (+50 XP | +20 Coins)
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. Web Development Lobby (Flexbox centering visual playground) */}
-                {slug === 'web-development' && (
-                  <div className="bg-[#0B0F19]/60 border border-white/5 rounded-3xl p-6 space-y-6 shadow-lg text-left relative">
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-                    <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
-                        <span className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse" /> 🌐 CSS Flexbox Centering Simulator
-                      </div>
-                      {webChallengeSolved ? (
-                        <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg font-black uppercase">✓ Completed</span>
-                      ) : (
-                        <span className="text-[9px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2.5 py-1 rounded-lg font-black uppercase">Center Challenge Active</span>
-                      )}
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-6">
-                      {/* Controller inputs */}
-                      <div className="space-y-4 bg-slate-950/40 p-5 rounded-2xl border border-white/5">
-                        <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider font-sans">CSS Controllers</h4>
-                        
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-wider block mb-1">flex-direction</label>
-                            <select value={webFlexDirection} onChange={e => setWebFlexDirection(e.target.value as any)} className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-lg text-xs text-white outline-none cursor-pointer font-sans">
-                              <option value="row">row</option>
-                              <option value="column">column</option>
-                              <option value="row-reverse">row-reverse</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-wider block mb-1">justify-content</label>
-                            <select value={webJustifyContent} onChange={e => setWebJustifyContent(e.target.value as any)} className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-lg text-xs text-white outline-none cursor-pointer font-sans">
-                              <option value="flex-start">flex-start</option>
-                              <option value="center">center</option>
-                              <option value="flex-end">flex-end</option>
-                              <option value="space-between">space-between</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-wider block mb-1">align-items</label>
-                            <select value={webAlignItems} onChange={e => setWebAlignItems(e.target.value as any)} className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-lg text-xs text-white outline-none cursor-pointer font-sans">
-                              <option value="flex-start">flex-start</option>
-                              <option value="center">center</option>
-                              <option value="flex-end">flex-end</option>
-                              <option value="stretch">stretch</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-[8px] font-black text-slate-500 uppercase tracking-wider block mb-1">gap: {webGap}px</label>
-                            <input type="range" min="0" max="40" value={webGap} onChange={e => setWebGap(Number(e.target.value))} className="w-full accent-indigo-500 cursor-pointer" />
-                          </div>
-                          <div className="pt-2 font-sans">
-                            {!webChallengeSolved ? (
-                              <button onClick={handleVerifyWebChallenge} className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black rounded-lg border-none uppercase tracking-widest cursor-pointer shadow transition-all active:scale-[0.98]">
-                                Verify Centering
-                              </button>
-                            ) : (
-                              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-455 text-xs font-black rounded-xl text-center">✓ Layout Centered</div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Display Arena */}
-                      <div className="md:col-span-2 space-y-4">
-                        <div className="bg-slate-955 border border-white/5 rounded-2xl p-6 relative">
-                          <div className="text-[8px] font-black uppercase text-slate-550 font-mono mb-2 text-left">Display Preview (Container)</div>
-                          
-                          {/* CSS layout simulation */}
-                          <div 
-                            className="w-full h-56 bg-slate-955 p-4 flex transition-all duration-350 relative shadow-inner"
-                            style={{
-                              flexDirection: webFlexDirection,
-                              justifyContent: webJustifyContent,
-                              alignItems: webAlignItems,
-                              gap: `${webGap}px`
-                            }}
-                          >
-                            <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center font-mono font-black text-white text-xs shadow">1</div>
-                            <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-purple-500 to-pink-600 flex items-center justify-center font-mono font-black text-white text-xs shadow">2</div>
-                            <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-600 flex items-center justify-center font-mono font-black text-white text-xs shadow">3</div>
-                          </div>
-
-                          <div className="mt-3 bg-slate-900 border border-white/5 p-3 rounded-lg font-mono text-[9px] text-[#A78BFA] text-left">
-                            <span className="text-indigo-400 font-bold block mb-1">// Generated CSS Layout Rules:</span>
-                            .container {"{"} <br />
-                            &nbsp;&nbsp;display: flex; <br />
-                            &nbsp;&nbsp;flex-direction: {webFlexDirection}; <br />
-                            &nbsp;&nbsp;justify-content: {webJustifyContent}; <br />
-                            &nbsp;&nbsp;align-items: {webAlignItems}; <br />
-                            &nbsp;&nbsp;gap: {webGap}px; <br />
-                            {"}"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 4. Fallback Lobby for other channels (Quiz Card) */}
-                {slug !== 'programming-dsa' && slug !== 'ai-ml' && slug !== 'web-development' && (
-                  <div className="bg-[#0B0F19]/60 border border-white/5 rounded-3xl p-6 space-y-4 shadow-lg text-left">
-                    <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                      <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
-                        <span className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse" /> 🚀 Topic Quiz Checkpoint
-                      </span>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="bg-slate-950/40 p-5 rounded-2xl border border-white/5">
-                        <p className="text-xs font-black text-slate-200 mb-4">
-                          Checkpoint: How do you optimize query speeds in relational databases?
-                        </p>
-
-                        <div className="grid sm:grid-cols-2 gap-3">
-                          {[
-                            { id: 0, text: 'Creating indexes on frequently queried columns' },
-                            { id: 1, text: 'Adding more foreign keys' },
-                            { id: 2, text: 'Deleting older schema tables' },
-                            { id: 3, text: 'Storing indexes in separate text files' }
-                          ].map(option => (
-                            <button
-                              key={option.id}
-                              disabled={quizSolved}
-                              onClick={() => setQuizAnswer(option.id)}
-                              className={`p-4 rounded-xl border text-left text-[11px] font-bold transition-all ${
-                                quizSolved 
-                                  ? option.id === 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-transparent border-white/5 text-slate-500'
-                                  : quizAnswer === option.id ? 'bg-indigo-500/10 border-indigo-500/50 text-white' : 'bg-slate-955 border-white/5 text-slate-400 hover:bg-slate-900 cursor-pointer'
-                              }`}
-                            >
-                              {option.text}
-                            </button>
-                          ))}
-                        </div>
-
-                        {!quizSolved ? (
-                          <div className="pt-4 flex justify-start">
-                            <button onClick={handleVerifyGeneralQuiz} className="px-6 py-2.5 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow transition-all active:scale-[0.98] font-sans">
-                              Submit Answer
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black rounded-xl text-center">
-                            ✓ Correct Option Saved
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 

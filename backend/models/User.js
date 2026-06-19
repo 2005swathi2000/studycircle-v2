@@ -96,6 +96,18 @@ const User = sequelize.define('User', {
   provider: {
     type: DataTypes.STRING,
     defaultValue: 'local'
+  },
+  learningGoal: {
+    type: DataTypes.STRING,
+    defaultValue: ''
+  },
+  learningLevel: {
+    type: DataTypes.STRING,
+    defaultValue: 'beginner'
+  },
+  dailyTarget: {
+    type: DataTypes.FLOAT,
+    defaultValue: 2.0
   }
 }, {
   hooks: {

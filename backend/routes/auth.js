@@ -370,7 +370,10 @@ router.post('/register', async (req, res) => {
         lastName: newUser.lastName,
         email: newUser.email,
         phone: newUser.phone,
-        gender: newUser.gender
+        gender: newUser.gender,
+        learningGoal: newUser.learningGoal,
+        learningLevel: newUser.learningLevel,
+        dailyTarget: newUser.dailyTarget
       }
     });
   } catch (err) {
@@ -471,7 +474,10 @@ router.post('/login', loginLimiter, async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
-        gender: user.gender
+        gender: user.gender,
+        learningGoal: user.learningGoal,
+        learningLevel: user.learningLevel,
+        dailyTarget: user.dailyTarget
       }
     });
   } catch (err) {
@@ -574,7 +580,7 @@ router.get('/me', authMiddleware, async (req, res) => {
 // Update user profile (PUT /update-profile)
 router.put('/update-profile', authMiddleware, async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, avatarUrl, bio } = req.body;
+    const { firstName, lastName, email, phone, avatarUrl, bio, learningGoal, learningLevel, dailyTarget, focusCoins, badges, xp, level } = req.body;
     
     const user = await User.findByPk(req.user.id);
     if (!user) {
@@ -611,6 +617,34 @@ router.put('/update-profile', authMiddleware, async (req, res) => {
       user.bio = bio ? bio.trim() : null;
     }
 
+    if (learningGoal !== undefined) {
+      user.learningGoal = learningGoal;
+    }
+
+    if (learningLevel !== undefined) {
+      user.learningLevel = learningLevel;
+    }
+
+    if (dailyTarget !== undefined) {
+      user.dailyTarget = Number(dailyTarget);
+    }
+
+    if (focusCoins !== undefined) {
+      user.focusCoins = Number(focusCoins);
+    }
+
+    if (badges !== undefined) {
+      user.badges = badges;
+    }
+
+    if (xp !== undefined) {
+      user.xp = Number(xp);
+    }
+
+    if (level !== undefined) {
+      user.level = Number(level);
+    }
+
     // Update old composite columns for backward compatibility
     const updatedFirstName = user.firstName || '';
     const updatedLastName = user.lastName || '';
@@ -638,7 +672,14 @@ router.put('/update-profile', authMiddleware, async (req, res) => {
       lastName: user.lastName,
       email: user.email,
       phone: user.phone,
-      gender: user.gender
+      gender: user.gender,
+      learningGoal: user.learningGoal,
+      learningLevel: user.learningLevel,
+      dailyTarget: user.dailyTarget,
+      focusCoins: user.focusCoins,
+      badges: user.badges,
+      xp: user.xp,
+      level: user.level
     };
 
     return res.json({
@@ -965,7 +1006,10 @@ router.post('/google', async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
-        gender: user.gender
+        gender: user.gender,
+        learningGoal: user.learningGoal,
+        learningLevel: user.learningLevel,
+        dailyTarget: user.dailyTarget
       }
     });
   } catch (err) {
