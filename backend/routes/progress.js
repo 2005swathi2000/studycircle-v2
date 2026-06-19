@@ -97,7 +97,7 @@ router.get('/group/:groupId/leaderboard', authMiddleware, async (req, res) => {
       where: { groupId },
       include: [{
         model: User,
-        attributes: ['id', 'fullName', 'username', 'role', 'streakCount', 'totalStudyHours']
+        attributes: ['id', 'fullName', 'username', 'role', 'streakCount', 'totalStudyHours', 'avatarUrl']
       }]
     });
 

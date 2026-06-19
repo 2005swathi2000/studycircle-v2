@@ -503,6 +503,7 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [selectedInterest, setSelectedInterest] = useState<string>('Programming & DSA');
   const [completedPracticeChallenges, setCompletedPracticeChallenges] = useState<string[]>([]);
   const [practiceQuizAnswer, setPracticeQuizAnswer] = useState<number | null>(null);
+  const [practiceQuizFeedback, setPracticeQuizFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [practiceCodeText, setPracticeCodeText] = useState<string | null>(null);
   const [practiceConsoleLogs, setPracticeConsoleLogs] = useState<string[]>([]);
   const [practiceTested, setPracticeTested] = useState<boolean>(false);
@@ -898,12 +899,14 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
           level: data.level
         }));
         setCompletedPracticeChallenges(prev => [...prev, selectedInterest]);
+        setPracticeQuizFeedback('correct');
         completeMission('quiz');
         showToast('Correct! Streak updated. +50 XP and +20 Focus Coins added!', 'success');
       } catch (err: any) {
         showToast('Error saving practice progress: ' + (err.message || err), 'error');
       }
     } else {
+      setPracticeQuizFeedback('wrong');
       showToast('Incorrect option. Re-check the logic and try again!', 'error');
     }
   };
@@ -3133,9 +3136,10 @@ Based on your desking logs and consistency, the AI tutor recommends:
                         return (
                           <button
                             key={interest.id}
-                            onClick={() => {
+                             onClick={() => {
                               setSelectedInterest(interest.id);
                               setPracticeQuizAnswer(null);
+                              setPracticeQuizFeedback(null);
                               setPracticeCodeText(null);
                               setPracticeConsoleLogs([]);
                               setPracticeTested(false);
@@ -3194,7 +3198,10 @@ Based on your desking logs and consistency, the AI tutor recommends:
                                 <button
                                   key={idx}
                                   disabled={isCompleted}
-                                  onClick={() => setPracticeQuizAnswer(idx)}
+                                   onClick={() => {
+                                    setPracticeQuizAnswer(idx);
+                                    setPracticeQuizFeedback(null);
+                                  }}
                                   className={`p-4 rounded-xl border text-left text-xs font-bold transition-all ${
                                     isCompleted
                                       ? isCorrect
@@ -3216,6 +3223,12 @@ Based on your desking logs and consistency, the AI tutor recommends:
                                 </button>
                               );
                             })}
+
+                            {practiceQuizFeedback === 'wrong' && !completedPracticeChallenges.includes(selectedInterest) && (
+                              <div className="mt-2 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-semibold">
+                                ❌ Wrong answer! Re-check the logic and try again.
+                              </div>
+                            )}
 
                             {completedPracticeChallenges.includes(selectedInterest) && (
                               <div className="mt-3 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl space-y-2 text-xs font-semibold leading-relaxed">

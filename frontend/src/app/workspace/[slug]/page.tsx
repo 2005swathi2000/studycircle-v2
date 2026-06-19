@@ -207,6 +207,33 @@ const workspaceQuizzes = {
   ]
 };
 
+const todayChallenges = {
+  'programming-dsa': {
+    question: 'Which data structure is typically used to implement Breadth-First Search (BFS)?',
+    options: ['Stack', 'Queue', 'Priority Queue', 'Tree'],
+    correctIndex: 1,
+    explanation: 'BFS explores nodes level-by-level, so elements must be processed in the order they are discovered. This is handled using a FIFO Queue.'
+  },
+  'web-development': {
+    question: 'Which HTML5 element is used to display self-contained content, like illustrations, diagrams, photos, or code listings?',
+    options: ['<section>', '<article>', '<figure>', '<aside>'],
+    correctIndex: 2,
+    explanation: '<figure> represents self-contained flow content, optionally with a caption (<figcaption>).'
+  },
+  'ai-machine-learning': {
+    question: 'In deep learning, which technique helps prevent vanishing gradient problems by normalising layer inputs?',
+    options: ['Dropout', 'L2 Regularisation', 'Batch Normalisation', 'Data Augmentation'],
+    correctIndex: 2,
+    explanation: 'Batch Normalisation normalises inputs of each layer to reduce internal covariate shift, improving gradient flow and training speed.'
+  },
+  'general': {
+    question: 'Which of the following is a non-volatile memory type?',
+    options: ['RAM', 'ROM', 'Cache Memory', 'CPU Registers'],
+    correctIndex: 1,
+    explanation: 'ROM (Read-Only Memory) retains its data even after the device is powered off, making it non-volatile.'
+  }
+};
+
 export default function WorkspacePage() {
   const router = useRouter();
   const params = useParams();
@@ -233,6 +260,8 @@ export default function WorkspacePage() {
 
   // Today's Challenge State
   const [todayChallengeSolved, setTodayChallengeSolved] = useState(false);
+  const [todayChallengeAnswer, setTodayChallengeAnswer] = useState<number | null>(null);
+  const [todayChallengeFeedback, setTodayChallengeFeedback] = useState<'correct' | 'wrong' | null>(null);
 
   // Learning Level State
   const [learningLevel, setLearningLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
@@ -653,27 +682,41 @@ export default function WorkspacePage() {
 
   const handleClaimTodayChallenge = async () => {
     if (todayChallengeSolved) return;
-    try {
-      const data = await apiRequest('/progress/complete-practice', {
-        method: 'POST',
-        body: JSON.stringify({
-          interest: group?.subject || 'Programming & DSA',
-          challengeId: 'todays_challenge',
-          xpReward: 20,
-          coinReward: 10
-        })
-      });
-      setUserStats(prev => ({
-        ...prev,
-        xp: data.xp,
-        focusCoins: data.focusCoins,
-        streakCount: data.streakCount,
-        level: data.level
-      }));
-      setTodayChallengeSolved(true);
-      showToast('Daily Challenge Completed! Streak maintained. +20 XP | +10 Focus Coins!', 'success');
-    } catch (err: any) {
-      showToast('Error claiming challenge rewards: ' + (err.message || err), 'error');
+    if (todayChallengeAnswer === null) {
+      showToast('Please select an option before verifying.', 'error');
+      return;
+    }
+
+    const categoryKey = (slug && todayChallenges[slug as keyof typeof todayChallenges]) ? slug : 'general';
+    const challenge = todayChallenges[categoryKey as keyof typeof todayChallenges];
+
+    if (todayChallengeAnswer === challenge.correctIndex) {
+      try {
+        const data = await apiRequest('/progress/complete-practice', {
+          method: 'POST',
+          body: JSON.stringify({
+            interest: group?.subject || 'Programming & DSA',
+            challengeId: 'todays_challenge',
+            xpReward: 20,
+            coinReward: 10
+          })
+        });
+        setUserStats(prev => ({
+          ...prev,
+          xp: data.xp,
+          focusCoins: data.focusCoins,
+          streakCount: data.streakCount,
+          level: data.level
+        }));
+        setTodayChallengeSolved(true);
+        setTodayChallengeFeedback('correct');
+        showToast('Daily Challenge Completed! Streak maintained. +20 XP | +10 Focus Coins!', 'success');
+      } catch (err: any) {
+        showToast('Error claiming challenge rewards: ' + (err.message || err), 'error');
+      }
+    } else {
+      setTodayChallengeFeedback('wrong');
+      showToast('Incorrect option. Re-check the logic and try again!', 'error');
     }
   };
 
@@ -1412,29 +1455,80 @@ export default function WorkspacePage() {
                   </span>
                 </div>
                 
-                <div className="space-y-1">
-                  <p className="text-[11px] font-black text-white leading-normal">Solve practice questions or visualizer challenge</p>
-                  <p className="text-[9px] text-slate-550 font-semibold">Active tasks maintain your consistency streak badge.</p>
-                </div>
+                {(() => {
+                  const categoryKey = (slug && todayChallenges[slug as keyof typeof todayChallenges]) ? slug : 'general';
+                  const challenge = todayChallenges[categoryKey as keyof typeof todayChallenges];
+                  return (
+                    <>
+                      <div className="space-y-2 text-left">
+                        <p className="text-[10px] font-black text-slate-200">{challenge.question}</p>
+                        
+                        <div className="grid gap-2">
+                          {challenge.options.map((option, idx) => {
+                            const isSelected = todayChallengeAnswer === idx;
+                            const isSolved = todayChallengeSolved;
+                            const isCorrect = idx === challenge.correctIndex;
+                            
+                            return (
+                              <button
+                                key={idx}
+                                disabled={isSolved}
+                                onClick={() => {
+                                  setTodayChallengeAnswer(idx);
+                                  setTodayChallengeFeedback(null);
+                                }}
+                                className={`p-2.5 rounded-xl border text-left text-[9px] font-bold transition-all ${
+                                  isSolved
+                                    ? isCorrect
+                                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                      : 'bg-[#0B0F19]/45 border-white/5 text-slate-500'
+                                    : isSelected
+                                      ? 'bg-indigo-500/10 border-indigo-500/50 text-white'
+                                      : 'bg-slate-900/60 border-white/5 text-slate-450 hover:bg-slate-900 hover:text-white'
+                                }`}
+                              >
+                                <span className="mr-1.5 font-black uppercase text-indigo-400">{String.fromCharCode(65 + idx)}.</span> {option}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
 
-                <div className="pt-1 flex items-center justify-between gap-4">
-                  <div className="flex-1 h-1.5 rounded-full bg-slate-900 border border-white/5 overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-500 ${todayChallengeSolved ? 'w-full bg-emerald-500' : 'w-1/3 bg-indigo-500'}`} 
-                    />
-                  </div>
-                  <button
-                    disabled={todayChallengeSolved}
-                    onClick={handleClaimTodayChallenge}
-                    className={`px-4.5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none ${
-                      todayChallengeSolved 
-                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-450' 
-                        : 'bg-[#4F46E5] hover:bg-[#4338ca] text-white shadow-md active:scale-[0.98]'
-                    }`}
-                  >
-                    {todayChallengeSolved ? '✓ Claimed' : 'Complete Challenge'}
-                  </button>
-                </div>
+                      {todayChallengeFeedback === 'wrong' && !todayChallengeSolved && (
+                        <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-[9px] font-bold text-left">
+                          ❌ Wrong answer! Re-check and try again.
+                        </div>
+                      )}
+
+                      {todayChallengeSolved && (
+                        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 rounded-xl text-[9px] font-semibold text-left leading-relaxed">
+                          <p className="font-extrabold text-white">💡 Explanation:</p>
+                          <p>{challenge.explanation}</p>
+                        </div>
+                      )}
+
+                      <div className="pt-1 flex items-center justify-between gap-4">
+                        <div className="flex-1 h-1.5 rounded-full bg-slate-900 border border-white/5 overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-500 ${todayChallengeSolved ? 'w-full bg-emerald-500' : 'w-1/3 bg-indigo-500'}`} 
+                          />
+                        </div>
+                        {!todayChallengeSolved ? (
+                          <button
+                            onClick={handleClaimTodayChallenge}
+                            className="px-4.5 py-2.5 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-[9px] font-black rounded-xl border-none uppercase tracking-wider cursor-pointer shadow-md active:scale-[0.98] transition-all"
+                          >
+                            Verify Answer
+                          </button>
+                        ) : (
+                          <div className="px-4.5 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 text-[9px] font-black uppercase rounded-xl">
+                            ✓ Claimed
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </section>
 
@@ -2537,7 +2631,7 @@ export default function WorkspacePage() {
                                   {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
                                 </td>
                                 <td className="py-3 font-bold text-white flex items-center gap-2">
-                                  <div className="h-6.5 w-6.5 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-[7px] text-indigo-400 font-black overflow-hidden">
+                                  <div className="h-8 w-8 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-[7px] text-indigo-400 font-black overflow-hidden">
                                     <img src={student.avatarUrl || '/charan-avatar.png'} alt="Avatar" className="h-full w-full object-cover" />
                                   </div>
                                   <span>{student.fullName} (@{student.username})</span>
