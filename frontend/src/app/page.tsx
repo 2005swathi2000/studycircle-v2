@@ -415,16 +415,8 @@ export default function Home() {
     }
   }, [globalLoading, fetchMockInbox]);
 
-  // Keep redirect in its own effect — runs only when user actually
-  // exists after context is fully resolved. No flash.
-  useEffect(() => {
-    if (currentUser) {
-      setShouldHideContent(true);
-    }
-    if (!globalLoading && currentUser) {
-      router.push('/dashboard');
-    }
-  }, [currentUser, globalLoading, router]);
+  // Auto-send and custom notification banner states
+
 
   const fetchPublicCircles = async () => {
     setLoadingLobby(true);
@@ -816,7 +808,7 @@ export default function Home() {
   // Show spinner while globalLoading is true.
   // This avoids the double-render glitch.
   // ─────────────────────────────────────────────
-  if (globalLoading || shouldHideContent) {
+  if (globalLoading) {
     return (
       <div className="min-h-screen bg-[#FAFCFB] flex items-center justify-center">
         <RefreshCw className="h-8 w-8 text-[#0E3E31] animate-spin" />

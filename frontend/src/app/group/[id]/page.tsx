@@ -153,6 +153,31 @@ export default function GroupPage() {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
+  // Coding Room States
+  const [codingCodeText, setCodingCodeText] = useState('function factorial(n) {\n  // Write your code here\n  if (n <= 1) return 1;\n  return n * factorial(n - 1);\n}');
+  const [codingOutput, setCodingOutput] = useState<string[]>([]);
+  const [codingCompleted, setCodingCompleted] = useState(false);
+  const [codingTested, setCodingTested] = useState(false);
+
+  // DSA Room States
+  const [dsaActiveAlgo, setDsaActiveAlgo] = useState<'Binary Search' | 'Bubble Sort'>('Binary Search');
+  const [dsaArray, setDsaArray] = useState<number[]>([12, 24, 35, 47, 58, 69, 80, 92]);
+  const [dsaPointers, setDsaPointers] = useState<{ low: number; high: number; mid: number | null }>({ low: 0, high: 7, mid: null });
+  const [dsaStepDesc, setDsaStepDesc] = useState('Click "Next Step" to begin binary search animation.');
+  const [dsaCompleted, setDsaCompleted] = useState(false);
+  const [dsaQuizAnswer, setDsaQuizAnswer] = useState<number | null>(null);
+
+  // AI Room States
+  const [aiDataset, setAiDataset] = useState('MNIST Digits');
+  const [aiActivation, setAiActivation] = useState('ReLU');
+  const [aiLearningRate, setAiLearningRate] = useState(0.01);
+  const [aiEpochs, setAiEpochs] = useState(50);
+  const [aiTraining, setAiTraining] = useState(false);
+  const [aiProgress, setAiProgress] = useState(0);
+  const [aiLogs, setAiLogs] = useState<string[]>([]);
+  const [aiCompleted, setAiCompleted] = useState(false);
+
+
   useEffect(() => {
     if (!globalLoading) {
       if (!currentUser) {
@@ -655,10 +680,139 @@ export default function GroupPage() {
       setLoggingProgress(false);
     }
   };
+  // Specialized Workspaces Actions
+
+  // 1. Coding Room
+  const handleRunCodingTests = () => {
+    setCodingOutput([
+      'Compiling source files...',
+      'Executing tests for factorial(n)...',
+      'Test Case 1: factorial(5) === 120 (PASSED)',
+      'Test Case 2: factorial(1) === 1 (PASSED)',
+      'Test Case 3: factorial(0) === 1 (PASSED)',
+      'All tests executed successfully!'
+    ]);
+    setCodingTested(true);
+    showToast('Code test suite successfully ran!', 'success');
+  };
+
+  const handleSubmitCodingRoom = async () => {
+    if (!codingTested) return;
+    try {
+      await apiRequest('/progress/complete-practice', {
+        method: 'POST',
+        body: JSON.stringify({ interest: 'Programming & DSA', challengeId: 'coding_room_editor' })
+      });
+      setCodingCompleted(true);
+      showToast('Coding Room challenge submitted! Streaks maintained, +50 XP, +20 Coins!', 'success');
+    } catch (err: any) {
+      showToast('Submission error: ' + (err.message || err), 'error');
+    }
+  };
+
+  // 2. DSA Room
+  const handleDsaReset = () => {
+    setDsaPointers({ low: 0, high: 7, mid: null });
+    setDsaStepDesc('Visualizer reset. Click "Next Step" to begin binary search for target = 69.');
+  };
+
+  const handleDsaNextStep = () => {
+    const { low, high, mid } = dsaPointers;
+    if (low > high) {
+      setDsaStepDesc('Target not found or search complete!');
+      return;
+    }
+
+    if (mid === null) {
+      const initialMid = Math.floor((low + high) / 2);
+      setDsaPointers({ low, high, mid: initialMid });
+      setDsaStepDesc(`Step 1: Set low = ${low} (val = ${dsaArray[low]}), high = ${high} (val = ${dsaArray[high]}). Calculated mid = ${initialMid} (val = ${dsaArray[initialMid]}).`);
+    } else {
+      const midVal = dsaArray[mid];
+      if (midVal === 69) {
+        setDsaStepDesc(`Success! Target 69 found at index ${mid}! Binary search completes successfully.`);
+        showToast('Binary search animation successfully completed!', 'success');
+      } else if (midVal < 69) {
+        const nextLow = mid + 1;
+        const nextMid = Math.floor((nextLow + high) / 2);
+        setDsaPointers({ low: nextLow, high, mid: nextMid });
+        setDsaStepDesc(`Index ${mid} (val = ${midVal}) < 69. Move low pointer to ${nextLow}. New calculated mid = ${nextMid} (val = ${dsaArray[nextMid]}).`);
+      } else {
+        const nextHigh = mid - 1;
+        const nextMid = Math.floor((low + nextHigh) / 2);
+        setDsaPointers({ low, high: nextHigh, mid: nextMid });
+        setDsaStepDesc(`Index ${mid} (val = ${midVal}) > 69. Move high pointer to ${nextHigh}. New calculated mid = ${nextMid} (val = ${dsaArray[nextMid]}).`);
+      }
+    }
+  };
+
+  const handleVerifyDsaQuiz = async () => {
+    if (dsaQuizAnswer === null) {
+      showToast('Select an answer option.', 'error');
+      return;
+    }
+
+    if (dsaQuizAnswer === 1) {
+      try {
+        await apiRequest('/progress/complete-practice', {
+          method: 'POST',
+          body: JSON.stringify({ interest: 'Programming & DSA', challengeId: 'dsa_room_quiz' })
+        });
+        setDsaCompleted(true);
+        showToast('DSA Checkpoint correct! Streak maintained. +50 XP and +20 Coins added!', 'success');
+      } catch (err: any) {
+        showToast('Doubt submitting DSA quiz: ' + (err.message || err), 'error');
+      }
+    } else {
+      showToast('Incorrect complexity estimation. Try again!', 'error');
+    }
+  };
+
+  // 3. AI Room
+  const handleTrainAiModel = () => {
+    if (aiTraining) return;
+    setAiTraining(true);
+    setAiProgress(0);
+    setAiLogs(['Initializing Model Workspace...', `Setting learning rate = ${aiLearningRate}, activation = ${aiActivation}`, `Dataset: ${aiDataset}...`]);
+    
+    let currentEpoch = 0;
+    const interval = setInterval(() => {
+      currentEpoch += 5;
+      setAiProgress(currentEpoch * 2);
+      
+      const simulatedLoss = (1.2 / (currentEpoch / 10 + 1)).toFixed(4);
+      const simulatedAccuracy = (0.5 + (0.48 * (currentEpoch / 50))).toFixed(4);
+
+      setAiLogs(prev => [
+        ...prev,
+        `Epoch ${currentEpoch}/${aiEpochs} - Loss: ${simulatedLoss} - Accuracy: ${simulatedAccuracy}`
+      ]);
+
+      if (currentEpoch >= aiEpochs) {
+        clearInterval(interval);
+        setAiTraining(false);
+        setAiLogs(prev => [...prev, '✓ Neural Network Training complete! Model parameters converged.']);
+        showToast('AI Model successfully trained! Claim your rewards.', 'success');
+      }
+    }, 200);
+  };
+
+  const handleClaimAiRewards = async () => {
+    try {
+      await apiRequest('/progress/complete-practice', {
+        method: 'POST',
+        body: JSON.stringify({ interest: 'AI & Machine Learning', challengeId: 'ai_room_train' })
+      });
+      setAiCompleted(true);
+      showToast('AI Room Training rewards claimed! Streak maintained, +50 XP, +20 Coins!', 'success');
+    } catch (err: any) {
+      showToast('Claim rewards error: ' + (err.message || err), 'error');
+    }
+  };
 
   if (loading || !group) {
     return (
-      <div className="min-h-screen bg-[#D4D4FF] flex items-center justify-center">
+      <div className="min-h-screen bg-[#060913] flex items-center justify-center">
         <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
       </div>
     );
@@ -677,7 +831,7 @@ export default function GroupPage() {
   const myDeskIndex = myActiveSeat ? myActiveSeat.deskIndex : null;
 
   return (
-    <div className="min-h-screen bg-[#D4D4FF] text-zinc-150 font-sans relative pb-12 overflow-x-hidden">
+    <div className="min-h-screen bg-[#060913] text-slate-150 font-sans relative pb-12 overflow-x-hidden">
       {/* Background gradients */}
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#5227EB]/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#30A4D3]/3 rounded-full blur-[120px] pointer-events-none" />
@@ -716,79 +870,477 @@ export default function GroupPage() {
         <div className="lg:col-span-2 space-y-8">
           
           {/* 1. Desking visual arena */}
-          <section className="bg-gradient-to-br from-[#2D1612] via-[#1F100E] to-[#160B0A] border border-[#FF8A75]/25 rounded-3xl shadow-lg p-6 space-y-5 relative">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
-                  <Coffee className="h-4 w-4 text-[#FF8A75]" /> Live desking lobby
+          {/* Coding Room Specialized Workspace */}
+          {group.name.toLowerCase().includes('coding room') && (
+            <section className="bg-gradient-to-br from-[#0B1224] via-[#070B16] to-[#120B24] border border-indigo-500/20 rounded-3xl shadow-lg p-6 space-y-5 relative">
+              <div className="absolute top-0 left-1/4 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white font-sans">
+                    <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" /> 🚀 Interactive Coding Workspace
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-semibold">Perfect for beginners: write syntax and execute calculations.</p>
                 </div>
-                <p className="text-[10px] text-zinc-300 font-semibold">Pick a desk to sit and study together with your peer group.</p>
+                {codingCompleted ? (
+                  <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-550/20 rounded-xl text-[10px] font-black text-emerald-400 uppercase font-sans">
+                    ✓ Complete (+50 XP | +20 Coins)
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[10px] font-bold text-indigo-400 uppercase font-sans">
+                    🔥 Coding Challenge Active
+                  </span>
+                )}
               </div>
 
-              {myDeskIndex !== null && myDeskIndex !== undefined && (
-                <button
-                  onClick={handleStandUp}
-                  className="px-3 py-1 bg-[#FF8A75]/15 hover:bg-[#FF8A75]/25 border border-[#FF8A75]/20 text-[#FF8A75] hover:text-[#FFA07A] text-[10px] font-bold rounded-xl cursor-pointer transition-all"
-                >
-                  Stand Up
-                </button>
-              )}
-            </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Left Side: Instructions */}
+                <div className="space-y-4 bg-slate-950/40 p-5 rounded-2xl border border-white/5 text-left">
+                  <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider font-sans">Problem: Factorial Calculator</h4>
+                  <p className="text-[11px] text-slate-350 leading-relaxed font-semibold">
+                    In mathematics, the factorial of a non-negative integer <code className="text-indigo-400 font-mono">n</code>, denoted by <code className="text-indigo-400 font-mono">n!</code>, is the product of all positive integers less than or equal to <code className="text-indigo-400 font-mono">n</code>.
+                  </p>
+                  <div className="bg-slate-950/60 p-3.5 rounded-xl border border-white/5 font-mono text-[9px] text-slate-400 space-y-1 shadow-inner">
+                    <div className="text-indigo-300 font-bold">// Examples:</div>
+                    <div>factorial(5) =&gt; 5 * 4 * 3 * 2 * 1 = 120</div>
+                    <div>factorial(1) =&gt; 1</div>
+                    <div>factorial(0) =&gt; 1</div>
+                  </div>
+                </div>
 
-            {/* Interactive Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {Array.from({ length: DESK_COUNT }).map((_, idx) => {
-                const seatedUser = deskMap[idx];
-                const isMe = seatedUser?.id === currentUser?.id;
-
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => {
-                      if (!seatedUser) {
-                        handleSitDesk(idx);
-                      }
-                    }}
-                    className={`p-3.5 rounded-2xl border flex flex-col items-center justify-between h-28 transition-all ${
-                      seatedUser 
-                        ? isMe
-                          ? 'bg-[#FF8A75]/30 border-[#FF8A75] shadow-md text-white'
-                          : 'bg-[#120A08] border-[#FF8A75]/10 text-zinc-150 hover:bg-[#1F100E]'
-                        : 'bg-white/5 border-dashed border-white/10 text-zinc-400 hover:bg-[#FF8A75]/10 hover:text-[#FF8A75] cursor-pointer'
-                    }`}
-                  >
-                    <div className={`w-full flex justify-between items-center text-[9px] ${
-                      seatedUser ? 'text-zinc-400' : 'text-zinc-550'
-                    }`}>
-                      <span className="font-mono">Desk #{idx + 1}</span>
-                      {seatedUser && (
-                        <span className={`h-1.5 w-1.5 rounded-full ${isMe ? 'bg-[#FF8A75] animate-ping' : 'bg-[#FFA07A] animate-pulse'}`} />
-                      )}
+                {/* Right Side: Code Editor Mock */}
+                <div className="space-y-4 flex flex-col justify-between">
+                  <div className="rounded-2xl overflow-hidden border border-white/5 bg-slate-950/90 shadow-2xl flex-1 flex flex-col min-h-[160px]">
+                    <div className="px-4 py-2 border-b border-white/5 bg-slate-950 flex items-center justify-between">
+                      <span className="text-[8px] font-black uppercase text-slate-500 font-mono">index.js</span>
+                      <div className="flex gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-rose-500" />
+                        <span className="h-2 w-2 rounded-full bg-amber-500" />
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      </div>
                     </div>
+                    <textarea
+                      disabled={codingCompleted}
+                      value={codingCodeText}
+                      onChange={(e) => setCodingCodeText(e.target.value)}
+                      className="flex-1 p-4 bg-transparent outline-none text-[11px] text-indigo-300 font-mono resize-none leading-relaxed h-full min-h-[120px]"
+                    />
+                  </div>
+                </div>
+              </div>
 
-                    {seatedUser ? (
-                      <div className="flex flex-col items-center gap-1 text-center w-full min-w-0">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${
-                          isMe 
-                            ? 'bg-[#FF8A75]/25 border border-[#FF8A75] text-white' 
-                            : 'bg-zinc-800 border border-zinc-700 text-zinc-350'
-                        }`}>
-                          {seatedUser.fullName.charAt(0)}
-                        </div>
-                        <div className="text-[10px] font-bold text-zinc-200 truncate w-full">{seatedUser.fullName}</div>
-                        <div className="text-[8px] text-zinc-400 font-semibold uppercase">{seatedUser.role}</div>
-                      </div>
+              {/* Output Console and CTA buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 border-t border-white/5 pt-4">
+                <div className="flex-1 space-y-1.5 text-left">
+                  <span className="text-[9px] font-black uppercase text-slate-500 block">Output Console</span>
+                  <div className="h-24 rounded-xl bg-slate-950/80 border border-white/10 p-3 font-mono text-[9px] text-[#A78BFA] overflow-y-auto space-y-1 shadow-inner">
+                    {codingOutput.length === 0 ? (
+                      <span className="text-zinc-650 italic">No output. Click "Run Tests" to execute the test suite.</span>
                     ) : (
-                      <div className="text-center py-2 flex flex-col items-center gap-1 text-zinc-450">
-                        <span className="text-xs">🛋️</span>
-                        <span className="text-[9px] font-bold uppercase tracking-wide">Sit Here</span>
-                      </div>
+                      codingOutput.map((log, idx) => (
+                        <div key={idx} className={log.includes('PASSED') || log.startsWith('All') ? 'text-emerald-400' : 'text-slate-400'}>{log}</div>
+                      ))
                     )}
                   </div>
-                );
-              })}
-            </div>
-          </section>
+                </div>
+                
+                <div className="flex sm:flex-col justify-end gap-3 shrink-0 self-end">
+                  {!codingCompleted ? (
+                    <>
+                      <button
+                        onClick={handleRunCodingTests}
+                        className="py-2.5 px-5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer transition-all active:scale-[0.98]"
+                      >
+                        Run Tests
+                      </button>
+                      <button
+                        disabled={!codingTested}
+                        onClick={handleSubmitCodingRoom}
+                        className={`py-2.5 px-5 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest transition-all ${
+                          codingTested 
+                            ? 'bg-indigo-650 hover:bg-indigo-500 cursor-pointer shadow-md shadow-indigo-650/15 active:scale-[0.98]' 
+                            : 'bg-zinc-800 text-zinc-550 cursor-not-allowed'
+                        }`}
+                      >
+                        Submit Validation
+                      </button>
+                    </>
+                  ) : (
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 text-xs font-black rounded-xl text-center flex items-center justify-center gap-1.5 font-sans">
+                      ✓ Solved & Streak Saved
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* DSA Room Specialized Workspace */}
+          {group.name.toLowerCase().includes('dsa room') && (
+            <section className="bg-gradient-to-br from-[#1E1B4B] via-[#0F172A] to-[#111827] border border-purple-500/20 rounded-3xl shadow-lg p-6 space-y-5 relative">
+              <div className="absolute top-0 right-1/4 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white font-sans">
+                    <span className="h-2 w-2 rounded-full bg-purple-400 animate-pulse" /> 🧠 DSA Algorithm Visualizer
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-semibold">Interactive workbench: visually inspect standard searches and complexities.</p>
+                </div>
+                {dsaCompleted ? (
+                  <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-550/20 rounded-xl text-[10px] font-black text-emerald-400 uppercase font-sans">
+                    ✓ Checkpoint Solved (+50 XP | +20 Coins)
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[10px] font-bold text-amber-400 uppercase font-sans">
+                    🔥 Checkpoint Active
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-5">
+                {/* Visual representation */}
+                <div className="bg-slate-950/60 p-5 rounded-2xl border border-white/5 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black uppercase text-slate-400 font-sans">Binary Search (Target = 69)</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleDsaReset}
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[9px] font-black rounded-lg uppercase tracking-wider cursor-pointer transition-all border-none font-sans"
+                      >
+                        Reset
+                      </button>
+                      <button
+                        onClick={handleDsaNextStep}
+                        className="px-3 py-1.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[9px] font-black rounded-lg uppercase tracking-wider cursor-pointer transition-all border-none shadow-md font-sans"
+                      >
+                        Next Step
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Array visualization */}
+                  <div className="flex justify-center items-end gap-2 py-4 overflow-x-auto min-h-[90px]">
+                    {dsaArray.map((val, idx) => {
+                      const { low, high, mid } = dsaPointers;
+                      const isMid = idx === mid;
+                      const isLow = idx === low;
+                      const isHigh = idx === high;
+                      const inRange = idx >= low && idx <= high;
+
+                      return (
+                        <div key={idx} className="flex flex-col items-center gap-1.5">
+                          <div className="text-[8px] font-mono text-zinc-500">idx {idx}</div>
+                          <div
+                            className={`h-11 w-11 rounded-lg border flex items-center justify-center font-mono text-[11px] font-black transition-all duration-350 relative ${
+                              isMid 
+                                ? 'bg-rose-500/20 border-rose-500 text-rose-300 scale-105 shadow-lg shadow-rose-500/10'
+                                : isLow 
+                                  ? 'bg-blue-500/20 border-blue-500 text-blue-300'
+                                  : isHigh 
+                                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                                    : inRange
+                                      ? 'bg-[#1e1b4b] border-indigo-500/30 text-indigo-250'
+                                      : 'bg-zinc-950/40 border-white/5 text-slate-650'
+                            }`}
+                          >
+                            {val}
+                            {/* Floating badges */}
+                            {isMid && (
+                              <span className="absolute -top-3.5 px-1 bg-rose-500 text-white text-[7px] font-black rounded font-sans tracking-wide uppercase">mid</span>
+                            )}
+                            {isLow && !isMid && (
+                              <span className="absolute -top-3.5 px-1 bg-blue-500 text-white text-[7px] font-black rounded font-sans tracking-wide uppercase">low</span>
+                            )}
+                            {isHigh && !isMid && (
+                              <span className="absolute -top-3.5 px-1 bg-emerald-500 text-white text-[7px] font-black rounded font-sans tracking-wide uppercase">high</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="bg-slate-950/80 border border-white/5 p-3 rounded-xl font-mono text-[9px] text-[#A78BFA] text-left">
+                    &gt; {dsaStepDesc}
+                  </div>
+                </div>
+
+                {/* DSA Quiz Challenge */}
+                <div className="space-y-4 bg-slate-950/40 p-5 rounded-2xl border border-white/5 text-left">
+                  <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider font-sans">Concept Checkpoint: Complexity Analysis</h4>
+                  <p className="text-[11px] text-slate-350 font-semibold leading-relaxed">
+                    What is the average-case time complexity of the Binary Search algorithm for a sorted array of size <code className="text-indigo-400 font-mono">N</code>?
+                  </p>
+
+                  <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                    {[
+                      { id: 0, text: 'O(1) - Constant complexity' },
+                      { id: 1, text: 'O(log N) - Logarithmic complexity' },
+                      { id: 2, text: 'O(N) - Linear complexity' },
+                      { id: 3, text: 'O(N log N) - Linearithmic complexity' }
+                    ].map((option) => {
+                      const isSelected = dsaQuizAnswer === option.id;
+                      const isCorrect = option.id === 1;
+
+                      return (
+                        <button
+                          key={option.id}
+                          disabled={dsaCompleted}
+                          onClick={() => setDsaQuizAnswer(option.id)}
+                          className={`p-3.5 rounded-xl border text-left text-[11px] font-bold transition-all ${
+                            dsaCompleted
+                              ? isCorrect
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-450'
+                                : 'bg-[#0B0F19]/40 border-white/5 text-slate-500'
+                              : isSelected
+                                ? 'bg-indigo-500/10 border-indigo-500/50 text-white'
+                                : 'bg-slate-950/70 border-white/5 text-slate-400 hover:bg-[#121829]/95 hover:text-white cursor-pointer'
+                          }`}
+                        >
+                          <span className="mr-2 font-mono text-[10px] text-indigo-400 font-black">{String.fromCharCode(65 + option.id)})</span>
+                          {option.text}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {!dsaCompleted && (
+                    <div className="pt-2 flex justify-start">
+                      <button
+                        onClick={handleVerifyDsaQuiz}
+                        className="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow-md transition-all active:scale-[0.98] font-sans"
+                      >
+                        Submit Answer
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* AI Room Specialized Workspace */}
+          {group.name.toLowerCase().includes('ai room') && (
+            <section className="bg-gradient-to-br from-[#022C22] via-[#0F172A] to-[#1E1B4B] border border-emerald-500/20 rounded-3xl shadow-lg p-6 space-y-5 relative">
+              <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white font-sans">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> 🤖 AI Neural Network Model Builder
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-semibold">ML training simulator: configure layers, set learning rate, and watch training logs.</p>
+                </div>
+                {aiCompleted ? (
+                  <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-550/20 rounded-xl text-[10px] font-black text-emerald-450 uppercase font-sans">
+                    ✓ Model Deployed (+50 XP | +20 Coins)
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 bg-[#4F46E5]/10 border border-[#4F46E5]/20 rounded-xl text-[10px] font-bold text-indigo-400 uppercase font-sans">
+                    🔥 Sandbox Active
+                  </span>
+                )}
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Left Side: Parameters */}
+                <div className="space-y-4 bg-slate-950/40 p-5 rounded-2xl border border-white/5 text-left">
+                  <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider font-sans">Hyper-Parameters</h4>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-1">Dataset Selection</label>
+                      <select
+                        disabled={aiTraining || aiCompleted}
+                        value={aiDataset}
+                        onChange={(e) => setAiDataset(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-xl text-xs text-white outline-none focus:border-emerald-500/50 transition-all font-semibold font-sans cursor-pointer"
+                      >
+                        <option value="MNIST Digits">MNIST Handwriting Digits (60,000 images)</option>
+                        <option value="Boston Housing">Boston Housing Pricing (506 records)</option>
+                        <option value="Iris Flowers">Iris Flower Classification (150 plants)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-1">Activation Function</label>
+                      <select
+                        disabled={aiTraining || aiCompleted}
+                        value={aiActivation}
+                        onChange={(e) => setAiActivation(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-xl text-xs text-white outline-none focus:border-emerald-500/50 transition-all font-semibold font-sans cursor-pointer"
+                      >
+                        <option value="ReLU">Rectified Linear Unit (ReLU)</option>
+                        <option value="Sigmoid">Sigmoid function (probability output)</option>
+                        <option value="Tanh">Hyperbolic Tangent (tanh)</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-1">Learning Rate</label>
+                        <input
+                          disabled={aiTraining || aiCompleted}
+                          type="number"
+                          step="0.001"
+                          min="0.001"
+                          max="0.5"
+                          value={aiLearningRate}
+                          onChange={(e) => setAiLearningRate(Number(e.target.value))}
+                          className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-xl text-xs text-white outline-none focus:border-emerald-500/50 transition-all font-mono font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-1">Epochs count</label>
+                        <input
+                          disabled={aiTraining || aiCompleted}
+                          type="number"
+                          step="10"
+                          min="10"
+                          max="100"
+                          value={aiEpochs}
+                          onChange={(e) => setAiEpochs(Number(e.target.value))}
+                          className="w-full px-3 py-2 bg-slate-950 border border-white/5 rounded-xl text-xs text-white outline-none focus:border-emerald-500/50 transition-all font-mono font-semibold"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Side: Training Studio Output */}
+                <div className="space-y-4 bg-slate-950/40 p-5 rounded-2xl border border-white/5 text-left flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider font-sans">Model Training Logs</h4>
+                    <div className="h-32 rounded-xl bg-slate-950 border border-white/5 p-3 font-mono text-[9px] text-emerald-450 overflow-y-auto space-y-1 shadow-inner">
+                      {aiLogs.length === 0 ? (
+                        <span className="text-zinc-650 italic">Configure hyperparameters on the left and click "Train Model" to begin optimizer convergence.</span>
+                      ) : (
+                        aiLogs.map((log, idx) => (
+                          <div key={idx} className={log.startsWith('✓') ? 'text-emerald-400 font-bold' : 'text-slate-405'}>{log}</div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="space-y-1.5 pt-2">
+                    <div className="flex justify-between items-center text-[9px] text-slate-500 uppercase font-black tracking-wider">
+                      <span>Optimizing Convergence</span>
+                      <span className="font-mono text-emerald-450 font-black">{aiProgress}%</span>
+                    </div>
+                    <div className="w-full bg-slate-950 h-2 border border-white/5 rounded-full overflow-hidden">
+                      <div
+                        style={{ width: `${aiProgress}%` }}
+                        className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-300"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end border-t border-white/5 pt-4">
+                {!aiCompleted ? (
+                  <button
+                    disabled={aiTraining || aiProgress < 100}
+                    onClick={aiProgress < 100 ? handleTrainAiModel : handleClaimAiRewards}
+                    className={`py-2.5 px-6 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest transition-all ${
+                      aiTraining 
+                        ? 'bg-zinc-800 text-zinc-550 cursor-not-allowed'
+                        : aiProgress < 100 
+                          ? 'bg-emerald-600 hover:bg-emerald-500 cursor-pointer shadow-md shadow-emerald-650/15 font-sans'
+                          : 'bg-indigo-650 hover:bg-indigo-500 cursor-pointer shadow-md shadow-indigo-650/15 font-sans'
+                    } active:scale-[0.98]`}
+                  >
+                    {aiTraining 
+                      ? 'Training MLP Network...' 
+                      : aiProgress < 100 
+                        ? 'Train AI Model' 
+                        : 'Claim Training Rewards'}
+                  </button>
+                ) : (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black rounded-xl text-center font-sans">
+                    ✓ Model Successfully Deployed & Streak Maintained
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Standard public lounge desks */}
+          {!group.name.toLowerCase().includes('coding room') && !group.name.toLowerCase().includes('dsa room') && !group.name.toLowerCase().includes('ai room') && (
+            <section className="bg-gradient-to-br from-[#2D1612] via-[#1F100E] to-[#160B0A] border border-[#FF8A75]/25 rounded-3xl shadow-lg p-6 space-y-5 relative">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
+                    <Coffee className="h-4 w-4 text-[#FF8A75]" /> Live desking lobby
+                  </div>
+                  <p className="text-[10px] text-zinc-300 font-semibold">Pick a desk to sit and study together with your peer group.</p>
+                </div>
+
+                {myDeskIndex !== null && myDeskIndex !== undefined && (
+                  <button
+                    onClick={handleStandUp}
+                    className="px-3 py-1 bg-[#FF8A75]/15 hover:bg-[#FF8A75]/25 border border-[#FF8A75]/20 text-[#FF8A75] hover:text-[#FFA07A] text-[10px] font-bold rounded-xl cursor-pointer transition-all"
+                  >
+                    Stand Up
+                  </button>
+                )}
+              </div>
+
+              {/* Interactive Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {Array.from({ length: DESK_COUNT }).map((_, idx) => {
+                  const seatedUser = deskMap[idx];
+                  const isMe = seatedUser?.id === currentUser?.id;
+
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        if (!seatedUser) {
+                          handleSitDesk(idx);
+                        }
+                      }}
+                      className={`p-3.5 rounded-2xl border flex flex-col items-center justify-between h-28 transition-all ${
+                        seatedUser 
+                          ? isMe
+                            ? 'bg-[#FF8A75]/30 border-[#FF8A75] shadow-md text-white'
+                            : 'bg-[#120A08] border-[#FF8A75]/10 text-zinc-150 hover:bg-[#1F100E]'
+                          : 'bg-white/5 border-dashed border-white/10 text-zinc-400 hover:bg-[#FF8A75]/10 hover:text-[#FF8A75] cursor-pointer'
+                      }`}
+                    >
+                      <div className={`w-full flex justify-between items-center text-[9px] ${
+                        seatedUser ? 'text-zinc-400' : 'text-zinc-550'
+                      }`}>
+                        <span className="font-mono">Desk #{idx + 1}</span>
+                        {seatedUser && (
+                          <span className={`h-1.5 w-1.5 rounded-full ${isMe ? 'bg-[#FF8A75] animate-ping' : 'bg-[#FFA07A] animate-pulse'}`} />
+                        )}
+                      </div>
+
+                      {seatedUser ? (
+                        <div className="flex flex-col items-center gap-1 text-center w-full min-w-0">
+                          <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${
+                            isMe 
+                              ? 'bg-[#FF8A75]/25 border border-[#FF8A75] text-white' 
+                              : 'bg-zinc-800 border border-zinc-700 text-zinc-350'
+                          }`}>
+                            {seatedUser.fullName.charAt(0)}
+                          </div>
+                          <div className="text-[10px] font-bold text-zinc-200 truncate w-full">{seatedUser.fullName}</div>
+                          <div className="text-[8px] text-zinc-400 font-semibold uppercase">{seatedUser.role}</div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-2 flex flex-col items-center gap-1 text-zinc-450">
+                          <span className="text-xs">🛋️</span>
+                          <span className="text-[9px] font-bold uppercase tracking-wide">Sit Here</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
 
           {/* 2. Collaborative Workspace Tabs */}
           <section className="space-y-4">

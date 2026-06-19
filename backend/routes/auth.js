@@ -885,9 +885,47 @@ router.post('/google', async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({
-        error: "This Google account is not linked to StudyCircle. Please continue with your registered email address."
+      const crypto = require('crypto');
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      const nameParts = fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || 'Google';
+      const lastName = nameParts.slice(1).join(' ') || 'Student';
+      
+      let baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      if (!baseUsername) {
+        baseUsername = 'user';
+      }
+      let username = baseUsername;
+      let counter = 1;
+      while (true) {
+        const existing = await User.findOne({ where: { username } });
+        if (!existing) {
+          break;
+        }
+        username = `${baseUsername}${counter}`;
+        counter++;
+      }
+
+      user = await User.create({
+        fullName: fullName.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        username: username,
+        password: randomPassword,
+        role: 'student',
+        phoneOrEmail: email,
+        email: email,
+        isVerified: true,
+        isApproved: true,
+        gender: 'other',
+        avatarUrl: payload.picture || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>',
+        provider: 'google'
       });
+
+      // Add to Bloom Filter
+      if (bloomFilter && typeof bloomFilter.add === 'function') {
+        bloomFilter.add(username);
+      }
     }
 
     const token = signToken(user, false);

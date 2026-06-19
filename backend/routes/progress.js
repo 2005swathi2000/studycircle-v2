@@ -228,4 +228,50 @@ router.post('/purchase-reward', authMiddleware, async (req, res) => {
   }
 });
 
+// Complete a practice session/challenge for XP, Coins, and Streak
+router.post('/complete-practice', authMiddleware, async (req, res) => {
+  try {
+    const { interest, challengeId, xpReward = 50, coinReward = 20 } = req.body;
+    
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Update XP and Coins
+    user.xp = (user.xp || 0) + Number(xpReward);
+    user.focusCoins = (user.focusCoins || 0) + Number(coinReward);
+
+    // Dynamic level calculation: 100 XP per level
+    const newLevel = Math.floor(user.xp / 100) + 1;
+    let leveledUp = false;
+    if (newLevel > user.level) {
+      user.level = newLevel;
+      leveledUp = true;
+    }
+
+    // Streak logic: Ensure user has at least 1 day streak upon active solving
+    if (!user.streakCount || user.streakCount === 0) {
+      user.streakCount = 1;
+    } else {
+      user.streakCount += 1;
+    }
+
+    await user.save();
+
+    return res.json({
+      message: 'Practice challenge completed successfully!',
+      xp: user.xp,
+      focusCoins: user.focusCoins,
+      level: user.level,
+      streakCount: user.streakCount,
+      leveledUp
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error saving practice progress.' });
+  }
+});
+
 module.exports = router;
+

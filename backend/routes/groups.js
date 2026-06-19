@@ -250,4 +250,126 @@ router.post('/:id/join-public', authMiddleware, async (req, res) => {
   }
 });
 
+// Get/Create study group by slug (Authenticated)
+router.get('/by-slug/:slug', authMiddleware, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    if (!slug) {
+      return res.status(400).json({ error: 'Slug is required.' });
+    }
+
+    const SLUG_MAP = {
+      'programming-dsa': {
+        name: 'Programming & DSA Room',
+        subject: 'Programming & DSA',
+        description: 'Perfect for beginners. Practice coding, algorithms, and data structures.'
+      },
+      'ai-ml': {
+        name: 'AI & Machine Learning Room',
+        subject: 'AI & Machine Learning',
+        description: 'Explore neural networks, machine learning models, and intelligent systems.'
+      },
+      'web-development': {
+        name: 'Web Development Room',
+        subject: 'Web Development',
+        description: 'Build modern web applications, APIs, interfaces, and study web technologies.'
+      },
+      'aptitude': {
+        name: 'Aptitude Room',
+        subject: 'Aptitude',
+        description: 'Prepare for competitive exams and practice aptitude questions.'
+      },
+      'interview-preparation': {
+        name: 'Interview Preparation Room',
+        subject: 'Interview Preparation',
+        description: 'Prepare for technical interviews and behavior rounds.'
+      },
+      'gate': {
+        name: 'GATE Room',
+        subject: 'GATE',
+        description: 'Prepare for the Graduate Aptitude Test in Engineering.'
+      },
+      'upsc': {
+        name: 'UPSC Room',
+        subject: 'UPSC',
+        description: 'Study for the Civil Services Examination together.'
+      },
+      'mathematics': {
+        name: 'Mathematics Room',
+        subject: 'Mathematics',
+        description: 'Deep dive into calculus, linear algebra, and discrete mathematics.'
+      }
+    };
+
+    const config = SLUG_MAP[slug];
+    const targetSubject = config?.subject || slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const targetName = config?.name || `${targetSubject} Room`;
+    const targetDescription = config?.description || `Interactive workspace for ${targetSubject}.`;
+
+    // Find group
+    let group = await Group.findOne({
+      where: {
+        [Op.or]: [
+          { name: targetName },
+          { subject: targetSubject }
+        ]
+      }
+    });
+
+    if (!group) {
+      group = await Group.create({
+        name: targetName,
+        subject: targetSubject,
+        description: targetDescription,
+        isPublic: true
+      });
+    }
+
+    // Auto-join the user
+    const member = await GroupMember.findOne({
+      where: { userId: req.user.id, groupId: group.id }
+    });
+
+    if (!member) {
+      await GroupMember.create({
+        userId: req.user.id,
+        groupId: group.id,
+        role: 'student'
+      });
+    }
+
+    // Get statistics
+    const memberCount = await GroupMember.count({ where: { groupId: group.id } });
+    const noteCount = await Note.count({ where: { groupId: group.id } });
+    const sessionCount = await Session.count({ where: { groupId: group.id } });
+
+    const members = await GroupMember.findAll({
+      where: { groupId: group.id },
+      limit: 3,
+      include: [{
+        model: User,
+        attributes: ['fullName', 'role', 'streakCount']
+      }]
+    });
+
+    return res.json({
+      group,
+      stats: {
+        memberCount,
+        noteCount,
+        sessionCount,
+        topicCount: 0
+      },
+      members: members.map(m => ({
+        fullName: m.User ? m.User.fullName : 'Anonymous Student',
+        role: m.role,
+        streakCount: m.User ? m.User.streakCount : 0
+      }))
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error retrieving group by slug.' });
+  }
+});
+
 module.exports = router;
