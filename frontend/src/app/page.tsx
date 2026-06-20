@@ -178,6 +178,11 @@ export default function Home() {
   const [lastSentMentorEmail, setLastSentMentorEmail] = useState('');
   const [lastSentAdminEmail, setLastSentAdminEmail] = useState('');
   const [lastSentForgotUser, setLastSentForgotUser] = useState('');
+  
+  const [showGoogleMockModal, setShowGoogleMockModal] = useState(false);
+  const [googleMockCustomName, setGoogleMockCustomName] = useState('');
+  const [googleMockCustomEmail, setGoogleMockCustomEmail] = useState('');
+  const [googleMockCustomGender, setGoogleMockCustomGender] = useState('female');
   const lastSeenEmailIdRef = useRef<string | null>(null);
 
   // ─────────────────────────────────────────────
@@ -1689,7 +1694,7 @@ export default function Home() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => handleGoogleSuccess('mock_google_credential_token')}
+                    onClick={() => { setShowAuthModal(false); setShowGoogleMockModal(true); }}
                     className="w-full py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-sm hover:shadow"
                   >
                     <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -1796,6 +1801,173 @@ export default function Home() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 🔐 Google Mock Sign-In Selector Modal */}
+      {showGoogleMockModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div 
+            onClick={() => setShowGoogleMockModal(false)}
+            className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity cursor-pointer"
+          />
+          
+          <div className="relative w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-8 shadow-2xl z-10 text-left animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
+            <button 
+              onClick={() => setShowGoogleMockModal(false)}
+              className="absolute top-6 right-6 text-slate-400 hover:text-slate-900 transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-slate-100"
+            >
+              ✕
+            </button>
+
+            <div className="text-center space-y-2 mb-6">
+              <div className="inline-flex h-10 w-10 rounded-full bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] items-center justify-center">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900">
+                Google Account Selector
+              </h3>
+              <p className="text-xs text-slate-550 font-bold">
+                Select a mock user profile or create a custom simulated Google account
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Option 1: Swathi Hani */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleGoogleSuccess('mock_google_credential_token:hanumanthuswathi24@gmail.com:Swathi Hani:female');
+                    setShowGoogleMockModal(false);
+                  }}
+                  className="p-5 bg-[#E6F2ED]/60 border border-[#0E3E31]/20 hover:border-[#0E3E31]/60 rounded-2xl text-left space-y-2.5 transition-all hover:scale-[1.02] cursor-pointer animate-in fade-in duration-200"
+                >
+                  <div className="flex items-center gap-2">
+                    <img src="/swathi-avatar.png" alt="Swathi" className="h-10 w-10 rounded-full border border-white" />
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900 leading-tight">Swathi Hani</h4>
+                      <span className="text-[9px] font-black uppercase text-emerald-600">Female</span>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-slate-550 font-bold leading-normal truncate">
+                    hanumanthuswathi24@gmail.com
+                  </p>
+                </button>
+
+                {/* Option 2: Vijay Kumar */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleGoogleSuccess('mock_google_credential_token:student.demo@studycircle.com:Vijay Kumar:male');
+                    setShowGoogleMockModal(false);
+                  }}
+                  className="p-5 bg-slate-50 border border-slate-200 hover:border-indigo-500/30 rounded-2xl text-left space-y-2.5 transition-all hover:scale-[1.02] cursor-pointer animate-in fade-in duration-200"
+                >
+                  <div className="flex items-center gap-2">
+                    <img src="/charan-avatar.png" alt="Vijay" className="h-10 w-10 rounded-full border border-white" />
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900 leading-tight">Vijay Kumar</h4>
+                      <span className="text-[9px] font-black uppercase text-indigo-500">Male</span>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-slate-550 font-bold leading-normal truncate">
+                    student.demo@studycircle.com
+                  </p>
+                </button>
+              </div>
+
+              <div className="flex items-center my-4 gap-2">
+                <div className="flex-1 h-px bg-slate-200"></div>
+                <span className="text-[9px] text-slate-400 font-black uppercase">Or Custom Profile</span>
+                <div className="flex-1 h-px bg-slate-200"></div>
+              </div>
+
+              {/* Custom Selector Form */}
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!googleMockCustomName.trim() || !googleMockCustomEmail.trim()) {
+                    showToast('Name and Email are required.', 'error');
+                    return;
+                  }
+                  handleGoogleSuccess(`mock_google_credential_token:${googleMockCustomEmail.trim().toLowerCase()}:${googleMockCustomName.trim()}:${googleMockCustomGender}`);
+                  setShowGoogleMockModal(false);
+                }}
+                className="space-y-4 text-left"
+              >
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Full Name</label>
+                  <input
+                    type="text"
+                    placeholder="Enter your simulated Google name"
+                    value={googleMockCustomName}
+                    onChange={(e) => setGoogleMockCustomName(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 outline-none focus:border-[#0E3E31]/50 focus:bg-white transition-all"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="Enter your simulated Google email"
+                    value={googleMockCustomEmail}
+                    onChange={(e) => setGoogleMockCustomEmail(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 outline-none focus:border-[#0E3E31]/50 focus:bg-white transition-all"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Gender Selection (Sets profile picture)</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
+                      <input
+                        type="radio"
+                        name="mockGender"
+                        value="female"
+                        checked={googleMockCustomGender === 'female'}
+                        onChange={() => setGoogleMockCustomGender('female')}
+                        className="accent-[#0E3E31]"
+                      />
+                      <span>Female Avatar</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
+                      <input
+                        type="radio"
+                        name="mockGender"
+                        value="male"
+                        checked={googleMockCustomGender === 'male'}
+                        onChange={() => setGoogleMockCustomGender('male')}
+                        className="accent-[#0E3E31]"
+                      />
+                      <span>Male Avatar</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
+                      <input
+                        type="radio"
+                        name="mockGender"
+                        value="other"
+                        checked={googleMockCustomGender === 'other'}
+                        onChange={() => setGoogleMockCustomGender('other')}
+                        className="accent-[#0E3E31]"
+                      />
+                      <span>Neutral Avatar</span>
+                    </label>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-[#0E3E31] hover:bg-[#0B3026] text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#0E3E31]/10 transition-all flex items-center justify-center gap-2 cursor-pointer animate-in fade-in duration-200"
+                >
+                  Simulate Google Sign-In & Onboard
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}

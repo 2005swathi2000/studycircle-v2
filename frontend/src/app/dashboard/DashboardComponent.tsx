@@ -711,8 +711,9 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     { id: 'g3', text: 'Read OS Concurrency section notes', completed: false }
   ]);
   const [newGoalText, setNewGoalText] = useState('');
-  const [timerSeconds, setTimerSeconds] = useState(4995); // 01:23:15 is 4995 seconds
+  const [timerSeconds, setTimerSeconds] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<number>(new Date().getDate());
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [roomMuted, setRoomMuted] = useState(false);
   const [roomCamOff, setRoomCamOff] = useState(false);
@@ -1111,6 +1112,29 @@ Based on your desking logs and consistency, the AI tutor recommends:
     setAtRiskStudents(prev => prev.map(s => s.name === nudgeStudentName ? { ...s, nudged: true } : s));
     showToast(`Nudge alert successfully delivered to ${nudgeStudentName}!`, 'success');
     setShowNudgeModal(false);
+  };
+
+  const getCalendarSessions = (day: number) => {
+    const today = new Date().getDate();
+    if (day === today) {
+      return [
+        { id: 'cal-sess-1', title: 'DBMS Study Session', time: '06:00 PM - 07:30 PM', status: 'Live Now', subject: 'DBMS' },
+        { id: 'cal-sess-2', title: 'Operating Systems Revision', time: '08:00 PM - 09:00 PM', status: 'Upcoming', subject: 'OS' },
+      ];
+    } else if (day === today + 1) {
+      return [
+        { id: 'cal-sess-3', title: 'Data Structures Practicum', time: '06:00 PM - 07:30 PM', status: 'Upcoming', subject: 'Algorithms' }
+      ];
+    } else if (day === today + 2) {
+      return [
+        { id: 'cal-sess-4', title: 'Computer Networks Quiz', time: '04:00 PM - 05:00 PM', status: 'Upcoming', subject: 'Networks' }
+      ];
+    } else if (day === today - 1) {
+      return [
+        { id: 'cal-sess-prev', title: 'DBMS Normalization Review', time: '03:00 PM - 04:30 PM', status: 'Completed', subject: 'DBMS' }
+      ];
+    }
+    return [];
   };
 
   const handleCreateSession = (e: React.FormEvent) => {
@@ -2221,20 +2245,57 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <span />
                 {Array.from({ length: 30 }).map((_, i) => {
                   const day = i + 1;
-                  const isToday = day === 16;
+                  const isToday = new Date().getDate() === day && new Date().getMonth() === 5;
+                  const isSelected = day === selectedCalendarDate;
                   return (
-                    <span 
+                    <button 
                       key={day} 
-                      className={`py-1 rounded-md transition-all ${
+                      type="button"
+                      onClick={() => setSelectedCalendarDate(day)}
+                      className={`py-1 rounded-md transition-all border-none font-bold text-[9px] cursor-pointer ${
                         isToday 
                           ? 'bg-[#10B981] text-white font-black shadow-lg shadow-[#10B981]/25 scale-105' 
-                          : 'text-zinc-300 hover:bg-white/5 cursor-pointer'
+                          : isSelected
+                            ? 'bg-indigo-600/40 text-white font-black border border-indigo-500/30'
+                            : 'text-zinc-300 hover:bg-white/5 bg-transparent'
                       }`}
                     >
                       {day}
-                    </span>
+                    </button>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Active Sessions for Selected Calendar Date */}
+            <div className="p-5 bg-gradient-to-br from-[#0F172A] to-[#0B0F19] border border-white/10 rounded-[24px] shadow-lg text-left text-white space-y-3.5">
+              <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-indigo-400">
+                  Agenda: June {selectedCalendarDate}, 2026
+                </h4>
+                <span className="text-[8px] font-black text-zinc-400">
+                  {selectedCalendarDate === new Date().getDate() ? 'Today' : selectedCalendarDate === new Date().getDate() + 1 ? 'Tomorrow' : 'Scheduled'}
+                </span>
+              </div>
+              
+              <div className="space-y-2">
+                {getCalendarSessions(selectedCalendarDate).length === 0 ? (
+                  <p className="text-[9px] text-zinc-500 italic">No study sessions scheduled for this date.</p>
+                ) : (
+                  getCalendarSessions(selectedCalendarDate).map((sess) => (
+                    <div key={sess.id} className="p-2.5 bg-slate-900/50 border border-white/5 rounded-xl flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-[9px] font-black text-white block leading-snug">{sess.title}</span>
+                        <span className="text-[8px] text-zinc-400 font-mono block mt-0.5">{sess.time}</span>
+                      </div>
+                      <span className={`px-1.5 py-0.5 text-[7px] font-bold rounded uppercase ${
+                        sess.status === 'Live Now' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-indigo-500/10 text-indigo-400'
+                      }`}>
+                        {sess.status}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -4641,7 +4702,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
           {activeTab === 'sessions' && (
             <div className="space-y-6 text-left">
               <div className="flex justify-between items-center">
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
                   <Calendar className="h-4.5 w-4.5 text-[#5227EB]" /> Study Session Schedule
                 </h3>
                 {(user?.role === 'mentor' || user?.role === 'admin') && (
@@ -4708,9 +4769,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   ))}
                 </div>
                 <div>
-                  <div className="p-6 bg-white border border-slate-200 rounded-[24px] space-y-3 shadow-sm">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">Structured Study Circles</h3>
-                    <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">
+                  <div className="p-6 bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-[24px] space-y-3 shadow-lg text-left text-white">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-white">Structured Study Circles</h3>
+                    <p className="text-[10px] text-zinc-400 leading-relaxed font-semibold">
                       Schedules coordinate exam revision timelines and interview prep rounds. Students receive automatic alerts and countdown notifications for booked sessions.
                     </p>
                   </div>

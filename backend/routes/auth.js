@@ -877,12 +877,32 @@ router.post('/google', async (req, res) => {
 
     let payload = null;
 
-    if (credential === 'mock_google_credential_token') {
+    if (credential && credential.startsWith('mock_google_credential_token')) {
       console.log('[Google Auth] Using local sandbox verification fallback.');
+      const parts = credential.split(':');
+      let email = 'student.demo@studycircle.com';
+      let name = 'Vijay Kumar (Google Demo)';
+      let gender = 'male';
+      if (parts.length >= 3) {
+        email = parts[1];
+        name = parts[2];
+      }
+      if (parts.length >= 4) {
+        gender = parts[3];
+      }
+
+      let picture = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+      if (gender === 'female') {
+        picture = '/swathi-avatar.png';
+      } else if (gender === 'male') {
+        picture = '/charan-avatar.png';
+      }
+
       payload = {
-        email: 'student.demo@studycircle.com',
-        name: 'Vijay Kumar (Google Demo)',
-        picture: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'
+        email: email,
+        name: name,
+        picture: picture,
+        gender: gender
       };
     } else {
       const { OAuth2Client } = require('google-auth-library');
@@ -958,7 +978,7 @@ router.post('/google', async (req, res) => {
         email: email,
         isVerified: true,
         isApproved: true,
-        gender: 'other',
+        gender: payload.gender || 'other',
         avatarUrl: payload.picture || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>',
         provider: 'google'
       });

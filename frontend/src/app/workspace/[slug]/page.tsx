@@ -234,6 +234,33 @@ const todayChallenges = {
   }
 };
 
+const getAvatarByName = (fullName: string | null | undefined, gender?: string): string => {
+  if (gender === 'female') return '/swathi-avatar.png';
+  if (gender === 'male') return '/charan-avatar.png';
+  if (gender === 'other' || gender === 'neutral') {
+    return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+  }
+
+  if (!fullName) return '/charan-avatar.png';
+  
+  const firstName = fullName.trim().split(' ')[0].toLowerCase();
+  const femaleNames = ['swathi', 'bhagya', 'shreya', 'rathna', 'rathnamma', 'swetha', 'priya', 'geetha', 'divya', 'kavya', 'lakshmi', 'anusha', 'saritha', 'radha', 'sravani', 'bindu', 'anoohya', 'kavitha', 'lavanya', 'swarna', 'siri', 'sneha', 'jyothi', 'anjali'];
+  const maleNames = ['charan', 'karthik', 'prasad', 'ramesh', 'kalyan', 'sai', 'rahul', 'amit', 'vijay', 'kumar', 'sanjay', 'anil', 'suresh', 'harish', 'rajesh', 'kiran', 'ravi', 'vivek', 'arjun', 'vikram', 'hanumanthu', 'sridhar'];
+
+  if (femaleNames.includes(firstName)) {
+    if (firstName === 'bhagya') return '/bhagya-avatar.png';
+    if (firstName === 'rathna' || firstName === 'rathnamma') return '/rathna-avatar.png';
+    return '/swathi-avatar.png';
+  }
+  
+  if (maleNames.includes(firstName)) {
+    if (firstName === 'karthik') return '/karthik-avatar.png';
+    return '/charan-avatar.png';
+  }
+
+  return '/charan-avatar.png';
+};
+
 export default function WorkspacePage() {
   const router = useRouter();
   const params = useParams();
@@ -2632,7 +2659,7 @@ export default function WorkspacePage() {
                                 </td>
                                 <td className="py-3 font-bold text-white flex items-center gap-2">
                                   <div className="h-8 w-8 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-[7px] text-indigo-400 font-black overflow-hidden">
-                                    <img src={student.avatarUrl || '/charan-avatar.png'} alt="Avatar" className="h-full w-full object-cover" />
+                                    <img src={student.avatarUrl || getAvatarByName(student.fullName, student.gender)} alt="Avatar" className="h-full w-full object-cover" />
                                   </div>
                                   <span>{student.fullName} (@{student.username})</span>
                                 </td>

@@ -2,13 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Hide browser scrollbar globally */
-::-webkit-scrollbar {
-  display: none !important;
+/* Hide browser scrollbar on body */
+body, html {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-* {
-  -ms-overflow-style: none !important;  /* IE and Edge */
-  scrollbar-width: none !important;  /* Firefox */
+body::-webkit-scrollbar, html::-webkit-scrollbar {
+  display: none;
+}
+
+/* Elegant thin scrollbars for inner scroll containers */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* For light theme (theme-dashboard overrides) */
+.theme-dashboard ::-webkit-scrollbar-thumb {
+  background: rgba(14, 62, 49, 0.15);
+}
+.theme-dashboard ::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 62, 49, 0.3);
 }
 
 :root {
