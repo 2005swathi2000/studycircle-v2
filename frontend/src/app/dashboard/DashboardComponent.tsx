@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { apiRequest } from '../utils/api';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../components/ToastProvider';
+import { practiceQuestionsPool } from './practiceData';
 import { 
   Users, 
   LogOut, 
@@ -171,122 +172,6 @@ const getSlugByGroup = (group: { name: string; subject: string }) => {
   return group.subject ? group.subject.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'programming-dsa';
 };
 
-const practiceQuestions: Record<string, {
-  title: string;
-  type: 'code' | 'quiz';
-  question: string;
-  starterCode?: string;
-  solution?: string;
-  options?: string[];
-  correctOptionIndex?: number;
-  expectedOutput?: string;
-  explanation?: string;
-}> = {
-  'Programming & DSA': {
-    title: '🧠 30 Second Challenge: Time Complexity',
-    type: 'quiz',
-    question: 'What is the time complexity of the following code snippet?\n\nfor(i=0; i<n; i++)\n   for(j=0; j<n; j++)\n     // constant time operation',
-    options: [
-      'O(n)',
-      'O(log n)',
-      'O(n²)',
-      'O(n³)'
-    ],
-    correctOptionIndex: 2,
-    explanation: 'Since the outer loop runs n times and the inner loop runs n times for each outer loop iteration, the total operations are n * n = n², giving a time complexity of O(n²).'
-  },
-  'Web Development': {
-    title: 'CSS Layout Check: Centering Elements',
-    type: 'quiz',
-    question: 'Which CSS Flexbox property values align items along the horizontal axis (main axis) and vertical axis (cross axis) when the flex-direction is row?',
-    options: [
-      'justify-content: center; align-items: center;',
-      'align-content: center; text-align: center;',
-      'flex-pack: center; vertical-align: middle;',
-      'margin: auto;'
-    ],
-    correctOptionIndex: 0,
-    explanation: 'justify-content aligns flex items along the main axis, while align-items aligns them along the cross axis. In flex-direction: row, main axis is horizontal and cross axis is vertical.'
-  },
-  'AI & Machine Learning': {
-    title: 'Model Knowledge Check: Activation Functions',
-    type: 'quiz',
-    question: 'Which neural network activation function maps real-valued numbers into a probability-like range between 0 and 1?',
-    options: [
-      'Rectified Linear Unit (ReLU)',
-      'Hyperbolic Tangent (tanh)',
-      'Sigmoid Function',
-      'Softplus Function'
-    ],
-    correctOptionIndex: 2,
-    explanation: 'The Sigmoid function maps any real-valued number into a value between 0 and 1, representing a probability distribution.'
-  },
-  'Aptitude': {
-    title: 'Logical Math Challenge: Work & Time Rate',
-    type: 'quiz',
-    question: 'If Pipe A fills a tank in 4 hours and Pipe B drains the full tank in 6 hours, how long will it take to fill the tank if both pipes are opened simultaneously?',
-    options: [
-      '8 hours',
-      '10 hours',
-      '12 hours',
-      '15 hours'
-    ],
-    correctOptionIndex: 2,
-    explanation: 'In 1 hour, A fills 1/4 of the tank and B drains 1/6. Net rate per hour = 1/4 - 1/6 = 1/12. Thus, it will take 12 hours to fill the tank.'
-  },
-  'Interview Preparation': {
-    title: 'Behavioral Skills Check: STAR Framework',
-    type: 'quiz',
-    question: 'What does each letter in the STAR method for answering behavioral interview questions represent?',
-    options: [
-      'Strategy, Tactics, Action, Review',
-      'Situation, Task, Action, Result',
-      'Story, Topic, Analysis, Resolution',
-      'System, Target, Achievement, Report'
-    ],
-    correctOptionIndex: 1,
-    explanation: 'STAR stands for Situation, Task, Action, and Result. It is a structured way to answer behavioral questions.'
-  },
-  'GATE': {
-    title: 'Operating Systems: Deadlock Prevention',
-    type: 'quiz',
-    question: 'Which of the following is NOT one of Coffman\'s four necessary conditions for a deadlock to occur?',
-    options: [
-      'Mutual exclusion',
-      'No preemption',
-      'Circular wait',
-      'Preemptive scheduling'
-    ],
-    correctOptionIndex: 3,
-    explanation: 'Deadlock prevention strategies seek to eliminate at least one of the four necessary conditions: Mutual exclusion, Hold and wait, No preemption, and Circular wait. Preemptive scheduling is an OS design choice, not a deadlock condition.'
-  },
-  'UPSC': {
-    title: 'Polity & Constitution Check: Fundamental Rights',
-    type: 'quiz',
-    question: 'Which Article of the Constitution of India provides the Right to Constitutional Remedies, allowing individuals to petition the Supreme Court directly?',
-    options: [
-      'Article 19',
-      'Article 21',
-      'Article 32',
-      'Article 44'
-    ],
-    correctOptionIndex: 2,
-    explanation: 'Article 32 provides the Right to Constitutional Remedies, which Dr. B.R. Ambedkar called the heart and soul of the Constitution.'
-  },
-  'Mathematics': {
-    title: 'Calculus Limit Challenge: Special Limits',
-    type: 'quiz',
-    question: 'What is the mathematical limit of the function (sin x) / x as x approaches 0?',
-    options: [
-      '0',
-      '1',
-      'Does not exist',
-      'Infinity'
-    ],
-    correctOptionIndex: 1,
-    explanation: 'Using L\'Hopital\'s rule or Taylor expansion, the limit of (sin x) / x as x approaches 0 is exactly 1.'
-  }
-};
 
 export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?: boolean }) {
   const router = useRouter();
@@ -507,6 +392,12 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [practiceCodeText, setPracticeCodeText] = useState<string | null>(null);
   const [practiceConsoleLogs, setPracticeConsoleLogs] = useState<string[]>([]);
   const [practiceTested, setPracticeTested] = useState<boolean>(false);
+  const [questionsCountLimit, setQuestionsCountLimit] = useState<number | null>(null);
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0);
+  const [practiceSessionQuestions, setPracticeSessionQuestions] = useState<any[]>([]);
+  const [practiceSessionCompleted, setPracticeSessionCompleted] = useState<boolean>(false);
+  const [practiceSessionScore, setPracticeSessionScore] = useState<number>(0);
+  const [practiceQuizErrorMessage, setPracticeQuizErrorMessage] = useState<string | null>(null);
 
 
   const [unlockedResources, setUnlockedResources] = useState<string[]>(() => {
@@ -880,17 +771,17 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
 
   const handleVerifyQuizAnswer = async () => {
     if (practiceQuizAnswer === null) {
-      showToast('Please select an option before verifying.', 'error');
+      setPracticeQuizErrorMessage('❌ Please select an option before verifying.');
       return;
     }
-    const q = practiceQuestions[selectedInterest];
+    const q = practiceSessionQuestions[activeQuestionIndex];
     if (!q) return;
 
     if (practiceQuizAnswer === q.correctOptionIndex) {
       try {
         const data = await apiRequest('/progress/complete-practice', {
           method: 'POST',
-          body: JSON.stringify({ interest: selectedInterest, challengeId: selectedInterest })
+          body: JSON.stringify({ interest: selectedInterest, challengeId: `${selectedInterest}_q${activeQuestionIndex}` })
         });
         setStats(prev => ({
           ...prev,
@@ -899,17 +790,40 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
           streakCount: data.streakCount,
           level: data.level
         }));
-        setCompletedPracticeChallenges(prev => [...prev, selectedInterest]);
         setPracticeQuizFeedback('correct');
+        setPracticeQuizErrorMessage(null);
+        setPracticeSessionScore(prev => prev + 1);
         completeMission('quiz');
-        showToast('Correct! Streak updated. +50 XP and +20 Focus Coins added!', 'success');
       } catch (err: any) {
-        showToast('Error saving practice progress: ' + (err.message || err), 'error');
+        setPracticeQuizErrorMessage('❌ Error saving practice progress: ' + (err.message || err));
       }
     } else {
       setPracticeQuizFeedback('wrong');
-      showToast('Incorrect option. Re-check the logic and try again!', 'error');
+      setPracticeQuizErrorMessage('❌ Wrong answer! Re-check the logic and try again.');
     }
+  };
+
+  const handleNextQuestion = () => {
+    setPracticeQuizAnswer(null);
+    setPracticeQuizFeedback(null);
+    setPracticeQuizErrorMessage(null);
+    
+    if (activeQuestionIndex + 1 < practiceSessionQuestions.length) {
+      setActiveQuestionIndex(prev => prev + 1);
+    } else {
+      setPracticeSessionCompleted(true);
+    }
+  };
+
+  const handleRestartPracticeSession = () => {
+    setQuestionsCountLimit(null);
+    setActiveQuestionIndex(0);
+    setPracticeSessionQuestions([]);
+    setPracticeSessionCompleted(false);
+    setPracticeSessionScore(0);
+    setPracticeQuizAnswer(null);
+    setPracticeQuizFeedback(null);
+    setPracticeQuizErrorMessage(null);
   };
 
   const handleRunCodeTests = () => {
@@ -3199,8 +3113,14 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             key={interest.id}
                              onClick={() => {
                               setSelectedInterest(interest.id);
+                              setQuestionsCountLimit(null);
+                              setActiveQuestionIndex(0);
+                              setPracticeSessionQuestions([]);
+                              setPracticeSessionCompleted(false);
+                              setPracticeSessionScore(0);
                               setPracticeQuizAnswer(null);
                               setPracticeQuizFeedback(null);
+                              setPracticeQuizErrorMessage(null);
                               setPracticeCodeText(null);
                               setPracticeConsoleLogs([]);
                               setPracticeTested(false);
@@ -3224,154 +3144,167 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   {selectedInterest && (
                     <div id="practice-playground-section" className="relative rounded-[28px] overflow-hidden p-6 md:p-8 bg-gradient-to-br from-[#0B0F19]/90 via-[#070b16]/98 to-[#150D2A]/90 border border-white/5 shadow-2xl space-y-6">
                       <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/5">
-                        <div>
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-500/15 border border-indigo-500/20 rounded-full text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-                            ⚡ Onboarding Challenge
-                          </span>
-                          <h4 className="text-sm font-extrabold text-white mt-1.5">{practiceQuestions[selectedInterest]?.title}</h4>
-                        </div>
-                        {completedPracticeChallenges.includes(selectedInterest) ? (
-                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500/15 border border-emerald-500/20 rounded-xl text-[10px] font-black text-emerald-400 uppercase">
-                            ✓ Solved (Credits Earned)
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[10px] font-bold text-amber-400 uppercase">
-                            🔥 Rewards: +50 XP | +20 Coins
-                          </span>
-                        )}
-                      </div>
 
-                      <div className="space-y-4 text-left">
-                        <p className="text-xs text-slate-300 font-semibold leading-relaxed">
-                          {practiceQuestions[selectedInterest]?.question}
-                        </p>
-
-                        {/* QUIZ TYPE */}
-                        {practiceQuestions[selectedInterest]?.type === 'quiz' && (
-                          <div className="grid gap-3 pt-2">
-                            {practiceQuestions[selectedInterest]?.options?.map((option, idx) => {
-                              const isCompleted = completedPracticeChallenges.includes(selectedInterest);
-                              const isCorrect = idx === practiceQuestions[selectedInterest]?.correctOptionIndex;
-                              const isSelected = practiceQuizAnswer === idx;
-
-                              return (
-                                <button
-                                  key={idx}
-                                  disabled={isCompleted}
-                                   onClick={() => {
-                                    setPracticeQuizAnswer(idx);
-                                    setPracticeQuizFeedback(null);
-                                  }}
-                                  className={`p-4 rounded-xl border text-left text-xs font-bold transition-all ${
-                                    isCompleted
-                                      ? isCorrect
-                                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                                        : 'bg-[#0B0F19]/40 border-white/5 text-slate-500'
-                                      : isSelected
-                                        ? 'bg-indigo-500/10 border-indigo-500/50 text-white shadow-sm'
-                                        : 'bg-[#0B0F19]/60 border-white/5 text-slate-400 hover:bg-[#121829]/90 hover:text-white cursor-pointer'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[9px] font-black shrink-0 ${
-                                      isSelected ? 'border-indigo-400 text-indigo-400 bg-indigo-500/10' : 'border-slate-600'
-                                    }`}>
-                                      {String.fromCharCode(65 + idx)}
-                                    </span>
-                                    <span>{option}</span>
-                                  </div>
-                                </button>
-                              );
-                            })}
-
-                            {practiceQuizFeedback === 'wrong' && !completedPracticeChallenges.includes(selectedInterest) && (
-                              <div className="mt-2 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-semibold">
-                                ❌ Wrong answer! Re-check the logic and try again.
-                              </div>
-                            )}
-
-                            {completedPracticeChallenges.includes(selectedInterest) && (
-                              <div className="mt-3 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl space-y-2 text-xs font-semibold leading-relaxed">
-                                <p className="font-extrabold text-white">💡 Explanation:</p>
-                                <p>{practiceQuestions[selectedInterest]?.explanation}</p>
-                              </div>
-                            )}
-
-                            {!completedPracticeChallenges.includes(selectedInterest) && (
-                              <div className="pt-2 flex justify-start">
-                                <button
-                                  onClick={handleVerifyQuizAnswer}
-                                  className="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow-md shadow-indigo-650/10 active:scale-[0.98] transition-all"
-                                >
-                                  Verify Answer
-                                </button>
-                              </div>
-                            )}
+                      {questionsCountLimit === null ? (
+                        /* Choose Limit Selector */
+                        <div className="text-center py-6 space-y-5 animate-in fade-in duration-300">
+                          <div className="space-y-1.5">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-500/15 border border-indigo-500/20 rounded-full text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+                              ⚡ Customize Practice
+                            </span>
+                            <h4 className="text-sm font-extrabold text-white">How many questions would you like to solve in {selectedInterest}?</h4>
+                            <p className="text-[10px] text-slate-400 font-bold">Select a limit to custom-tailor your learning challenge.</p>
                           </div>
-                        )}
-
-                        {/* CODE TYPE */}
-                        {practiceQuestions[selectedInterest]?.type === 'code' && (
-                          <div className="space-y-4 pt-2">
-                            <div className="rounded-xl overflow-hidden border border-white/5 bg-[#070b16]">
-                              <textarea
-                                disabled={completedPracticeChallenges.includes(selectedInterest)}
-                                value={practiceCodeText !== null ? practiceCodeText : (practiceQuestions[selectedInterest]?.starterCode || '')}
-                                onChange={(e) => setPracticeCodeText(e.target.value)}
-                                className="w-full p-4 bg-transparent outline-none text-xs text-indigo-300 font-mono resize-none h-44"
-                              />
+                          
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-lg mx-auto pt-2">
+                            {[5, 10, 15, 20].map((num) => (
+                              <button
+                                key={num}
+                                onClick={() => {
+                                  const pool = practiceQuestionsPool[selectedInterest] || [];
+                                  // Shuffle pool and select N questions
+                                  const shuffled = [...pool].sort(() => 0.5 - Math.random());
+                                  const selected = shuffled.slice(0, num);
+                                  setPracticeSessionQuestions(selected);
+                                  setQuestionsCountLimit(num);
+                                  setActiveQuestionIndex(0);
+                                  setPracticeSessionCompleted(false);
+                                  setPracticeSessionScore(0);
+                                  setPracticeQuizAnswer(null);
+                                  setPracticeQuizFeedback(null);
+                                  setPracticeQuizErrorMessage(null);
+                                }}
+                                className="p-4 bg-slate-900/60 hover:bg-[#121829]/90 border border-white/5 hover:border-indigo-500/30 rounded-2xl text-center space-y-1 transition-all hover:scale-[1.02] cursor-pointer text-white flex flex-col items-center justify-center active:scale-[0.98]"
+                              >
+                                <span className="text-xl font-black text-indigo-400">{num}</span>
+                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Questions</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : practiceSessionCompleted ? (
+                        /* Summary Screen */
+                        <div className="text-center py-6 space-y-5 animate-in scale-in duration-300">
+                          <div className="h-14 w-14 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto text-xl filter drop-shadow-[0_0_8px_rgba(16,185,129,0.25)]">
+                            🏆
+                          </div>
+                          <div className="space-y-1.5">
+                            <h4 className="text-sm font-extrabold text-white">Practice Session Completed!</h4>
+                            <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                              You solved <span className="text-emerald-400 font-extrabold">{practiceSessionScore}</span> out of <span className="text-white font-bold">{questionsCountLimit}</span> questions correctly in <strong className="text-indigo-400">{selectedInterest}</strong>.
+                            </p>
+                          </div>
+                          <div className="pt-2">
+                            <button
+                              onClick={handleRestartPracticeSession}
+                              className="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow-md shadow-indigo-650/15 active:scale-[0.98] transition-all"
+                            >
+                              Restart Session
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Active Question Display */
+                        <div className="space-y-6 animate-in fade-in duration-200">
+                          {/* Header block with question index and score */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/5">
+                            <div>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-500/15 border border-indigo-500/20 rounded-full text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+                                ⚡ Question {activeQuestionIndex + 1} of {questionsCountLimit}
+                              </span>
+                              <h4 className="text-xs font-extrabold text-white mt-1.5">
+                                {practiceSessionQuestions[activeQuestionIndex]?.title}
+                              </h4>
                             </div>
+                            <div className="text-[10px] font-bold text-slate-400">
+                              Score: <span className="text-emerald-400 font-black">{practiceSessionScore}</span> / {questionsCountLimit}
+                            </div>
+                          </div>
 
-                            {/* Console and Controls */}
-                            <div className="flex flex-col sm:flex-row gap-4">
-                              <div className="flex-1 space-y-2">
-                                <span className="text-[9px] font-black uppercase text-slate-500 block">Output Console</span>
-                                <div className="h-28 rounded-xl bg-slate-950/80 border border-white/10 p-3 font-mono text-[9px] text-[#A78BFA] overflow-y-auto space-y-1 shadow-inner">
-                                  {practiceConsoleLogs.length === 0 ? (
-                                    <span className="text-zinc-650 italic">No console logs. Run your tests to execute calculations.</span>
-                                  ) : (
-                                    practiceConsoleLogs.map((log, idx) => (
-                                      <div key={idx} className={log.startsWith('>') ? 'text-[#34D399]' : 'text-slate-400'}>{log}</div>
-                                    ))
-                                  )}
+                          <div className="space-y-4 text-left">
+                            <p className="text-xs text-slate-300 font-semibold leading-relaxed whitespace-pre-line bg-slate-950/40 p-4 border border-white/5 rounded-xl">
+                              {practiceSessionQuestions[activeQuestionIndex]?.question}
+                            </p>
+
+                            <div className="grid gap-3 pt-2">
+                              {practiceSessionQuestions[activeQuestionIndex]?.options?.map((option: any, idx: number) => {
+                                const isCorrect = idx === practiceSessionQuestions[activeQuestionIndex]?.correctOptionIndex;
+                                const isSelected = practiceQuizAnswer === idx;
+                                const isVerified = practiceQuizFeedback !== null;
+
+                                return (
+                                  <button
+                                    key={idx}
+                                    disabled={isVerified}
+                                    onClick={() => {
+                                      setPracticeQuizAnswer(idx);
+                                      setPracticeQuizFeedback(null);
+                                      setPracticeQuizErrorMessage(null);
+                                    }}
+                                    className={`p-4 rounded-xl border text-left text-xs font-bold transition-all ${
+                                      isVerified
+                                        ? isCorrect
+                                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                          : isSelected
+                                            ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                                            : 'bg-[#0B0F19]/40 border-white/5 text-slate-500'
+                                        : isSelected
+                                          ? 'bg-indigo-500/10 border-indigo-500/50 text-white shadow-sm'
+                                          : 'bg-[#0B0F19]/60 border-white/5 text-slate-400 hover:bg-[#121829]/90 hover:text-white cursor-pointer'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[9px] font-black shrink-0 ${
+                                        isSelected ? 'border-indigo-400 text-indigo-400 bg-indigo-500/10' : 'border-slate-600'
+                                      }`}>
+                                        {String.fromCharCode(65 + idx)}
+                                      </span>
+                                      <span>{option}</span>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+
+                              {/* Errors & validations displayed below the options only */}
+                              {practiceQuizErrorMessage && (
+                                <div className="mt-2 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-semibold animate-in fade-in duration-200">
+                                  {practiceQuizErrorMessage}
                                 </div>
-                              </div>
-                              
-                              <div className="flex sm:flex-col justify-end gap-3 shrink-0">
-                                {!completedPracticeChallenges.includes(selectedInterest) ? (
-                                  <>
-                                    <button
-                                      onClick={handleRunCodeTests}
-                                      className="py-2.5 px-5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer transition-all"
-                                    >
-                                      Run Tests
-                                    </button>
-                                    <button
-                                      disabled={!practiceTested}
-                                      onClick={handleSubmitPracticeCode}
-                                      className={`py-2.5 px-5 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest transition-all ${
-                                        practiceTested 
-                                          ? 'bg-indigo-650 hover:bg-indigo-500 cursor-pointer shadow-md shadow-indigo-650/15 active:scale-[0.98]' 
-                                          : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                                      }`}
-                                    >
-                                      Submit Code
-                                    </button>
-                                  </>
+                              )}
+
+                              {practiceQuizFeedback === 'correct' && (
+                                <div className="mt-3 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl space-y-2 text-xs font-semibold leading-relaxed animate-in slide-in-from-bottom-2 duration-300">
+                                  <p className="font-extrabold text-white">🎉 Correct Answer!</p>
+                                  <p className="font-extrabold text-slate-350">💡 Explanation:</p>
+                                  <p className="text-slate-300">{practiceSessionQuestions[activeQuestionIndex]?.explanation}</p>
+                                </div>
+                              )}
+
+                              {/* Controls */}
+                              <div className="pt-2 flex gap-3 justify-start">
+                                {practiceQuizFeedback === null ? (
+                                  <button
+                                    onClick={handleVerifyQuizAnswer}
+                                    className="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow-md shadow-indigo-650/10 active:scale-[0.98] transition-all"
+                                  >
+                                    Verify Answer
+                                  </button>
                                 ) : (
-                                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black rounded-xl text-center">
-                                    ✓ Solved
-                                  </div>
+                                  <button
+                                    onClick={handleNextQuestion}
+                                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow-md shadow-emerald-600/10 active:scale-[0.98] transition-all flex items-center gap-1.5"
+                                  >
+                                    {activeQuestionIndex + 1 < practiceSessionQuestions.length ? 'Next Question' : 'Finish Session'}
+                                    <ChevronRight className="h-3.5 w-3.5" />
+                                  </button>
                                 )}
                               </div>
                             </div>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   )}
-
 
                   {/* Recommended Study Rooms */}
                   <div className="space-y-6" id="explore-rooms-section">
