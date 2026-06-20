@@ -50,6 +50,7 @@ const corsOptions = {
 };
 
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: corsOptions
@@ -85,9 +86,14 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    await sequelize.query('PRAGMA foreign_keys = OFF;');
+    const isSqlite = sequelize.options.dialect === 'sqlite';
+    if (isSqlite) {
+      await sequelize.query('PRAGMA foreign_keys = OFF;');
+    }
     await sequelize.sync({ alter: true });
-    await sequelize.query('PRAGMA foreign_keys = ON;');
+    if (isSqlite) {
+      await sequelize.query('PRAGMA foreign_keys = ON;');
+    }
     console.log('Database synced successfully.');
 
     // Seed if empty
