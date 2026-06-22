@@ -1912,146 +1912,146 @@ export default function Home() {
                   </p>
                 </div>
 
-                {!isDevMode ? (
-                  <div className="p-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-center space-y-3.5 my-4">
-                    <p className="text-xs font-bold text-amber-800 leading-normal">
-                      ⚠️ Simulated logins are disabled in production. Please configure NEXT_PUBLIC_GOOGLE_CLIENT_ID on the hosting platform to enable official Google Sign-In, or use standard Email & Password credentials.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Option 1: Swathi Hani */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleGoogleInitiate('mock_google_credential_token:hanumanthuswathi24@gmail.com:Swathi Hani:female');
-                        }}
-                        className="p-5 bg-[#E6F2ED]/60 border border-[#0E3E31]/20 hover:border-[#0E3E31]/60 rounded-2xl text-left space-y-2.5 transition-all hover:scale-[1.02] cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <img src="/swathi-avatar.png" alt="Swathi" className="h-10 w-10 rounded-full border border-white" />
-                          <div>
-                            <h4 className="text-xs font-black text-slate-900 leading-tight">Swathi Hani</h4>
-                            <span className="text-[9px] font-black uppercase text-emerald-600">Female</span>
-                          </div>
-                        </div>
-                        <p className="text-[9px] text-slate-550 font-bold leading-normal truncate">
-                          hanumanthuswathi24@gmail.com
-                        </p>
-                      </button>
-
-                      {/* Option 2: Vijay Kumar */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleGoogleInitiate('mock_google_credential_token:student.demo@studycircle.com:Vijay Kumar:male');
-                        }}
-                        className="p-5 bg-slate-50 border border-slate-200 hover:border-indigo-500/30 rounded-2xl text-left space-y-2.5 transition-all hover:scale-[1.02] cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <img src="/charan-avatar.png" alt="Vijay" className="h-10 w-10 rounded-full border border-white" />
-                          <div>
-                            <h4 className="text-xs font-black text-slate-900 leading-tight">Vijay Kumar</h4>
-                            <span className="text-[9px] font-black uppercase text-indigo-500">Male</span>
-                          </div>
-                        </div>
-                        <p className="text-[9px] text-slate-550 font-bold leading-normal truncate">
-                          student.demo@studycircle.com
-                        </p>
-                      </button>
+                <div className="space-y-4">
+                  {!isDevMode && (
+                    <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-center my-3">
+                      <p className="text-[10px] font-bold text-amber-800 leading-normal">
+                        ⚠️ Official Google Sign-In is not configured on hosting platform. Using simulated sandbox Google accounts for demonstration.
+                      </p>
                     </div>
+                  )}
 
-                    <div className="flex items-center my-4 gap-2">
-                      <div className="flex-1 h-px bg-slate-200"></div>
-                      <span className="text-[9px] text-slate-400 font-black uppercase">Or Custom Profile</span>
-                      <div className="flex-1 h-px bg-slate-200"></div>
-                    </div>
-
-                    {/* Custom Selector Form */}
-                    <form 
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        if (!googleMockCustomName.trim() || !googleMockCustomEmail.trim()) {
-                          showToast('Name and Email are required.', 'error');
-                          return;
-                        }
-                        handleGoogleInitiate(`mock_google_credential_token:${googleMockCustomEmail.trim().toLowerCase()}:${googleMockCustomName.trim()}:${googleMockCustomGender}`);
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Option 1: Swathi Hani */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleGoogleInitiate('mock_google_credential_token:hanumanthuswathi24@gmail.com:Swathi Hani:female');
                       }}
-                      className="space-y-4 text-left"
+                      className="p-5 bg-[#E6F2ED]/60 border border-[#0E3E31]/20 hover:border-[#0E3E31]/60 rounded-2xl text-left space-y-2.5 transition-all hover:scale-[1.02] cursor-pointer"
                     >
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Full Name</label>
-                        <input
-                          type="text"
-                          placeholder="Enter your simulated Google name"
-                          value={googleMockCustomName}
-                          onChange={(e) => setGoogleMockCustomName(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-805 outline-none focus:border-[#0E3E31]/50 focus:bg-white transition-all"
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Email Address</label>
-                        <input
-                          type="email"
-                          placeholder="Enter your simulated Google email"
-                          value={googleMockCustomEmail}
-                          onChange={(e) => setGoogleMockCustomEmail(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-805 outline-none focus:border-[#0E3E31]/50 focus:bg-white transition-all"
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Gender Selection (Sets profile picture)</label>
-                        <div className="flex gap-4">
-                          <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
-                            <input
-                              type="radio"
-                              name="mockGender"
-                              value="female"
-                              checked={googleMockCustomGender === 'female'}
-                              onChange={() => setGoogleMockCustomGender('female')}
-                              className="accent-[#0E3E31]"
-                            />
-                            <span>Female Avatar</span>
-                          </label>
-                          <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
-                            <input
-                              type="radio"
-                              name="mockGender"
-                              value="male"
-                              checked={googleMockCustomGender === 'male'}
-                              onChange={() => setGoogleMockCustomGender('male')}
-                              className="accent-[#0E3E31]"
-                            />
-                            <span>Male Avatar</span>
-                          </label>
-                          <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
-                            <input
-                              type="radio"
-                              name="mockGender"
-                              value="other"
-                              checked={googleMockCustomGender === 'other'}
-                              onChange={() => setGoogleMockCustomGender('other')}
-                              className="accent-[#0E3E31]"
-                            />
-                            <span>Neutral Avatar</span>
-                          </label>
+                      <div className="flex items-center gap-2">
+                        <img src="/swathi-avatar.png" alt="Swathi" className="h-10 w-10 rounded-full border border-white" />
+                        <div>
+                          <h4 className="text-xs font-black text-slate-900 leading-tight">Swathi Hani</h4>
+                          <span className="text-[9px] font-black uppercase text-emerald-600">Female</span>
                         </div>
                       </div>
+                      <p className="text-[9px] text-slate-550 font-bold leading-normal truncate">
+                        hanumanthuswathi24@gmail.com
+                      </p>
+                    </button>
 
-                      <button
-                        type="submit"
-                        className="w-full py-3 bg-[#0E3E31] hover:bg-[#0B3026] text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#0E3E31]/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        Choose simulated account
-                      </button>
-                    </form>
+                    {/* Option 2: Vijay Kumar */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleGoogleInitiate('mock_google_credential_token:student.demo@studycircle.com:Vijay Kumar:male');
+                      }}
+                      className="p-5 bg-slate-50 border border-slate-200 hover:border-indigo-500/30 rounded-2xl text-left space-y-2.5 transition-all hover:scale-[1.02] cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <img src="/charan-avatar.png" alt="Vijay" className="h-10 w-10 rounded-full border border-white" />
+                        <div>
+                          <h4 className="text-xs font-black text-slate-900 leading-tight">Vijay Kumar</h4>
+                          <span className="text-[9px] font-black uppercase text-indigo-500">Male</span>
+                        </div>
+                      </div>
+                      <p className="text-[9px] text-slate-550 font-bold leading-normal truncate">
+                        student.demo@studycircle.com
+                      </p>
+                    </button>
                   </div>
-                )}
+
+                  <div className="flex items-center my-4 gap-2">
+                    <div className="flex-1 h-px bg-slate-200"></div>
+                    <span className="text-[9px] text-slate-400 font-black uppercase">Or Custom Profile</span>
+                    <div className="flex-1 h-px bg-slate-200"></div>
+                  </div>
+
+                  {/* Custom Selector Form */}
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!googleMockCustomName.trim() || !googleMockCustomEmail.trim()) {
+                        showToast('Name and Email are required.', 'error');
+                        return;
+                      }
+                      handleGoogleInitiate(`mock_google_credential_token:${googleMockCustomEmail.trim().toLowerCase()}:${googleMockCustomName.trim()}:${googleMockCustomGender}`);
+                    }}
+                    className="space-y-4 text-left"
+                  >
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Full Name</label>
+                      <input
+                        type="text"
+                        placeholder="Enter your simulated Google name"
+                        value={googleMockCustomName}
+                        onChange={(e) => setGoogleMockCustomName(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-805 outline-none focus:border-[#0E3E31]/50 focus:bg-white transition-all"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Email Address</label>
+                      <input
+                        type="email"
+                        placeholder="Enter your simulated Google email"
+                        value={googleMockCustomEmail}
+                        onChange={(e) => setGoogleMockCustomEmail(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-805 outline-none focus:border-[#0E3E31]/50 focus:bg-white transition-all"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Gender Selection (Sets profile picture)</label>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
+                          <input
+                            type="radio"
+                            name="mockGender"
+                            value="female"
+                            checked={googleMockCustomGender === 'female'}
+                            onChange={() => setGoogleMockCustomGender('female')}
+                            className="accent-[#0E3E31]"
+                          />
+                          <span>Female Avatar</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
+                          <input
+                            type="radio"
+                            name="mockGender"
+                            value="male"
+                            checked={googleMockCustomGender === 'male'}
+                            onChange={() => setGoogleMockCustomGender('male')}
+                            className="accent-[#0E3E31]"
+                          />
+                          <span>Male Avatar</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
+                          <input
+                            type="radio"
+                            name="mockGender"
+                            value="other"
+                            checked={googleMockCustomGender === 'other'}
+                            onChange={() => setGoogleMockCustomGender('other')}
+                            className="accent-[#0E3E31]"
+                          />
+                          <span>Neutral Avatar</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-3 bg-[#0E3E31] hover:bg-[#0B3026] text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#0E3E31]/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      Choose simulated account
+                    </button>
+                  </form>
+                </div>
               </>
             ) : (
               <>
