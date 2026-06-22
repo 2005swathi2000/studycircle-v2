@@ -108,6 +108,24 @@ const User = sequelize.define('User', {
   dailyTarget: {
     type: DataTypes.FLOAT,
     defaultValue: 2.0
+  },
+  dailyMissions: {
+    type: DataTypes.JSON,
+    allowNull: true
+  },
+  dailyMissionDate: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: ''
+  },
+  dailyXpEarned: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  lastSessionXpAwardedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: null
   }
 }, {
   hooks: {

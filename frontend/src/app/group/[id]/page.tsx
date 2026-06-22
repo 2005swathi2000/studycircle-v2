@@ -832,6 +832,14 @@ export default function GroupPage() {
         body: JSON.stringify({ content: newAnswerContent })
       });
       showToast('Answer posted!', 'success');
+      try {
+        await apiRequest('/progress/award-credits', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'help_doubts' })
+        });
+      } catch (creditsErr) {
+        console.error('Error awarding credits for doubt help:', creditsErr);
+      }
       setNewAnswerContent('');
       loadDoubtDetail(activeDoubt.id);
       loadDoubts();

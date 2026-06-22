@@ -239,15 +239,60 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [wizardLevel, setWizardLevel] = useState('beginner');
   const [wizardTarget, setWizardTarget] = useState(2.0);
   const [savingOnboarding, setSavingOnboarding] = useState(false);
-  const [equippedTheme, setEquippedTheme] = useState('midnight');
+  const [equippedTheme, setEquippedTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('studycircle_equipped_theme') || 'midnight';
+    }
+    return 'midnight';
+  });
+  const [resourcesSubTab, setResourcesSubTab] = useState<'vault' | 'shop'>('vault');
+
+  const getXpThresholdForLevel = (level: number) => {
+    let totalXp = 0;
+    for (let l = 1; l < level; l++) {
+      totalXp += Math.floor(100 * Math.pow(l, 1.3));
+    }
+    return totalXp;
+  };
+
+  const getXpRangeForLevel = (level: number) => {
+    const min = getXpThresholdForLevel(level);
+    const max = getXpThresholdForLevel(level + 1);
+    return { min, max };
+  };
 
   // Dynamic Daily Missions States
   const [dailyMissions, setDailyMissions] = useState<any[]>([
-    { id: 'quiz', text: 'Complete 1 Quiz', completed: false, xp: 30 },
-    { id: 'session', text: 'Join 1 Study Session', completed: false, xp: 30 },
-    { id: 'note', text: 'Read 1 Shared Note', completed: false, xp: 40 }
+    { id: 'join_circle', text: 'Join Study Circle', completed: false, xp: 30 },
+    { id: 'attend_session', text: 'Attend Session', completed: false, xp: 30 },
+    { id: 'upload_notes', text: 'Upload Notes', completed: false, xp: 40 },
+    { id: 'complete_session', text: 'Complete Session', completed: false, xp: 50 }
   ]);
   const [claimedDailyReward, setClaimedDailyReward] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [completedMissionAlert, setCompletedMissionAlert] = useState<{ text: string; xp: number } | null>(null);
+  const missionsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const debouncedSyncMissions = useRef<((updated: any[]) => void) | null>(null);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    debouncedSyncMissions.current = (updated: any[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(async () => {
+        try {
+          const data = await apiRequest('/progress/update-missions', {
+            method: 'POST',
+            body: JSON.stringify({ dailyMissions: updated })
+          });
+          if (user) setUser({ ...user, dailyMissions: data.user.dailyMissions });
+        } catch (err) {
+          console.error("Error saving missions to DB:", err);
+        }
+      }, 1000);
+    };
+    return () => clearTimeout(timeoutId);
+  }, [setUser]);
+
   const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
 
@@ -376,6 +421,11 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
 
   // Navigation tab state matching sidebar clicks
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+
+  // Global Leaderboard States
+  const [leaderboardData, setLeaderboardData] = useState<any>(null);
+  const [leaderboardLoading, setLeaderboardLoading] = useState<boolean>(false);
+  const [leaderboardSubTab, setLeaderboardSubTab] = useState<'learners' | 'mentors' | 'notes' | 'rooms'>('learners');
 
   // Resources States
   const [resourcesSearch, setResourcesSearch] = useState('');
@@ -650,12 +700,15 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const handleSaveTimerSession = () => {
     setTimerActive(false);
     const hoursEarned = Number((timerSeconds / 3600).toFixed(2));
-    if (hoursEarned > 0) {
-      setStats(prev => ({
-        ...prev,
-        totalStudyHours: Number((prev.totalStudyHours + hoursEarned).toFixed(2))
-      }));
+    if (timerSeconds > 0) {
+      if (hoursEarned > 0) {
+        setStats(prev => ({
+          ...prev,
+          totalStudyHours: Number((prev.totalStudyHours + hoursEarned).toFixed(2))
+        }));
+      }
       showToast(`Stopwatch saved successfully! Added ${hoursEarned} hours to your study log.`, 'success');
+      completeMission('complete_session');
     }
     setTimerSeconds(0);
   };
@@ -688,30 +741,30 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   };
 
   // Buy Shop Item
-  const handleBuyShopItem = async (itemId: string, cost: number, itemLabel: string) => {
+  const handleBuyShopItem = async (itemId: string, cost: number, itemLabel: string, itemType: string = 'badge') => {
     if (stats.focusCoins < cost) {
       showToast('Insufficient Focus Coins!', 'error');
       return;
     }
     try {
-      const currentBadges = JSON.parse(stats.badges || '[]');
-      const updatedBadges = [...currentBadges, itemId];
-      const remainingCoins = stats.focusCoins - cost;
-
-      const data = await apiRequest('/auth/update-profile', {
-        method: 'PUT',
+      const data = await apiRequest('/progress/purchase-reward', {
+        method: 'POST',
         body: JSON.stringify({
-          badges: JSON.stringify(updatedBadges),
-          focusCoins: remainingCoins
+          rewardId: itemId,
+          cost,
+          type: itemType,
+          value: itemLabel
         })
       });
 
-      setUser(data.user);
       setStats(prev => ({
         ...prev,
-        focusCoins: data.user.focusCoins,
-        badges: data.user.badges
+        focusCoins: data.focusCoins,
+        badges: data.badges
       }));
+
+      // Update local user state as well if there's any cache
+      if (user) setUser({ ...user, focusCoins: data.focusCoins, badges: data.badges });
 
       showToast(`Successfully unlocked ${itemLabel}!`, 'success');
     } catch (err: any) {
@@ -739,12 +792,29 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   // Complete Mission Item
   const completeMission = (missionId: string) => {
     setDailyMissions(prev => {
-      const updated = prev.map(m => m.id === missionId ? { ...m, completed: true } : m);
-      const todayStr = new Date().toDateString();
-      if (user) {
-        localStorage.setItem(`missions_${user.id}_${todayStr}`, JSON.stringify(updated));
+      const mission = prev.find(m => m.id === missionId);
+      if (mission && !mission.completed) {
+        const updated = prev.map(m => m.id === missionId ? { ...m, completed: true } : m);
+        
+        // Save to DB (debounced)
+        if (debouncedSyncMissions.current) {
+          debouncedSyncMissions.current(updated);
+        }
+
+        // Show gamification alerts
+        setCompletedMissionAlert({ text: mission.text, xp: mission.xp });
+        setShowConfetti(true);
+
+        // Clear and set timeout to hide alerts
+        if (missionsTimeoutRef.current) clearTimeout(missionsTimeoutRef.current);
+        missionsTimeoutRef.current = setTimeout(() => {
+          setCompletedMissionAlert(null);
+          setShowConfetti(false);
+        }, 4000);
+
+        return updated;
       }
-      return updated;
+      return prev;
     });
   };
 
@@ -910,6 +980,8 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
       });
 
       showToast(response.message || `Shared note "${newNoteName}" published successfully!`, 'success');
+      completeMission('upload_notes');
+      handleAwardCredits('upload_notes');
 
       // Refresh shared notes list
       const notesData = await apiRequest('/shared-notes');
@@ -1250,27 +1322,22 @@ Based on your desking logs and consistency, the AI tutor recommends:
         setShowOnboardingWizard(true);
       }
 
-      // Initialize daily missions from localStorage for today
-      const todayStr = new Date().toDateString();
-      const storedMissions = localStorage.getItem(`missions_${user.id}_${todayStr}`);
-      if (storedMissions) {
-        setDailyMissions(JSON.parse(storedMissions));
+      // Hydrate daily missions from database/user profile
+      if (user.dailyMissions) {
+        try {
+          const parsed = typeof user.dailyMissions === 'string' ? JSON.parse(user.dailyMissions) : user.dailyMissions;
+          setDailyMissions(parsed);
+        } catch (e) {
+          console.error("Error parsing user.dailyMissions", e);
+        }
       } else {
         const fresh = [
-          { id: 'quiz', text: 'Complete 1 Quiz', completed: false, xp: 30 },
-          { id: 'session', text: 'Join 1 Study Session', completed: false, xp: 30 },
-          { id: 'note', text: 'Read 1 Shared Note', completed: false, xp: 40 }
+          { id: 'join_circle', text: 'Join Study Circle', completed: false, xp: 30 },
+          { id: 'attend_session', text: 'Attend Session', completed: false, xp: 30 },
+          { id: 'upload_notes', text: 'Upload Notes', completed: false, xp: 40 },
+          { id: 'complete_session', text: 'Complete Session', completed: false, xp: 50 }
         ];
-        const day = new Date().getDay();
-        if (day % 3 === 1) {
-          fresh[0] = { id: 'doubt', text: 'Reply to 2 Doubts', completed: false, xp: 45 };
-          fresh[1] = { id: 'focus', text: 'Focus for 25 Minutes', completed: false, xp: 30 };
-        } else if (day % 3 === 2) {
-          fresh[1] = { id: 'note_publish', text: 'Publish 1 Shared Note', completed: false, xp: 40 };
-          fresh[2] = { id: 'doubt_view', text: 'Inspect 2 Discussion Boards', completed: false, xp: 30 };
-        }
         setDailyMissions(fresh);
-        localStorage.setItem(`missions_${user.id}_${todayStr}`, JSON.stringify(fresh));
       }
       
       if (!dataLoadedRef.current) {
@@ -1288,6 +1355,61 @@ Based on your desking logs and consistency, the AI tutor recommends:
       setFormattedDate(dateStr);
     }
   }, [user, globalLoading]);
+
+  const checkUserGoldenFrame = (userObj: any) => {
+    if (!userObj || !userObj.badges) return false;
+    try {
+      const badgesArr = typeof userObj.badges === 'string' ? JSON.parse(userObj.badges) : userObj.badges;
+      return Array.isArray(badgesArr) && badgesArr.some((b: any) => b === 'avatar_frame_exclusive' || (b && b.id === 'avatar_frame_exclusive'));
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const fetchGlobalLeaderboards = async () => {
+    setLeaderboardLoading(true);
+    try {
+      const data = await apiRequest('/progress/global-leaderboards');
+      setLeaderboardData(data);
+    } catch (e: any) {
+      console.error('Error fetching global leaderboards:', e);
+      showToast('Error loading global leaderboards.', 'error');
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  };
+
+  const handleAwardCredits = async (action: 'join_session' | 'upload_notes' | 'help_doubts' | 'daily_login') => {
+    try {
+      const data = await apiRequest('/progress/award-credits', {
+        method: 'POST',
+        body: JSON.stringify({ action })
+      });
+      setStats(prev => ({
+        ...prev,
+        focusCoins: data.focusCoins,
+        xp: data.xp,
+        level: data.level
+      }));
+      if (data.leveledUp) {
+        showToast(`🎉 Level Up! You reached Level ${data.level}!`, 'success');
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000);
+      } else if (data.actualXpAwarded > 0) {
+        showToast(`${data.message} (+${data.actualXpAwarded} XP, +${action === 'join_session' ? 10 : action === 'upload_notes' ? 20 : action === 'help_doubts' ? 30 : 5} Coins)`, 'success');
+      } else {
+        showToast(data.message, 'info');
+      }
+    } catch (err: any) {
+      console.error('Error awarding credits:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'leaderboard') {
+      fetchGlobalLeaderboards();
+    }
+  }, [activeTab]);
 
   const loadDashboardData = async (info: any) => {
     setLoading(true);
@@ -1409,6 +1531,15 @@ Based on your desking logs and consistency, the AI tutor recommends:
       const notesData = await apiRequest('/shared-notes');
       setNotesList(notesData.notes || []);
 
+      if (activeTab === 'leaderboard') {
+        try {
+          const lbData = await apiRequest('/progress/global-leaderboards');
+          setLeaderboardData(lbData);
+        } catch (lbErr) {
+          console.error('Error refreshing global leaderboards:', lbErr);
+        }
+      }
+
       showToast('Dashboard details synced!', 'success');
     } catch (e: any) {
       showToast('Failed to sync data.', 'error');
@@ -1527,6 +1658,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
       });
       showToast(data.message || 'Successfully joined circle!', 'success');
       setInviteCode('');
+      completeMission('join_circle');
       loadDashboardData(user);
       setActiveTab('groups');
     } catch (err: any) {
@@ -1542,6 +1674,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
         method: 'POST'
       });
       showToast(data.message || 'Successfully joined study circle!', 'success');
+      completeMission('join_circle');
       loadDashboardData(user);
       const slug = getSlugByGroup(data.group || { id: groupId, name: data.group?.name || '', subject: data.group?.subject || '' });
       router.push(`/workspace/${slug}`);
@@ -2017,6 +2150,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
                       onClick={() => {
                         setActiveRoom(room.name);
                         setRoomSeconds(0);
+                        completeMission('attend_session');
+                        handleAwardCredits('join_session');
                       }}
                       className="w-full py-1.5 bg-teal-650 hover:bg-teal-500 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
                     >
@@ -2064,7 +2199,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
             {/* User Profile Card */}
             <div className="p-5 bg-gradient-to-b from-[#0B0F19] to-[#0d1629] border border-white/5 rounded-[24px] text-center text-white flex flex-col justify-center items-center gap-3 shadow-lg relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-24 h-24 bg-[#10B981]/5 rounded-full blur-xl pointer-events-none" />
-              <div className="h-16 w-16 rounded-full bg-slate-900 border-2 border-[#10B981]/25 flex items-center justify-center text-3xl font-black text-white shadow-inner relative overflow-hidden group-hover:border-[#10B981]/50 transition-colors">
+              <div className={`h-16 w-16 rounded-full bg-slate-900 flex items-center justify-center text-3xl font-black text-white shadow-inner relative overflow-hidden transition-all ${avatarRingClass}`}>
                 <img src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)} className="absolute inset-0 h-full w-full object-cover" alt="Avatar" />
               </div>
               <div className="text-center">
@@ -2226,15 +2361,25 @@ Based on your desking logs and consistency, the AI tutor recommends:
               
               <div className="space-y-2.5">
                 {[
-                  { id: 'cyberpunk', type: 'theme', label: 'Neon Cyberpunk Theme', desc: 'Futuristic purple & pink overlay glow.', cost: 50 },
-                  { id: 'zengarden', type: 'theme', label: 'Zen Sanctuary Theme', desc: 'Calming forest green workspace aesthetic.', cost: 75 },
-                  { id: 'badge_focus', type: 'title', label: '"Focus Guru" Title', desc: 'Equip badge next to your dashboard card.', cost: 100 },
-                  { id: 'badge_dsa', type: 'title', label: '"DSA Warrior" Title', desc: 'Showcase algorithm problem solver status.', cost: 150 }
+                  { id: 'cyberpunk', type: 'theme', label: 'Neon Cyberpunk Theme', desc: 'Futuristic purple & pink overlay glow.', cost: 100 },
+                  { id: 'zengarden', type: 'theme', label: 'Zen Sanctuary Theme', desc: 'Calming forest green workspace aesthetic.', cost: 100 },
+                  { id: 'badge_premium', type: 'badge', label: 'Premium Badge Title', desc: 'Showcase VIP elite learner status.', cost: 250 },
+                  { id: 'mentor_spotlight', type: 'badge', label: 'Mentor Spotlight Perk', desc: 'Pin profile card to dashboard showcases.', cost: 500 },
+                  { id: 'avatar_frame_exclusive', type: 'badge', label: 'Exclusive Golden Frame', desc: 'Golden animated glow ring around your avatars.', cost: 1000 }
                 ].map(item => {
-                  const parsedBadges = JSON.parse(stats.badges || '[]');
-                  const hasPurchased = parsedBadges.includes(item.id);
+                  const parsedBadges = (() => {
+                    try {
+                      return JSON.parse(stats.badges || '[]');
+                    } catch (e) {
+                      return [];
+                    }
+                  })();
+                  const hasPurchased = parsedBadges.some((b: any) => 
+                    b === item.id || 
+                    (b && b.id === item.id)
+                  );
                   const canBuy = stats.focusCoins >= item.cost;
-                  const isEquipped = item.type === 'theme' ? equippedTheme === item.id : user?.bio?.includes(item.label);
+                  const isEquipped = item.type === 'theme' ? equippedTheme === item.id : user?.bio === item.label;
 
                   return (
                     <div key={item.id} className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5 flex flex-col gap-2">
@@ -2269,7 +2414,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                         ) : (
                           <button
                             disabled={!canBuy}
-                            onClick={() => handleBuyShopItem(item.id, item.cost, item.label)}
+                            onClick={() => handleBuyShopItem(item.id, item.cost, item.label, item.type)}
                             className="flex-1 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 disabled:opacity-40 border border-amber-500/30 text-amber-400 text-[8.5px] font-black uppercase rounded transition-all cursor-pointer"
                           >
                             Unlock Item
@@ -2743,17 +2888,60 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
   const unreadCount = filteredNotifications.filter(n => n.unread).length;
 
+  const parsedBadges = (() => {
+    try {
+      return JSON.parse(stats.badges || '[]');
+    } catch (e) {
+      return [];
+    }
+  })();
+  const hasNeonCyanFrame = parsedBadges.some((b: any) => 
+    b === 'frame_neon_cyan' || (b && b.id === 'frame_neon_cyan')
+  );
+  const hasGoldFrame = parsedBadges.some((b: any) => 
+    b === 'frame_gold_shine' || (b && b.id === 'frame_gold_shine') ||
+    b === 'avatar_frame_exclusive' || (b && b.id === 'avatar_frame_exclusive')
+  );
+
+  const avatarRingClass = hasGoldFrame 
+    ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-slate-900 shadow-[0_0_10px_rgba(245,158,11,0.8)] border-amber-400' 
+    : hasNeonCyanFrame
+      ? 'ring-2 ring-cyan-400 ring-offset-1 ring-offset-slate-900 shadow-[0_0_10px_rgba(34,211,238,0.8)] border-cyan-400'
+      : 'border-2 border-[#10B981]/25 group-hover:border-[#10B981]/50';
+
+  const headerAvatarRingClass = hasGoldFrame
+    ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-slate-900 shadow-[0_0_8px_rgba(245,158,11,0.6)] border-amber-400'
+    : hasNeonCyanFrame
+      ? 'ring-2 ring-cyan-400 ring-offset-1 ring-offset-slate-900 shadow-[0_0_8px_rgba(34,211,238,0.6)] border-cyan-400'
+      : 'border border-[#10B981]/30';
+
+  const sidebarFooterAvatarRingClass = hasGoldFrame
+    ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-slate-900 shadow-[0_0_8px_rgba(245,158,11,0.6)] border-amber-400'
+    : hasNeonCyanFrame
+      ? 'ring-2 ring-cyan-400 ring-offset-1 ring-offset-slate-900 shadow-[0_0_8px_rgba(34,211,238,0.6)] border-cyan-400'
+      : 'border border-white/10 group-hover:border-[#10B981]/50';
+
   return (
     <div 
       className={`min-h-screen text-slate-100 font-sans flex relative overflow-hidden transition-colors duration-500 ${
         equippedTheme === 'cyberpunk' ? 'bg-[#0b0114] border-fuchsia-500/10' :
         equippedTheme === 'zengarden' ? 'bg-[#020d06] border-emerald-500/10' :
+        equippedTheme === 'theme_emerald_cosmic' ? 'bg-gradient-to-br from-[#061510] to-[#04090b]' :
+        equippedTheme === 'theme_solar_glow' ? 'bg-gradient-to-br from-[#1c1209] to-[#090604]' :
+        equippedTheme === 'theme_dark_nebula' ? 'bg-gradient-to-br from-[#120a1c] to-[#06040a]' :
         'bg-[#060913]'
       }`}
     >
       
       {/* 1. Left Sidebar */}
-      <aside className="w-64 bg-[#0B0F19] border-r border-white/5 flex flex-col shrink-0 h-screen sticky top-0 z-30">
+      <aside className={`w-64 flex flex-col shrink-0 h-screen sticky top-0 z-30 border-r transition-colors duration-500 ${
+        equippedTheme === 'cyberpunk' ? 'bg-[#0b0114] border-fuchsia-500/10' :
+        equippedTheme === 'zengarden' ? 'bg-[#020d06] border-emerald-500/10' :
+        equippedTheme === 'theme_emerald_cosmic' ? 'bg-[#061510]/95 border-emerald-500/10 shadow-lg shadow-emerald-550/5' :
+        equippedTheme === 'theme_solar_glow' ? 'bg-[#1c1209]/95 border-amber-500/10 shadow-lg shadow-amber-550/5' :
+        equippedTheme === 'theme_dark_nebula' ? 'bg-[#120a1c]/95 border-purple-500/10 shadow-lg shadow-purple-550/5' :
+        'bg-[#0B0F19] border-white/5'
+      }`}>
         
         {/* Branding header */}
         <Link 
@@ -2786,7 +2974,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
           title="Click to Edit Profile"
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden group-hover:border-[#10B981]/50 transition-colors">
+            <div className={`h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden transition-all ${sidebarFooterAvatarRingClass}`}>
               <img 
                 src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)} 
                 className="absolute inset-0 h-full w-full object-cover" 
@@ -2824,10 +3012,18 @@ Based on your desking logs and consistency, the AI tutor recommends:
       </aside>
 
       {/* 2. Main Content Wrapper */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto bg-[#060913]">
+      <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-y-auto transition-colors duration-500 ${
+        equippedTheme === 'cyberpunk' ? 'bg-[#0e021a]' :
+        equippedTheme === 'zengarden' ? 'bg-[#03140a]' :
+        'bg-[#060913]'
+      }`}>
         
         {/* Header toolbar */}
-        <header className="w-full h-16 border-b border-white/5 bg-[#060913]/80 backdrop-blur-md flex items-center justify-between px-8 shrink-0 sticky top-0 z-20">
+        <header className={`w-full h-16 border-b backdrop-blur-md flex items-center justify-between px-8 shrink-0 sticky top-0 z-20 transition-colors duration-500 ${
+          equippedTheme === 'cyberpunk' ? 'bg-[#0e021a]/80 border-fuchsia-500/10' :
+          equippedTheme === 'zengarden' ? 'bg-[#03140a]/80 border-emerald-500/10' :
+          'bg-[#060913]/80 border-white/5'
+        }`}>
           
           <div className="relative w-96 text-left">
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-500" />
@@ -2915,7 +3111,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
               href="/profile"
               className="flex items-center gap-2 pl-2 border-l border-white/10 hover:opacity-80 transition-opacity cursor-pointer group"
             >
-              <div className="h-8 w-8 rounded-full bg-[#10B981]/15 border border-[#10B981]/30 flex items-center justify-center font-black text-xs text-[#10B981] overflow-hidden relative">
+              <div className={`h-8 w-8 rounded-full bg-[#10B981]/15 flex items-center justify-center font-black text-xs text-[#10B981] overflow-hidden relative transition-all ${headerAvatarRingClass}`}>
                 <img 
                   src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)} 
                   className="absolute inset-0 h-full w-full object-cover" 
@@ -3777,7 +3973,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                         <div className="flex items-center gap-3">
                           <img 
                             src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)}
-                            className="h-9 w-9 rounded-full border border-indigo-500"
+                            className={`h-9 w-9 rounded-full object-cover transition-all ${avatarRingClass}`}
                             alt=""
                           />
                           <div>
@@ -3787,15 +3983,24 @@ Based on your desking logs and consistency, the AI tutor recommends:
                         </div>
                         
                         {/* XP Progress */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[9px] font-black text-slate-455">
-                            <span>XP Progress</span>
-                            <span>{stats.xp} / {stats.level * 100} XP</span>
-                          </div>
-                          <div className="w-full bg-[#0B0F19] h-2 rounded-full overflow-hidden">
-                            <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${Math.min(100, (stats.xp / (stats.level * 105)) * 100)}%` }} />
-                          </div>
-                        </div>
+                        {(() => {
+                          const { min: currentLevelMin, max: nextLevelMin } = getXpRangeForLevel(stats.level || 1);
+                          const xpRange = nextLevelMin - currentLevelMin;
+                          const progressPercent = xpRange > 0
+                            ? Math.min(100, Math.max(0, Math.round(((stats.xp - currentLevelMin) / xpRange) * 100)))
+                            : 0;
+                          return (
+                            <div className="space-y-1.5">
+                              <div className="flex justify-between text-[9px] font-black text-slate-455">
+                                <span>XP Progress</span>
+                                <span>{stats.xp} / {nextLevelMin} XP</span>
+                              </div>
+                              <div className="w-full bg-[#0B0F19] h-2 rounded-full overflow-hidden">
+                                <div className="bg-indigo-500 h-full rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                       
                       <div className="grid grid-cols-2 gap-2 text-center text-[10px] font-black mt-2 pt-2 border-t border-white/5 text-slate-300">
@@ -4031,7 +4236,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   <div className="flex items-center gap-2 bg-[#0B0F19] border border-white/5 rounded-2xl px-4 py-2.5 shadow-sm">
                     <img 
                       src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)}
-                      className="h-8 w-8 rounded-full border border-[#5227EB]"
+                      className={`h-8 w-8 rounded-full ${headerAvatarRingClass}`}
                       alt="Avatar"
                     />
                     <div>
@@ -4042,7 +4247,34 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 </div>
               </div>
 
-              {/* Engagement Cards (Interactive Next Unlock, Daily Reward, Study Quest) */}
+              
+              {/* Sub-tab Toggle */}
+              <div className="flex gap-2 border-b border-white/5 pb-2 mb-6">
+                <button 
+                  onClick={() => setResourcesSubTab('vault')}
+                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                    resourcesSubTab === 'vault' 
+                      ? 'bg-indigo-600 text-white shadow-md' 
+                      : 'bg-white/[0.02] border border-white/5 text-slate-455 hover:text-white'
+                  }`}
+                >
+                  Academic Vault
+                </button>
+                <button 
+                  onClick={() => setResourcesSubTab('shop')}
+                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                    resourcesSubTab === 'shop' 
+                      ? 'bg-indigo-600 text-white shadow-md' 
+                      : 'bg-white/[0.02] border border-white/5 text-slate-455 hover:text-white'
+                  }`}
+                >
+                  Cosmetic Shop
+                </button>
+              </div>
+
+              {resourcesSubTab === 'vault' ? (
+                <>
+{/* Engagement Cards (Interactive Next Unlock, Daily Reward, Study Quest) */}
               <div className="grid md:grid-cols-3 gap-6">
                 {/* 1. Next Unlock */}
                 {(() => {
@@ -4494,7 +4726,171 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 </div>
               </div>
 
-            </div>
+            
+                </>
+              ) : (
+                <div className="space-y-6">
+                  {/* Shop Header */}
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-405 flex items-center gap-2">
+                      <Sparkles className="h-4.5 w-4.5 text-indigo-400" /> Focus Coins Cosmetic Marketplace
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-semibold mt-1">Unlock themes, badges, spotlights, and frames to display your profile premium styles.</p>
+                  </div>
+
+                  {/* Grid */}
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {[
+                      {
+                        id: 'theme_emerald_cosmic',
+                        name: 'Emerald Cosmic Theme',
+                        cost: 100,
+                        description: 'Gives your dashboard a glowing emerald gradient skin.',
+                        type: 'theme',
+                        icon: '🟢'
+                      },
+                      {
+                        id: 'theme_solar_glow',
+                        name: 'Solar Glow Theme',
+                        cost: 100,
+                        description: 'Gives your dashboard an amber-to-orange solar gradient skin.',
+                        type: 'theme',
+                        icon: '🟡'
+                      },
+                      {
+                        id: 'theme_dark_nebula',
+                        name: 'Midnight Nebula Theme',
+                        cost: 100,
+                        description: 'Gives your dashboard a deep cosmic purple skin.',
+                        type: 'theme',
+                        icon: '🟣'
+                      },
+                      {
+                        id: 'badge_elite_scholar',
+                        name: 'Elite Scholar Badge',
+                        cost: 250,
+                        description: 'Unlocks a premium golden Scholar badge on your public profile shelf.',
+                        type: 'badge',
+                        icon: '🏆'
+                      },
+                      {
+                        id: 'badge_code_ninja',
+                        name: 'Code Ninja Badge',
+                        cost: 250,
+                        description: 'Unlocks a premium dark shadow Ninja badge on your public profile shelf.',
+                        type: 'badge',
+                        icon: '🥷'
+                      },
+                      {
+                        id: 'mentor_spotlight',
+                        name: 'Mentor Spotlight Status',
+                        cost: 500,
+                        description: 'Highlights your profile card on leaderboards and search results.',
+                        type: 'spotlight',
+                        icon: '✨'
+                      },
+                      {
+                        id: 'frame_neon_cyan',
+                        name: 'Neon Cyan Frame',
+                        cost: 1000,
+                        description: 'Surrounds your avatar with a glowing cyan cyber aura border.',
+                        type: 'frame',
+                        icon: '🖼️'
+                      },
+                      {
+                        id: 'frame_gold_shine',
+                        name: 'Golden Radiance Frame',
+                        cost: 1000,
+                        description: 'Surrounds your avatar with a glowing golden champion border.',
+                        type: 'frame',
+                        icon: '👑'
+                      }
+                    ].map((item) => {
+                      const isUnlocked = parsedBadges.some((b: any) => b.id === item.id);
+                      const isTheme = item.type === 'theme';
+                      const isEquipped = isTheme && equippedTheme === item.id;
+                      
+                      const canBuy = stats.focusCoins >= item.cost;
+                      
+                      return (
+                        <div 
+                          key={item.id} 
+                          className={`bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] border border-white/5 hover:border-white/10 rounded-[24px] shadow-lg p-5 flex flex-col justify-between gap-4 transition-all duration-300 hover:shadow-xl`}
+                        >
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-start">
+                              <span className="text-[8px] font-black uppercase px-2.5 py-1 rounded-full border bg-indigo-500/15 border-indigo-400/20 text-indigo-400">
+                                {item.type}
+                              </span>
+                              
+                              {isUnlocked ? (
+                                <span className="text-[8px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/15">
+                                  Unlocked
+                                </span>
+                              ) : (
+                                <span className="text-[8px] font-extrabold uppercase px-2 py-0.5 rounded bg-rose-500/15 text-rose-455 border border-rose-500/15 flex items-center gap-1">
+                                  <Lock className="h-2.5 w-2.5" /> Locked
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="flex gap-2.5 items-start">
+                              <div className="h-9 w-9 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center text-amber-500 shrink-0 font-black text-lg">
+                                {item.icon}
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-xs font-black text-slate-200">{item.name}</h4>
+                                <p className="text-[10px] text-slate-400 font-bold leading-relaxed mt-1">{item.description}</p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-between items-center pt-2.5 border-t border-white/5">
+                            <span className="text-[10px] font-extrabold text-slate-350 flex items-center gap-1">
+                              🪙 {item.cost} Coins
+                            </span>
+
+                            {isUnlocked ? (
+                              isTheme ? (
+                                <button
+                                  onClick={() => {
+                                    setEquippedTheme(item.id);
+                                    localStorage.setItem('studycircle_equipped_theme', item.id);
+                                    showToast(`${item.name} equipped successfully!`, 'success');
+                                  }}
+                                  disabled={isEquipped}
+                                  className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
+                                    isEquipped 
+                                      ? 'bg-emerald-600/35 border border-emerald-500/25 text-emerald-300' 
+                                      : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                  }`}
+                                >
+                                  {isEquipped ? 'Equipped ✓' : 'Equip Theme'}
+                                </button>
+                              ) : (
+                                <span className="text-[9px] text-slate-450 font-bold">Unlocked ✓</span>
+                              )
+                            ) : (
+                              <button
+                                onClick={() => handleBuyShopItem(item.id, item.cost, item.name, item.type)}
+                                disabled={!canBuy}
+                                className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
+                                  canBuy 
+                                    ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-md' 
+                                    : 'bg-white/[0.02] border border-white/5 text-slate-500'
+                                }`}
+                              >
+                                {canBuy ? 'Unlock Item' : 'Insufficient Coins'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+</div>
           )}
           {activeTab === 'notes' && (
             <div className="space-y-6 text-left">
@@ -4947,21 +5343,324 @@ Based on your desking logs and consistency, the AI tutor recommends:
           {/* Tab 9: Leaderboard info */}
           {activeTab === 'leaderboard' && (
             <div className="space-y-6 text-left animate-in fade-in duration-350">
-              <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                <Award className="h-4.5 w-4.5 text-[#10B981]" /> Batch Leaderboard
-              </h3>
-              <div className="p-8 bg-[#0B0F19] border border-white/5 rounded-[24px] text-center space-y-4 shadow-lg max-w-2xl text-white">
-                <div className="h-14 w-14 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto shadow-sm">
-                  <Award className="h-6 w-6" />
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                    <Award className="h-4.5 w-4.5 text-[#10B981]" /> Batch Leaderboard
+                  </h3>
+                  <p className="text-[10px] text-slate-500 mt-1">Track focus hours, top mentors, helpful notes, and active study rooms across the campus.</p>
                 </div>
-                <h4 className="text-sm font-black text-white">Study Hours Leaderboard</h4>
-                <p className="text-xs text-zinc-455 leading-relaxed max-w-md mx-auto font-medium">
-                  Earn points and placement badges by keeping focus streaks alive. Top study groups and individual learners are listed on the batch ranking dashboard.
-                </p>
-                <button onClick={() => setActiveTab('groups')} className="px-4 py-2 bg-[#10B981] hover:bg-[#0d9488] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer">
-                  View Leaderboards inside Workspaces
-                </button>
+                
+                {/* Global stats summary */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20 flex items-center gap-1">
+                    🏆 Your Level: {stats.level}
+                  </span>
+                </div>
               </div>
+
+              {/* Sub-tabs Selection */}
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'learners', label: '🎓 Top Learners', desc: 'Sort by Study Hours' },
+                  { id: 'mentors', label: '🎖️ Top Mentors', desc: 'Sort by XP & Answers' },
+                  { id: 'notes', label: '📄 Helpful Notes', desc: 'Sort by Shared Notes' },
+                  { id: 'rooms', label: '🏫 Active Circles', desc: 'Sort by Member Count' }
+                ].map(sub => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setLeaderboardSubTab(sub.id as any)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all text-left flex flex-col justify-center cursor-pointer ${
+                      leaderboardSubTab === sub.id
+                        ? 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 shadow-md shadow-[#10B981]/5'
+                        : 'bg-[#0B0F19] border border-white/5 text-slate-400 hover:text-white hover:border-white/10'
+                    }`}
+                  >
+                    <span>{sub.label}</span>
+                    <span className="text-[8px] opacity-70 mt-0.5 font-normal">{sub.desc}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Leaderboard content */}
+              {leaderboardLoading ? (
+                <div className="py-16 text-center space-y-3">
+                  <div className="h-8 w-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin mx-auto" />
+                  <p className="text-xs text-slate-500 font-bold">Compiling global rankings...</p>
+                </div>
+              ) : !leaderboardData ? (
+                <div className="p-8 bg-[#0B0F19] border border-white/5 rounded-[24px] text-center space-y-3 shadow-lg">
+                  <p className="text-xs text-slate-450 font-bold">No ranking records compiled yet.</p>
+                  <button onClick={fetchGlobalLeaderboards} className="px-3.5 py-1.5 bg-indigo-650 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md cursor-pointer">
+                    Retry Fetching
+                  </button>
+                </div>
+              ) : (
+                <div className="p-6 bg-[#0B0F19] border border-white/5 rounded-[24px] shadow-lg text-white space-y-4">
+                  {leaderboardSubTab === 'learners' && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-[9px] font-black uppercase text-slate-500 tracking-wider px-4">
+                        <div className="flex items-center gap-6">
+                          <span className="w-6 text-center">Rank</span>
+                          <span>Learner Details</span>
+                        </div>
+                        <span>Study Hours</span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {(!leaderboardData.learners || leaderboardData.learners.length === 0) ? (
+                          <p className="text-xs text-zinc-500 py-6 text-center font-medium">No students ranked yet.</p>
+                        ) : (
+                          leaderboardData.learners.map((student: any, idx: number) => {
+                            const isMe = student.username === user?.username;
+                            const isGolden = checkUserGoldenFrame(student);
+                            return (
+                              <div
+                                key={student.id}
+                                className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                                  isMe 
+                                    ? 'bg-[#10B981]/5 border-[#10B981]/25 hover:border-[#10B981]/40' 
+                                    : 'bg-slate-955/20 border-white/5 hover:border-white/10'
+                                }`}
+                              >
+                                <div className="flex items-center gap-4 min-w-0">
+                                  <span className={`w-6 text-center text-xs font-black font-mono ${
+                                    idx === 0 ? 'text-amber-400 text-sm' :
+                                    idx === 1 ? 'text-slate-300 text-sm' :
+                                    idx === 2 ? 'text-amber-600 text-sm' : 'text-slate-500'
+                                  }`}>
+                                    {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
+                                  </span>
+                                  
+                                  <div className={`h-9.5 w-9.5 rounded-full shrink-0 relative overflow-hidden transition-all ${
+                                    isGolden 
+                                      ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-slate-900 shadow-[0_0_6px_rgba(245,158,11,0.6)] border-amber-400' 
+                                      : 'border border-white/10'
+                                  }`}>
+                                    <img 
+                                      src={student.avatarUrl || getAvatarByName(student.fullName, student.gender)} 
+                                      className="absolute inset-0 h-full w-full object-cover" 
+                                      alt="Avatar" 
+                                    />
+                                  </div>
+                                  
+                                  <div className="text-left min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <h4 className={`text-xs font-black truncate max-w-[150px] ${isMe ? 'text-[#10B981]' : 'text-slate-100'}`}>
+                                        {student.fullName}
+                                      </h4>
+                                      <span className="px-1.5 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded text-[8px] font-black uppercase">
+                                        Lvl {student.level || 1}
+                                      </span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-550 font-bold mt-0.5">@{student.username}</p>
+                                  </div>
+                                </div>
+                                
+                                <div className="text-right">
+                                  <span className="text-xs font-black text-slate-200">
+                                    {(student.totalStudyHours || 0).toFixed(2)}h
+                                  </span>
+                                  <span className="text-[8px] text-slate-500 block font-bold mt-0.5">
+                                    🔥 {student.streakCount || 0}d streak
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {leaderboardSubTab === 'mentors' && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-[9px] font-black uppercase text-slate-500 tracking-wider px-4">
+                        <div className="flex items-center gap-6">
+                          <span className="w-6 text-center">Rank</span>
+                          <span>Mentor Details</span>
+                        </div>
+                        <span>XP Score</span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {(!leaderboardData.mentors || leaderboardData.mentors.length === 0) ? (
+                          <p className="text-xs text-zinc-500 py-6 text-center font-medium">No mentors ranked yet.</p>
+                        ) : (
+                          leaderboardData.mentors.map((mentor: any, idx: number) => {
+                            const isMe = mentor.username === user?.username;
+                            const isGolden = checkUserGoldenFrame(mentor);
+                            return (
+                              <div
+                                key={mentor.id}
+                                className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                                  isMe 
+                                    ? 'bg-[#10B981]/5 border-[#10B981]/25 hover:border-[#10B981]/40' 
+                                    : 'bg-slate-955/20 border-white/5 hover:border-white/10'
+                                }`}
+                              >
+                                <div className="flex items-center gap-4 min-w-0">
+                                  <span className={`w-6 text-center text-xs font-black font-mono ${
+                                    idx === 0 ? 'text-amber-400 text-sm' :
+                                    idx === 1 ? 'text-slate-300 text-sm' :
+                                    idx === 2 ? 'text-amber-600 text-sm' : 'text-slate-500'
+                                  }`}>
+                                    {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
+                                  </span>
+                                  
+                                  <div className={`h-9.5 w-9.5 rounded-full shrink-0 relative overflow-hidden transition-all ${
+                                    isGolden 
+                                      ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-slate-900 shadow-[0_0_6px_rgba(245,158,11,0.6)] border-amber-400' 
+                                      : 'border border-white/10'
+                                  }`}>
+                                    <img 
+                                      src={mentor.avatarUrl || getAvatarByName(mentor.fullName, mentor.gender)} 
+                                      className="absolute inset-0 h-full w-full object-cover" 
+                                      alt="Avatar" 
+                                    />
+                                  </div>
+                                  
+                                  <div className="text-left min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <h4 className={`text-xs font-black truncate max-w-[150px] ${isMe ? 'text-[#10B981]' : 'text-slate-100'}`}>
+                                        {mentor.fullName}
+                                      </h4>
+                                      <span className="px-1.5 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded text-[8px] font-black uppercase">
+                                        Mentor
+                                      </span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-550 font-bold mt-0.5">@{mentor.username}</p>
+                                  </div>
+                                </div>
+                                
+                                <div className="text-right">
+                                  <span className="text-xs font-black text-slate-200">
+                                    {(mentor.xp || 0).toLocaleString()} XP
+                                  </span>
+                                  <span className="text-[8px] text-slate-550 block font-bold mt-0.5">
+                                    🕒 {mentor.totalStudyHours.toFixed(1)}h logged
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {leaderboardSubTab === 'notes' && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-[9px] font-black uppercase text-slate-500 tracking-wider px-4">
+                        <div className="flex items-center gap-6">
+                          <span className="w-6 text-center">No.</span>
+                          <span>Shared Notes Material</span>
+                        </div>
+                        <span>Date Shared</span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {(!leaderboardData.notes || leaderboardData.notes.length === 0) ? (
+                          <p className="text-xs text-zinc-500 py-6 text-center font-medium">No files shared yet.</p>
+                        ) : (
+                          leaderboardData.notes.map((note: any, idx: number) => {
+                            return (
+                              <div
+                                key={note.id}
+                                className="flex items-center justify-between p-3.5 rounded-2xl border bg-slate-955/20 border-white/5 hover:border-white/10 transition-all"
+                              >
+                                <div className="flex items-center gap-4 min-w-0">
+                                  <span className="w-6 text-center text-xs font-black text-slate-500 font-mono">
+                                    {idx + 1}
+                                  </span>
+                                  <div className="h-9 w-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20">
+                                    <FileText className="h-4.5 w-4.5" />
+                                  </div>
+                                  <div className="text-left min-w-0">
+                                    <h4 className="text-xs font-black truncate max-w-[200px] text-slate-200">
+                                      {note.name}
+                                    </h4>
+                                    <p className="text-[9px] text-indigo-400 font-extrabold uppercase mt-0.5 font-mono">
+                                      {note.type.toUpperCase()} • {note.size}
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="text-right">
+                                  <span className="text-[10px] font-extrabold text-slate-400">
+                                    {new Date(note.createdAt).toLocaleDateString()}
+                                  </span>
+                                  <span className="text-[8px] text-slate-500 block font-bold mt-0.5">
+                                    Published by @{note.publishedBy || 'admin'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {leaderboardSubTab === 'rooms' && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-[9px] font-black uppercase text-slate-500 tracking-wider px-4">
+                        <div className="flex items-center gap-6">
+                          <span className="w-6 text-center">No.</span>
+                          <span>Study Room Description</span>
+                        </div>
+                        <span>Members</span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {(!leaderboardData.rooms || leaderboardData.rooms.length === 0) ? (
+                          <p className="text-xs text-zinc-500 py-6 text-center font-medium">No study rooms created yet.</p>
+                        ) : (
+                          leaderboardData.rooms.map((room: any, idx: number) => {
+                            return (
+                              <div
+                                key={room.id}
+                                className="flex items-center justify-between p-3.5 rounded-2xl border bg-slate-955/20 border-white/5 hover:border-white/10 transition-all"
+                              >
+                                <div className="flex items-center gap-4 min-w-0">
+                                  <span className="w-6 text-center text-xs font-black text-slate-500 font-mono">
+                                    {idx + 1}
+                                  </span>
+                                  <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                                    <Users className="h-4.5 w-4.5" />
+                                  </div>
+                                  <div className="text-left min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <h4 className="text-xs font-black truncate max-w-[200px] text-slate-200">
+                                        {room.name}
+                                      </h4>
+                                      <span className="px-1.5 py-0.5 bg-[#10B981]/15 text-[#10B981] rounded text-[8px] font-black uppercase">
+                                        {room.subject}
+                                      </span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-550 font-bold truncate max-w-[200px] mt-0.5">
+                                      {room.description || 'No description provided.'}
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="text-right">
+                                  <span className="text-xs font-black text-[#10B981] flex items-center justify-end gap-1">
+                                    👤 {room.memberCount || 0} members
+                                  </span>
+                                  <span className="text-[8px] font-bold text-slate-500 font-mono block mt-0.5 uppercase">
+                                    Code: {room.inviteCode || 'N/A'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -5086,8 +5785,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     </div>
 
                     {/* Profile Presentation */}
-                    <div className="flex items-center gap-6 p-4 bg-slate-950/40 border border-white/5 rounded-[20px] shadow-inner">
-                      <div className="w-16 h-16 rounded-full overflow-hidden border border-white/10 shadow-sm shrink-0 bg-slate-900 relative">
+                    <div className="flex items-center gap-6 p-4 bg-slate-955/40 border border-white/5 rounded-[20px] shadow-inner">
+                      <div className={`w-16 h-16 rounded-full overflow-hidden shrink-0 bg-slate-900 relative transition-all ${avatarRingClass}`}>
                         <img 
                           src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)} 
                           className="absolute inset-0 h-full w-full object-cover" 
@@ -5140,7 +5839,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
                       {/* WhatsApp-style photo upload preview */}
                       <div className="flex items-center gap-5 mt-4">
-                        <div className="relative group w-20 h-20 rounded-full overflow-hidden border-2 border-indigo-100 shadow-sm shrink-0 bg-slate-50">
+                        <div className={`relative group w-20 h-20 rounded-full overflow-hidden shadow-sm shrink-0 bg-slate-50 transition-all ${avatarRingClass}`}>
                           <img 
                             src={previewAvatar || getAvatarByName(user?.fullName, user?.gender)} 
                             className="h-full w-full object-cover animate-fade-in" 
@@ -6266,6 +6965,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   }));
                   showToast(`Session log successfully tracked! Added ${hoursLogged} study hours.`, 'success');
                 }
+                completeMission('complete_session');
                 setActiveRoom(null);
               }}
               className="px-6 py-2.5 bg-red-650 hover:bg-red-750 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-colors shadow-lg shadow-red-900/30"
@@ -6485,6 +7185,77 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   {savingOnboarding ? 'Saving...' : 'Finish & Personalize'}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🎉 Gamification: Confetti particle shower */}
+      {showConfetti && (
+        <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
+          {Array.from({ length: 80 }).map((_, i) => {
+            const randomLeft = Math.random() * 100; // %
+            const randomDelay = Math.random() * 1.5; // seconds
+            const randomDuration = 2.5 + Math.random() * 2.5; // seconds
+            const randomSize = 6 + Math.random() * 8; // px
+            const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#a855f7', '#06b6d4', '#ec4899'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            const randomRotation = Math.random() * 360;
+
+            return (
+              <div
+                key={i}
+                className="absolute rounded-sm animate-confetti-fall"
+                style={{
+                  left: `${randomLeft}%`,
+                  width: `${randomSize}px`,
+                  height: `${randomSize}px`,
+                  backgroundColor: randomColor,
+                  top: `-20px`,
+                  opacity: 0.8,
+                  transform: `rotate(${randomRotation}deg)`,
+                  animationDelay: `${randomDelay}s`,
+                  animationDuration: `${randomDuration}s`,
+                  animationIterationCount: 'infinite',
+                  animationTimingFunction: 'linear'
+                }}
+              />
+            );
+          })}
+          <style>{`
+            @keyframes confettiFall {
+              0% {
+                top: -20px;
+                transform: rotate(0deg) translateX(0);
+                opacity: 1;
+              }
+              55% {
+                transform: rotate(180deg) translateX(15px);
+              }
+              100% {
+                top: 105vh;
+                transform: rotate(360deg) translateX(-15px);
+                opacity: 0;
+              }
+            }
+            .animate-confetti-fall {
+              animation-name: confettiFall;
+            }
+          `}</style>
+        </div>
+      )}
+
+      {/* 🎖️ Gamification: Completed Mission Alert Popup */}
+      {completedMissionAlert && (
+        <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 z-[9999] max-w-sm w-full px-4 animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className="bg-[#0B0F19] border-2 border-emerald-500/35 rounded-2xl p-4 shadow-2xl flex items-center gap-3.5 backdrop-blur-md">
+            <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 flex items-center justify-center shrink-0 animate-bounce">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">🎉 Mission Completed!</span>
+              <h4 className="text-xs font-black text-white truncate mt-0.5">{completedMissionAlert.text}</h4>
+              <p className="text-[9px] text-zinc-400 font-bold mt-0.5">You earned <span className="text-indigo-400 font-extrabold font-mono">+{completedMissionAlert.xp} XP</span> towards your goal!</p>
             </div>
           </div>
         </div>

@@ -273,7 +273,96 @@ export default function WorkspacePage() {
   const [loading, setLoading] = useState(true);
 
   // Tabs state: 'lobby' | 'notes' | 'sessions' | 'doubts' | 'resources' | 'leaderboard'
-  const [activeTab, setActiveTab] = useState<'lobby' | 'notes' | 'sessions' | 'doubts' | 'resources' | 'leaderboard'>('lobby');
+  
+  const [activeTab, setActiveTab] = useState<'lobby' | 'notes' | 'sessions' | 'doubts' | 'resources' | 'leaderboard' | 'challenges'>('lobby');
+  const [challenges, setChallenges] = useState<any[]>([]);
+  const [loadingChallenges, setLoadingChallenges] = useState(false);
+  const [showCreateChallengeModal, setShowCreateChallengeModal] = useState(false);
+  const [newChallengeTitle, setNewChallengeTitle] = useState('');
+  const [newChallengeDesc, setNewChallengeDesc] = useState('');
+  const [newChallengeType, setNewChallengeType] = useState<'study_hours' | 'notes_uploaded' | 'doubts_solved'>('study_hours');
+  const [newChallengeTarget, setNewChallengeTarget] = useState(5.0);
+  const [newChallengeXp, setNewChallengeXp] = useState(150);
+  const [newChallengeCoins, setNewChallengeCoins] = useState(50);
+  const [newChallengeDeadline, setNewChallengeDeadline] = useState('');
+  const [creatingChallenge, setCreatingChallenge] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  const fetchChallenges = async (gId: string) => {
+    try {
+      setLoadingChallenges(true);
+      const data = await apiRequest(`/groups/${gId}/challenges`);
+      setChallenges(data.challenges || []);
+    } catch (err) {
+      console.error('Error fetching challenges:', err);
+    } finally {
+      setLoadingChallenges(false);
+    }
+  };
+
+  const handleCreateChallenge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!group) return;
+    if (!newChallengeTitle.trim() || !newChallengeTarget) {
+      showToast('Title and target value are required.', 'error');
+      return;
+    }
+
+    setCreatingChallenge(true);
+    try {
+      await apiRequest(`/groups/${group.id}/challenges`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: newChallengeTitle.trim(),
+          description: newChallengeDesc.trim(),
+          targetType: newChallengeType,
+          targetValue: newChallengeTarget,
+          xpReward: newChallengeXp,
+          coinReward: newChallengeCoins,
+          deadline: newChallengeDeadline || undefined
+        })
+      });
+      showToast('Circle challenge created successfully!', 'success');
+      setShowCreateChallengeModal(false);
+      setNewChallengeTitle('');
+      setNewChallengeDesc('');
+      setNewChallengeTarget(5.0);
+      setNewChallengeXp(150);
+      setNewChallengeCoins(50);
+      setNewChallengeDeadline('');
+      fetchChallenges(group.id);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to create circle challenge.', 'error');
+    } finally {
+      setCreatingChallenge(false);
+    }
+  };
+
+  const handleClaimChallenge = async (challengeId: string) => {
+    if (!group) return;
+    try {
+      const data = await apiRequest(`/groups/${group.id}/challenges/${challengeId}/claim`, {
+        method: 'POST'
+      });
+      showToast(data.message || 'Successfully claimed challenge rewards!', 'success');
+      
+      setUserStats(prev => ({
+        ...prev,
+        xp: data.xp,
+        focusCoins: data.focusCoins,
+        level: data.level,
+        badges: data.badges
+      }));
+
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000);
+
+      fetchChallenges(group.id);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to claim challenge rewards.', 'error');
+    }
+  };
+
 
   // Gamification & User Stats State
   const [userStats, setUserStats] = useState({
@@ -284,6 +373,14 @@ export default function WorkspacePage() {
     level: 1,
     badges: '[]'
   });
+
+  const parsedBadges = (() => {
+    try {
+      return JSON.parse(userStats.badges || '[]');
+    } catch (e) {
+      return [];
+    }
+  })();
 
   // Today's Challenge State
   const [todayChallengeSolved, setTodayChallengeSolved] = useState(false);
@@ -686,7 +783,10 @@ export default function WorkspacePage() {
       const doubtsData = await apiRequest(`/doubts/group/${groupId}`);
       setDoubts(doubtsData.doubts || []);
 
+      
       const lbData = await apiRequest(`/progress/group/${groupId}/leaderboard`);
+      fetchChallenges(groupId);
+
       setLeaderboard(lbData.leaderboard || []);
 
       const logsData = await apiRequest(`/progress/group/${groupId}/logs`);
@@ -1161,6 +1261,14 @@ export default function WorkspacePage() {
         body: JSON.stringify({ content: newAnswerContent })
       });
       showToast('Answer posted!', 'success');
+      try {
+        await apiRequest('/progress/award-credits', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'help_doubts' })
+        });
+      } catch (creditsErr) {
+        console.error('Error awarding credits for doubt help:', creditsErr);
+      }
       setNewAnswerContent('');
       loadDoubtDetail(activeDoubt.id);
       if (group) loadExtraGroupData(group.id);
@@ -1353,6 +1461,7 @@ export default function WorkspacePage() {
             { id: 'sessions', title: 'Scheduled Calls', icon: Calendar },
             { id: 'doubts', title: 'Discussion Board', icon: MessageSquare },
             { id: 'resources', title: 'Curated Resources', icon: Bookmark },
+            { id: 'challenges', title: 'Circle Challenges', icon: Award },
             { id: 'leaderboard', title: 'Workspace Leaderboard', icon: Trophy }
           ].map((tab) => {
             const Icon = tab.icon;
@@ -2693,7 +2802,124 @@ export default function WorkspacePage() {
                 </div>
               </div>
             )}
-          </div>
+        
+            {/* T7: CHALLENGES */}
+            {activeTab === 'challenges' && (
+              <div className="space-y-6 animate-in fade-in duration-300 text-white">
+                <div className="flex justify-between items-center text-left">
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-350 flex items-center gap-2">
+                      <Award className="h-4.5 w-4.5 text-indigo-400" /> Circle Challenges & Quests
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-bold">Group competition and synergy driving placement readiness.</p>
+                  </div>
+
+                  {(currentUser?.role === 'mentor' || currentUser?.role === 'admin') && (
+                    <button
+                      onClick={() => setShowCreateChallengeModal(true)}
+                      className="px-3 py-1.5 bg-[#4F46E5] hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all flex items-center gap-1 cursor-pointer border-none"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>New Challenge</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  {challenges.length === 0 ? (
+                    <div className="text-center py-10 border border-dashed border-white/5 rounded-3xl bg-[#0B0F19]/25">
+                      <Award className="h-10 w-10 text-slate-600 mx-auto mb-2" />
+                      <span className="text-[11px] font-black text-slate-500 uppercase block">No active challenges</span>
+                      <span className="text-[9px] text-slate-655 block mt-0.5">Mentors have not published any group challenges for this circle yet.</span>
+                    </div>
+                  ) : (
+                    <div className="grid md:grid-cols-2 gap-4 text-left">
+                      {challenges.map((challenge) => {
+                        const percent = Math.min(100, Math.round((challenge.currentProgress / challenge.targetValue) * 100));
+                        const isCompleted = challenge.currentProgress >= challenge.targetValue;
+                        const isClaimed = parsedBadges.some((b: any) => b.id === `challenge_${challenge.id}`);
+                        
+                        return (
+                          <div 
+                            key={challenge.id} 
+                            className={`bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] border rounded-[24px] p-5 flex flex-col justify-between gap-4 transition-all duration-300 ${
+                              isClaimed 
+                                ? 'border-emerald-500/20 opacity-70' 
+                                : isCompleted
+                                  ? 'border-indigo-500/40 shadow-lg shadow-indigo-500/5 animate-pulse'
+                                  : 'border-white/5 hover:border-white/10'
+                            }`}
+                          >
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-start">
+                                <span className="text-[8px] font-black uppercase px-2.5 py-1 rounded-full border bg-indigo-500/15 border-indigo-400/20 text-indigo-400">
+                                  {challenge.targetType.replace('_', ' ')}
+                                </span>
+                                
+                                {isClaimed ? (
+                                  <span className="text-[8px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/15">
+                                    Claimed ✓
+                                  </span>
+                                ) : isCompleted ? (
+                                  <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-indigo-500 text-white animate-bounce">
+                                    Completed!
+                                  </span>
+                                ) : (
+                                  <span className="text-[8px] font-extrabold uppercase px-2 py-0.5 rounded bg-[#0B0F19] text-indigo-400 border border-white/5">
+                                    Active
+                                  </span>
+                                )}
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <h4 className="text-xs font-black text-white">{challenge.title}</h4>
+                                {challenge.description && (
+                                  <p className="text-[10px] text-slate-400 font-bold leading-normal">{challenge.description}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="space-y-2.5">
+                              {/* Progress bar */}
+                              <div className="space-y-1">
+                                <div className="flex justify-between items-center text-[9px] font-black text-slate-400">
+                                  <span>Progress</span>
+                                  <span>{challenge.currentProgress.toFixed(1)} / {challenge.targetValue} ({percent}%)</span>
+                                </div>
+                                <div className="w-full bg-[#0B0F19] h-2 rounded-full overflow-hidden p-0.5 border border-white/5">
+                                  <div 
+                                    className={`h-full rounded-full transition-all duration-500 ${isCompleted ? 'bg-gradient-to-r from-emerald-400 to-[#10B981]' : 'bg-indigo-500'}`} 
+                                    style={{ width: `${percent}%` }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Footer credits and claim */}
+                              <div className="flex justify-between items-center pt-2.5 border-t border-white/5">
+                                <div className="flex gap-2">
+                                  <span className="text-[9px] font-black text-indigo-400 uppercase">+{challenge.xpReward} XP</span>
+                                  <span className="text-[9px] font-black text-amber-500 uppercase">+{challenge.coinReward} ¢</span>
+                                </div>
+
+                                {isCompleted && !isClaimed && (
+                                  <button
+                                    onClick={() => handleClaimChallenge(challenge.id)}
+                                    className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg text-[9px] font-black shadow-md transition-all cursor-pointer border-none"
+                                  >
+                                    Claim Reward
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+  </div>
 
           {/* RIGHT SIDEBAR PANEL: ACHIEVEMENTS & MILESTONES (1/4) */}
           <aside className="space-y-6 text-left shrink-0">
@@ -2786,6 +3012,123 @@ export default function WorkspacePage() {
         </div>
       </div>
 
-    </div>
+    
+      {/* Create Challenge Modal */}
+      {showCreateChallengeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
+          <div className="max-w-md w-full bg-[#0B0F19] border border-white/10 rounded-3xl p-6 shadow-2xl space-y-5 text-left animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div>
+              <h3 className="text-sm font-black text-white uppercase tracking-wider">Publish Circle Challenge</h3>
+              <p className="text-[10px] text-slate-400 mt-1">Plan a custom group solving sprint. All members will contribute to this metric.</p>
+            </div>
+
+            <form onSubmit={handleCreateChallenge} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Title</label>
+                <input
+                  type="text"
+                  value={newChallengeTitle}
+                  onChange={(e) => setNewChallengeTitle(e.target.value)}
+                  placeholder="e.g. DSA Week Challenge"
+                  className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all font-semibold"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Description</label>
+                <textarea
+                  value={newChallengeDesc}
+                  onChange={(e) => setNewChallengeDesc(e.target.value)}
+                  placeholder="Describe details (e.g. solve 50 hours of desk time together)"
+                  rows={2}
+                  className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:border-indigo-500/50 outline-none transition-all font-semibold resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-450">Target Type</label>
+                  <select
+                    value={newChallengeType}
+                    onChange={(e) => setNewChallengeType(e.target.value as any)}
+                    className="w-full bg-[#070b19] border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                  >
+                    <option value="study_hours">Study Hours</option>
+                    <option value="notes_uploaded">Notes Uploaded</option>
+                    <option value="doubts_solved">Doubts Solved</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Target Goal Value</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={newChallengeTarget}
+                    onChange={(e) => setNewChallengeTarget(Number(e.target.value))}
+                    className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl px-3.5 py-2 text-xs text-white outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">XP Reward</label>
+                  <input
+                    type="number"
+                    value={newChallengeXp}
+                    onChange={(e) => setNewChallengeXp(Number(e.target.value))}
+                    className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl px-3.5 py-2 text-xs text-white outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Coins Reward</label>
+                  <input
+                    type="number"
+                    value={newChallengeCoins}
+                    onChange={(e) => setNewChallengeCoins(Number(e.target.value))}
+                    className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl px-3.5 py-2 text-xs text-white outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Deadline (Optional)</label>
+                <input
+                  type="date"
+                  value={newChallengeDeadline}
+                  onChange={(e) => setNewChallengeDeadline(e.target.value)}
+                  className="w-full bg-[#070b19] border border-white/5 rounded-xl px-3.5 py-2 text-xs text-white outline-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateChallengeModal(false)}
+                  className="flex-1 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] text-white border border-white/5 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingChallenge}
+                  className="flex-1 py-2.5 bg-[#4F46E5] hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer border-none"
+                >
+                  {creatingChallenge ? (
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <span>Create Quest</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+</div>
   );
 }

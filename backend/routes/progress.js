@@ -1,6 +1,12 @@
 const express = require('express');
-const { Progress, User, GroupMember, sequelize } = require('../models');
+const { Progress, User, GroupMember, Group, Doubt, SharedNote, sequelize } = require('../models');
 const { authMiddleware } = require('../middleware/auth');
+const authRoutes = require('./auth');
+const { Op } = require('sequelize');
+
+const getTodayISTString = authRoutes.getTodayISTString;
+const calculateLevel = authRoutes.calculateLevel;
+const getXpThresholdForLevel = authRoutes.getXpThresholdForLevel;
 
 const router = express.Router();
 
@@ -60,6 +66,20 @@ router.post('/log', authMiddleware, async (req, res) => {
     // Update study hours
     const hours = Number(studyMinutes) / 60.0;
     user.totalStudyHours = Number((user.totalStudyHours + hours).toFixed(2));
+
+    // Update active circle challenges of type study_hours
+    try {
+      const { Challenge } = require('../models');
+      const activeChallenges = await Challenge.findAll({
+        where: { groupId, targetType: 'study_hours', status: 'active' }
+      });
+      for (const challenge of activeChallenges) {
+        challenge.currentProgress = Number(((challenge.currentProgress || 0) + hours).toFixed(2));
+        await challenge.save();
+      }
+    } catch (challengeErr) {
+      console.error('Failed to update challenges on progress log:', challengeErr);
+    }
 
     // Simple streak logic: increment streak
     user.streakCount = (user.streakCount || 0) + 1;
@@ -142,6 +162,67 @@ router.get('/group/:groupId/logs', authMiddleware, async (req, res) => {
   }
 });
 
+// Helper: award XP and Coins with Daily Limit enforcement
+const awardUserXpAndCoins = async (user, xpToAward, coinsToAward) => {
+  const DAILY_XP_LIMIT = 500;
+  const remainingXpCapacity = Math.max(0, DAILY_XP_LIMIT - (user.dailyXpEarned || 0));
+  const actualXpAwarded = Math.min(xpToAward, remainingXpCapacity);
+  
+  user.dailyXpEarned = (user.dailyXpEarned || 0) + actualXpAwarded;
+  user.xp = (user.xp || 0) + actualXpAwarded;
+  user.focusCoins = (user.focusCoins || 0) + coinsToAward;
+  
+  const oldLevel = user.level || 1;
+  const newLevel = calculateLevel(user.xp);
+  let leveledUp = false;
+  if (newLevel > oldLevel) {
+    user.level = newLevel;
+    leveledUp = true;
+  }
+  
+  await user.save();
+  return { actualXpAwarded, leveledUp };
+};
+
+// Helper: check and award daily/milestone streak badges
+const checkAndAwardStreakBadges = (user) => {
+  let badges = [];
+  try {
+    badges = JSON.parse(user.badges || '[]');
+  } catch (e) {
+    badges = [];
+  }
+  
+  let awarded = false;
+  const streak = user.streakCount || 0;
+  const todayIST = getTodayISTString();
+  
+  const addBadge = (badgeId, badgeName) => {
+    if (!badges.some(b => b.id === badgeId)) {
+      badges.push({ id: badgeId, earnedAt: todayIST, name: badgeName });
+      awarded = true;
+    }
+  };
+  
+  if (streak >= 3) {
+    addBadge('bronze_streak', 'Bronze Streak Badge (3 Days)');
+  }
+  if (streak >= 7) {
+    addBadge('silver_streak', 'Silver Streak Badge (7 Days)');
+  }
+  if (streak >= 30) {
+    addBadge('gold_streak', 'Gold Streak Badge (30 Days)');
+  }
+  if (streak >= 100) {
+    addBadge('diamond_streak', 'Diamond Streak Badge (100 Days)');
+  }
+  
+  if (awarded) {
+    user.badges = JSON.stringify(badges);
+  }
+  return awarded;
+};
+
 // Claim Daily Mission Reward
 router.post('/claim-mission', authMiddleware, async (req, res) => {
   try {
@@ -155,26 +236,15 @@ router.post('/claim-mission', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'User not found.' });
     }
 
-    // Update XP and Coins
-    user.xp = (user.xp || 0) + Number(xpReward || 50);
-    user.focusCoins = (user.focusCoins || 0) + Number(coinReward || 20);
-
-    // Calculate level up: 100 XP per level
-    const newLevel = Math.floor(user.xp / 100) + 1;
-    let leveledUp = false;
-    if (newLevel > user.level) {
-      user.level = newLevel;
-      leveledUp = true;
-    }
-
-    await user.save();
+    const { actualXpAwarded, leveledUp } = await awardUserXpAndCoins(user, Number(xpReward || 50), Number(coinReward || 20));
 
     return res.json({
       message: `Mission '${missionId}' claimed!`,
       xp: user.xp,
       focusCoins: user.focusCoins,
       level: user.level,
-      leveledUp
+      leveledUp,
+      actualXpAwarded
     });
   } catch (err) {
     console.error(err);
@@ -182,7 +252,7 @@ router.post('/claim-mission', authMiddleware, async (req, res) => {
   }
 });
 
-// Purchase Custom Themes / Avatars / Badges
+// Purchase Custom Themes / Avatars / Badges (Coins Marketplace)
 router.post('/purchase-reward', authMiddleware, async (req, res) => {
   try {
     const { rewardId, cost, type, value } = req.body;
@@ -201,24 +271,28 @@ router.post('/purchase-reward', authMiddleware, async (req, res) => {
 
     user.focusCoins -= cost;
 
-    // If type is a badge, add it to badges array
-    if (type === 'badge') {
-      let currentBadges = [];
-      try {
-        currentBadges = JSON.parse(user.badges || '[]');
-      } catch (e) {
-        currentBadges = [];
-      }
-      if (!currentBadges.includes(value)) {
-        currentBadges.push(value);
-        user.badges = JSON.stringify(currentBadges);
-      }
+    // Save as future-proof badge object: { id, earnedAt, name }
+    let currentBadges = [];
+    try {
+      currentBadges = JSON.parse(user.badges || '[]');
+    } catch (e) {
+      currentBadges = [];
+    }
+
+    const todayIST = getTodayISTString();
+    if (!currentBadges.some(b => b.id === rewardId)) {
+      currentBadges.push({
+        id: rewardId,
+        earnedAt: todayIST,
+        name: value
+      });
+      user.badges = JSON.stringify(currentBadges);
     }
 
     await user.save();
 
     return res.json({
-      message: `Successfully unlocked ${rewardId}!`,
+      message: `Successfully unlocked ${value}!`,
       focusCoins: user.focusCoins,
       badges: user.badges
     });
@@ -238,17 +312,7 @@ router.post('/complete-practice', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'User not found.' });
     }
 
-    // Update XP and Coins
-    user.xp = (user.xp || 0) + Number(xpReward);
-    user.focusCoins = (user.focusCoins || 0) + Number(coinReward);
-
-    // Dynamic level calculation: 100 XP per level
-    const newLevel = Math.floor(user.xp / 100) + 1;
-    let leveledUp = false;
-    if (newLevel > user.level) {
-      user.level = newLevel;
-      leveledUp = true;
-    }
+    const { actualXpAwarded, leveledUp } = await awardUserXpAndCoins(user, Number(xpReward), Number(coinReward));
 
     // Streak logic: Ensure user has at least 1 day streak upon active solving
     if (!user.streakCount || user.streakCount === 0) {
@@ -256,6 +320,9 @@ router.post('/complete-practice', authMiddleware, async (req, res) => {
     } else {
       user.streakCount += 1;
     }
+
+    // Check and award badges
+    const badgesUpdated = checkAndAwardStreakBadges(user);
 
     await user.save();
 
@@ -265,11 +332,169 @@ router.post('/complete-practice', authMiddleware, async (req, res) => {
       focusCoins: user.focusCoins,
       level: user.level,
       streakCount: user.streakCount,
-      leveledUp
+      leveledUp,
+      actualXpAwarded,
+      badges: user.badges
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error saving practice progress.' });
+  }
+});
+
+// Award credits for client action events with anti-abuse limits/cooldowns
+router.post('/award-credits', authMiddleware, async (req, res) => {
+  try {
+    const { action } = req.body;
+    if (!action) {
+      return res.status(400).json({ error: 'Action parameter is required.' });
+    }
+
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    let coinsToAward = 0;
+    let xpToAward = 0;
+    let message = '';
+
+    if (action === 'join_session') {
+      // 30-minute anti-abuse cooldown check
+      if (user.lastSessionXpAwardedAt) {
+        const timeSinceAward = Date.now() - new Date(user.lastSessionXpAwardedAt).getTime();
+        const thirtyMinutes = 30 * 60 * 1000;
+        if (timeSinceAward < thirtyMinutes) {
+          return res.json({
+            message: 'Session rewards on cooldown (30 minutes max frequency).',
+            cooldownRemaining: Math.ceil((thirtyMinutes - timeSinceAward) / 60000),
+            focusCoins: user.focusCoins,
+            xp: user.xp,
+            level: user.level,
+            leveledUp: false,
+            actualXpAwarded: 0
+          });
+        }
+      }
+      coinsToAward = 10;
+      xpToAward = 10;
+      user.lastSessionXpAwardedAt = new Date();
+      message = 'Earned study credits for joining session!';
+    } else if (action === 'upload_notes') {
+      coinsToAward = 20;
+      xpToAward = 20;
+      message = 'Earned study credits for sharing study notes!';
+    } else if (action === 'help_doubts') {
+      coinsToAward = 30;
+      xpToAward = 30;
+      message = 'Earned study credits for helping resolve a doubt!';
+    } else if (action === 'daily_login') {
+      coinsToAward = 5;
+      xpToAward = 5;
+      message = 'Daily login bonus awarded!';
+    } else {
+      return res.status(400).json({ error: 'Invalid credit award action.' });
+    }
+
+    const { actualXpAwarded, leveledUp } = await awardUserXpAndCoins(user, xpToAward, coinsToAward);
+
+    return res.json({
+      message,
+      focusCoins: user.focusCoins,
+      xp: user.xp,
+      level: user.level,
+      leveledUp,
+      actualXpAwarded
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error awarding credits.' });
+  }
+});
+
+// GET /api/progress/global-leaderboards (Dynamically queries the DB to avoid stale stored values)
+router.get('/global-leaderboards', authMiddleware, async (req, res) => {
+  try {
+    const topLearners = await User.findAll({
+      where: { role: 'student' },
+      attributes: ['id', 'fullName', 'username', 'avatarUrl', 'gender', 'totalStudyHours', 'streakCount', 'level'],
+      order: [['totalStudyHours', 'DESC']],
+      limit: 10
+    });
+
+    const topMentors = await User.findAll({
+      where: { role: { [Op.or]: ['mentor', 'admin'] } },
+      attributes: ['id', 'fullName', 'username', 'avatarUrl', 'gender', 'xp', 'totalStudyHours'],
+      order: [['xp', 'DESC']],
+      limit: 10
+    });
+
+    const helpfulNotes = await SharedNote.findAll({
+      attributes: ['id', 'name', 'size', 'type', 'publishedBy', 'createdAt'],
+      limit: 10
+    });
+
+    const topDoubts = await Doubt.findAll({
+      attributes: ['id', 'title', 'upvotes', 'isSolved'],
+      include: [{ model: User, as: 'Author', attributes: ['fullName', 'username'] }],
+      order: [['upvotes', 'DESC']],
+      limit: 10
+    });
+
+    const activeRooms = await Group.findAll({
+      attributes: ['id', 'name', 'description', 'subject', 'isPublic', 'inviteCode'],
+      include: [{
+        model: GroupMember,
+        attributes: ['id']
+      }],
+      limit: 10
+    });
+
+    const formattedRooms = activeRooms.map(room => {
+      return {
+        id: room.id,
+        name: room.name,
+        description: room.description,
+        subject: room.subject,
+        isPublic: room.isPublic,
+        inviteCode: room.inviteCode,
+        memberCount: room.GroupMembers ? room.GroupMembers.length : 0
+      };
+    }).sort((a, b) => b.memberCount - a.memberCount);
+
+    return res.json({
+      learners: topLearners,
+      mentors: topMentors,
+      notes: helpfulNotes,
+      doubts: topDoubts,
+      rooms: formattedRooms
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error retrieving global leaderboards.' });
+  }
+});
+
+// POST /api/progress/update-missions
+router.post('/update-missions', authMiddleware, async (req, res) => {
+  try {
+    const { dailyMissions } = req.body;
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    user.dailyMissions = dailyMissions;
+    await user.save();
+    return res.json({
+      message: 'Missions updated successfully.',
+      user: {
+        id: user.id,
+        dailyMissions: user.dailyMissions
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error updating missions.' });
   }
 });
 

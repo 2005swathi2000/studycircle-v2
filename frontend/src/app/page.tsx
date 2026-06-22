@@ -6,6 +6,8 @@ import { GoogleLogin } from '@react-oauth/google';
 import { apiRequest } from './utils/api';
 import { useApp } from './context/AppContext';
 import { useToast } from './components/ToastProvider';
+import OpeningBook from './components/OpeningBook';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowRight, 
   Check, 
@@ -40,7 +42,9 @@ import {
   Moon,
   Edit3,
   Play,
-  MessageSquare
+  MessageSquare,
+  Flame,
+  Trophy
 } from 'lucide-react';
 
 const COLLEGES = [
@@ -73,6 +77,57 @@ function getTimeGreeting(): { label: string; icon: 'sun' | 'sunset' | 'moon' } {
 export default function Home() {
   const router = useRouter();
   const { showToast } = useToast();
+  const [showBook, setShowBook] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Animated counters state
+  const [sessionsCount, setSessionsCount] = useState(0);
+  const [hoursCount, setHoursCount] = useState(0);
+  const [studentsCount, setStudentsCount] = useState(0);
+  const [groupsCount, setGroupsCount] = useState(0);
+
+  // Onboarding goals checklist state
+  const [onboardingTasks, setOnboardingTasks] = useState([true, false, false, false]);
+  const getProgressPercentage = () => {
+    const checkedCount = onboardingTasks.filter(Boolean).length;
+    return Math.round((checkedCount / onboardingTasks.length) * 100);
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const alreadyOpened = sessionStorage.getItem('studycircle_book_opened');
+      if (alreadyOpened === 'true') {
+        setShowBook(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (showBook) return;
+    // Count up animation ticker
+    const duration = 1500; // 1.5s
+    const steps = 30;
+    const interval = duration / steps;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      setSessionsCount(Math.min(500, Math.floor((500 / steps) * step)));
+      setHoursCount(Math.min(1000, Math.floor((1000 / steps) * step)));
+      setStudentsCount(Math.min(100, Math.floor((100 / steps) * step)));
+      setGroupsCount(Math.min(50, Math.floor((50 / steps) * step)));
+      if (step >= steps) clearInterval(timer);
+    }, interval);
+    return () => clearInterval(timer);
+  }, [showBook]);
+
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [shouldHideContent, setShouldHideContent] = useState(false);
 
@@ -179,7 +234,11 @@ export default function Home() {
   const [lastSentAdminEmail, setLastSentAdminEmail] = useState('');
   const [lastSentForgotUser, setLastSentForgotUser] = useState('');
   
-  const [showGoogleMockModal, setShowGoogleMockModal] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleStep, setGoogleStep] = useState<'picker' | 'consent'>('picker');
+  const [googleSelectedUser, setGoogleSelectedUser] = useState<{ email: string, name: string, picture?: string, gender?: string, credential?: string } | null>(null);
+  const [googleTermsAccepted, setGoogleTermsAccepted] = useState(false);
+  const [googlePrivacyAccepted, setGooglePrivacyAccepted] = useState(false);
   const [googleMockCustomName, setGoogleMockCustomName] = useState('');
   const [googleMockCustomEmail, setGoogleMockCustomEmail] = useState('');
   const [googleMockCustomGender, setGoogleMockCustomGender] = useState('female');
@@ -196,6 +255,12 @@ export default function Home() {
     const greetInterval = setInterval(() => setGreeting(getTimeGreeting()), 60_000);
     return () => clearInterval(greetInterval);
   }, []);
+
+  const GreetingIcon = () => {
+    if (greeting.icon === 'sun') return <Sun className="h-5 w-5 text-amber-500" />;
+    if (greeting.icon === 'sunset') return <Sunset className="h-5 w-5 text-orange-500" />;
+    return <Moon className="h-5 w-5 text-indigo-500" />;
+  };
 
   // ─────────────────────────────────────────────
   // BUG FIX #3 — Profile Edit modal state
@@ -681,21 +746,78 @@ export default function Home() {
     }
   };
 
-  // Google Sign-In Success Handler
-  const handleGoogleSuccess = async (credential: string | undefined) => {
+  // Helper to decode real Google JWT tokens
+  const decodeJwt = (token: string) => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      console.error("Failed to decode JWT:", e);
+      return null;
+    }
+  };
+
+  // Google Sign-In Success Initiator
+  const handleGoogleInitiate = (credential: string | undefined) => {
     if (!credential) {
       showToast('Google credential token is missing.', 'error');
       return;
     }
+
+    let email = '';
+    let name = '';
+    let gender = 'other';
+    let picture = '';
+
+    if (credential.startsWith('mock_google_credential_token')) {
+      const parts = credential.split(':');
+      email = parts[1] || 'student.demo@studycircle.com';
+      name = parts[2] || 'Vijay Kumar';
+      gender = parts[3] || 'male';
+      picture = gender === 'female' ? '/swathi-avatar.png' : gender === 'male' ? '/charan-avatar.png' : '';
+    } else {
+      // Decode real Google ID Token
+      const decoded = decodeJwt(credential);
+      if (!decoded) {
+        showToast('Failed to parse Google account information.', 'error');
+        return;
+      }
+      email = decoded.email || '';
+      name = decoded.name || '';
+      picture = decoded.picture || '';
+      gender = decoded.gender || 'other';
+    }
+
+    setGoogleSelectedUser({ email, name, picture, gender, credential });
+    setGoogleStep('consent');
+    setGoogleTermsAccepted(false);
+    setGooglePrivacyAccepted(false);
+    setShowGoogleModal(true);
+    setShowAuthModal(false);
+  };
+
+  // Perform Google Register/Login on Consent Submit
+  const handleGoogleConsentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!googleSelectedUser) return;
+    if (!googleTermsAccepted || !googlePrivacyAccepted) {
+      showToast('You must accept the Terms of Service and Privacy Policy to continue.', 'error');
+      return;
+    }
+
     setFormLoading(true);
     try {
       const data = await apiRequest('/auth/google', {
         method: 'POST',
-        body: JSON.stringify({ credential })
+        body: JSON.stringify({ credential: googleSelectedUser.credential })
       });
       setCurrentUser(data.user, data.token);
       showToast('Welcome to StudyCircle, ' + data.user.fullName + '!', 'success');
-      setShowAuthModal(false);
+      setShowGoogleModal(false);
       router.push('/dashboard');
     } catch (err: any) {
       showToast(err.message || 'Google Login failed.', 'error');
@@ -802,45 +924,99 @@ export default function Home() {
 
   // Scroll helper
   const scrollToSection = (id: string) => {
+    if (id === 'hero-section') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     const el = document.getElementById(id);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
+      const navbarHeight = 64; // header height is h-16 = 64px
+      const elementPosition = el.getBoundingClientRect().top + window.scrollY;
+      const offsetPosition = elementPosition - navbarHeight;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     }
   };
 
-  // ─────────────────────────────────────────────
-  // BUG FIX #1 — No separate `loading` state
-  // Show spinner while globalLoading is true.
-  // This avoids the double-render glitch.
-  // ─────────────────────────────────────────────
-  if (globalLoading) {
-    return (
-      <div className="min-h-screen bg-[#FAFCFB] flex items-center justify-center">
-        <RefreshCw className="h-8 w-8 text-[#0E3E31] animate-spin" />
-      </div>
-    );
-  }
-
-  // Greeting icon component
-  const GreetingIcon = () => {
-    const size = "h-4 w-4";
-    if (greeting.icon === 'sun') return <Sun className={`${size} text-amber-500`} />;
-    if (greeting.icon === 'sunset') return <Sunset className={`${size} text-orange-500`} />;
-    return <Moon className={`${size} text-[#0E3E31]`} />;
-  };
-
   return (
-    <div className="min-h-screen bg-[#FAFCFB] text-slate-850 flex flex-col relative overflow-hidden font-sans antialiased">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col relative overflow-hidden font-sans antialiased">
       
+      <AnimatePresence>
+        {showBook && (
+          <OpeningBook onComplete={() => {
+            setShowBook(false);
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('studycircle_book_opened', 'true');
+            }
+          }} />
+        )}
+      </AnimatePresence>
+      
+      {/* 🔮 Background Ambient Glows & Floating Objects */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
+        <div className="absolute top-[20%] left-[-10%] w-[500px] h-[500px] bg-[#4F46E5]/5 rounded-full blur-[120px]" />
+        <div className="absolute top-[50%] right-[-10%] w-[600px] h-[600px] bg-[#6366F1]/5 rounded-full blur-[140px]" />
+        <div className="absolute bottom-[10%] left-[20%] w-[450px] h-[450px] bg-[#22C55E]/5 rounded-full blur-[100px]" />
+
+        {/* Floating Framer Motion Elements */}
+        <AnimatePresence>
+          {!showBook && (
+            <>
+              {/* Floating Book */}
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 0.25, y: [0, -25, 0], rotate: [0, 8, 0] }}
+                transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+                className="absolute top-[25%] left-[8%] hidden lg:block text-[#4F46E5]"
+              >
+                <BookOpen className="h-14 w-14 stroke-[1.2]" />
+              </motion.div>
+
+              {/* Floating Graduation Cap */}
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 0.2, y: [0, -30, 0], rotate: [0, -12, 0] }}
+                transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+                className="absolute top-[35%] right-[10%] hidden lg:block text-[#6366F1]"
+              >
+                <GraduationCap className="h-16 w-16 stroke-[1.2]" />
+              </motion.div>
+
+              {/* Floating Streak Flame */}
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 0.25, y: [0, -20, 0], rotate: [0, 10, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+                className="absolute bottom-[30%] left-[12%] hidden lg:block text-orange-400"
+              >
+                <Flame className="h-12 w-12 fill-orange-400/10 stroke-[1.5]" />
+              </motion.div>
+
+              {/* Floating Award Trophy */}
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 0.2, y: [0, -25, 0], rotate: [0, -8, 0] }}
+                transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+                className="absolute bottom-[20%] right-[15%] hidden lg:block text-amber-500"
+              >
+                <Trophy className="h-14 w-14 stroke-[1.2]" />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+
       {/* 🔔 Sliding Email Notification Banner */}
       {false && isDevMode && activeNotification && (
-        <div className="fixed top-20 right-6 z-[10000] max-w-sm w-full bg-white/95 border border-slate-200 rounded-2xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 duration-300 pointer-events-auto flex items-start gap-3.5">
-          <div className="h-9 w-9 rounded-full bg-[#E6F2ED] border border-[#0E3E31]/20 text-[#0E3E31] flex items-center justify-center shrink-0 animate-bounce">
+        <div className="fixed top-24 right-6 z-[10000] max-w-sm w-full bg-white/90 border border-slate-200/80 rounded-2xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 duration-300 pointer-events-auto flex items-start gap-3.5">
+          <div className="h-9 w-9 rounded-full bg-indigo-50 border border-indigo-150 text-[#4F46E5] flex items-center justify-center shrink-0 animate-bounce">
             <Bell className="h-4 w-4" />
           </div>
           <div className="flex-1 space-y-1">
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-black uppercase text-[#0E3E31]">New Email Received</span>
+              <span className="text-[10px] font-black uppercase text-[#4F46E5]">New Email Received</span>
               <button 
                 onClick={() => setActiveNotification(null)}
                 className="text-slate-400 hover:text-slate-900 transition-colors cursor-pointer text-xs"
@@ -848,85 +1024,91 @@ export default function Home() {
                 ✕
               </button>
             </div>
-            <h4 className="text-xs font-black text-slate-900">{activeNotification.subject}</h4>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">
-              To: <span className="text-[#0E3E31]">{activeNotification.to}</span>
+            <h4 className="text-xs font-black text-[#0F172A]">{activeNotification.subject}</h4>
+            <p className="text-[10px] text-[#475569] leading-relaxed font-semibold">
+              To: <span className="text-[#4F46E5]">{activeNotification.to}</span>
             </p>
             <div className="p-2 bg-slate-50 border border-slate-200/60 rounded-xl mt-1.5 flex items-center justify-between gap-2">
-              <span className="text-[10px] font-mono text-slate-650">OTP Code: <strong className="text-rose-600 font-extrabold">{activeNotification.otp}</strong></span>
-              <span className="text-[9px] font-extrabold uppercase bg-emerald-50/80 border border-emerald-200 text-emerald-600 px-2 py-0.5 rounded">Auto Filled</span>
+              <span className="text-[10px] font-mono text-slate-650 font-bold">OTP Code: <strong className="text-indigo-650 font-extrabold">{activeNotification.otp}</strong></span>
+              <span className="text-[9px] font-extrabold uppercase bg-emerald-50 border border-emerald-200 text-emerald-600 px-2 py-0.5 rounded">Auto Filled</span>
             </div>
           </div>
         </div>
       )}
       
-      {/* 1. Header Navbar */}
-      <header className="w-full bg-white/90 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50 transition-all duration-300 shadow-sm shadow-slate-100/30">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => router.push('/')}>
+      {/* 1. Glassmorphism Sticky Navbar */}
+      <header className={`w-full fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b ${
+        isScrolled 
+          ? 'bg-white/80 backdrop-blur-md border-slate-200/50 shadow-sm shadow-slate-100/50 py-3.5' 
+          : 'bg-transparent border-transparent py-5'
+      }`}>
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => router.push('/')}>
             <div className="relative h-10 w-10 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-300">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#0E3E31] via-[#D5EAE2] to-[#F59E0B] opacity-90 shadow-[0_0_15px_rgba(14,62,49,0.15)] animate-pulse" />
-              <div className="absolute inset-[3px] rounded-full bg-white flex items-center justify-center font-bold">
-                <BookOpen className="h-4.5 w-4.5 text-[#0E3E31] group-hover:rotate-12 transition-transform duration-300" />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-[#4F46E5] to-[#6366F1] opacity-90 shadow-[0_4px_15px_rgba(79,70,229,0.25)]" />
+              <div className="absolute inset-[2px] rounded-lg bg-white flex items-center justify-center font-bold">
+                <BookOpen className="h-4.5 w-4.5 text-[#4F46E5] group-hover:rotate-12 transition-transform duration-300" />
               </div>
             </div>
-            <span className="font-black text-lg tracking-tight text-[#0E3E31] font-sans">
+            <span className="font-black text-xl tracking-tight text-[#0F172A] font-sans">
               StudyCircle
             </span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-xs font-bold text-slate-600 tracking-wider">
-            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="relative hover:text-[#0E3E31] transition-colors cursor-pointer py-1 group">
-              Home
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0E3E31] transition-all group-hover:w-full" />
-            </button>
-            <button onClick={() => scrollToSection('features-section')} className="relative hover:text-[#0E3E31] transition-colors cursor-pointer py-1 group">
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center gap-8 text-xs font-black uppercase text-[#475569] tracking-widest">
+            <button onClick={() => scrollToSection('features-section')} className="relative hover:text-[#4F46E5] transition-colors cursor-pointer py-1 group border-none bg-transparent">
               Features
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0E3E31] transition-all group-hover:w-full" />
+              <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-[#4F46E5] transition-all group-hover:w-full" />
             </button>
-            <button onClick={() => scrollToSection('lobby-section')} className="relative hover:text-[#0E3E31] transition-colors cursor-pointer py-1 group">
-              Explore
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0E3E31] transition-all group-hover:w-full" />
+            <button onClick={() => scrollToSection('gamification-section')} className="relative hover:text-[#4F46E5] transition-colors cursor-pointer py-1 group border-none bg-transparent">
+              Rewards
+              <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-[#4F46E5] transition-all group-hover:w-full" />
             </button>
-            <button onClick={() => scrollToSection('about-section')} className="relative hover:text-[#0E3E31] transition-colors cursor-pointer py-1 group">
-              How it Works
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0E3E31] transition-all group-hover:w-full" />
+            <button onClick={() => scrollToSection('journey-section')} className="relative hover:text-[#4F46E5] transition-colors cursor-pointer py-1 group border-none bg-transparent">
+              How it works
+              <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-[#4F46E5] transition-all group-hover:w-full" />
             </button>
-            <button onClick={() => scrollToSection('faq-section')} className="relative hover:text-[#0E3E31] transition-colors cursor-pointer py-1 group">
-              About Us
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0E3E31] transition-all group-hover:w-full" />
+            <button onClick={() => scrollToSection('roadmap-section')} className="relative hover:text-[#4F46E5] transition-colors cursor-pointer py-1 group border-none bg-transparent">
+              Roadmap
+              <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-[#4F46E5] transition-all group-hover:w-full" />
+            </button>
+            <button onClick={() => scrollToSection('team-section')} className="relative hover:text-[#4F46E5] transition-colors cursor-pointer py-1 group border-none bg-transparent">
+              Team
+              <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-[#4F46E5] transition-all group-hover:w-full" />
             </button>
           </nav>
 
+          {/* CTAs */}
           <div className="flex items-center gap-4">
             {currentUser ? (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowProfileEdit(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 hover:border-[#0E3E31]/40 hover:bg-slate-50 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                  title="Edit Profile"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow"
                 >
                   <Edit3 className="h-3.5 w-3.5 text-slate-500" />
-                  <span className="hidden sm:inline">Edit Profile</span>
+                  <span className="hidden sm:inline font-bold">Edit Profile</span>
                 </button>
                 <button 
                   onClick={() => router.push('/dashboard')}
-                  className="px-4 py-2 bg-[#0E3E31] hover:bg-[#0B3026] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-[#0E3E31]/10 cursor-pointer"
+                  className="px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-lg shadow-[#4F46E5]/20 cursor-pointer border-none"
                 >
-                  Dashboard <ChevronRight className="h-3.5 w-3.5" />
+                  Dashboard <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             ) : (
               <>
                 <button 
                   onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
-                  className="px-4 py-2 border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-bold transition-all cursor-pointer rounded-xl hover:bg-slate-50"
+                  className="px-4.5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-[#475569] hover:text-[#0F172A] text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-sm hover:shadow"
                 >
                   Log in
                 </button>
                 <button 
                   onClick={() => router.push('/register')}
-                  className="px-4 py-2 bg-[#0E3E31] hover:bg-[#0B3026] text-white rounded-xl text-xs font-bold shadow-md shadow-[#0E3E31]/10 transition-all cursor-pointer"
+                  className="px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-[#4F46E5]/25 transition-all cursor-pointer border-none"
                 >
                   Get Started
                 </button>
@@ -937,607 +1119,497 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 w-full flex flex-col bg-[#FAFCFB]">
+      <main className="flex-1 w-full flex flex-col pt-24 z-10 relative">
 
         {/* ── Time-based greeting banner (visible when logged in) ── */}
         {currentUser && (
-          <div className="w-full bg-[#E6F2ED] border-b border-[#0E3E31]/10 py-3">
+          <div className="w-full bg-[#EBF5F1] border-b border-[#22C55E]/10 py-3 mb-4">
             <div className="max-w-7xl mx-auto px-6 flex items-center gap-2.5">
               <GreetingIcon />
-              <span className="text-sm font-extrabold text-slate-800">{greeting.label}, {currentUser.firstName || currentUser.fullName}!</span>
-              <span className="text-xs text-slate-650 font-medium hidden sm:inline">— Ready to study today?</span>
+              <span className="text-sm font-extrabold text-[#0F172A]">{greeting.label}, {currentUser.firstName || currentUser.fullName}!</span>
+              <span className="text-xs text-[#475569] font-medium hidden sm:inline">— Ready to achieve your goals today?</span>
             </div>
           </div>
         )}
-
-        {/* ── Time-based greeting also in My Learning Space section ── */}
-        {currentUser && (
-          <section className="bg-white border-b border-slate-100 py-6">
-            <div className="max-w-7xl mx-auto px-6">
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#0E3E31] mb-1">
-                    <Sparkles className="h-3 w-3" />
-                    My Learning Space
-                  </div>
-                  <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                    <GreetingIcon />
-                    {greeting.label}, {currentUser.firstName || currentUser.fullName}!
-                  </h2>
-                  <p className="text-xs text-slate-500 font-medium">Here's your study overview for today.</p>
-                </div>
-                <button
-                  onClick={() => setShowProfileEdit(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 hover:border-[#0E3E31]/40 hover:bg-slate-50 text-slate-600 hover:text-slate-800 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                >
-                  <Edit3 className="h-3.5 w-3.5" />
-                  Edit Profile
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
         
         {/* 2. Hero Section */}
-        <section className="bg-[#FAFCFB] relative overflow-hidden pt-12 pb-16">
-          <style>{`
-            @keyframes bounce-subtle {
-              0%, 100% { transform: translateY(0); }
-              50% { transform: translateY(-8px); }
-            }
-            .animate-bounce-subtle {
-              animation: bounce-subtle 4s ease-in-out infinite;
-            }
-          `}</style>
-
-          <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-12 gap-12 items-center text-left relative z-10">
+        <section className="relative overflow-hidden pt-8 pb-20">
+          <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-12 items-center text-left relative z-10">
             {/* Left Content Column */}
-            <div className="md:col-span-6 space-y-6 md:pr-4">
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-[#E6F2ED] text-[#0E3E31] rounded-full text-[10px] font-black uppercase tracking-widest border border-[#E6F2ED]">
-                <Sparkles className="h-3 w-3 text-[#0E3E31]" /> A collaborative learning workspace for every student
+            <div className="lg:col-span-6 space-y-6 lg:pr-4">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-indigo-50 border border-indigo-100/50 text-[#4F46E5] rounded-full text-[10px] font-black uppercase tracking-widest">
+                <Sparkles className="h-3.5 w-3.5 text-[#4F46E5]" /> A premium learning workspace for degree & engineering students
               </div>
               
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#1A2530] tracking-tight leading-[1.12]">
-                Study together. <br />
-                <span className="text-[#0E3E31]">Achieve together.</span>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#0F172A] tracking-tight leading-[1.08]">
+                Study Better <br />
+                <span className="text-[#4F46E5] bg-gradient-to-r from-[#4F46E5] to-[#6366F1] bg-clip-text text-transparent">Together.</span>
               </h1>
               
-              <p className="text-xs md:text-sm text-slate-550 leading-relaxed font-bold max-w-lg">
-                Join study rooms, share notes, solve doubts, schedule sessions and track your progress — all in one place.
+              <p className="text-xs md:text-sm text-[#475569] leading-relaxed font-bold max-w-lg">
+                Build consistency, join live study sessions, collaborate on notes, and achieve academic success with accountability. Designed for campus communities in Andhra Pradesh & Telangana.
               </p>
               
               <div className="flex flex-wrap items-center gap-4 pt-2">
                 <button
                   onClick={() => router.push('/register')}
-                  className="px-6 py-3.5 bg-[#0E3E31] hover:bg-[#0B3026] text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg shadow-[#0E3E31]/10 flex items-center gap-2 transition-all cursor-pointer hover:-translate-y-0.5"
+                  className="px-7 py-4 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-xl shadow-[#4F46E5]/20 flex items-center gap-2 transition-all cursor-pointer border-none hover:-translate-y-0.5"
                 >
                   Get Started — It's Free <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => scrollToSection('features-section')}
-                  className="px-6 py-3.5 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-2 transition-all cursor-pointer hover:-translate-y-0.5"
+                  className="px-7 py-4 bg-white hover:bg-slate-50 border border-slate-200 text-[#475569] text-xs font-black uppercase tracking-widest rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm hover:-translate-y-0.5"
                 >
-                  Explore Features <Play className="h-3 w-3 text-[#0E3E31] fill-[#0E3E31]" />
+                  Explore Features <Play className="h-3 w-3 text-[#4F46E5] fill-[#4F46E5]" />
                 </button>
               </div>
 
-              {/* Loved by stack */}
-              <div className="flex items-center gap-3 pt-4 select-none">
-                <div className="flex -space-x-2.5 overflow-hidden">
-                  {['/charan-avatar.png', '/karthik-avatar.png', '/bhagya-avatar.png', '/rathna-avatar.png', '/swathi-avatar.png'].map((src, i) => (
-                    <img 
-                      key={i} 
-                      className="inline-block h-8.5 w-8.5 rounded-full ring-2 ring-white object-cover object-center bg-slate-100" 
-                      src={src} 
-                      alt="Student user avatar" 
-                    />
-                  ))}
-                </div>
-                
-                {/* Hand drawn curvy arrow */}
-                <svg className="w-10 h-6 text-slate-400 stroke-current fill-none shrink-0" viewBox="0 0 50 24">
-                  <path d="M2,2 C12,18 28,18 42,6" strokeWidth="2" strokeDasharray="3,3" />
-                  <path d="M36,5 L44,5 L42,12" strokeWidth="2" />
-                </svg>
-
-                <div className="text-left leading-tight">
-                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-wide">Loved by 10,000+</div>
-                  <div className="text-[10px] font-bold text-slate-400">students across India</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Mockup Model Column */}
-            <div className="md:col-span-6 relative flex items-center justify-center py-8">
-              {/* Back Circle Mint Backdrop */}
-              <div className="absolute w-[360px] h-[360px] md:w-[440px] md:h-[440px] bg-[#E6F2ED] rounded-full -z-10" />
-
-              {/* Potted Plant & Stack of Books */}
-              <div className="absolute left-[-20px] bottom-[30px] z-10 flex flex-col items-center select-none scale-[0.75] origin-bottom-left">
-                {/* Plant leaves */}
-                <div className="relative w-24 h-24 flex items-end justify-center">
-                  <div className="absolute bottom-1 w-8 h-16 bg-[#0E4A3A] rounded-t-full rotate-[-35deg] origin-bottom shadow-sm" />
-                  <div className="absolute bottom-1 w-10 h-18 bg-[#1B5E20] rounded-t-full rotate-[-15deg] origin-bottom shadow-sm" />
-                  <div className="absolute bottom-1 w-9 h-20 bg-[#0E3E31] rounded-t-full rotate-[15deg] origin-bottom shadow-sm" />
-                  <div className="absolute bottom-1 w-8 h-15 bg-[#2E7D32] rounded-t-full rotate-[40deg] origin-bottom shadow-sm" />
-                </div>
-                {/* White Pot */}
-                <div className="w-16 h-12 bg-white border border-slate-200 rounded-b-2xl rounded-t shadow-md flex items-center justify-center">
-                  <div className="w-full h-1 bg-slate-100 rounded-t" />
-                </div>
-                {/* Books Stack */}
-                <div className="w-24 h-4 bg-amber-100 border border-amber-200 rounded shadow-sm mt-1" />
-                <div className="w-22 h-4 bg-[#D5EAE2] border border-emerald-200 rounded shadow-sm" />
-              </div>
-
-              {/* Laptop Body Container */}
-              <div className="flex flex-col items-center relative z-20">
-                {/* Screen bezel */}
-                <div className="relative border-[8px] border-slate-800 bg-slate-900 rounded-t-2xl shadow-xl w-[320px] md:w-[420px] aspect-[16/10] overflow-hidden flex flex-col text-slate-800 text-left select-none">
-                  {/* Laptop OS Content Mockup */}
-                  <div className="w-full h-full bg-[#FAFCFB] flex text-[8px] font-semibold p-1 gap-1">
-                    {/* Mock sidebar */}
-                    <div className="w-[45px] border-r border-slate-200/60 flex flex-col gap-1 py-1 px-0.5 shrink-0 text-left scale-[0.9] origin-left bg-slate-50">
-                      <div className="px-1 text-[#0E3E31] font-black uppercase text-[6px] tracking-wide mt-1">Workspace</div>
-                      <div className="px-1 py-0.5 text-[#0E3E31] font-bold bg-[#E6F2ED] rounded flex items-center gap-1">🏠 Dashboard</div>
-                      <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">📝 Notes</div>
-                      <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">📅 Schedules</div>
-                      <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">🏆 Leaderboard</div>
-                    </div>
-                    
-                    {/* Mock main dashboard view */}
-                    <div className="flex-1 flex flex-col gap-1.5 p-1 text-slate-700">
-                      {/* Greeting banner */}
-                      <div className="p-2 bg-white border border-slate-150 rounded-lg shadow-sm">
-                        <div className="text-[8px] font-extrabold text-slate-800">Welcome back, Swathi! 👋</div>
-                        <div className="text-[6px] text-slate-400">Here's what's happening in your circle today.</div>
-                      </div>
-
-                      {/* Stats cols */}
-                      <div className="grid grid-cols-4 gap-1">
-                        {[
-                          { label: 'Study Rooms', val: '12 Active' },
-                          { label: 'Notes Shared', val: '34 This Wk' },
-                          { label: 'Doubts Solved', val: '56 This Wk' },
-                          { label: 'Study Streak', val: '7 Days' }
-                        ].map((s, idx) => (
-                          <div key={idx} className="p-1.5 bg-slate-50 border border-slate-150 rounded text-center">
-                            <div className="text-[5px] uppercase font-bold text-slate-400 leading-none">{s.label}</div>
-                            <div className="text-[7px] font-black text-[#0E3E31] mt-0.5 leading-none">{s.val}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Sessions lists */}
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <div className="p-1.5 bg-white border border-slate-150 rounded-lg flex flex-col justify-between h-14">
-                          <div>
-                            <div className="text-[5px] uppercase font-bold text-slate-400 leading-none">Upcoming sessions</div>
-                            <div className="font-extrabold text-[7px] text-slate-800 mt-1 truncate">DSA Study Session</div>
-                            <div className="text-[5px] text-[#0E3E31] mt-0.5">Today, 7:30 PM</div>
-                          </div>
-                          <button className="py-0.5 px-1 bg-[#0E3E31] text-white rounded text-[5px] font-extrabold cursor-pointer self-start">Join</button>
-                        </div>
-                        
-                        <div className="p-1.5 bg-white border border-slate-150 rounded-lg h-14 flex flex-col justify-between">
-                          <div>
-                            <div className="text-[5px] uppercase font-bold text-slate-400 leading-none">Recent Activity</div>
-                            <div className="text-slate-650 font-bold text-[6px] mt-0.5 truncate flex items-center gap-0.5">
-                              <span className="h-1.5 w-1.5 bg-[#0E3E31] rounded-full shrink-0" /> Rahul shared a note
-                            </div>
-                            <div className="text-slate-650 font-bold text-[6px] mt-0.5 truncate flex items-center gap-0.5">
-                              <span className="h-1.5 w-1.5 bg-[#0E3E31] rounded-full shrink-0" /> Ananya solved doubt
-                            </div>
-                          </div>
-                          <div className="text-[5px] text-slate-400 mt-1">View all activity</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Keyboard base */}
-                <div className="w-[350px] md:w-[460px] h-3 bg-slate-700 rounded-b-2xl shadow-lg border-t border-slate-600 relative z-30 flex justify-center">
-                  <div className="w-20 h-1 bg-slate-950 rounded-b" />
-                </div>
-              </div>
-
-              {/* Mobile Phone Mockup Overlay */}
-              <div className="absolute right-[-10px] bottom-[10px] w-[115px] md:w-[130px] aspect-[9/19] bg-slate-950 border-[5px] border-slate-850 rounded-[28px] shadow-2xl overflow-hidden z-40 text-slate-800 flex flex-col text-left select-none scale-[0.95] origin-bottom-right">
-                <div className="w-full h-full bg-[#FAFCFB] p-2 text-[6px] flex flex-col justify-between font-semibold">
-                  <div className="space-y-2">
-                    <div className="border-b border-slate-200 pb-1 flex justify-between items-center font-bold text-[7px] text-[#0E3E31]">
-                      <span>← Doubt Board</span>
-                      <span>🔍</span>
-                    </div>
-
-                    <div className="space-y-1.5 mt-1">
-                      <div className="p-1 bg-white border border-slate-200 rounded-md">
-                        <div className="font-extrabold text-[6px] text-slate-800">How to optimize nested loops?</div>
-                        <div className="text-[5px] text-slate-400 mt-0.5">2 answers • DSA</div>
-                      </div>
-                      
-                      <div className="p-1 bg-white border border-slate-200 rounded-md">
-                        <div className="font-extrabold text-[6px] text-slate-800">Confusion in normalization</div>
-                        <div className="text-[5px] text-slate-400 mt-0.5">5 answers • DBMS</div>
-                      </div>
-
-                      <div className="p-1 bg-white border border-slate-200 rounded-md">
-                        <div className="font-extrabold text-[6px] text-slate-800">Why is state async?</div>
-                        <div className="text-[5px] text-slate-400 mt-0.5">3 answers • Web Dev</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button className="w-full py-1 bg-[#0E3E31] text-white text-[6px] font-bold rounded-lg cursor-pointer text-center select-none shadow-sm shadow-[#0E3E31]/10">Ask a Doubt</button>
-                </div>
-              </div>
-
-              {/* Coffee Mug sitting on desk */}
-              <div className="absolute right-[-55px] bottom-[15px] z-30 flex items-end select-none scale-[0.8] origin-bottom-right">
-                {/* Handle */}
-                <div className="w-5 h-9 border-4 border-[#0E3E31] rounded-l-full rotate-180 translate-x-[4px] self-center" />
-                {/* Body */}
-                <div className="w-12 h-14 bg-[#0E3E31] rounded-b-xl rounded-t-sm shadow-md flex items-center justify-center">
-                  <BookOpen className="h-4 w-4 text-white/30" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 3. Features Grid */}
-        <section id="features-section" className="bg-[#FAFCFB] py-12 text-slate-800">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-md shadow-slate-150/15">
-              <div className="grid grid-cols-2 lg:grid-cols-6 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 text-left">
+              {/* Ticker Stats Section */}
+              <div className="pt-8 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-6">
                 {[
-                  { icon: Users, title: 'Study Rooms', desc: 'Join or create live rooms and study together in real-time.', bg: '#EBF5F1', text: '#0E3E31' },
-                  { icon: FileText, title: 'Shared Notes', desc: 'Upload, organize and access notes shared by your circle.', bg: '#EBF5F1', text: '#0E3E31' },
-                  { icon: HelpCircle, title: 'Doubt Board', desc: 'Ask questions, get answers and clear your doubts.', bg: '#FFF5F0', text: '#F97316' },
-                  { icon: Calendar, title: 'Session Schedule', desc: 'Plan and join study sessions that keep you consistent.', bg: '#EBF5F1', text: '#0E3E31' },
-                  { icon: Award, title: 'Leaderboard', desc: 'Track your progress, earn points and stay motivated.', bg: '#FFF9F0', text: '#F59E0B' },
-                  { icon: MessageSquare, title: 'Group Chats', desc: 'Chat with your circle and stay connected always.', bg: '#EBF5F1', text: '#0E3E31' }
-                ].map((item, i) => {
-                  const Icon = item.icon;
-                  return (
-                    <div key={i} className={`space-y-3 ${i === 0 ? '' : 'pt-4 lg:pt-0 lg:pl-6'}`}>
-                      <div className="h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm" style={{ backgroundColor: item.bg }}>
-                        <Icon className="h-5 w-5" style={{ color: item.text }} />
-                      </div>
-                      <div className="space-y-1">
-                        <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">{item.title}</h4>
-                        <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">{item.desc}</p>
-                      </div>
+                  { count: sessionsCount, label: 'Study Sessions', format: (v: number) => `${v}+` },
+                  { count: hoursCount, label: 'Hours Logged', format: (v: number) => `${v}+` },
+                  { count: studentsCount, label: 'Students Joined', format: (v: number) => `${v}+` },
+                  { count: groupsCount, label: 'Study Circles', format: (v: number) => `${v}+` }
+                ].map((stat, i) => (
+                  <div key={i} className="space-y-1">
+                    <div className="text-2xl md:text-3xl font-black text-[#0F172A] font-mono leading-none">
+                      {stat.format(stat.count)}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 4. Services Section */}
-        <section id="services-section" className="bg-white py-20 relative overflow-hidden border-b border-slate-100">
-          <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-[#E6F2ED]/40 rounded-full blur-[120px] pointer-events-none" />
-          
-          <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-16 items-center relative z-10 text-left">
-            <div className="lg:col-span-5 space-y-6">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#0E3E31]">OUR SERVICES</span>
-              <h2 className="text-3xl font-black text-slate-900 leading-tight">
-                All the tools you need <br />
-                to <span className="text-[#0E3E31]">grow together.</span>
-              </h2>
-              <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-bold">
-                StudyCircle provides a focused and structured environment for students to collaborate, share knowledge, track progress, and achieve their academic goals — together.
-              </p>
-              <div className="pt-2">
-                <button
-                  onClick={() => router.push('/register')}
-                  className="px-6 py-3 bg-[#0E3E31] hover:bg-[#0B3026] text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg shadow-[#0E3E31]/10 flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  Join StudyCircle <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold text-slate-500 pt-4 border-t border-slate-100">
-                <span className="flex items-center gap-1"><Shield className="h-3.5 w-3.5 text-[#0E3E31]" /> Secure Login</span>
-                <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5 text-[#0E3E31]" /> Role Based Access</span>
-                <span className="flex items-center gap-1"><Bell className="h-3.5 w-3.5 text-[#0E3E31]" /> Smart Notifications</span>
-              </div>
-            </div>
-
-            <div className="lg:col-span-7 flex justify-center py-6">
-              <div className="relative w-full max-w-[480px]">
-                <div className="relative border-[8px] border-slate-200 bg-slate-100 rounded-2xl shadow-2xl overflow-hidden aspect-[16/10] w-[90%] z-10">
-                  <div className="w-full h-full bg-[#FAFCFB] text-slate-700 flex text-[9px] font-semibold select-none p-1 gap-1.5 border border-slate-200">
-                    <div className="w-[65px] border-r border-slate-250 flex flex-col gap-1 py-1 px-0.5 shrink-0 text-left scale-[0.9] origin-left">
-                      <div className="h-4 w-full bg-[#E6F2ED] border border-[#0E3E31]/20 text-[#0E3E31] text-[8px] font-bold rounded flex items-center gap-1 px-1 mb-1">📚 Lounge</div>
-                      <div className="px-1 text-slate-400 font-bold uppercase text-[7px] tracking-wide mt-1">Workspace</div>
-                      <div className="px-1 py-0.5 text-[#0E3E31] font-bold bg-slate-200/50 rounded flex items-center gap-1">🏠 Dashboard</div>
-                      <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">📝 Notes</div>
-                      <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">📅 Schedules</div>
-                      <div className="px-1 py-0.5 text-slate-500 rounded flex items-center gap-1">🏆 Leaderboard</div>
-                    </div>
-                    
-                    <div className="flex-1 flex flex-col gap-2 p-1.5 text-left text-[8px]">
-                      <div className="p-2.5 bg-white border border-slate-200 rounded-lg flex items-center justify-between shadow-sm">
-                        <div>
-                          <div className="text-[9px] font-bold text-slate-800 leading-tight">Welcome, Study Buddies</div>
-                          <div className="text-[7px] text-slate-450 leading-tight">AP & Telangana Cluster</div>
-                        </div>
-                        <div className="text-[9px] text-[#0E3E31] font-bold shrink-0">🔥 5 Day Streak</div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="p-2.5 bg-white border border-slate-200 rounded-lg flex flex-col justify-between h-20 shadow-sm">
-                          <div>
-                            <div className="text-[7px] uppercase font-bold tracking-wider text-slate-400">Upcoming session</div>
-                            <div className="text-slate-800 font-extrabold text-[8px] mt-0.5 truncate leading-tight">Data Structures</div>
-                            <div className="text-[7px] text-slate-500 mt-0.5 font-mono">Today, 7:30 PM</div>
-                          </div>
-                          <button className="py-0.5 px-2 bg-[#0E3E31] text-white rounded text-[7px] font-extrabold cursor-pointer self-start leading-normal">Join Room</button>
-                        </div>
-                        
-                        <div className="p-2.5 bg-white border border-slate-200 rounded-lg h-20 shadow-sm flex flex-col justify-between">
-                          <div>
-                            <div className="text-[7px] uppercase font-bold tracking-wider text-slate-400">Study Progress</div>
-                            <div className="text-[#0E3E31] font-extrabold text-[9px] mt-0.5">12.5 hrs</div>
-                          </div>
-                          <div className="flex items-end gap-1 h-8 pb-1">
-                            <div className="bg-[#E6F2ED] w-1.5 h-3 rounded-t" />
-                            <div className="bg-[#E6F2ED] w-1.5 h-5 rounded-t" />
-                            <div className="bg-[#E6F2ED] w-1.5 h-4 rounded-t" />
-                            <div className="bg-[#0E3E31] w-1.5 h-7 rounded-t" />
-                            <div className="bg-[#0E3E31] w-1.5 h-6 rounded-t" />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 bg-white border border-slate-200 rounded-lg space-y-1 shadow-sm">
-                        <div className="text-[7px] uppercase font-bold tracking-wider text-slate-450">Recent Notes</div>
-                        <div className="flex justify-between items-center text-[7px] text-slate-600 border-b border-slate-100 pb-0.5">
-                          <span>DBMS - Normalization</span>
-                          <span>by Prasad</span>
-                        </div>
-                        <div className="flex justify-between items-center text-[7px] text-slate-600">
-                          <span>Operating Systems</span>
-                          <span>by Swathi</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="absolute right-0 bottom-[-15px] border-[5px] border-slate-300 bg-white rounded-[24px] shadow-2xl overflow-hidden aspect-[9/19] w-[130px] z-20">
-                  <div className="w-full h-full bg-[#FAFCFB] text-slate-800 p-2 text-[7px] select-none flex flex-col justify-between text-left border border-slate-200 rounded-[20px]">
-                    <div className="space-y-2">
-                      <div className="border-b border-slate-200 pb-1 flex justify-between items-center">
-                        <span className="font-bold text-[8px] text-[#0E3E31]">Live Room</span>
-                        <span className="text-[6px] text-emerald-600 font-bold uppercase tracking-wider animate-pulse flex items-center gap-0.5">
-                          <span className="h-1 w-1 bg-emerald-500 rounded-full" /> Live
-                        </span>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        {['Swathi', 'Shreya', 'Sridhar'].map((name) => (
-                          <div key={name} className="flex items-center justify-between text-[7px] text-slate-600">
-                            <span className="truncate flex items-center gap-1">
-                              <span className="h-4 w-4 bg-slate-100 border border-slate-200 rounded-full text-[6px] flex items-center justify-center font-bold text-slate-700">{name[0]}</span> {name}
-                            </span>
-                            <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
-                          </div>
-                        ))}
-                        <div className="flex items-center justify-between text-[7px] text-slate-600">
-                          <span className="truncate flex items-center gap-1"><span className="h-4 w-4 bg-slate-100 border border-slate-200 rounded-full text-[6px] flex items-center justify-center font-bold text-slate-700">C</span> Charan</span>
-                          <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <button className="w-full py-1 bg-red-600 hover:bg-red-750 text-white text-[7px] font-bold rounded-lg cursor-pointer text-center select-none shadow-sm shadow-red-900/10">End Session</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 5. Public Workspaces Lobby Section */}
-        <section id="lobby-section" className="bg-[#FAFCFB] py-16 w-full text-slate-900 border-b border-slate-100">
-          <div className="max-w-7xl mx-auto px-6 space-y-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 text-left">
-              <div className="space-y-1">
-                <span className="text-[10px] font-extrabold uppercase bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] px-3 py-1 rounded-full tracking-wider">Public Lobbies</span>
-                <h2 className="text-xl md:text-2xl font-black text-slate-900 uppercase tracking-tight">Public Circles Board</h2>
-                <p className="text-xs text-slate-500">Browse and join active study lounges from engineering college clusters without invite codes.</p>
-              </div>
-              <button 
-                onClick={fetchPublicCircles}
-                className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1 transition-colors cursor-pointer shrink-0"
-              >
-                Sync Circles <RefreshCw className={`h-3 w-3 ${loadingLobby ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-
-            {loadingLobby && publicCircles.length === 0 ? (
-              <div className="flex justify-center py-10">
-                <RefreshCw className="h-6 w-6 text-[#0E3E31] animate-spin" />
-              </div>
-            ) : publicCircles.length === 0 ? (
-              <div className="text-center py-12 bg-white border border-slate-200/60 rounded-3xl">
-                <Users className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                <p className="text-xs font-semibold text-slate-500">No public study circles available at this moment.</p>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-                {publicCircles.map((circle) => (
-                  <div 
-                    key={circle.id}
-                    className="group relative p-6 bg-white border border-slate-200/80 hover:border-[#0E3E31]/30 rounded-[24px] transition-all duration-300 flex flex-col justify-between shadow-sm shadow-slate-100/50"
-                  >
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-start">
-                        <span className="text-[9px] font-extrabold uppercase bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] px-2 py-0.5 rounded">
-                          Public Lounge
-                        </span>
-                        <span className="text-[9px] font-bold text-[#F59E0B] font-mono">
-                          Code: {circle.inviteCode}
-                        </span>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <h4 className="text-sm font-extrabold text-slate-900 group-hover:text-[#0E3E31] transition-colors">
-                          {circle.name}
-                        </h4>
-                        <div className="text-[10px] text-[#0E3E31] font-bold uppercase tracking-wide">
-                          {circle.subject || 'Engineering'}
-                        </div>
-                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 font-semibold">
-                          {circle.description || 'Structured study circles, desking presence indicators, and notes lists.'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 mt-6 border-t border-slate-100 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-450 font-bold uppercase tracking-wider">
-                        <Users className="h-3.5 w-3.5 text-[#0E3E31]" />
-                        <span>Lounge Desk</span>
-                      </div>
-                      <button
-                        onClick={() => joinPublicGroup(circle.id)}
-                        disabled={globalLoading}
-                        className="px-4 py-2 bg-[#0E3E31] hover:bg-[#0B3026] disabled:opacity-60 text-[10px] font-bold text-white rounded-xl flex items-center gap-1 cursor-pointer transition-all shadow-md shadow-[#0E3E31]/10"
-                      >
-                        Join Circle <ExternalLink className="h-3 w-3" />
-                      </button>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-[#475569] leading-tight">
+                      {stat.label}
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        </section>
+            </div>
 
-        {/* Bottom Stats Ticker Banner */}
-        <section className="bg-[#FAFCFB] py-12">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="bg-[#0E3E31] rounded-[32px] p-8 md:p-12 text-white shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-[#E6F2ED]/10 rounded-full blur-3xl pointer-events-none" />
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4 relative z-10 text-center items-center divide-y md:divide-y-0 md:divide-x divide-white/10">
-                <div className="space-y-1 md:px-4">
-                  <div className="text-4xl md:text-5xl font-black tracking-tight text-white">10,000+</div>
-                  <div className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#E6F2ED]">Active Students</div>
+            {/* Right Illustration Column */}
+            <div className="lg:col-span-6 flex items-center justify-center relative">
+              {/* Glowing Background Ring */}
+              <div className="absolute w-[360px] h-[360px] md:w-[480px] md:h-[480px] bg-gradient-to-tr from-indigo-100 to-indigo-50 rounded-full -z-10 blur-3xl pointer-events-none" />
+
+              {/* SaaS Dashboard Frame Mockup */}
+              <div className="relative w-full max-w-[480px] border border-slate-200/80 bg-white p-2.5 rounded-[28px] shadow-2xl z-10 transition-all duration-500 hover:scale-[1.01] hover:shadow-indigo-100/50">
+                {/* Mock UI Header */}
+                <div className="w-full h-[320px] bg-[#F8FAFC] border border-slate-100 rounded-[20px] overflow-hidden flex flex-col text-slate-800 text-left p-2.5 gap-2.5 font-sans select-none">
+                  <div className="flex justify-between items-center border-b border-slate-200/60 pb-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                    </div>
+                    <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">StudyCircle Dashboard</span>
+                  </div>
+
+                  <div className="flex-1 flex gap-2.5 text-[8.5px]">
+                    {/* Mock Sidebar */}
+                    <div className="w-[60px] flex flex-col gap-1.5 shrink-0 bg-white border border-slate-200/80 rounded-xl p-1.5">
+                      <div className="h-4 bg-[#EBF5F1] text-[#22C55E] text-[7.5px] font-black rounded flex items-center gap-1 px-1">Lounge</div>
+                      <div className="px-1 py-0.5 text-[#4F46E5] font-black bg-indigo-50 rounded">🏠 Dashboard</div>
+                      <div className="px-1 py-0.5 text-[#475569] font-bold">📝 Shared Notes</div>
+                      <div className="px-1 py-0.5 text-[#475569] font-bold">📅 Meetings</div>
+                      <div className="px-1 py-0.5 text-[#475569] font-bold">🏆 Ranks</div>
+                    </div>
+
+                    {/* Mock Main Desk */}
+                    <div className="flex-1 flex flex-col gap-2">
+                      <div className="p-2 bg-white border border-slate-200/80 rounded-xl shadow-sm flex items-center justify-between">
+                        <div>
+                          <div className="text-[9px] font-black text-slate-850">AP & TG Student Lounge</div>
+                          <div className="text-[7.5px] text-[#475569]">Verified Peer Network</div>
+                        </div>
+                        <span className="text-[8.5px] font-black text-orange-400 bg-orange-50 px-1.5 py-0.5 rounded">🔥 7 Streak</span>
+                      </div>
+
+                      {/* Mock widgets */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="p-2.5 bg-white border border-slate-200/80 rounded-xl shadow-sm flex flex-col justify-between h-[100px]">
+                          <div>
+                            <span className="text-[6.5px] uppercase font-black text-slate-400 block tracking-wide">Next Live Session</span>
+                            <div className="font-extrabold text-[9px] text-[#0F172A] mt-1 leading-snug">Algorithms Review</div>
+                            <span className="text-[7px] text-[#4F46E5] font-bold block mt-0.5">Today, 7:30 PM</span>
+                          </div>
+                          <button className="py-1 px-2.5 bg-[#4F46E5] text-white rounded-lg text-[7px] font-black border-none cursor-pointer self-start shadow-sm shadow-[#4F46E5]/10">Join Room</button>
+                        </div>
+
+                        <div className="p-2.5 bg-white border border-slate-200/80 rounded-xl shadow-sm flex flex-col justify-between h-[100px]">
+                          <div>
+                            <span className="text-[6.5px] uppercase font-black text-slate-400 block tracking-wide">Progress Level</span>
+                            <span className="text-xs font-black text-[#4F46E5] mt-1 block">Level 5</span>
+                          </div>
+                          {/* Mini progress bar */}
+                          <div className="space-y-1">
+                            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                              <div className="bg-[#4F46E5] h-full w-[70%]" />
+                            </div>
+                            <div className="flex justify-between text-[6px] text-slate-400 font-bold">
+                              <span>350/500 XP</span>
+                              <span>70%</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1 pt-6 md:pt-0 md:px-4">
-                  <div className="text-4xl md:text-5xl font-black tracking-tight text-white">50+</div>
-                  <div className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#E6F2ED]">Colleges Connected</div>
+              </div>
+
+              {/* Floating Mini Credit Wallet Overlay */}
+              <div className="absolute left-[-20px] bottom-[20px] z-20 w-[140px] bg-white border border-slate-200/80 rounded-2xl p-3 shadow-xl text-left scale-95 select-none hidden sm:block">
+                <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-wider block">Wallet Balance</span>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-base font-black text-amber-500">¢ 1,050</span>
+                  <span className="text-[8px] font-extrabold uppercase bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-200/50">Focus Coins</span>
                 </div>
-                <div className="space-y-1 pt-6 md:pt-0 md:px-4">
-                  <div className="text-4xl md:text-5xl font-black tracking-tight text-white">150,000+</div>
-                  <div className="text-[10px] md:text-xs font-black uppercase tracking-widest text-[#E6F2ED]">Study Hours Logged</div>
-                </div>
+                <div className="h-px bg-slate-100 my-2" />
+                <span className="text-[7px] text-[#475569] font-medium">Ready to redeem visual upgrades in the Shop!</span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 5.5 About Us Section */}
-        <section id="about-section" className="bg-white py-20 text-slate-900 border-b border-slate-100">
-          <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-12 gap-16 items-center text-left">
-            <div className="lg:col-span-5 space-y-6">
-              <span className="text-[10px] font-extrabold uppercase bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] px-3 py-1 rounded-full tracking-wider">ABOUT US</span>
-              <h2 className="text-3xl font-black text-slate-900 leading-tight">
-                Empowering college campus <br />
-                communities to <span className="text-[#0E3E31]">grow together.</span>
-              </h2>
-              <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-semibold">
-                StudyCircle is a dedicated virtual workspace designed specifically for engineering and degree college clusters in Andhra Pradesh and Telangana (including Vijayawada, Guntur, Vizag, and Hyderabad).
-              </p>
-              <p className="text-xs md:text-sm text-slate-650 leading-relaxed font-semibold">
-                Our mission is to bridge the gap between solo self-study and collaborative group learning. We provide secure, distraction-free virtual study desks, synchronized document libraries, and dynamic consistency boards to help students stay motivated, track focus hours, and prepare for placement opportunities together.
-              </p>
+        {/* 3. SaaS Feature Cards Section */}
+        <section id="features-section" className="py-20 bg-white border-y border-slate-200/60 relative">
+          <div className="max-w-7xl mx-auto px-6 space-y-12 text-center">
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#4F46E5] bg-indigo-50 border border-indigo-100 px-3.5 py-1 rounded-full">Features</span>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-[#0F172A]">All the tools to scale your studies</h2>
+              <p className="text-xs md:text-sm text-[#475569] max-w-lg mx-auto font-bold">Everything you need to collaborate, stay motivated, and build consistency.</p>
             </div>
-            
-            <div className="lg:col-span-7 grid sm:grid-cols-2 gap-6">
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
               {[
-                { icon: Users, bg: 'mint', title: 'Focused Learning', desc: 'Restoring concentration with dedicated live desks, quiet zones, and presence tracking.', bgCol: '#E6F2ED', borderCol: '#0E3E31', textCol: '#0E3E31' },
-                { icon: TrendingUp, bg: 'orange', title: 'Peer Motivation', desc: 'Building consistency with streak counters, target hours, and campus leaderboards.', bgCol: '#FFF5F0', borderCol: '#F97316', textCol: '#F97316' },
-                { icon: BookOpen, bg: 'amber', title: 'Open Collaboration', desc: 'Instantly sharing blueprints, notes lists, syllabus trackers, and questions.', bgCol: '#FFF9F0', borderCol: '#F59E0B', textCol: '#F59E0B' },
-                { icon: Shield, bg: 'mint', title: 'Campus Verification', desc: 'Securing student gates with dynamic OTP verifications and mentor approvals.', bgCol: '#E6F2ED', borderCol: '#0E3E31', textCol: '#0E3E31' },
-              ].map(({ icon: Icon, title, desc, bgCol, borderCol, textCol }) => (
-                <div key={title} className="p-6 bg-slate-50 border border-slate-200/80 rounded-3xl space-y-3 hover:scale-[1.02] transition-all shadow-sm hover:border-[#0E3E31]/20">
-                  <div className="h-10 w-10 rounded-2xl flex items-center justify-center shadow-inner" style={{ backgroundColor: bgCol, border: `1px solid ${borderCol}20` }}>
-                    <Icon className="h-5 w-5" style={{ color: textCol }} />
+                { icon: Users, title: 'Study Groups', desc: 'Create and join custom study communities tailored to your syllabus.', bg: '#EEF2FF', text: '#4F46E5' },
+                { icon: Play, title: 'Live Study Rooms', desc: 'Co-study with peer presence tracking and desking logs in real time.', bg: '#ECFDF5', text: '#22C55E' },
+                { icon: FileText, title: 'Shared Notes', desc: 'A synchronized document hub to share cheat sheets and notes.', bg: '#EEF2FF', text: '#4F46E5' },
+                { icon: Calendar, title: 'Session Schedule', desc: 'Schedule and coordinate exams, quiz reviews, and sessions.', bg: '#F5F3FF', text: '#6366F1' },
+                { icon: TrendingUp, title: 'Progress Tracking', desc: 'Keep track of logged focus hours, daily logs, and consistency.', bg: '#ECFDF5', text: '#22C55E' },
+                { icon: MessageSquare, title: 'Discussion Boards', desc: 'Ask doubts, accept answers, and review code conceptual feedback.', bg: '#EEF2FF', text: '#4F46E5' },
+                { icon: Shield, title: 'Accountability Desk', desc: 'Circle guidelines and participant metrics to avoid group passivity.', bg: '#FFF5F5', text: '#EF4444' },
+                { icon: Award, title: 'Weekly Leaderboards', desc: 'Compete in friendly college leagues and earn focus rewards.', bg: '#FFFBEB', text: '#F59E0B' }
+              ].map((feature, i) => {
+                const Icon = feature.icon;
+                return (
+                  <div 
+                    key={i}
+                    className="p-6 bg-white border border-slate-200/80 hover:border-slate-300 rounded-[24px] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-[180px] group relative overflow-hidden"
+                  >
+                    {/* Glow element on hover */}
+                    <div className="absolute -inset-px bg-gradient-to-tr from-indigo-50/10 to-indigo-100/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px] -z-10" />
+
+                    <div className="space-y-3">
+                      <div 
+                        className="h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform duration-300 group-hover:rotate-12"
+                        style={{ backgroundColor: feature.bg }}
+                      >
+                        <Icon className="h-5 w-5" style={{ color: feature.text }} />
+                      </div>
+                      <h4 className="text-xs font-black text-[#0F172A] uppercase tracking-wider">{feature.title}</h4>
+                      <p className="text-[10px] text-[#475569] leading-relaxed font-bold">{feature.desc}</p>
+                    </div>
                   </div>
-                  <h4 className="text-xs font-black uppercase text-slate-900">{title}</h4>
-                  <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">{desc}</p>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* 4. Gamification Features Showcase Section */}
+        <section id="gamification-section" className="py-20 bg-[#F8FAFC]">
+          <div className="max-w-7xl mx-auto px-6 space-y-12 text-center">
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#22C55E] bg-emerald-50 border border-emerald-100 px-3.5 py-1 rounded-full">Gamification</span>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-[#0F172A]">Gamified Progress Systems</h2>
+              <p className="text-xs md:text-sm text-[#475569] max-w-lg mx-auto font-bold">Earn points, level up, maintain streaks, and show off credentials.</p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
+              
+              {/* Card 1: Streaks */}
+              <div className="p-6 bg-white border border-slate-200/80 rounded-[24px] shadow-sm flex flex-col justify-between h-[210px]">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <span className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm">
+                      <Flame className="h-5 w-5 fill-orange-500/10" />
+                    </span>
+                    <span className="text-[9px] font-black uppercase bg-orange-50 text-orange-600 px-2 py-0.5 rounded">Active Streak</span>
+                  </div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#0F172A]">🔥 Daily Streaks</h4>
+                  <p className="text-[10px] text-[#475569] leading-relaxed font-semibold">Maintain consistency. Log study hours daily to grow your streak multiplier and lock in bonus multiplier coins.</p>
+                </div>
+                {/* Visual indicator */}
+                <div className="flex gap-1.5 items-center">
+                  {[...Array(7)].map((_, i) => (
+                    <span key={i} className={`h-2.5 w-6 rounded-full ${i < 5 ? 'bg-gradient-to-r from-orange-400 to-orange-500 shadow-sm' : 'bg-slate-100'}`} />
+                  ))}
+                  <span className="text-[9px] font-black text-orange-500 ml-2 font-mono">5/7 Days</span>
+                </div>
+              </div>
+
+              {/* Card 2: Badges & Showcase */}
+              <div className="p-6 bg-white border border-slate-200/80 rounded-[24px] shadow-sm flex flex-col justify-between h-[210px]">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <span className="h-10 w-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-[#4F46E5] shadow-sm">
+                      <Award className="h-5 w-5" />
+                    </span>
+                    <span className="text-[9px] font-black uppercase bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded">Unlocked Shelf</span>
+                  </div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#0F172A]">🏅 Achievement Badges</h4>
+                  <p className="text-[10px] text-[#475569] leading-relaxed font-semibold">Unlock digital showcase trophies for milestones like your first co-study room, weekly challenge wins, and note shares.</p>
+                </div>
+                {/* Visual badge row */}
+                <div className="flex gap-2.5 items-center">
+                  {['📚', '⚡', '🏆', '💎'].map((emoji, i) => (
+                    <div key={i} className="h-7 w-7 rounded-full bg-slate-50 border border-slate-150 flex items-center justify-center text-xs shadow-inner cursor-default" title={`Badge ${i + 1}`}>
+                      {emoji}
+                    </div>
+                  ))}
+                  <span className="text-[9px] font-black text-[#4F46E5] font-mono">+8 more</span>
+                </div>
+              </div>
+
+              {/* Card 3: Experience Levels */}
+              <div className="p-6 bg-white border border-slate-200/80 rounded-[24px] shadow-sm flex flex-col justify-between h-[210px]">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <span className="h-10 w-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-[#22C55E] shadow-sm">
+                      <TrendingUp className="h-5 w-5" />
+                    </span>
+                    <span className="text-[9px] font-black uppercase bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded">Level 5</span>
+                  </div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#0F172A]">⭐ Experience Levels</h4>
+                  <p className="text-[10px] text-[#475569] leading-relaxed font-semibold">Track your growth mathematically using our custom scaling level curve: 100 × Level^1.3 XP bounds.</p>
+                </div>
+                {/* Visual XP bar */}
+                <div className="space-y-1.5">
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden p-0.5 border border-slate-200/50">
+                    <div className="bg-[#22C55E] h-full rounded-full transition-all duration-1000" style={{ width: '70%' }} />
+                  </div>
+                  <div className="flex justify-between text-[9px] font-black text-slate-400 font-mono">
+                    <span>350 / 500 XP</span>
+                    <span>70% Complete</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        {/* 5. Student Success Journey Section */}
+        <section id="journey-section" className="py-20 bg-white border-y border-slate-200/60">
+          <div className="max-w-7xl mx-auto px-6 space-y-14 text-center">
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#6366F1] bg-purple-50 border border-purple-100 px-3.5 py-1 rounded-full">Journey Map</span>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-[#0F172A]">Your Road to Success</h2>
+              <p className="text-xs md:text-sm text-[#475569] max-w-lg mx-auto font-bold">Six structured phases designed to transition solo study into active group excellence.</p>
+            </div>
+
+            {/* Horizontal timeline cards */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-6 relative">
+              {[
+                { step: '1', title: 'Register', desc: 'Secure your gate verification.' },
+                { step: '2', title: 'Join Group', desc: 'Enter a syllabus circle.' },
+                { step: '3', title: 'Attend Session', desc: 'Desking quiet zones.' },
+                { step: '4', title: 'Track Focus', desc: 'Log study hour logs.' },
+                { step: '5', title: 'Earn Coins', desc: 'Redeem visuals in shop.' },
+                { step: '6', title: 'Top Leader', desc: 'Maintain peak ranks.' }
+              ].map((j, i) => (
+                <div key={i} className="p-5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-3 relative group hover:border-[#4F46E5]/20 hover:bg-white transition-all text-left">
+                  {/* Glowing index ring */}
+                  <div className="h-7 w-7 rounded-lg bg-indigo-50 text-[#4F46E5] font-black text-xs flex items-center justify-center shadow-inner">
+                    {j.step}
+                  </div>
+                  <h4 className="text-xs font-black text-[#0F172A] uppercase tracking-wider">{j.title}</h4>
+                  <p className="text-[9.5px] text-[#475569] leading-relaxed font-semibold">{j.desc}</p>
+
+                  {/* Flow Arrow (Hidden on mobile, last item) */}
+                  {i < 5 && (
+                    <div className="hidden lg:block absolute right-[-15px] top-1/2 -translate-y-1/2 z-20 text-[#4F46E5] font-bold text-xs pointer-events-none">
+                      →
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* 5.6 Interactive FAQ Accordion Section */}
-        <section id="faq-section" className="bg-[#FAFCFB] py-20 relative overflow-hidden">
-          <div className="absolute top-1/2 left-1/4 w-[350px] h-[350px] bg-[#E6F2ED]/30 rounded-full blur-[120px] pointer-events-none" />
-          
-          <div className="max-w-4xl mx-auto px-6 space-y-10 relative z-10">
-            <div className="text-center space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#0E3E31] bg-[#E6F2ED] border border-[#0E3E31]/10 px-3 py-1 rounded-full">FAQ</span>
-              <h2 className="text-2xl md:text-4xl font-black text-slate-900">Frequently Asked Questions</h2>
-              <p className="text-xs text-slate-500 max-w-md mx-auto font-semibold">Got questions about StudyCircle? Here is everything you need to know about the platform.</p>
+        {/* 6. Team Showcase Section */}
+        <section id="team-section" className="py-20 bg-[#F8FAFC] relative">
+          <div className="max-w-7xl mx-auto px-6 space-y-12 text-center">
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#4F46E5] bg-indigo-50 border border-indigo-100 px-3.5 py-1 rounded-full">Team</span>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-[#0F172A]">Core Coordinators</h2>
+              <p className="text-xs md:text-sm text-[#475569] max-w-lg mx-auto font-bold">Organizers overseeing the StudyCircle workspace development & sync.</p>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
               {[
-                {
-                  q: "What is StudyCircle?",
-                  a: "StudyCircle is a dedicated virtual workspace built specifically for engineering and degree college clusters. It helps students join forces, co-study in distraction-free virtual rooms, share syllabus notes, and maintain consistency streaks together."
-                },
-                {
-                  q: "Is it restricted to specific colleges in Andhra Pradesh & Telangana?",
-                  a: "While StudyCircle integrates predefined configurations for leading regional institutions (such as VRSEC, PVPSIT, VIT-AP, KL University, RVR&JC, Gitam, AU, JNTU, CBIT, etc.), any student can register and choose 'Other College / University' to set up their custom study workspace."
-                },
-                {
-                  q: "How do Live Study Rooms work?",
-                  a: "Live Study Rooms allow you to study quietly alongside peers. It tracks presence and logs your study duration directly to your consistency board. You can mute/unmute audio or video, manage a focal checklist, and prepare for exams without off-task distractions."
-                },
-                {
-                  q: "What is the role of a Mentor on the platform?",
-                  a: "Mentors are verified coordinators (often professors or senior leads) who oversee circles. They manage schedules, publish official study material blueprint files, send alerts/nudges to inactive or low-focus students, and maintain campus-level coordinator approvals."
-                },
-                {
-                  q: "Is my session data secured?",
-                  a: "Yes. StudyCircle implements secure JSON Web Tokens (JWT) for user sessions, which are securely persisted and validated across browser tabs. In addition, student registrations require verification to maintain workspace security."
-                }
+                { name: 'Hanumanthu Swathi', role: 'Team Lead', avatar: '/swathi-avatar.png', color: 'border-emerald-500' },
+                { name: 'Perugu Bhagya Lakshmi', role: 'System Architect', avatar: '/bhagya-avatar.png', color: 'border-indigo-500' },
+                { name: 'Manda Rathna Rekha', role: 'Database Coordinator', avatar: '/rathna-avatar.png', color: 'border-amber-500' }
+              ].map((member, i) => (
+                <div 
+                  key={i}
+                  className="p-6 bg-white/70 backdrop-blur-md border border-slate-200 rounded-[28px] shadow-sm flex flex-col items-center gap-4 text-center hover:-translate-y-1 hover:shadow-md transition-all duration-300 group"
+                >
+                  {/* Photo with dynamic border color */}
+                  <div className={`h-24 w-24 rounded-full border-4 ${member.color} overflow-hidden shadow-md shrink-0 bg-slate-50 transition-transform duration-300 group-hover:scale-105`}>
+                    <img src={member.avatar} alt={member.name} className="h-full w-full object-cover object-center" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-black text-[#0F172A] leading-tight">{member.name}</h4>
+                    <span className="text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-slate-100 text-slate-550 border border-slate-200/50 inline-block mt-1">
+                      {member.role}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 7. Roadmap Timeline Section */}
+        <section id="roadmap-section" className="py-20 bg-white border-y border-slate-200/60">
+          <div className="max-w-7xl mx-auto px-6 space-y-12 text-center">
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#4F46E5] bg-indigo-50 border border-indigo-100 px-3.5 py-1 rounded-full">Roadmap</span>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-[#0F172A]">Development Milestones</h2>
+              <p className="text-xs md:text-sm text-[#475569] max-w-lg mx-auto font-bold">Planned sync intervals tracking implementation phases.</p>
+            </div>
+
+            <div className="max-w-3xl mx-auto relative pl-6 md:pl-0">
+              {/* Center vertical indicator line */}
+              <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-[2px] bg-slate-200 -translate-x-1/2 z-0" />
+
+              {[
+                { week: 'Week 1', title: 'Backend Hardening', desc: 'Secure database models, associations, OTP integrations, and security verification logs.' },
+                { week: 'Week 2', title: 'Frontend Foundation', desc: 'Build visual style systems, Tailwind themes, and basic API communication utilities.' },
+                { week: 'Week 3', title: 'Core Features', desc: 'Implement live co-study rooms, discussion feeds, shared notes, and weekly leaderboards.' },
+                { week: 'Week 4', title: 'Deployment & Launch', desc: 'Deploy production builds to hosting platforms, run verification checklists, and import mock profiles.' }
               ].map((item, index) => {
-                const isOpen = expandedFaq === index;
                 return (
-                  <div 
-                    key={index} 
-                    className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden transition-all duration-300 shadow-sm"
-                  >
-                    <button
-                      onClick={() => setExpandedFaq(isOpen ? null : index)}
-                      className="w-full px-6 py-4 flex items-center justify-between text-left text-xs font-black uppercase tracking-wider text-slate-800 hover:text-[#0E3E31] hover:bg-slate-50 cursor-pointer transition-colors"
-                    >
-                      <span>{item.q}</span>
-                      <ChevronRight className={`h-4 w-4 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-90 text-[#0E3E31]' : ''}`} />
-                    </button>
-                    
-                    <div 
-                      className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-40 border-t border-slate-100 bg-slate-50/50' : 'max-h-0'}`}
-                    >
-                      <div className="p-6 text-xs text-slate-600 leading-relaxed font-semibold">
-                        {item.a}
+                  <div key={index} className={`flex flex-col md:flex-row items-center justify-between mb-8 md:mb-0 relative z-10 ${index % 2 === 0 ? 'md:flex-row-reverse' : ''}`}>
+                    <div className="w-full md:w-1/2 flex justify-center md:justify-end md:px-8">
+                      <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl max-w-sm text-left shadow-sm">
+                        <span className="text-xs font-black uppercase text-[#4F46E5] tracking-widest">{item.week}</span>
+                        <h4 className="text-sm font-black text-[#0F172A] mt-1 mb-2 uppercase tracking-wide">{item.title}</h4>
+                        <p className="text-[10px] text-[#475569] leading-relaxed font-bold">{item.desc}</p>
                       </div>
+                    </div>
+                    
+                    <div className="absolute left-6 md:left-1/2 w-8 h-8 rounded-full bg-white border-4 border-[#4F46E5] -translate-x-1/2 z-20 flex items-center justify-center font-extrabold text-xs text-[#4F46E5] shadow-md shadow-indigo-100">
+                      {index + 1}
+                    </div>
+
+                    <div className="w-full md:w-1/2 md:px-8">
+                      {/* Spacer */}
                     </div>
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </section>
+
+        {/* 8. Onboarding checklist & Submission Goals scorecard (0-100% progress gauge) */}
+        <section id="goals-section" className="py-20 bg-[#F8FAFC]">
+          <div className="max-w-7xl mx-auto px-6 space-y-12">
+            <div className="text-center space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#22C55E] bg-emerald-50 border border-emerald-100 px-3.5 py-1 rounded-full">Onboarding Checklist</span>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-[#0F172A]">Unlock Your Study Potential</h2>
+              <p className="text-xs md:text-sm text-[#475569] max-w-lg mx-auto font-bold">Interactive goals planner. Click the items to see your readiness score climb!</p>
+            </div>
+
+            <div className="max-w-4xl mx-auto bg-white border border-slate-200/80 rounded-[32px] p-8 md:p-10 shadow-xl grid md:grid-cols-12 gap-8 items-center">
+              {/* Checklist side */}
+              <div className="md:col-span-7 space-y-4">
+                <h4 className="text-xs font-black text-[#0F172A] uppercase tracking-wider mb-2">Onboarding Checklist</h4>
+                
+                {[
+                  { id: 0, text: 'Register & verify your email address', desc: 'Securely authenticate via our OTP gateway.' },
+                  { id: 1, text: 'Join your college study circle', desc: 'Connect with peers from VRSEC, PVPSIT, VITAP, etc.' },
+                  { id: 2, text: 'Schedule a focus session', desc: 'Book a desk in the co-study quiet zone lobby.' },
+                  { id: 3, text: 'Log your first study hour', desc: 'Maintain streak multipliers and earn focus coins.' }
+                ].map((task) => (
+                  <div 
+                    key={task.id}
+                    onClick={() => {
+                      const updated = [...onboardingTasks];
+                      updated[task.id] = !updated[task.id];
+                      setOnboardingTasks(updated);
+                    }}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex gap-4 items-start select-none ${
+                      onboardingTasks[task.id] 
+                        ? 'bg-indigo-50/40 border-indigo-200/70' 
+                        : 'bg-slate-50/50 border-slate-200/60 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`mt-0.5 h-5 w-5 rounded-md flex items-center justify-center shrink-0 border transition-all ${
+                      onboardingTasks[task.id] 
+                        ? 'bg-[#4F46E5] border-[#4F46E5] text-white shadow-sm' 
+                        : 'border-slate-350 bg-white'
+                    }`}>
+                      {onboardingTasks[task.id] && <Check className="h-3 w-3 stroke-[3]" />}
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className={`text-xs font-black leading-tight block ${onboardingTasks[task.id] ? 'text-[#4F46E5]' : 'text-[#0F172A]'}`}>
+                        {task.text}
+                      </span>
+                      <p className="text-[10px] text-[#475569] font-medium leading-normal">{task.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Progress Gauge side */}
+              <div className="md:col-span-5 flex flex-col items-center justify-center space-y-6">
+                <div className="relative h-44 w-44 flex items-center justify-center">
+                  <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
+                    <circle 
+                      cx="50" 
+                      cy="50" 
+                      r="40" 
+                      className="stroke-slate-100 fill-none" 
+                      strokeWidth="8" 
+                    />
+                    <circle 
+                      cx="50" 
+                      cy="50" 
+                      r="40" 
+                      className="stroke-[#4F46E5] fill-none transition-all duration-500 ease-out" 
+                      strokeWidth="8" 
+                      strokeDasharray={251.2}
+                      strokeDashoffset={251.2 - (251.2 * getProgressPercentage()) / 100}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute flex flex-col items-center justify-center text-center">
+                    <span className="text-3xl font-black text-[#0F172A] font-mono leading-none">
+                      {getProgressPercentage()}%
+                    </span>
+                    <span className="text-[8px] font-black uppercase text-[#475569] tracking-widest mt-1">
+                      Readiness
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-center space-y-2">
+                  <h5 className="text-xs font-black text-[#0F172A] uppercase tracking-wider">
+                    {getProgressPercentage() === 100 ? '🎉 Semester Ready!' : 'Keep checking tasks!'}
+                  </h5>
+                  <p className="text-[10px] text-[#475569] leading-relaxed max-w-[200px] font-bold">
+                    {getProgressPercentage() === 100 
+                      ? 'You are fully optimized for collaborative excellence on StudyCircle.' 
+                      : 'Complete all steps to unlock maximum study productivity and multipliers.'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -1683,7 +1755,7 @@ export default function Home() {
                 {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
                   <div className="w-full flex justify-center">
                     <GoogleLogin
-                      onSuccess={(response) => handleGoogleSuccess(response.credential)}
+                      onSuccess={(response) => handleGoogleInitiate(response.credential)}
                       onError={() => showToast('Google Sign-In failed.', 'error')}
                       theme="filled_blue"
                       shape="pill"
@@ -1694,7 +1766,12 @@ export default function Home() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => { setShowAuthModal(false); setShowGoogleMockModal(true); }}
+                    onClick={() => {
+                      setShowAuthModal(false);
+                      setShowGoogleModal(true);
+                      setGoogleStep('picker');
+                      setGoogleSelectedUser(null);
+                    }}
                     className="w-full py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-sm hover:shadow"
                   >
                     <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -1805,169 +1882,262 @@ export default function Home() {
         </div>
       )}
 
-      {/* 🔐 Google Mock Sign-In Selector Modal */}
-      {showGoogleMockModal && (
+      {/* 🔐 Google Unified Sign-In Modal */}
+      {showGoogleModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div 
-            onClick={() => setShowGoogleMockModal(false)}
+            onClick={() => setShowGoogleModal(false)}
             className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity cursor-pointer"
           />
           
           <div className="relative w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-8 shadow-2xl z-10 text-left animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
             <button 
-              onClick={() => setShowGoogleMockModal(false)}
+              onClick={() => setShowGoogleModal(false)}
               className="absolute top-6 right-6 text-slate-400 hover:text-slate-900 transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-slate-100"
             >
               ✕
             </button>
 
-            <div className="text-center space-y-2 mb-6">
-              <div className="inline-flex h-10 w-10 rounded-full bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] items-center justify-center">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <h3 className="text-xl font-black text-slate-900">
-                Google Account Selector
-              </h3>
-              <p className="text-xs text-slate-550 font-bold">
-                Select a mock user profile or create a custom simulated Google account
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {/* Option 1: Swathi Hani */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleGoogleSuccess('mock_google_credential_token:hanumanthuswathi24@gmail.com:Swathi Hani:female');
-                    setShowGoogleMockModal(false);
-                  }}
-                  className="p-5 bg-[#E6F2ED]/60 border border-[#0E3E31]/20 hover:border-[#0E3E31]/60 rounded-2xl text-left space-y-2.5 transition-all hover:scale-[1.02] cursor-pointer animate-in fade-in duration-200"
-                >
-                  <div className="flex items-center gap-2">
-                    <img src="/swathi-avatar.png" alt="Swathi" className="h-10 w-10 rounded-full border border-white" />
-                    <div>
-                      <h4 className="text-xs font-black text-slate-900 leading-tight">Swathi Hani</h4>
-                      <span className="text-[9px] font-black uppercase text-emerald-600">Female</span>
-                    </div>
+            {googleStep === 'picker' ? (
+              <>
+                <div className="text-center space-y-2 mb-6">
+                  <div className="inline-flex h-10 w-10 rounded-full bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] items-center justify-center">
+                    <Sparkles className="h-5 w-5" />
                   </div>
-                  <p className="text-[9px] text-slate-550 font-bold leading-normal truncate">
-                    hanumanthuswathi24@gmail.com
+                  <h3 className="text-xl font-black text-slate-900">
+                    Google Account Picker
+                  </h3>
+                  <p className="text-xs text-slate-550 font-bold">
+                    Select a Google account to continue to StudyCircle
                   </p>
-                </button>
+                </div>
 
-                {/* Option 2: Vijay Kumar */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleGoogleSuccess('mock_google_credential_token:student.demo@studycircle.com:Vijay Kumar:male');
-                    setShowGoogleMockModal(false);
-                  }}
-                  className="p-5 bg-slate-50 border border-slate-200 hover:border-indigo-500/30 rounded-2xl text-left space-y-2.5 transition-all hover:scale-[1.02] cursor-pointer animate-in fade-in duration-200"
-                >
-                  <div className="flex items-center gap-2">
-                    <img src="/charan-avatar.png" alt="Vijay" className="h-10 w-10 rounded-full border border-white" />
-                    <div>
-                      <h4 className="text-xs font-black text-slate-900 leading-tight">Vijay Kumar</h4>
-                      <span className="text-[9px] font-black uppercase text-indigo-500">Male</span>
+                {!isDevMode ? (
+                  <div className="p-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-center space-y-3.5 my-4">
+                    <p className="text-xs font-bold text-amber-800 leading-normal">
+                      ⚠️ Simulated logins are disabled in production. Please configure NEXT_PUBLIC_GOOGLE_CLIENT_ID on the hosting platform to enable official Google Sign-In, or use standard Email & Password credentials.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Option 1: Swathi Hani */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleGoogleInitiate('mock_google_credential_token:hanumanthuswathi24@gmail.com:Swathi Hani:female');
+                        }}
+                        className="p-5 bg-[#E6F2ED]/60 border border-[#0E3E31]/20 hover:border-[#0E3E31]/60 rounded-2xl text-left space-y-2.5 transition-all hover:scale-[1.02] cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <img src="/swathi-avatar.png" alt="Swathi" className="h-10 w-10 rounded-full border border-white" />
+                          <div>
+                            <h4 className="text-xs font-black text-slate-900 leading-tight">Swathi Hani</h4>
+                            <span className="text-[9px] font-black uppercase text-emerald-600">Female</span>
+                          </div>
+                        </div>
+                        <p className="text-[9px] text-slate-550 font-bold leading-normal truncate">
+                          hanumanthuswathi24@gmail.com
+                        </p>
+                      </button>
+
+                      {/* Option 2: Vijay Kumar */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleGoogleInitiate('mock_google_credential_token:student.demo@studycircle.com:Vijay Kumar:male');
+                        }}
+                        className="p-5 bg-slate-50 border border-slate-200 hover:border-indigo-500/30 rounded-2xl text-left space-y-2.5 transition-all hover:scale-[1.02] cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <img src="/charan-avatar.png" alt="Vijay" className="h-10 w-10 rounded-full border border-white" />
+                          <div>
+                            <h4 className="text-xs font-black text-slate-900 leading-tight">Vijay Kumar</h4>
+                            <span className="text-[9px] font-black uppercase text-indigo-500">Male</span>
+                          </div>
+                        </div>
+                        <p className="text-[9px] text-slate-550 font-bold leading-normal truncate">
+                          student.demo@studycircle.com
+                        </p>
+                      </button>
                     </div>
+
+                    <div className="flex items-center my-4 gap-2">
+                      <div className="flex-1 h-px bg-slate-200"></div>
+                      <span className="text-[9px] text-slate-400 font-black uppercase">Or Custom Profile</span>
+                      <div className="flex-1 h-px bg-slate-200"></div>
+                    </div>
+
+                    {/* Custom Selector Form */}
+                    <form 
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!googleMockCustomName.trim() || !googleMockCustomEmail.trim()) {
+                          showToast('Name and Email are required.', 'error');
+                          return;
+                        }
+                        handleGoogleInitiate(`mock_google_credential_token:${googleMockCustomEmail.trim().toLowerCase()}:${googleMockCustomName.trim()}:${googleMockCustomGender}`);
+                      }}
+                      className="space-y-4 text-left"
+                    >
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Full Name</label>
+                        <input
+                          type="text"
+                          placeholder="Enter your simulated Google name"
+                          value={googleMockCustomName}
+                          onChange={(e) => setGoogleMockCustomName(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-805 outline-none focus:border-[#0E3E31]/50 focus:bg-white transition-all"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Email Address</label>
+                        <input
+                          type="email"
+                          placeholder="Enter your simulated Google email"
+                          value={googleMockCustomEmail}
+                          onChange={(e) => setGoogleMockCustomEmail(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-805 outline-none focus:border-[#0E3E31]/50 focus:bg-white transition-all"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Gender Selection (Sets profile picture)</label>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
+                            <input
+                              type="radio"
+                              name="mockGender"
+                              value="female"
+                              checked={googleMockCustomGender === 'female'}
+                              onChange={() => setGoogleMockCustomGender('female')}
+                              className="accent-[#0E3E31]"
+                            />
+                            <span>Female Avatar</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
+                            <input
+                              type="radio"
+                              name="mockGender"
+                              value="male"
+                              checked={googleMockCustomGender === 'male'}
+                              onChange={() => setGoogleMockCustomGender('male')}
+                              className="accent-[#0E3E31]"
+                            />
+                            <span>Male Avatar</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
+                            <input
+                              type="radio"
+                              name="mockGender"
+                              value="other"
+                              checked={googleMockCustomGender === 'other'}
+                              onChange={() => setGoogleMockCustomGender('other')}
+                              className="accent-[#0E3E31]"
+                            />
+                            <span>Neutral Avatar</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full py-3 bg-[#0E3E31] hover:bg-[#0B3026] text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#0E3E31]/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        Choose simulated account
+                      </button>
+                    </form>
                   </div>
-                  <p className="text-[9px] text-slate-550 font-bold leading-normal truncate">
-                    student.demo@studycircle.com
+                )}
+              </>
+            ) : (
+              <>
+                <div className="text-center space-y-2 mb-6">
+                  <div className="inline-flex h-10 w-10 rounded-full bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] items-center justify-center">
+                    <Lock className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900">
+                    Consent & Terms of Service
+                  </h3>
+                  <p className="text-xs text-slate-550 font-bold">
+                    To continue signing in with Google, please review and accept our policies.
                   </p>
-                </button>
-              </div>
-
-              <div className="flex items-center my-4 gap-2">
-                <div className="flex-1 h-px bg-slate-200"></div>
-                <span className="text-[9px] text-slate-400 font-black uppercase">Or Custom Profile</span>
-                <div className="flex-1 h-px bg-slate-200"></div>
-              </div>
-
-              {/* Custom Selector Form */}
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!googleMockCustomName.trim() || !googleMockCustomEmail.trim()) {
-                    showToast('Name and Email are required.', 'error');
-                    return;
-                  }
-                  handleGoogleSuccess(`mock_google_credential_token:${googleMockCustomEmail.trim().toLowerCase()}:${googleMockCustomName.trim()}:${googleMockCustomGender}`);
-                  setShowGoogleMockModal(false);
-                }}
-                className="space-y-4 text-left"
-              >
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Full Name</label>
-                  <input
-                    type="text"
-                    placeholder="Enter your simulated Google name"
-                    value={googleMockCustomName}
-                    onChange={(e) => setGoogleMockCustomName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 outline-none focus:border-[#0E3E31]/50 focus:bg-white transition-all"
-                    required
-                  />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="Enter your simulated Google email"
-                    value={googleMockCustomEmail}
-                    onChange={(e) => setGoogleMockCustomEmail(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 outline-none focus:border-[#0E3E31]/50 focus:bg-white transition-all"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Gender Selection (Sets profile picture)</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
-                      <input
-                        type="radio"
-                        name="mockGender"
-                        value="female"
-                        checked={googleMockCustomGender === 'female'}
-                        onChange={() => setGoogleMockCustomGender('female')}
-                        className="accent-[#0E3E31]"
-                      />
-                      <span>Female Avatar</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
-                      <input
-                        type="radio"
-                        name="mockGender"
-                        value="male"
-                        checked={googleMockCustomGender === 'male'}
-                        onChange={() => setGoogleMockCustomGender('male')}
-                        className="accent-[#0E3E31]"
-                      />
-                      <span>Male Avatar</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
-                      <input
-                        type="radio"
-                        name="mockGender"
-                        value="other"
-                        checked={googleMockCustomGender === 'other'}
-                        onChange={() => setGoogleMockCustomGender('other')}
-                        className="accent-[#0E3E31]"
-                      />
-                      <span>Neutral Avatar</span>
-                    </label>
+                <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-3.5 mb-6">
+                  <div className="h-10 w-10 rounded-full bg-[#E6F2ED] border border-white flex items-center justify-center overflow-hidden shrink-0">
+                    {googleSelectedUser?.picture ? (
+                      <img src={googleSelectedUser.picture} className="h-full w-full object-cover" alt="Google Avatar" />
+                    ) : (
+                      <span className="text-xs font-black uppercase text-[#0E3E31]">
+                        {googleSelectedUser?.name?.charAt(0) || 'G'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-xs font-black text-slate-900 leading-tight truncate">{googleSelectedUser?.name}</h4>
+                    <p className="text-[10px] text-slate-500 font-semibold leading-normal truncate">{googleSelectedUser?.email}</p>
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-[#0E3E31] hover:bg-[#0B3026] text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#0E3E31]/10 transition-all flex items-center justify-center gap-2 cursor-pointer animate-in fade-in duration-200"
-                >
-                  Simulate Google Sign-In & Onboard
-                </button>
-              </form>
-            </div>
+                <form onSubmit={handleGoogleConsentSubmit} className="space-y-6 text-left">
+                  <div className="space-y-3.5">
+                    <label className="flex items-start gap-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={googleTermsAccepted}
+                        onChange={(e) => setGoogleTermsAccepted(e.target.checked)}
+                        className="w-4 h-4 rounded accent-[#0E3E31] border-slate-300 text-[#0E3E31] focus:ring-0 cursor-pointer mt-0.5"
+                        required
+                      />
+                      <span className="text-xs text-slate-600 font-semibold leading-normal">
+                        I agree to the <a href="#" onClick={(e) => e.preventDefault()} className="text-[#0E3E31] hover:underline font-extrabold">Terms and Conditions</a> and authorize StudyCircle to access my Google profile name and email address.
+                      </span>
+                    </label>
+
+                    <label className="flex items-start gap-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={googlePrivacyAccepted}
+                        onChange={(e) => setGooglePrivacyAccepted(e.target.checked)}
+                        className="w-4 h-4 rounded accent-[#0E3E31] border-slate-300 text-[#0E3E31] focus:ring-0 cursor-pointer mt-0.5"
+                        required
+                      />
+                      <span className="text-xs text-slate-600 font-semibold leading-normal">
+                        I agree to the <a href="#" onClick={(e) => e.preventDefault()} className="text-[#0E3E31] hover:underline font-extrabold">Privacy Policy</a> regarding secure storage and data usage.
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (googleSelectedUser?.credential?.startsWith('mock_google_credential_token')) {
+                          setGoogleStep('picker');
+                        } else {
+                          setShowGoogleModal(false);
+                        }
+                      }}
+                      className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                    >
+                      {googleSelectedUser?.credential?.startsWith('mock_google_credential_token') ? 'Back' : 'Cancel'}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={formLoading || !googleTermsAccepted || !googlePrivacyAccepted}
+                      className="flex-1 py-2.5 bg-[#0E3E31] hover:bg-[#0B3026] disabled:opacity-50 disabled:bg-[#0E3E31]/50 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-[#0E3E31]/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {formLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
+                      Agree & Continue
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}

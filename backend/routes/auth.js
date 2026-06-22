@@ -11,6 +11,35 @@ const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const bloomFilter = new BloomFilter(2048);
 
+const getTodayISTString = () => {
+  return new Date().toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kolkata"
+  });
+};
+router.getTodayISTString = getTodayISTString;
+
+const getXpThresholdForLevel = (level) => {
+  let totalXp = 0;
+  for (let l = 1; l < level; l++) {
+    totalXp += Math.floor(100 * Math.pow(l, 1.3));
+  }
+  return totalXp;
+};
+router.getXpThresholdForLevel = getXpThresholdForLevel;
+
+const calculateLevel = (xp) => {
+  let level = 1;
+  while (true) {
+    const nextLevelMin = getXpThresholdForLevel(level + 1);
+    if (xp < nextLevelMin) {
+      break;
+    }
+    level++;
+  }
+  return level;
+};
+router.calculateLevel = calculateLevel;
+
 
 const checkDomainMx = async (domain) => {
   try {
@@ -310,6 +339,13 @@ router.post('/register', async (req, res) => {
 
     let isApproved = true;
 
+    const defaultMissions = [
+      { id: 'join_circle', text: 'Join Study Circle', completed: false, xp: 30 },
+      { id: 'attend_session', text: 'Attend Session', completed: false, xp: 30 },
+      { id: 'upload_notes', text: 'Upload Notes', completed: false, xp: 40 },
+      { id: 'complete_session', text: 'Complete Session', completed: false, xp: 50 }
+    ];
+
     // Create user
     const newUser = await User.create({
       fullName,
@@ -324,7 +360,9 @@ router.post('/register', async (req, res) => {
       email: email ? email.trim().toLowerCase() : null,
       phone: phone ? phone.trim() : null,
       gender: normalizedGender,
-      avatarUrl
+      avatarUrl,
+      dailyMissions: defaultMissions,
+      dailyMissionDate: getTodayISTString()
     });
 
     // Add new username to Bloom Filter
@@ -373,7 +411,9 @@ router.post('/register', async (req, res) => {
         gender: newUser.gender,
         learningGoal: newUser.learningGoal,
         learningLevel: newUser.learningLevel,
-        dailyTarget: newUser.dailyTarget
+        dailyTarget: newUser.dailyTarget,
+        dailyMissions: newUser.dailyMissions,
+        dailyMissionDate: newUser.dailyMissionDate
       }
     });
   } catch (err) {
@@ -381,6 +421,27 @@ router.post('/register', async (req, res) => {
     return res.status(500).json({ error: 'Server error during registration.' });
   }
 });
+
+const checkAndResetDailyMissions = async (user) => {
+  const todayStr = getTodayISTString();
+  if (user.role === 'student' && user.dailyMissionDate !== todayStr) {
+    user.dailyMissions = [
+      { id: 'join_circle', text: 'Join Study Circle', completed: false, xp: 30 },
+      { id: 'attend_session', text: 'Attend Session', completed: false, xp: 30 },
+      { id: 'upload_notes', text: 'Upload Notes', completed: false, xp: 40 },
+      { id: 'complete_session', text: 'Complete Session', completed: false, xp: 50 }
+    ];
+    user.dailyMissionDate = todayStr;
+    user.dailyXpEarned = 5; // Reset to 5 because they just earned 5 XP for daily login
+    
+    // Daily Login Reward: +5 Focus Coins, +5 XP
+    user.focusCoins = (user.focusCoins || 0) + 5;
+    user.xp = (user.xp || 0) + 5;
+    user.level = calculateLevel(user.xp);
+    
+    await user.save();
+  }
+};
 
 // Login Route
 router.post('/login', loginLimiter, async (req, res) => {
@@ -414,6 +475,9 @@ router.post('/login', loginLimiter, async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid username or password.' });
     }
+
+    // Reset daily missions if a new day has arrived
+    await checkAndResetDailyMissions(user);
 
     // Enforce Portal Restrictions / Role Separation
     if (portal === 'student') {
@@ -477,7 +541,9 @@ router.post('/login', loginLimiter, async (req, res) => {
         gender: user.gender,
         learningGoal: user.learningGoal,
         learningLevel: user.learningLevel,
-        dailyTarget: user.dailyTarget
+        dailyTarget: user.dailyTarget,
+        dailyMissions: user.dailyMissions,
+        dailyMissionDate: user.dailyMissionDate
       }
     });
   } catch (err) {
@@ -555,6 +621,9 @@ router.get('/me', authMiddleware, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
     }
+    
+    // Reset daily missions if a new day has arrived
+    await checkAndResetDailyMissions(user);
     
     // Resolve current token to pass back to front end context
     let activeToken = req.newAccessToken;
@@ -645,6 +714,14 @@ router.put('/update-profile', authMiddleware, async (req, res) => {
       user.level = Number(level);
     }
 
+    if (req.body.dailyMissions !== undefined) {
+      user.dailyMissions = req.body.dailyMissions;
+    }
+
+    if (req.body.dailyMissionDate !== undefined) {
+      user.dailyMissionDate = req.body.dailyMissionDate;
+    }
+
     // Update old composite columns for backward compatibility
     const updatedFirstName = user.firstName || '';
     const updatedLastName = user.lastName || '';
@@ -679,7 +756,9 @@ router.put('/update-profile', authMiddleware, async (req, res) => {
       focusCoins: user.focusCoins,
       badges: user.badges,
       xp: user.xp,
-      level: user.level
+      level: user.level,
+      dailyMissions: user.dailyMissions,
+      dailyMissionDate: user.dailyMissionDate
     };
 
     return res.json({
@@ -771,12 +850,12 @@ router.post('/toggle-ambassador', authMiddleware, async (req, res) => {
       badges = [];
     }
 
-    const index = badges.indexOf('Campus Ambassador');
+    const index = badges.findIndex(b => b === 'Campus Ambassador' || (b && b.id === 'campus_ambassador'));
     let isAmbassador = false;
     if (index > -1) {
       badges.splice(index, 1);
     } else {
-      badges.push('Campus Ambassador');
+      badges.push({ id: 'campus_ambassador', earnedAt: getTodayISTString(), name: 'Campus Ambassador' });
       isAmbassador = true;
     }
     student.badges = JSON.stringify(badges);
@@ -967,6 +1046,13 @@ router.post('/google', async (req, res) => {
         counter++;
       }
 
+      const defaultMissions = [
+        { id: 'join_circle', text: 'Join Study Circle', completed: false, xp: 30 },
+        { id: 'attend_session', text: 'Attend Session', completed: false, xp: 30 },
+        { id: 'upload_notes', text: 'Upload Notes', completed: false, xp: 40 },
+        { id: 'complete_session', text: 'Complete Session', completed: false, xp: 50 }
+      ];
+
       user = await User.create({
         fullName: fullName.trim(),
         firstName: firstName.trim(),
@@ -980,7 +1066,9 @@ router.post('/google', async (req, res) => {
         isApproved: true,
         gender: payload.gender || 'other',
         avatarUrl: payload.picture || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>',
-        provider: 'google'
+        provider: 'google',
+        dailyMissions: defaultMissions,
+        dailyMissionDate: getTodayISTString()
       });
 
       // Add to Bloom Filter
@@ -988,6 +1076,9 @@ router.post('/google', async (req, res) => {
         bloomFilter.add(username);
       }
     }
+
+    // Reset daily missions if a new day has arrived
+    await checkAndResetDailyMissions(user);
 
     const token = signToken(user, false);
     const refreshToken = jwt.sign(
@@ -1029,12 +1120,152 @@ router.post('/google', async (req, res) => {
         gender: user.gender,
         learningGoal: user.learningGoal,
         learningLevel: user.learningLevel,
-        dailyTarget: user.dailyTarget
+        dailyTarget: user.dailyTarget,
+        dailyMissions: user.dailyMissions,
+        dailyMissionDate: user.dailyMissionDate
       }
     });
   } catch (err) {
     console.error('[Google Auth Error]:', err);
     return res.status(500).json({ error: 'Server error during Google Login.' });
+  }
+});
+
+// Route: Get public profile details by username
+router.get('/profile/:username', authMiddleware, async (req, res) => {
+  try {
+    const { username } = req.params;
+    const normalizedUsername = username.trim().toLowerCase();
+
+    const user = await User.findOne({
+      where: { username: normalizedUsername },
+      attributes: ['id', 'fullName', 'username', 'role', 'streakCount', 'totalStudyHours', 'avatarUrl', 'gender', 'bio', 'department', 'badges', 'level', 'xp', 'learningGoal']
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    let publicData = {
+      id: user.id,
+      fullName: user.fullName,
+      username: user.username,
+      role: user.role,
+      streakCount: user.streakCount || 0,
+      totalStudyHours: user.totalStudyHours || 0.0,
+      avatarUrl: user.avatarUrl,
+      gender: user.gender,
+      bio: user.bio,
+      department: user.department,
+      badges: user.badges || '[]',
+      level: user.level || 1,
+      xp: user.xp || 0,
+      learningGoal: user.learningGoal
+    };
+
+    if (user.role === 'mentor' || user.role === 'admin') {
+      const { Answer, Session, MentorRating } = require('../models');
+
+      // 1. Accepted answers (doubts solved)
+      const doubtsSolved = await Answer.count({
+        where: { userId: user.id, isAccepted: true }
+      });
+
+      // 2. Sessions held
+      const sessionsHeld = await Session.count({
+        where: { createdBy: user.id }
+      });
+
+      // 3. Average rating
+      const ratings = await MentorRating.findAll({
+        where: { mentorId: user.id }
+      });
+      const avgRating = ratings.length > 0
+        ? Number((ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(1))
+        : 5.0;
+
+      // 4. Mentor Reputation Score
+      // Formula: (Doubts Solved * 50) + (Sessions Held * 30) + (Avg Rating * 100)
+      const reputationScore = Math.round((doubtsSolved * 50) + (sessionsHeld * 30) + (avgRating * 100));
+
+      publicData.reputation = {
+        doubtsSolved,
+        sessionsHeld,
+        avgRating,
+        reputationScore
+      };
+    }
+
+    return res.json({ profile: publicData });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error retrieving public profile.' });
+  }
+});
+
+// Route: Rate a mentor (Students only)
+router.post('/mentors/:mentorId/rate', authMiddleware, async (req, res) => {
+  try {
+    const { mentorId } = req.params;
+    const { rating, feedback } = req.body;
+
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ error: 'Only students can submit ratings for mentors.' });
+    }
+
+    if (rating === undefined || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be an integer between 1 and 5.' });
+    }
+
+    const mentor = await User.findByPk(mentorId);
+    if (!mentor || (mentor.role !== 'mentor' && mentor.role !== 'admin')) {
+      return res.status(404).json({ error: 'Mentor not found.' });
+    }
+
+    const { MentorRating } = require('../models');
+
+    // Upsert rating
+    const [ratingRecord, created] = await MentorRating.findOrCreate({
+      where: { mentorId, studentId: req.user.id },
+      defaults: { rating, feedback }
+    });
+
+    if (!created) {
+      ratingRecord.rating = rating;
+      ratingRecord.feedback = feedback;
+      await ratingRecord.save();
+    }
+
+    return res.json({
+      message: created ? 'Rating submitted successfully!' : 'Rating updated successfully!',
+      rating: ratingRecord
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error submitting mentor rating.' });
+  }
+});
+
+// Route: Get feedback/ratings list for a mentor
+router.get('/mentors/:mentorId/ratings', authMiddleware, async (req, res) => {
+  try {
+    const { mentorId } = req.params;
+    const { MentorRating } = require('../models');
+
+    const ratings = await MentorRating.findAll({
+      where: { mentorId },
+      include: [{
+        model: User,
+        as: 'Student',
+        attributes: ['fullName', 'username', 'avatarUrl', 'gender']
+      }],
+      order: [['createdAt', 'DESC']]
+    });
+
+    return res.json({ ratings });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error retrieving mentor ratings.' });
   }
 });
 

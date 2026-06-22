@@ -86,11 +86,16 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    const isProduction = process.env.NODE_ENV === 'production';
     const isSqlite = sequelize.options.dialect === 'sqlite';
     if (isSqlite) {
       await sequelize.query('PRAGMA foreign_keys = OFF;');
     }
-    await sequelize.sync({ alter: true });
+    if (isProduction || isSqlite) {
+      await sequelize.sync();
+    } else {
+      await sequelize.sync({ alter: true });
+    }
     if (isSqlite) {
       await sequelize.query('PRAGMA foreign_keys = ON;');
     }

@@ -51,6 +51,10 @@ export default function RegisterPage() {
   const { user: currentUser, setUser: setCurrentUser, loading: globalLoading } = useApp();
 
   const [formLoading, setFormLoading] = useState(false);
+  const [studentRegisterLoading, setStudentRegisterLoading] = useState(false);
+  const [mentorRegisterLoading, setMentorRegisterLoading] = useState(false);
+  const [studentOtpLoading, setStudentOtpLoading] = useState(false);
+  const [mentorOtpLoading, setMentorOtpLoading] = useState(false);
 
   // Student inputs
   const [studentFirstName, setStudentFirstName] = useState('');
@@ -267,7 +271,8 @@ export default function RegisterPage() {
       showToast('Invalid email, please check and try again!', 'error');
       return;
     }
-    setFormLoading(true);
+    if (role === 'student') setStudentOtpLoading(true);
+    else setMentorOtpLoading(true);
     try {
       const data = await apiRequest('/auth/send-otp', {
         method: 'POST',
@@ -291,7 +296,8 @@ export default function RegisterPage() {
     } catch (e: any) {
       showToast(e.message || 'Failed to send verification code.', 'error');
     } finally {
-      setFormLoading(false);
+      if (role === 'student') setStudentOtpLoading(false);
+      else setMentorOtpLoading(false);
     }
   };
 
@@ -313,7 +319,7 @@ export default function RegisterPage() {
       showToast('Please agree to the Terms of Service and Privacy Policy.', 'error');
       return;
     }
-    setFormLoading(true);
+    setStudentRegisterLoading(true);
     try {
       const data = await apiRequest('/auth/register', {
         method: 'POST',
@@ -335,7 +341,7 @@ export default function RegisterPage() {
     } catch (err: any) {
       showToast(err.message || 'Registration failed.', 'error');
     } finally {
-      setFormLoading(false);
+      setStudentRegisterLoading(false);
     }
   };
 
@@ -357,7 +363,7 @@ export default function RegisterPage() {
       showToast('Please agree to the Terms of Service and Privacy Policy.', 'error');
       return;
     }
-    setFormLoading(true);
+    setMentorRegisterLoading(true);
     try {
       const data = await apiRequest('/auth/register', {
         method: 'POST',
@@ -385,7 +391,7 @@ export default function RegisterPage() {
     } catch (err: any) {
       showToast(err.message || 'Registration failed.', 'error');
     } finally {
-      setFormLoading(false);
+      setMentorRegisterLoading(false);
     }
   };
 
@@ -543,10 +549,10 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={() => sendRegOtp('student')}
-                      disabled={formLoading || studentOtpSent}
+                      disabled={studentOtpLoading || studentOtpSent}
                       className="px-4 py-2.5 bg-[#00b074]/10 hover:bg-[#00b074]/20 border border-[#00b074]/30 text-[#00b074] rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer disabled:opacity-50"
                     >
-                      {studentOtpSent ? 'Sent ✓' : 'Send OTP'}
+                      {studentOtpLoading ? 'Sending...' : studentOtpSent ? 'Sent ✓' : 'Send OTP'}
                     </button>
                   </div>
                 </div>
@@ -693,10 +699,10 @@ export default function RegisterPage() {
                 {/* Submit button */}
                 <button
                   type="submit"
-                  disabled={formLoading}
+                  disabled={studentRegisterLoading}
                   className="w-full py-3 bg-[#00b074] hover:bg-[#009060] disabled:bg-[#00b074]/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#00b074]/15 transition-all flex items-center justify-center gap-2 mt-5 cursor-pointer"
                 >
-                  {formLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                  {studentRegisterLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
                   Register as Student <ArrowRight className="h-4.5 w-4.5" />
                 </button>
 
@@ -824,10 +830,10 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={() => sendRegOtp('mentor')}
-                      disabled={formLoading || mentorOtpSent}
+                      disabled={mentorOtpLoading || mentorOtpSent}
                       className="px-4 py-2.5 bg-[#5046E5]/10 hover:bg-[#5046E5]/20 border border-[#5046E5]/30 text-[#818CF8] rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer disabled:opacity-50"
                     >
-                      {mentorOtpSent ? 'Sent ✓' : 'Send OTP'}
+                      {mentorOtpLoading ? 'Sending...' : mentorOtpSent ? 'Sent ✓' : 'Send OTP'}
                     </button>
                   </div>
                 </div>
@@ -1020,10 +1026,10 @@ export default function RegisterPage() {
                 {/* Submit button */}
                 <button
                   type="submit"
-                  disabled={formLoading}
+                  disabled={mentorRegisterLoading}
                   className="w-full py-3 bg-[#5046E5] hover:bg-[#4338ca] disabled:bg-[#5046E5]/50 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#5046e5]/15 transition-all flex items-center justify-center gap-2 mt-5 cursor-pointer"
                 >
-                  {formLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                  {mentorRegisterLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
                   Register as Admin / Mentor <ArrowRight className="h-4.5 w-4.5" />
                 </button>
 

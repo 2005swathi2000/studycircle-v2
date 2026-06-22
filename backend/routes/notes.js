@@ -57,6 +57,20 @@ router.post('/', authMiddleware, async (req, res) => {
       lastEditedBy: req.user.id
     });
 
+    // Update active circle challenges of type notes_uploaded
+    try {
+      const { Challenge } = require('../models');
+      const activeChallenges = await Challenge.findAll({
+        where: { groupId, targetType: 'notes_uploaded', status: 'active' }
+      });
+      for (const challenge of activeChallenges) {
+        challenge.currentProgress = (challenge.currentProgress || 0) + 1;
+        await challenge.save();
+      }
+    } catch (challengeErr) {
+      console.error('Failed to update challenges on note creation:', challengeErr);
+    }
+
     return res.status(201).json({ message: 'Note created successfully!', note });
   } catch (err) {
     console.error(err);

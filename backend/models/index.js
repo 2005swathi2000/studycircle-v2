@@ -11,6 +11,8 @@ const SharedNote = require('./SharedNote');
 const Bookmark = require('./Bookmark');
 const Otp = require('./Otp');
 const Notification = require('./Notification');
+const Challenge = require('./Challenge');
+const MentorRating = require('./MentorRating');
 
 // M-M relations
 User.belongsToMany(Group, { through: GroupMember, foreignKey: 'userId' });
@@ -61,6 +63,18 @@ Bookmark.belongsTo(SharedNote, { foreignKey: 'noteId' });
 User.hasMany(Notification, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Notification.belongsTo(User, { foreignKey: 'userId' });
 
+// Challenges
+Group.hasMany(Challenge, { foreignKey: 'groupId', onDelete: 'CASCADE' });
+Challenge.belongsTo(Group, { foreignKey: 'groupId' });
+User.hasMany(Challenge, { foreignKey: 'createdBy', as: 'CreatedChallenges' });
+Challenge.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
+
+// Mentor Ratings
+User.hasMany(MentorRating, { as: 'MentorRatings', foreignKey: 'mentorId', onDelete: 'CASCADE' });
+MentorRating.belongsTo(User, { as: 'Mentor', foreignKey: 'mentorId' });
+User.hasMany(MentorRating, { as: 'GivenRatings', foreignKey: 'studentId', onDelete: 'CASCADE' });
+MentorRating.belongsTo(User, { as: 'Student', foreignKey: 'studentId' });
+
 module.exports = {
   sequelize,
   User,
@@ -74,6 +88,9 @@ module.exports = {
   SharedNote,
   Bookmark,
   Otp,
-  Notification
+  Notification,
+  Challenge,
+  MentorRating
 };
+
 

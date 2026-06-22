@@ -29,6 +29,8 @@ export interface User {
   badges?: string;
   bio?: string;
   token?: string;
+  dailyMissions?: any;
+  dailyMissionDate?: string;
 }
 
 export interface NotificationItem {

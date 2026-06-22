@@ -289,6 +289,20 @@ router.put('/answers/:answerId/accept', authMiddleware, async (req, res) => {
     doubt.isSolved = true;
     await doubt.save();
 
+    // Update active circle challenges of type doubts_solved
+    try {
+      const { Challenge } = require('../models');
+      const activeChallenges = await Challenge.findAll({
+        where: { groupId: doubt.groupId, targetType: 'doubts_solved', status: 'active' }
+      });
+      for (const challenge of activeChallenges) {
+        challenge.currentProgress = (challenge.currentProgress || 0) + 1;
+        await challenge.save();
+      }
+    } catch (challengeErr) {
+      console.error('Failed to update challenges on doubt accept:', challengeErr);
+    }
+
     return res.json({ message: 'Answer accepted and doubt marked as solved!', answer, doubt });
   } catch (err) {
     console.error(err);
