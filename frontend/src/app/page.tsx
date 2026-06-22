@@ -941,7 +941,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col relative overflow-hidden font-sans antialiased">
+    <div className="min-h-screen bg-white text-[#0F172A] flex flex-col relative overflow-hidden font-sans antialiased">
       
       <AnimatePresence>
         {showBook && (
@@ -1317,7 +1317,7 @@ export default function Home() {
         </section>
 
         {/* 4. Gamification Features Showcase Section */}
-        <section id="gamification-section" className="py-20 bg-[#F8FAFC]">
+        <section id="gamification-section" className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-6 space-y-12 text-center">
             <div className="space-y-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-[#22C55E] bg-emerald-50 border border-emerald-100 px-3.5 py-1 rounded-full">Gamification</span>
@@ -1439,7 +1439,7 @@ export default function Home() {
         </section>
 
         {/* 6. Team Showcase Section */}
-        <section id="team-section" className="py-20 bg-[#F8FAFC] relative">
+        <section id="team-section" className="py-20 bg-white relative">
           <div className="max-w-7xl mx-auto px-6 space-y-12 text-center">
             <div className="space-y-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-[#4F46E5] bg-indigo-50 border border-indigo-100 px-3.5 py-1 rounded-full">Team</span>
@@ -1518,7 +1518,7 @@ export default function Home() {
         </section>
 
         {/* 8. Onboarding checklist & Submission Goals scorecard (0-100% progress gauge) */}
-        <section id="goals-section" className="py-20 bg-[#F8FAFC]">
+        <section id="goals-section" className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-6 space-y-12">
             <div className="text-center space-y-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-[#22C55E] bg-emerald-50 border border-emerald-100 px-3.5 py-1 rounded-full">Onboarding Checklist</span>
