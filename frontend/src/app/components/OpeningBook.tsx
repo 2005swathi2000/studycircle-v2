@@ -268,7 +268,10 @@ export default function OpeningBook({ onComplete }: OpeningBookProps) {
               <h1 className="text-3xl font-black tracking-widest text-white uppercase font-sans drop-shadow-md">
                 StudyCircle
               </h1>
-              <div className="h-[2px] w-20 bg-amber-400/60 mx-auto rounded" />
+              <p className="text-[8.5px] font-black tracking-widest text-indigo-150 uppercase font-sans leading-none mt-1">
+                Collaborative Learning Workspace
+              </p>
+              <div className="h-[2px] w-28 bg-amber-400/60 mx-auto rounded mt-2" />
             </div>
           </div>
 
