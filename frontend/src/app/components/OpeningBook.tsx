@@ -165,15 +165,15 @@ export default function OpeningBook({ onComplete }: OpeningBookProps) {
 
         {/* 📚 PAGE 2: RIGHT INNER SIDE OF REAR COVER */}
         <div 
-          className="absolute inset-[3px] right-2 bg-[#FAF8F5] rounded-r-xl p-6 border-l border-slate-200 z-[1] select-none text-left flex flex-col justify-between pointer-events-none"
+          className="absolute inset-[3px] right-2 bg-[#FFF2F6] rounded-r-xl p-6 border-l-[4px] border-pink-200 z-[1] select-none text-left flex flex-col justify-between pointer-events-none"
           style={{ transform: 'translateZ(-13px)' }}
         >
           <div className="space-y-4">
-            <div className="flex items-center gap-1 text-[8px] font-black uppercase text-indigo-500 tracking-wider">
-              <Sparkles className="h-3 w-3" /> AP & TG Cluster
+            <div className="flex items-center gap-1 text-[8px] font-black uppercase text-pink-600 bg-pink-50/55 px-2 py-0.5 rounded border border-pink-100/50 tracking-wider w-fit">
+              <Sparkles className="h-3 w-3 text-pink-500" /> AP & TG Cluster
             </div>
             <h3 className="text-xl font-black text-slate-850 leading-tight uppercase font-sans tracking-tight">Your Circle</h3>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">
+            <p className="text-[10px] text-slate-650 leading-relaxed font-semibold">
               Connecting thousands of engineering & degree students under a unified accountability framework.
             </p>
           </div>
@@ -242,7 +242,7 @@ export default function OpeningBook({ onComplete }: OpeningBookProps) {
         <motion.div
           animate={isOpening ? { rotateY: -135, z: 5 } : { rotateY: 0, z: 10 }}
           transition={{ duration: 1.5, ease: 'easeOut' }}
-          className="absolute inset-0 bg-gradient-to-r from-[#4F46E5] via-[#4338CA] to-[#3730A3] rounded-r-2xl border-l-[8px] border-[#312a84] shadow-2xl flex flex-col justify-between p-7 text-center overflow-hidden origin-left preserve-3d"
+          className="absolute inset-0 bg-gradient-to-r from-[#4F46E5] via-[#4338CA] to-[#3730A3] rounded-r-2xl border-l-[8px] border-[#312a84] shadow-2xl flex flex-col justify-between p-6 text-center overflow-hidden origin-left preserve-3d"
           style={{
             backfaceVisibility: 'hidden',
             transformStyle: 'preserve-3d',
@@ -255,31 +255,40 @@ export default function OpeningBook({ onComplete }: OpeningBookProps) {
           {/* Book spines background texture */}
           <div className="absolute left-0 top-0 bottom-0 w-2.5 bg-black/10 shadow-r" />
 
-          <div className="space-y-4 pt-10 select-none">
+          <div className="space-y-2 pt-6 select-none flex flex-col items-center">
             <motion.div 
               animate={{ rotate: 360 }}
               transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-              className="mx-auto w-12 h-12 rounded-full border-2 border-amber-400/30 flex items-center justify-center text-amber-400 bg-amber-400/5 shadow-inner"
+              className="w-10 h-10 rounded-full border-2 border-amber-400/30 flex items-center justify-center text-amber-400 bg-amber-400/5 shadow-inner shrink-0"
             >
-              <BookOpen className="h-6 w-6 stroke-[1.5]" />
+              <BookOpen className="h-5 w-5 stroke-[1.5]" />
             </motion.div>
             
             <div className="space-y-1">
-              <h1 className="text-3xl font-black tracking-widest text-white uppercase font-sans drop-shadow-md">
+              <h1 className="text-2xl font-black tracking-widest text-white uppercase font-sans drop-shadow-md">
                 StudyCircle
               </h1>
               <p className="text-[8.5px] font-black tracking-widest text-indigo-150 uppercase font-sans leading-none mt-1">
                 Collaborative Learning Workspace
               </p>
-              <div className="h-[2px] w-28 bg-amber-400/60 mx-auto rounded mt-2" />
+              <div className="h-[1.5px] w-28 bg-amber-400/60 mx-auto rounded mt-1.5" />
             </div>
           </div>
 
-          <div className="space-y-2 pb-6 select-none">
-            <p className="text-[10px] font-black uppercase text-amber-400 tracking-widest">
+          {/* Middle Illustration */}
+          <div className="w-full flex justify-center py-1 select-none pointer-events-none">
+            <img 
+              src="/students-studying.png" 
+              alt="Students Studying" 
+              className="w-[185px] h-[185px] object-contain rounded-xl shadow-lg border border-indigo-400/20"
+            />
+          </div>
+
+          <div className="space-y-1.5 pb-4 select-none">
+            <p className="text-[9px] font-black uppercase text-amber-400 tracking-widest leading-none">
               Learn Together. Grow Together.
             </p>
-            <p className="text-[8px] font-bold text-indigo-200 uppercase tracking-widest leading-none">
+            <p className="text-[7.5px] font-bold text-indigo-250 uppercase tracking-widest leading-none">
               AP & Telangana Collaborative Space
             </p>
           </div>
