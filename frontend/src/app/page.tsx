@@ -137,6 +137,32 @@ export default function Home() {
   const [activePortal, setActivePortal] = useState<'student' | 'mentor'>('student');
   const [regRole, setRegRole] = useState<'student' | 'mentor'>('student');
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showOauthDiagnostics, setShowOauthDiagnostics] = useState(false);
+
+  // Google Confirmation Modal states
+  const [googleCredential, setGoogleCredential] = useState<string | null>(null);
+  const [googleProfile, setGoogleProfile] = useState<{ name: string; email: string; picture: string } | null>(null);
+  const [showGoogleConfirmModal, setShowGoogleConfirmModal] = useState(false);
+
+  const resolvedClientId = (
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 
+    process.env.VITE_GOOGLE_CLIENT_ID || 
+    ""
+  ).trim();
+
+  const isValidGoogleClientId = resolvedClientId !== "" && 
+    !resolvedClientId.includes("dummy") && 
+    !resolvedClientId.includes("YOUR_REAL_CLIENT_ID") && 
+    resolvedClientId.endsWith(".apps.googleusercontent.com");
+
+  const getFrameworkType = () => {
+    if (typeof window !== 'undefined') {
+      if ((window as any).next || (window as any).__NEXT_DATA__ || document.getElementById('__NEXT_DATA__')) {
+        return 'Next.js';
+      }
+    }
+    return 'Next.js';
+  };
 
   // Split name and gender inputs
   const [studentFirstName, setStudentFirstName] = useState('');
@@ -270,6 +296,13 @@ export default function Home() {
       setProfileLastName(currentUser.lastName || '');
     }
   }, [currentUser]);
+
+  // Redirect already logged-in users directly to dashboard
+  useEffect(() => {
+    if (currentUser && !globalLoading) {
+      router.push('/dashboard');
+    }
+  }, [currentUser, globalLoading, router]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -471,9 +504,12 @@ export default function Home() {
       setIsDevMode(isLocal);
 
       if (isLocal) {
-        console.log("[Google Auth Diagnostics] Development environment detected.");
-        console.log(" - NEXT_PUBLIC_GOOGLE_CLIENT_ID:", process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "MISSING (Recommended for Next.js App Router)");
-        console.log(" - VITE_GOOGLE_CLIENT_ID:", process.env.VITE_GOOGLE_CLIENT_ID || "MISSING (Vite Compatibility Fallback)");
+        console.log("[Google Auth Diagnostics] Development environment status:", {
+          nextPublicExists: !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          viteExists: !!process.env.VITE_GOOGLE_CLIENT_ID,
+          origin: typeof window !== 'undefined' ? window.location.origin : "",
+        });
+        console.log(" - Detected Framework:", getFrameworkType());
         
         const resolvedId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || "";
         if (!resolvedId) {
@@ -1719,60 +1755,86 @@ export default function Home() {
                 </div>
 
                 <div className="flex justify-center w-full mt-2">
-                  {(() => {
-                    const resolvedClientId = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || "").trim();
-                    const isValidFormat = resolvedClientId !== "" && 
-                                          !resolvedClientId.includes("dummy") && 
-                                          !resolvedClientId.includes("YOUR_REAL_CLIENT_ID") && 
-                                          resolvedClientId.endsWith(".apps.googleusercontent.com");
-                    
-                    return isValidFormat ? (
-                      <GoogleLogin
-                        onSuccess={(credentialResponse) => {
-                          if (credentialResponse.credential) {
+                  {isValidGoogleClientId ? (
+                    <GoogleLogin
+                      onSuccess={(credentialResponse) => {
+                        if (credentialResponse.credential) {
+                          const decoded = decodeJwt(credentialResponse.credential);
+                          if (decoded) {
+                            setGoogleCredential(credentialResponse.credential);
+                            setGoogleProfile({
+                              name: decoded.name || 'Google User',
+                              email: decoded.email || '',
+                              picture: decoded.picture || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'
+                            });
                             setShowAuthModal(false);
-                            handleGoogleInitiate(credentialResponse.credential);
+                            setShowGoogleConfirmModal(true);
+                          } else {
+                            showToast('Failed to parse Google credentials.', 'error');
                           }
-                        }}
-                        onError={() => {
-                          showToast('Google Sign-In failed.', 'error');
-                        }}
-                        theme="outline"
-                        size="large"
-                        shape="rectangular"
-                        width="320px"
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          showToast("Google OAuth is not configured correctly. Please verify Client ID and Google Cloud Console settings.", "error");
-                        }}
-                        className="w-[320px] py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-sm hover:shadow"
-                      >
-                        <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
-                          <path
-                            fill="#EA4335"
-                            d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.33 0 3.327 2.68 1.486 6.58l3.78 3.185z"
-                          />
-                          <path
-                            fill="#34A853"
-                            d="M16.04 15.345c-1.07.72-2.482 1.155-4.04 1.155a7.09 7.09 0 0 1-6.734-4.855L1.48 14.83C3.32 18.738 7.33 21.42 12 21.42c3.055 0 5.89-.982 8.027-2.855l-3.986-3.22z"
-                          />
-                          <path
-                            fill="#4285F4"
-                            d="M23.82 12.24c0-.77-.07-1.56-.2-2.31H12v4.51h6.633a5.688 5.688 0 0 1-2.466 3.73l3.986 3.22c2.333-2.155 3.667-5.32 3.667-9.15z"
-                          />
-                          <path
-                            fill="#FBBC05"
-                            d="M5.266 11.655a6.853 6.853 0 0 1 0-1.89l-3.78-3.185A11.954 11.954 0 0 0 0 12.24c0 2.01.49 3.91 1.486 5.59l3.78-3.185z"
-                          />
-                        </svg>
-                        <span>Continue with Google</span>
-                      </button>
-                    );
-                  })()}
+                        }
+                      }}
+                      onError={() => {
+                        showToast('Google Sign-In failed.', 'error');
+                      }}
+                      theme="outline"
+                      size="large"
+                      shape="rectangular"
+                      width="320px"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showToast("Google OAuth is not configured correctly. Opening Diagnostics...", "error");
+                        setShowOauthDiagnostics(true);
+                      }}
+                      className="w-[320px] py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-sm hover:shadow"
+                    >
+                      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                        <path
+                          fill="#EA4335"
+                          d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.33 0 3.327 2.68 1.486 6.58l3.78 3.185z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M16.04 15.345c-1.07.72-2.482 1.155-4.04 1.155a7.09 7.09 0 0 1-6.734-4.855L1.48 14.83C3.32 18.738 7.33 21.42 12 21.42c3.055 0 5.89-.982 8.027-2.855l-3.986-3.22z"
+                        />
+                        <path
+                          fill="#4285F4"
+                          d="M23.82 12.24c0-.77-.07-1.56-.2-2.31H12v4.51h6.633a5.688 5.688 0 0 1-2.466 3.73l3.986 3.22c2.333-2.155 3.667-5.32 3.667-9.15z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.266 11.655a6.853 6.853 0 0 1 0-1.89l-3.78-3.185A11.954 11.954 0 0 0 0 12.24c0 2.01.49 3.91 1.486 5.59l3.78-3.185z"
+                        />
+                      </svg>
+                      <span>Continue with Google</span>
+                    </button>
+                  )}
                 </div>
+                {isDevMode && !isValidGoogleClientId && (
+                  <div className="text-center mt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const mockCredential = 'mock_google_credential_token:swathi.hani@studycircle.com:Swathi Hani:female';
+                        setGoogleCredential(mockCredential);
+                        setGoogleProfile({
+                          name: 'Swathi Hani',
+                          email: 'swathi.hani@studycircle.com',
+                          picture: '/swathi-avatar.png'
+                        });
+                        setShowAuthModal(false);
+                        setShowGoogleConfirmModal(true);
+                        showToast('Sandbox: Simulating Google Account Chooser callback...', 'info');
+                      }}
+                      className="text-[10px] font-black text-amber-600 hover:text-amber-700 transition-colors bg-amber-50 border border-amber-200/50 px-3 py-1.5 rounded-lg font-bold"
+                    >
+                      🛠️ Sandbox: Test Google Login
+                    </button>
+                  </div>
+                )}
                 <div className="text-center pt-2">
                   <span className="text-[10px] text-slate-500">Don't have an account? </span>
                   <button
@@ -1875,7 +1937,99 @@ export default function Home() {
         </div>
       )}
 
-      {/* 🔐 Google Account Picker Modal Removed (Using direct official Google popup login instead) */}
+      {/* 🔐 Google Account Confirmation Modal */}
+      <AnimatePresence>
+        {showGoogleConfirmModal && googleProfile && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowGoogleConfirmModal(false);
+                setShowAuthModal(true);
+              }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-md cursor-pointer"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="relative w-full max-w-md bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-3xl p-8 shadow-2xl z-10 text-center flex flex-col items-center"
+            >
+              {/* Decorative Subtle Background Glow */}
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+              <h3 className="text-lg font-black text-slate-900 tracking-tight mb-6">
+                Continue with this account?
+              </h3>
+
+              {/* Avatar Circle with Ring */}
+              <div className="relative mb-4 group">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 opacity-20 blur-md group-hover:opacity-40 transition-opacity duration-300" />
+                <div className="relative h-20 w-20 rounded-full border-4 border-white shadow-md overflow-hidden bg-slate-50">
+                  <img
+                    src={googleProfile.picture}
+                    alt={googleProfile.name}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236B7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* User details */}
+              <div className="space-y-1 mb-6">
+                <h4 className="text-sm font-black text-slate-800 leading-snug">
+                  {googleProfile.name}
+                </h4>
+                <p className="text-xs text-[#4F46E5] font-bold">
+                  {googleProfile.email}
+                </p>
+              </div>
+
+              {/* Informative Description */}
+              <p className="text-xs text-slate-550 font-bold leading-relaxed mb-8 max-w-xs">
+                You are about to sign in to StudyCircle using this Google account.
+              </p>
+
+              {/* Actions Grid */}
+              <div className="grid grid-cols-2 gap-4 w-full">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowGoogleConfirmModal(false);
+                    setShowAuthModal(true);
+                    setGoogleCredential(null);
+                    setGoogleProfile(null);
+                    if (typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
+                      (window as any).google.accounts.id.prompt();
+                    }
+                  }}
+                  className="py-3 px-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[#475569] text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98] font-bold"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (googleCredential) {
+                      setShowGoogleConfirmModal(false);
+                      await handleGoogleInitiate(googleCredential);
+                    }
+                  }}
+                  className="py-3 px-4 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-lg shadow-[#4F46E5]/20 active:scale-[0.98] border-none font-bold"
+                >
+                  Continue
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ── BUG FIX #3 — Profile Edit Modal ── */}
       {showProfileEdit && (
@@ -2073,6 +2227,228 @@ export default function Home() {
               >
                 Clear View
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🛡️ Google OAuth Diagnostics Modal */}
+      {showOauthDiagnostics && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+          <div 
+            onClick={() => setShowOauthDiagnostics(false)}
+            className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
+          />
+          
+          <div className="relative w-full max-w-2xl bg-[#0B0D13]/95 border border-slate-800 rounded-3xl p-8 shadow-2xl z-10 text-left overflow-y-auto max-h-[90vh] text-zinc-150">
+            <button 
+              onClick={() => setShowOauthDiagnostics(false)}
+              className="absolute top-6 right-6 text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-slate-900"
+            >
+              ✕
+            </button>
+
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+                <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center">
+                  <AlertCircle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Google OAuth Diagnostics Center</h3>
+                  <p className="text-[11px] text-zinc-400">Audit environment variables, format requirements, and Authorized Origins</p>
+                </div>
+              </div>
+
+              {/* Environment Info Card */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl space-y-2">
+                  <span className="text-[9px] font-black uppercase text-zinc-400 tracking-wider">Environment Details</span>
+                  <div className="space-y-1.5 text-xs">
+                    <p className="flex justify-between text-zinc-300">
+                      <span>Detected Framework:</span>
+                      <span className="font-bold text-emerald-400">{getFrameworkType()}</span>
+                    </p>
+                    <p className="flex justify-between text-zinc-300">
+                      <span>Deployment Mode:</span>
+                      <span className="font-bold text-indigo-400">{isDevMode ? "Local Development" : "Production / Vercel"}</span>
+                    </p>
+                    <p className="flex justify-between text-zinc-300">
+                      <span>Google Provider Status:</span>
+                      <span className="font-bold text-emerald-400">Safe Initialized</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl space-y-2">
+                  <span className="text-[9px] font-black uppercase text-zinc-400 tracking-wider">Active JavaScript Origin</span>
+                  <div className="space-y-1.5 text-xs">
+                    <p className="text-zinc-300 break-all bg-slate-950 p-2 rounded-xl font-mono text-[10px] border border-slate-900/80">
+                      {typeof window !== 'undefined' ? window.location.origin : "https://studycircle-v2-frontend-standalone.vercel.app"}
+                    </p>
+                    <p className="text-[9px] text-zinc-400 italic">
+                      This exact origin URL must be added to Google Cloud Console.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Diagnostic Checklist */}
+              <div className="space-y-3">
+                <span className="text-[9px] font-black uppercase text-zinc-400 tracking-wider">Audit Results</span>
+                
+                <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-900/80 space-y-3 text-xs">
+                  <div className="flex justify-between border-b border-slate-900/60 pb-2">
+                    <span className="text-zinc-400">Framework:</span>
+                    <span className="font-bold text-white">{getFrameworkType()}</span>
+                  </div>
+
+                  <div className="flex justify-between border-b border-slate-900/60 pb-2">
+                    <span className="text-zinc-400">NEXT_PUBLIC_GOOGLE_CLIENT_ID:</span>
+                    {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
+                      <span className="font-bold text-emerald-400">Found</span>
+                    ) : (
+                      <span className="font-bold text-rose-400">Missing</span>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between border-b border-slate-900/60 pb-2">
+                    <span className="text-zinc-400">VITE_GOOGLE_CLIENT_ID:</span>
+                    {process.env.VITE_GOOGLE_CLIENT_ID ? (
+                      <span className="font-bold text-emerald-400">Found</span>
+                    ) : (
+                      <span className="font-bold text-zinc-500">Missing (OK)</span>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between border-b border-slate-900/60 pb-2">
+                    <span className="text-zinc-400">Resolved Client ID:</span>
+                    {(() => {
+                      const resolvedId = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || "").trim();
+                      if (!resolvedId) {
+                        return <span className="font-bold text-rose-400">Missing</span>;
+                      }
+                      
+                      // Mask client ID (e.g. 1234567890-abc...xyz.apps.googleusercontent.com)
+                      const parts = resolvedId.split("-");
+                      const prefix = parts[0] || "";
+                      const suffix = resolvedId.endsWith(".apps.googleusercontent.com") ? "apps.googleusercontent.com" : "";
+                      const rest = resolvedId.replace(prefix, "").replace(suffix, "");
+                      const maskedRest = rest.length > 6 ? rest.substring(0, 4) + "..." + rest.substring(rest.length - 4) : "...";
+                      
+                      return (
+                        <span className="font-mono text-zinc-300 select-all truncate max-w-[280px]">
+                          {prefix}{maskedRest}{suffix ? `-${suffix}` : ""}
+                        </span>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="flex justify-between border-b border-slate-900/60 pb-2">
+                    <span className="text-zinc-400">Origin:</span>
+                    <span className="font-mono text-zinc-300 break-all truncate max-w-[280px]">
+                      {typeof window !== 'undefined' ? window.location.origin : ""}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-zinc-400">Format Valid:</span>
+                    {(() => {
+                      const resolvedId = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || "").trim();
+                      const isPresent = resolvedId !== "";
+                      const isPlaceholder = resolvedId.includes("dummy") || resolvedId.includes("YOUR_REAL_CLIENT_ID") || resolvedId.includes("xxxxxxxx");
+                      const isValidSuffix = resolvedId.endsWith(".apps.googleusercontent.com");
+                      
+                      if (isPresent && !isPlaceholder && isValidSuffix) {
+                        return <span className="font-bold text-emerald-400">Yes</span>;
+                      }
+                      return <span className="font-bold text-rose-400">No</span>;
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Troubleshooting steps */}
+              <div className="space-y-3 border-t border-slate-800 pt-4">
+                <span className="text-[9px] font-black uppercase text-zinc-400 tracking-wider">Troubleshooting Google Console Setup</span>
+                
+                <div className="bg-slate-950/40 border border-slate-850 p-4 rounded-2xl space-y-3.5 text-xs text-zinc-300">
+                  <div className="space-y-1">
+                    <p className="font-bold text-white flex items-center gap-2">
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-800 text-[9px] font-black text-zinc-300">1</span>
+                      Vercel Dashboard Environment Settings
+                    </p>
+                    <p className="text-[11px] text-zinc-400 pl-6 leading-relaxed">
+                      Go to **Vercel → Project Settings → Environment Variables** and add <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>. Verify it is set for **Production**, **Preview**, and **Development** scopes. You must redeploy the project for Vercel to inject it.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="font-bold text-white flex items-center gap-2">
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-800 text-[9px] font-black text-zinc-300">2</span>
+                      Authorized JavaScript Origins Configuration
+                    </p>
+                    <div className="text-[11px] text-zinc-400 pl-6 leading-relaxed space-y-1.5">
+                      <p>
+                        In your **Google Cloud Console**, go to **APIs & Services → Credentials**. Open your Web client ID and verify your deployment URL is listed in **Authorized JavaScript Origins** exactly:
+                      </p>
+                      <code className="block p-2 bg-slate-950 rounded border border-slate-900 font-mono text-[10px] select-all break-all text-amber-300">
+                        {typeof window !== 'undefined' ? window.location.origin : "https://studycircle-v2-frontend-standalone.vercel.app"}
+                      </code>
+                      <p className="text-[10px] text-zinc-500 font-medium">⚠️ Important: Make sure there is no trailing slash (/) at the end of the origin URL.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="font-bold text-white flex items-center gap-2">
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-800 text-[9px] font-black text-zinc-300">3</span>
+                      OAuth Consent Screen & ID Integrity
+                    </p>
+                    <p className="text-[11px] text-zinc-400 pl-6 leading-relaxed">
+                      - Verify that the **OAuth Consent Screen** app status is either **"In production"** or has your current email registered under **"Test Users"**.
+                      <br />- Ensure that the Client ID in Vercel exactly matches the Client ID in the Google Cloud Console and has not been deleted or disabled.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {isDevMode && (
+                <div className="space-y-3 border-t border-slate-800 pt-4">
+                  <span className="text-[9px] font-black uppercase text-amber-500 tracking-wider">Local Sandbox Test Environment</span>
+                  <div className="bg-amber-500/5 border border-amber-500/10 p-4 rounded-2xl space-y-3.5 text-xs text-zinc-300">
+                    <p className="text-[11px] text-zinc-450">
+                      You can test the exact two-step Google Authentication experience locally using our OAuth sandbox simulator. This generates a mock JWT token and displays the custom StudyCircle confirmation modal.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOauthDiagnostics(false);
+                        const mockCredential = 'mock_google_credential_token:swathi.hani@studycircle.com:Swathi Hani:female';
+                        setGoogleCredential(mockCredential);
+                        setGoogleProfile({
+                          name: 'Swathi Hani',
+                          email: 'swathi.hani@studycircle.com',
+                          picture: '/swathi-avatar.png'
+                        });
+                        setShowGoogleConfirmModal(true);
+                        showToast('Sandbox mode: Mock Google credentials generated.', 'info');
+                      }}
+                      className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-[#0F172A] text-xs font-black rounded-xl cursor-pointer transition-all text-center border-none font-bold"
+                    >
+                      Launch Sandbox Google Login
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setShowOauthDiagnostics(false)}
+                  className="flex-1 py-3 bg-zinc-850 hover:bg-zinc-850/80 active:scale-[0.99] text-white text-xs font-black rounded-xl cursor-pointer transition-all text-center font-bold"
+                >
+                  Close Diagnostics
+                </button>
+              </div>
+
             </div>
           </div>
         </div>

@@ -449,6 +449,486 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [practiceSessionScore, setPracticeSessionScore] = useState<number>(0);
   const [practiceQuizErrorMessage, setPracticeQuizErrorMessage] = useState<string | null>(null);
 
+  // --- COMMUNITY HUB STATES & MOCK DATA ---
+  const [activeFeedType, setActiveFeedType] = useState<'all' | 'discussions' | 'doubts' | 'announcements' | 'resources' | 'polls'>('all');
+  const [activeChannel, setActiveChannel] = useState<string>('#general-lobby');
+  const [searchChannelQuery, setSearchChannelQuery] = useState<string>('');
+  const [searchMessageQuery, setSearchMessageQuery] = useState<string>('');
+  const [newMessageText, setNewMessageText] = useState<string>('');
+  const [replyMessageText, setReplyMessageText] = useState<string>('');
+  const [isPinnedOnly, setIsPinnedOnly] = useState<boolean>(false);
+  const [selectedDoubtForThread, setSelectedDoubtForThread] = useState<any | null>(null);
+  const [newDoubtModalOpen, setNewDoubtModalOpen] = useState<boolean>(false);
+  const [activeAiTool, setActiveAiTool] = useState<'flashcard' | 'quiz' | null>(null);
+  const [aiQuizAnswers, setAiQuizAnswers] = useState<Record<string, string>>({});
+  const [aiQuizSubmitted, setAiQuizSubmitted] = useState<boolean>(false);
+  const [aiLoading, setAiLoading] = useState<boolean>(false);
+  const [xpRewards, setXpRewards] = useState<Array<{ id: number; amount: number; text: string; x: number; y: number }>>([]);
+  const [joinedVoiceId, setJoinedVoiceId] = useState<number | null>(null);
+  
+  // Local UI states for Community Hub controls
+  const [composerPostType, setComposerPostType] = useState<'chat' | 'doubt' | 'poll'>('chat');
+  const [currentFlashcardIdx, setCurrentFlashcardIdx] = useState<number>(0);
+  const [isCardFlipped, setIsCardFlipped] = useState<boolean>(false);
+  
+  // Custom dialog or input fields for new doubt
+  const [newDoubtTitle, setNewDoubtTitle] = useState<string>('');
+  const [newDoubtDescription, setNewDoubtDescription] = useState<string>('');
+
+  const [voiceDesks, setVoiceDesks] = useState([
+    { id: 1, name: '🎙 DBMS Study Lounge', activeCount: 8, joined: false },
+    { id: 2, name: '🎙 OS Exam Prep Desk', activeCount: 12, joined: false },
+    { id: 3, name: '🎙 Placement Sprint Lounge', activeCount: 15, joined: false }
+  ]);
+
+  const dailyMetrics = {
+    studentsActive: 42,
+    doubtsResolved: 17,
+    resourcesShared: 8,
+    liveStudySessions: 3
+  };
+
+  const aiChannelSummaries: Record<string, string> = {
+    '#general-lobby': 'Students are currently preparing for placement season. Key discussed topics: Resume styling, basic arrays vs linked lists, and upcoming company patterns.',
+    '#dbms-circle': 'Active discussion on Database Normalization (1NF, 2NF, 3NF, BCNF) and SQL query optimizations. 12 doubts resolved today.',
+    '#operating-systems': 'Focusing on process synchronization, semaphores, deadlock prevention, and page replacement algorithms.',
+    '#computer-networks': 'Reviewing TCP vs UDP handshakes, IP addressing subnetting masks, and routing protocols.',
+    '#aptitude': 'Discussing probability, time & work shortcuts, and logic puzzles. 4 resources shared.',
+    '#interview-prep': 'Sharing coding rounds experiences, mock feedback, and behavioral interview questions.',
+    '#coding-rounds': 'Solving hard dynamic programming questions, tree traversals, and complexity optimizations.',
+    '#project-discussion': 'Grouping for semester projects. Front-end frameworks vs Back-end databases selections.',
+    '#team-collaboration': 'Coordinating meetings, GitHub branching policies, and deployment strategies.'
+  };
+
+  const aiQuizQuestions = [
+    {
+      id: 'q1',
+      question: 'Which normal form addresses transitively dependent attributes?',
+      options: ['1NF', '2NF', '3NF', 'BCNF'],
+      answer: '3NF',
+      explanation: '3NF states that there should be no transitive dependency (non-prime attributes depending on other non-prime attributes).'
+    },
+    {
+      id: 'q2',
+      question: 'What is the main purpose of BCNF?',
+      options: ['Remove multi-valued dependencies', 'Remove partial dependencies', 'Handle cases where candidate keys overlap', 'Ensure atomic values'],
+      answer: 'Handle cases where candidate keys overlap',
+      explanation: 'BCNF is a stronger version of 3NF, dealing with anomalies arising from overlapping candidate keys.'
+    }
+  ];
+
+  const aiFlashcards = [
+    { front: '1NF (First Normal Form)', back: 'All attributes must be atomic (indivisible) values. No repeating groups.' },
+    { front: '2NF (Second Normal Form)', back: 'Must be in 1NF, and all non-key attributes must be fully functionally dependent on the primary key (no partial dependencies).' },
+    { front: '3NF (Third Normal Form)', back: 'Must be in 2NF, and no transitive dependency exists between non-prime attributes.' },
+    { front: 'BCNF (Boyce-Codd Normal Form)', back: 'For every functional dependency X -> Y, X must be a super key.' }
+  ];
+
+  const topContributors = [
+    { name: 'Bhagya', role: 'student', xp: 480, doubtsSolved: 8, avatar: '/bhagya-avatar.png' },
+    { name: 'Rathna', role: 'student', xp: 390, doubtsSolved: 6, avatar: '/rathna-avatar.png' },
+    { name: 'Karthik', role: 'student', xp: 320, doubtsSolved: 5, avatar: '/karthik-avatar.png' },
+    { name: 'Charan', role: 'student', xp: 280, doubtsSolved: 4, avatar: '/charan-avatar.png' }
+  ];
+
+  const upcomingCommunitySessions = [
+    { title: 'DBMS Schema Design Review', time: 'Today at 6:00 PM', mentor: 'Mentor Prasad', count: 18 },
+    { title: 'OS Deadlock Live Practice', time: 'Tomorrow at 4:30 PM', mentor: 'Mentor Sai', count: 12 }
+  ];
+
+  const [communityMessages, setCommunityMessages] = useState<any[]>([
+    {
+      id: 'm1',
+      type: 'doubt',
+      channel: '#dbms-circle',
+      user: 'Swathi Hani',
+      role: 'student',
+      title: 'How does BCNF handle overlapping candidate keys?',
+      description: 'I am reading about BCNF vs 3NF. Can someone explain an example where a relation is in 3NF but not in BCNF due to overlapping candidate keys?',
+      time: '10:45 AM',
+      avatar: '/swathi-avatar.png',
+      upvotes: 8,
+      upvotedBy: [],
+      status: 'unresolved',
+      isPinned: true,
+      answers: [
+        {
+          id: 'a1',
+          user: 'Mentor Prasad',
+          role: 'mentor',
+          avatar: '/charan-avatar.png',
+          text: 'Consider R(A, B, C) with FDs: AB -> C and C -> B. Here, candidate keys are AB and AC (overlapping). It is in 3NF because all prime attributes (A, B, C) are part of candidate keys. But C -> B violates BCNF because C is not a superkey.',
+          time: '11:02 AM',
+          upvotes: 4,
+          isAccepted: false
+        },
+        {
+          id: 'a2',
+          user: 'Bhagya',
+          role: 'student',
+          avatar: '/bhagya-avatar.png',
+          text: 'In 3NF, the dependent attribute is allowed to be prime. In BCNF, this exception is removed, so the determinant MUST be a superkey. That is why BCNF is stricter!',
+          time: '11:15 AM',
+          upvotes: 3,
+          isAccepted: false
+        }
+      ]
+    },
+    {
+      id: 'm2',
+      type: 'announcement',
+      channel: '#general-lobby',
+      user: 'Mentor Prasad',
+      role: 'mentor',
+      title: '📢 LIVE DBMS Room Session at 6:00 PM',
+      description: 'I will be hosting a live coding and diagram review session in the DBMS Study Lounge. We will go through the normalization of an E-commerce schema and solve BCNF decomposition step by step. Join directly from the Voice study desk list!',
+      time: 'Yesterday at 05:30 PM',
+      avatar: '/charan-avatar.png',
+      isPinned: true,
+      priority: 'high',
+      upvotes: 15,
+      upvotedBy: []
+    },
+    {
+      id: 'm3',
+      type: 'resource',
+      channel: '#operating-systems',
+      user: 'Bhagya',
+      role: 'student',
+      title: '📚 Semaphores & Deadlocks Cheatsheet',
+      description: 'Here is a quick summary PDF covering Peterson\'s solution, Semaphores (counting vs binary), and Deadlock conditions (Mutual exclusion, Hold & wait, No preemption, Circular wait). Ideal for quick revisions before midterm!',
+      time: '09:30 AM',
+      avatar: '/bhagya-avatar.png',
+      resourceName: 'OS_Semaphores_CheatSheet.pdf',
+      resourceSize: '1.2 MB',
+      resourceType: 'pdf',
+      downloads: 24,
+      upvotes: 11,
+      upvotedBy: []
+    },
+    {
+      id: 'm4',
+      type: 'poll',
+      channel: '#aptitude',
+      user: 'Karthik',
+      role: 'student',
+      title: '🗳️ Next Aptitude Practice Topic?',
+      description: 'Which topic should we focus on during the Aptitude Marathon voice desk session tomorrow?',
+      time: '08:15 AM',
+      avatar: '/karthik-avatar.png',
+      isPinned: false,
+      pollOptions: [
+        { label: 'Time & Work Shortcuts', votes: 14 },
+        { label: 'Probability & Permutations', votes: 20 },
+        { label: 'Ratio & Proportions', votes: 8 },
+        { label: 'Data Interpretation Charts', votes: 6 }
+      ],
+      totalVotes: 48,
+      votedOption: null,
+      upvotes: 5,
+      upvotedBy: []
+    },
+    {
+      id: 'm5',
+      type: 'discussion',
+      channel: '#general-lobby',
+      user: 'Charan',
+      role: 'student',
+      title: 'Project Group Openings',
+      description: 'Looking for 2 members for our Android App development study circle project. Stack: React Native + Spring Boot. Let me know in `#team-collaboration` if interested!',
+      time: '09:12 AM',
+      avatar: '/charan-avatar.png',
+      upvotes: 4,
+      upvotedBy: [],
+      replies: [
+        { user: 'Karthik', role: 'student', text: 'Interested! Let\'s coordinate on the team channel.', time: '09:20 AM' }
+      ]
+    }
+  ]);
+
+  const triggerXpReward = (amount: number, text: string) => {
+    const id = Date.now() + Math.random();
+    const newReward = {
+      id,
+      amount,
+      text,
+      x: typeof window !== 'undefined' ? window.innerWidth / 2 + (Math.random() * 100 - 50) : 500,
+      y: typeof window !== 'undefined' ? window.innerHeight / 2 - 100 : 300
+    };
+    setXpRewards((prev) => [...prev, newReward]);
+    setStats((prev) => ({
+      ...prev,
+      xp: prev.xp + amount,
+      focusCoins: prev.focusCoins + Math.floor(amount / 5)
+    }));
+    setTimeout(() => {
+      setXpRewards((prev) => prev.filter((r) => r.id !== id));
+    }, 2000);
+  };
+
+  const handleUpvoteMessage = (msgId: string) => {
+    setCommunityMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id === msgId) {
+          const userName = user?.fullName || 'Anonymous';
+          const alreadyUpvoted = msg.upvotedBy?.includes(userName);
+          const upvotedBy = alreadyUpvoted
+            ? msg.upvotedBy.filter((name: string) => name !== userName)
+            : [...(msg.upvotedBy || []), userName];
+          const newUpvotes = alreadyUpvoted ? msg.upvotes - 1 : msg.upvotes + 1;
+          
+          if (!alreadyUpvoted) {
+            triggerXpReward(5, 'Upvoted Post! +5 XP');
+            showToast('Post upvoted! You earned +5 XP.', 'success');
+          } else {
+            showToast('Upvote removed.', 'info');
+          }
+          
+          const updatedMsg = { ...msg, upvotes: newUpvotes, upvotedBy };
+          if (selectedDoubtForThread && selectedDoubtForThread.id === msgId) {
+            setSelectedDoubtForThread(updatedMsg);
+          }
+          return updatedMsg;
+        }
+        return msg;
+      })
+    );
+  };
+
+  const handleUpvoteAnswer = (msgId: string, answerId: string) => {
+    setCommunityMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id === msgId) {
+          const updatedAnswers = msg.answers?.map((ans: any) => {
+            if (ans.id === answerId) {
+              triggerXpReward(5, 'Upvoted Answer! +5 XP');
+              return { ...ans, upvotes: ans.upvotes + 1 };
+            }
+            return ans;
+          });
+          const updatedMsg = { ...msg, answers: updatedAnswers };
+          if (selectedDoubtForThread && selectedDoubtForThread.id === msgId) {
+            setSelectedDoubtForThread(updatedMsg);
+          }
+          return updatedMsg;
+        }
+        return msg;
+      })
+    );
+  };
+
+  const handleAcceptSolution = (msgId: string, answerId: string) => {
+    setCommunityMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id === msgId) {
+          const updatedAnswers = msg.answers?.map((ans: any) => {
+            if (ans.id === answerId) {
+              return { ...ans, isAccepted: true };
+            }
+            return ans;
+          });
+          
+          triggerXpReward(20, 'Solution Accepted! +20 XP');
+          showToast('Answer marked as accepted solution! +20 XP awarded.', 'success');
+          
+          const updatedMsg = {
+            ...msg,
+            status: 'resolved',
+            answers: updatedAnswers
+          };
+          
+          if (selectedDoubtForThread && selectedDoubtForThread.id === msgId) {
+            setSelectedDoubtForThread(updatedMsg);
+          }
+          return updatedMsg;
+        }
+        return msg;
+      })
+    );
+  };
+
+  const handleToggleVoiceChannel = (roomId: number) => {
+    if (joinedVoiceId === roomId) {
+      setJoinedVoiceId(null);
+      setVoiceDesks((prev) =>
+        prev.map((desk) =>
+          desk.id === roomId
+            ? { ...desk, activeCount: Math.max(0, desk.activeCount - 1), joined: false }
+            : desk
+        )
+      );
+      showToast('Left study desk.', 'info');
+    } else {
+      setVoiceDesks((prev) =>
+        prev.map((desk) => {
+          if (desk.id === joinedVoiceId) {
+            return { ...desk, activeCount: Math.max(0, desk.activeCount - 1), joined: false };
+          }
+          if (desk.id === roomId) {
+            return { ...desk, activeCount: desk.activeCount + 1, joined: true };
+          }
+          return desk;
+        })
+      );
+      setJoinedVoiceId(roomId);
+      showToast(`Joined Voice Study Desk! Mic connected.`, 'success');
+    }
+  };
+
+  const handleAskDoubt = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDoubtTitle.trim() || !newDoubtDescription.trim()) {
+      showToast('Please fill out all fields.', 'error');
+      return;
+    }
+    
+    const newDoubt = {
+      id: 'm_' + Date.now(),
+      type: 'doubt',
+      channel: activeChannel,
+      user: user?.fullName || 'Swathi Hani',
+      role: user?.role || 'student',
+      title: newDoubtTitle,
+      description: newDoubtDescription,
+      time: 'Just now',
+      avatar: user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender),
+      upvotes: 0,
+      upvotedBy: [],
+      status: 'unresolved',
+      isPinned: false,
+      answers: []
+    };
+
+    setCommunityMessages((prev) => [newDoubt, ...prev]);
+    setNewDoubtTitle('');
+    setNewDoubtDescription('');
+    setNewDoubtModalOpen(false);
+    triggerXpReward(10, 'Doubt Asked! +10 XP');
+    showToast('Your academic doubt has been posted! +10 XP earned.', 'success');
+  };
+
+  const handlePostMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessageText.trim()) return;
+
+    let postType = 'discussion';
+    let title = 'Discussion Post';
+    let desc = newMessageText;
+    
+    if (newMessageText.startsWith('?')) {
+      postType = 'doubt';
+      title = 'Quick Academic Question';
+      desc = newMessageText.substring(1).trim();
+    } else if (newMessageText.startsWith('/poll')) {
+      postType = 'poll';
+      title = 'Quick Community Poll';
+      const parts = newMessageText.replace('/poll', '').split(';');
+      title = parts[0]?.trim() || 'Community Poll';
+      const opts = parts.slice(1).map(o => ({ label: o.trim(), votes: 0 })) || [{ label: 'Yes', votes: 0 }, { label: 'No', votes: 0 }];
+      const newPoll = {
+        id: 'm_' + Date.now(),
+        type: 'poll',
+        channel: activeChannel,
+        user: user?.fullName || 'Swathi Hani',
+        role: user?.role || 'student',
+        title: title,
+        description: 'Voted by community members',
+        time: 'Just now',
+        avatar: user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender),
+        pollOptions: opts,
+        totalVotes: 0,
+        votedOption: null,
+        upvotes: 0,
+        upvotedBy: []
+      };
+      setCommunityMessages((prev) => [newPoll, ...prev]);
+      setNewMessageText('');
+      showToast('Poll created successfully!', 'success');
+      return;
+    }
+
+    const newMsg = {
+      id: 'm_' + Date.now(),
+      type: postType,
+      channel: activeChannel,
+      user: user?.fullName || 'Swathi Hani',
+      role: user?.role || 'student',
+      title: title,
+      description: desc,
+      time: 'Just now',
+      avatar: user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender),
+      upvotes: 0,
+      upvotedBy: [],
+      answers: [],
+      replies: []
+    };
+
+    setCommunityMessages((prev) => [newMsg, ...prev]);
+    setNewMessageText('');
+    triggerXpReward(5, 'Message Posted! +5 XP');
+    showToast('Post added to channel! +5 XP earned.', 'success');
+  };
+
+  const handlePostReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyMessageText.trim() || !selectedDoubtForThread) return;
+
+    const newReply = {
+      id: 'ans_' + Date.now(),
+      user: user?.fullName || 'Swathi Hani',
+      role: user?.role || 'student',
+      avatar: user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender),
+      text: replyMessageText,
+      time: 'Just now',
+      upvotes: 0,
+      isAccepted: false
+    };
+
+    setCommunityMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id === selectedDoubtForThread.id) {
+          const updatedAnswers = [...(msg.answers || []), newReply];
+          const updatedMsg = { ...msg, answers: updatedAnswers };
+          setSelectedDoubtForThread(updatedMsg);
+          return updatedMsg;
+        }
+        return msg;
+      })
+    );
+
+    setReplyMessageText('');
+    triggerXpReward(5, 'Replied! +5 XP');
+    showToast('Reply added to discussion thread. +5 XP earned.', 'success');
+  };
+
+  const handleVotePoll = (msgId: string, optIndex: number) => {
+    setCommunityMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id === msgId) {
+          if (msg.votedOption !== null) {
+            showToast('You have already voted in this poll.', 'error');
+            return msg;
+          }
+          const updatedOptions = msg.pollOptions.map((opt: any, idx: number) => {
+            if (idx === optIndex) {
+              return { ...opt, votes: opt.votes + 1 };
+            }
+            return opt;
+          });
+          triggerXpReward(5, 'Voted in Poll! +5 XP');
+          showToast('Vote recorded! +5 XP earned.', 'success');
+          return {
+            ...msg,
+            pollOptions: updatedOptions,
+            totalVotes: msg.totalVotes + 1,
+            votedOption: optIndex
+          };
+        }
+        return msg;
+      })
+    );
+  };
+  // --- END COMMUNITY HUB STATES & MOCK DATA ---
 
   const [unlockedResources, setUnlockedResources] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
@@ -1779,7 +2259,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
         { id: 'sessions', label: 'Schedule', icon: Calendar },
         { id: 'progress', label: 'Progress', icon: TrendingUp },
         { id: 'leaderboard', label: 'Leaderboard', icon: Award },
-        { id: 'messages', label: 'Messages', icon: MessageSquare },
+        { id: 'messages', label: 'Community Hub', icon: Users },
         { id: 'resources', label: 'Resources', icon: BookOpen },
         { id: 'settings', label: 'Settings', icon: Settings }
       ];
@@ -1834,7 +2314,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
         title: 'COMMUNITY',
         links: [
           { id: 'announcements', label: 'Announcements', icon: Bell },
-          { id: 'messages', label: 'Messages', icon: MessageSquare },
+          { id: 'messages', label: 'Community Hub', icon: Users },
           { id: 'feedback', label: 'Feedback', icon: HelpCircle }
         ]
       },
@@ -5664,92 +6144,1035 @@ Based on your desking logs and consistency, the AI tutor recommends:
             </div>
           )}
 
-          {/* Tab 10: Messages */}
+          {/* Tab 10: Messages / Community Hub */}
           {activeTab === 'messages' && (
-            <div className="space-y-6 text-left animate-in fade-in duration-350">
-              <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                <MessageSquare className="h-4.5 w-4.5 text-[#10B981]" /> General Message Board
-              </h3>
+            <div className="space-y-6 text-left animate-in fade-in duration-350 relative min-h-[750px]">
               
-              <div className="grid lg:grid-cols-4 gap-6">
-                {/* Chat Channels Sidebar */}
-                <div className="p-4 bg-[#0B0F19] border border-white/5 rounded-[24px] space-y-4 shadow-lg text-white">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Study Clusters</h4>
-                  <div className="space-y-2 text-xs font-extrabold">
-                    {[
-                      { name: 'general-lobby', active: true, unread: false },
-                      { name: 'dbms-circle', active: false, unread: true },
-                      { name: 'operating-systems', active: false, unread: false },
-                      { name: 'placement-prep', active: false, unread: false }
-                    ].map((chan, idx) => (
-                      <button 
-                        key={idx}
-                        className={`w-full px-3 py-2 rounded-xl flex items-center justify-between transition-colors ${chan.active ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/25' : 'hover:bg-white/[0.02] text-slate-400 hover:text-white'}`}
-                      >
-                        <span className="flex items-center gap-2 font-mono">
-                          <span>#</span> {chan.name}
-                        </span>
-                        {chan.unread && <span className="h-2 w-2 rounded-full bg-[#10B981]" />}
-                      </button>
-                    ))}
+              {/* Header and Floating ask doubt button */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-4">
+                <div>
+                  <h3 className="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
+                    <Users className="h-5.5 w-5.5 text-[#10B981]" /> Community Hub
+                  </h3>
+                  <p className="text-[10px] text-slate-450 font-extrabold uppercase tracking-wide">
+                    Academic Collaboration, Q&A doubts, and Study circles
+                  </p>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                  <div className="relative flex-1 md:flex-initial">
+                    <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-550" />
+                    <input
+                      type="text"
+                      placeholder="Search messages/doubts..."
+                      value={searchMessageQuery}
+                      onChange={(e) => setSearchMessageQuery(e.target.value)}
+                      className="w-full md:w-60 pl-9 pr-4 py-2 bg-slate-950/45 border border-white/10 rounded-xl text-xs outline-none text-white focus:border-[#10B981]/50 placeholder-zinc-500 font-medium"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setIsPinnedOnly(!isPinnedOnly);
+                    }}
+                    className={`p-2 rounded-xl border transition-all ${isPinnedOnly ? 'bg-amber-500/10 text-amber-500 border-amber-500/25' : 'bg-slate-950/45 text-zinc-400 border-white/10 hover:text-white'}`}
+                    title="Toggle Pinned Posts"
+                  >
+                    <Bookmark className="h-4 w-4" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setNewDoubtTitle('');
+                      setNewDoubtDescription('');
+                      setNewDoubtModalOpen(true);
+                    }}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-955 font-black text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-lg active:scale-95 cursor-pointer border-none uppercase"
+                  >
+                    <HelpCircle className="h-4 w-4" /> Ask Doubt
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                {/* COLUMN 1: LEFT SIDEBAR (Channels & Categories) */}
+                <div className="lg:col-span-3 space-y-4">
+                  <div className="p-4 bg-[#0B0F19] border border-white/5 rounded-[24px] shadow-lg text-white space-y-4">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-3 w-3 text-zinc-500" />
+                      <input
+                        type="text"
+                        placeholder="Search channels..."
+                        value={searchChannelQuery}
+                        onChange={(e) => setSearchChannelQuery(e.target.value)}
+                        className="w-full pl-8 pr-3 py-2 bg-slate-950/60 border border-white/5 rounded-xl text-[10px] outline-none text-white placeholder-zinc-600 focus:border-[#10B981]/30 font-semibold"
+                      />
+                    </div>
+
+                    {/* Channels Sections */}
+                    <div className="space-y-4">
+                      {[
+                        {
+                          title: '📚 SUBJECT COHORTS',
+                          channels: ['#general-lobby', '#dbms-circle', '#operating-systems', '#computer-networks']
+                        },
+                        {
+                          title: '💼 PLACEMENT SQUAD',
+                          channels: ['#aptitude', '#interview-prep', '#coding-rounds']
+                        },
+                        {
+                          title: '🚀 PROJECT LOUNGE',
+                          channels: ['#project-discussion', '#team-collaboration']
+                        }
+                      ].map((sec, secIdx) => {
+                        const filteredChans = sec.channels.filter(c => 
+                          c.toLowerCase().includes(searchChannelQuery.toLowerCase())
+                        );
+                        if (filteredChans.length === 0) return null;
+                        return (
+                          <div key={secIdx} className="space-y-1">
+                            <span className="text-[9px] font-black tracking-wider text-slate-500 block">
+                              {sec.title}
+                            </span>
+                            <div className="space-y-0.5">
+                              {filteredChans.map((chan, idx) => {
+                                const isActive = activeChannel === chan;
+                                const doubtCount = communityMessages.filter(
+                                  m => m.channel === chan && m.type === 'doubt' && m.status === 'unresolved'
+                                ).length;
+
+                                return (
+                                  <button
+                                    key={idx}
+                                    onClick={() => {
+                                      setActiveChannel(chan);
+                                      setSelectedDoubtForThread(null);
+                                    }}
+                                    className={`w-full px-3 py-2 rounded-xl flex items-center justify-between transition-colors text-xs font-extrabold ${isActive ? 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/20' : 'hover:bg-white/[0.02] text-slate-400 hover:text-white'}`}
+                                  >
+                                    <span className="flex items-center gap-1.5 font-mono">
+                                      <span>#</span>
+                                      <span className="truncate max-w-[140px]">{chan.replace('#', '')}</span>
+                                    </span>
+                                    {doubtCount > 0 && (
+                                      <span className="px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[8px] font-black border border-amber-500/25">
+                                        {doubtCount}?
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
-                {/* Main Chat Panel */}
-                <div className="lg:col-span-3 bg-[#0B0F19] border border-white/5 rounded-[24px] shadow-lg flex flex-col h-[520px] overflow-hidden text-white relative">
-                  {/* Chat Header */}
-                  <div className="p-4 border-b border-white/5 bg-slate-950/20 flex justify-between items-center shrink-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-black text-slate-350">#</span>
-                      <h4 className="text-xs font-black text-white">general-lobby</h4>
-                      <span className="text-[9px] text-slate-550 font-semibold">• Main cohort discussions</span>
-                    </div>
-                    <span className="text-[8px] bg-slate-900 text-slate-400 border border-white/5 px-2 py-0.5 rounded font-black uppercase tracking-wider">
-                      Live Socket Connected
-                    </span>
-                  </div>
-
-                  {/* Message Stream */}
-                  <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs font-bold scrollbar-thin">
+                {/* COLUMN 2: CENTER FEED (Q&A Feed & Composer) */}
+                <div className="lg:col-span-6 space-y-6">
+                  {/* Feed Filters */}
+                  <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-none border-b border-white/5">
                     {[
-                      { user: 'Charan', role: 'student', text: 'Hey guys, did anyone finish the OS Semaphore practice sheet? Having a doubt on problem 3.', time: '09:12 AM', avatar: '/charan-avatar.png' },
-                      { user: 'Bhagya', role: 'student', text: 'Yes! You need to release the mutex before signal(empty). Check page 4 of the notes shared by mentor.', time: '09:15 AM', avatar: '/bhagya-avatar.png' },
-                      { user: 'Mentor Prasad', role: 'mentor', text: 'Good discussion. I will be live in the DBMS Room at 6:00 PM today to review this schema design.', time: '09:30 AM', avatar: '/charan-avatar.png' }
-                    ].map((msg, idx) => (
-                      <div key={idx} className="flex gap-3 items-start">
-                        <div className="h-8 w-8 rounded-full overflow-hidden bg-slate-800 border border-white/10 shrink-0 shadow-sm">
-                          <img src={msg.avatar} className="h-full w-full object-cover" alt={msg.user} />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-white font-extrabold text-xs">{msg.user}</span>
-                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${msg.role === 'mentor' ? 'bg-[#5227EB]/10 text-indigo-400 border border-[#5227EB]/20' : 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/20'}`}>{msg.role}</span>
-                            <span className="text-[8px] text-zinc-500 font-mono font-bold">{msg.time}</span>
-                          </div>
-                          <p className="text-zinc-350 font-medium leading-relaxed">{msg.text}</p>
-                        </div>
-                      </div>
+                      { id: 'all', label: 'All Feed' },
+                      { id: 'discussions', label: '💬 Chats' },
+                      { id: 'doubts', label: '❓ Doubts' },
+                      { id: 'announcements', label: '📢 Alerts' },
+                      { id: 'resources', label: '📚 Files' },
+                      { id: 'polls', label: '🗳️ Polls' }
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveFeedType(tab.id as any)}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${activeFeedType === tab.id ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/25' : 'bg-slate-900/40 text-slate-400 hover:text-white hover:bg-slate-900/60 border border-transparent'}`}
+                      >
+                        {tab.label}
+                      </button>
                     ))}
                   </div>
 
-                  {/* Chat input */}
-                  <div className="p-4 border-t border-white/5 bg-slate-950/20 shrink-0">
-                    <form onSubmit={(e) => { e.preventDefault(); showToast('Chat sandbox: messages are simulated.', 'info'); }} className="flex gap-2">
-                      <input 
-                        type="text" 
-                        placeholder="Type message in #general-lobby..." 
-                        className="flex-1 px-4 py-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-500 focus:bg-slate-900 focus:border-[#10B981]/50 font-medium"
-                      />
-                      <button 
-                        type="submit" 
-                        className="px-4 py-2 bg-[#10B981] hover:bg-[#0d9488] text-white text-xs font-black rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
-                      >
-                        Send
-                      </button>
+                  {/* Feed Stream */}
+                  <div className="space-y-4 max-h-[580px] overflow-y-auto pr-1 scrollbar-thin">
+                    {(() => {
+                      const filteredMessages = communityMessages.filter((msg) => {
+                        if (msg.channel !== activeChannel) return false;
+                        if (isPinnedOnly && !msg.isPinned) return false;
+                        if (activeFeedType !== 'all') {
+                          const mappedType = activeFeedType === 'discussions' ? 'discussion' 
+                                           : activeFeedType === 'doubts' ? 'doubt'
+                                           : activeFeedType === 'announcements' ? 'announcement'
+                                           : activeFeedType === 'resources' ? 'resource'
+                                           : activeFeedType === 'polls' ? 'poll' : '';
+                          if (msg.type !== mappedType) return false;
+                        }
+                        if (searchMessageQuery.trim() !== '') {
+                          const query = searchMessageQuery.toLowerCase();
+                          const titleMatch = msg.title?.toLowerCase().includes(query) || false;
+                          const descMatch = msg.description?.toLowerCase().includes(query) || false;
+                          const userMatch = msg.user?.toLowerCase().includes(query) || false;
+                          return titleMatch || descMatch || userMatch;
+                        }
+                        return true;
+                      });
+
+                      if (filteredMessages.length === 0) {
+                        return (
+                          <div className="p-12 text-center bg-[#0B0F19] border border-white/5 rounded-[24px] text-zinc-500 font-extrabold text-xs">
+                            No active posts in {activeChannel} matching the filters.
+                          </div>
+                        );
+                      }
+
+                      return filteredMessages.map((msg) => {
+                        const hasVoted = msg.votedOption !== null;
+                        return (
+                          <div
+                            key={msg.id}
+                            className={`p-4 rounded-[24px] border transition-all text-white space-y-3 shadow-md ${msg.type === 'doubt' ? 'border-amber-500/20 bg-amber-500/[0.02] hover:border-amber-500/35' : msg.type === 'announcement' ? 'border-indigo-500/20 bg-indigo-500/[0.02] hover:border-indigo-500/35' : 'border-white/5 bg-[#0B0F19] hover:border-white/10'}`}
+                          >
+                            
+                            {/* Card Header */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full overflow-hidden bg-slate-800 border border-white/10 shrink-0">
+                                  <img src={msg.avatar || '/charan-avatar.png'} className="h-full w-full object-cover" alt={msg.user} />
+                                </div>
+                                <div className="text-left">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-black text-white">{msg.user}</span>
+                                    <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${msg.role === 'mentor' ? 'bg-[#5227EB]/10 text-indigo-400 border border-[#5227EB]/20' : 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/20'}`}>
+                                      {msg.role}
+                                    </span>
+                                  </div>
+                                  <span className="text-[8px] text-zinc-500 font-mono font-bold">{msg.time}</span>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                {msg.isPinned && (
+                                  <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/25 rounded text-[8px] font-black uppercase tracking-wide">
+                                    Pinned
+                                  </span>
+                                )}
+                                {msg.type === 'doubt' && (
+                                  <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${msg.status === 'resolved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                                    {msg.status === 'resolved' ? '✓ Resolved' : '❓ Unresolved'}
+                                  </span>
+                                )}
+                                {msg.type === 'announcement' && msg.priority === 'high' && (
+                                  <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-rose-500/10 text-rose-455 border border-rose-500/20 animate-pulse">
+                                    Priority Alert
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Card Content */}
+                            <div className="space-y-1.5 text-left">
+                              {msg.title && (
+                                <h4 className="text-xs font-black text-white leading-snug">
+                                  {msg.title}
+                                </h4>
+                              )}
+                              <p className="text-[11px] text-zinc-400 leading-relaxed font-semibold">
+                                {msg.description}
+                              </p>
+                            </div>
+
+                            {/* Custom Visual Elements Based on Type */}
+                            {msg.type === 'resource' && (
+                              <div className="p-3 bg-slate-950/40 border border-white/5 rounded-xl flex items-center justify-between text-xs gap-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 font-black">
+                                    PDF
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="font-extrabold text-white text-[11px] truncate max-w-[200px]">{msg.resourceName}</p>
+                                    <p className="text-[9px] text-zinc-500 font-mono font-bold">{msg.resourceSize} • {msg.downloads} downloads</p>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    showToast(`Downloading file: ${msg.resourceName}...`, 'success');
+                                    setCommunityMessages(prev => prev.map(m => m.id === msg.id ? { ...m, downloads: m.downloads + 1 } : m));
+                                  }}
+                                  className="p-2 bg-white/5 hover:bg-[#10B981]/20 hover:text-[#10B981] hover:border-[#10B981]/30 border border-white/10 rounded-xl transition-all cursor-pointer animate-none"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )}
+
+                            {msg.type === 'poll' && (
+                              <div className="space-y-2">
+                                {msg.pollOptions.map((opt: any, optIdx: number) => {
+                                  const pct = msg.totalVotes > 0 ? Math.round((opt.votes / msg.totalVotes) * 100) : 0;
+                                  const isUserChoice = msg.votedOption === optIdx;
+                                  return (
+                                    <button
+                                      key={optIdx}
+                                      type="button"
+                                      disabled={hasVoted}
+                                      onClick={() => handleVotePoll(msg.id, optIdx)}
+                                      className={`w-full text-left p-2.5 rounded-xl border relative overflow-hidden transition-all text-xs font-extrabold flex justify-between items-center ${hasVoted ? 'cursor-default border-white/5 bg-slate-950/15' : 'hover:bg-white/[0.02] border-white/10 bg-slate-950/30'}`}
+                                    >
+                                      {/* Progress Bar Background */}
+                                      <div
+                                        className={`absolute inset-y-0 left-0 transition-all duration-550 ${isUserChoice ? 'bg-[#10B981]/15' : 'bg-white/5'}`}
+                                        style={{ width: `${pct}%` }}
+                                      />
+                                      <span className="relative z-10 flex items-center gap-2 truncate max-w-[280px]">
+                                        {isUserChoice && <span className="text-[#10B981] font-bold">✓</span>}
+                                        {opt.label}
+                                      </span>
+                                      <span className="relative z-10 text-[10px] text-zinc-400 font-mono font-bold">
+                                        {opt.votes} votes ({pct}%)
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Card Footer Actions */}
+                            <div className="flex items-center gap-4 pt-1 border-t border-white/5">
+                              <button
+                                type="button"
+                                onClick={() => handleUpvoteMessage(msg.id)}
+                                className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wider transition-colors ${msg.upvotedBy?.includes(user?.fullName || '') ? 'text-[#10B981]' : 'text-zinc-500 hover:text-white'}`}
+                              >
+                                ▲ Upvote ({msg.upvotes})
+                              </button>
+
+                              {msg.type === 'doubt' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedDoubtForThread(msg)}
+                                  className="flex items-center gap-1 text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-wider transition-colors"
+                                >
+                                  💬 Answers ({msg.answers?.length || 0})
+                                </button>
+                              )}
+
+                              {msg.type === 'discussion' && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedDoubtForThread(msg);
+                                  }}
+                                  className="flex items-center gap-1 text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-wider transition-colors"
+                                >
+                                  💬 Replies ({msg.answers?.length || 0})
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  {/* Message Composer Area */}
+                  <div className="p-4 bg-[#0B0F19] border border-white/5 rounded-[24px] shadow-lg space-y-3">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                      <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">
+                        Composer Mode
+                      </span>
+                      <div className="flex gap-1.5">
+                        {[
+                          { id: 'chat', label: 'Chat' },
+                          { id: 'doubt', label: 'Academic Doubt' },
+                          { id: 'poll', label: 'Create Poll' }
+                        ].map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => setComposerPostType(t.id as any)}
+                            className={`px-2.5 py-1 rounded-md text-[9px] font-black uppercase transition-all ${composerPostType === t.id ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/25' : 'text-zinc-500 hover:text-zinc-300'}`}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <form onSubmit={handlePostMessage} className="space-y-3">
+                      {composerPostType === 'chat' && (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder={`Message in ${activeChannel}... (Use ? prefix for doubts, /poll ; opt1 ; opt2 for polls)`}
+                            value={newMessageText}
+                            onChange={(e) => setNewMessageText(e.target.value)}
+                            className="flex-1 px-4 py-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-650 focus:bg-slate-900/60 focus:border-[#10B981]/40 font-medium"
+                          />
+                          <button
+                            type="submit"
+                            className="px-4 py-2 bg-[#10B981] hover:bg-[#0d9488] text-white text-xs font-black rounded-xl uppercase tracking-wider transition-colors cursor-pointer border-none"
+                          >
+                            Send
+                          </button>
+                        </div>
+                      )}
+
+                      {composerPostType === 'doubt' && (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            placeholder="Doubt Topic (e.g. Normalization problem)"
+                            value={newDoubtTitle}
+                            onChange={(e) => setNewDoubtTitle(e.target.value)}
+                            className="w-full px-4 py-2 bg-slate-950 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-600 focus:border-amber-500/40 font-semibold"
+                          />
+                          <textarea
+                            placeholder="Detail description of your doubt. Be specific so cohorts or mentors can answer..."
+                            value={newDoubtDescription}
+                            onChange={(e) => setNewDoubtDescription(e.target.value)}
+                            rows={3}
+                            className="w-full px-4 py-2.5 bg-slate-955 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-600 focus:border-amber-500/40 font-medium resize-none"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!newDoubtTitle.trim() || !newDoubtDescription.trim()) {
+                                  showToast('Please fill out the doubt title and description.', 'error');
+                                  return;
+                                }
+                                const mockEvent = { preventDefault: () => {} } as any;
+                                handleAskDoubt(mockEvent);
+                              }}
+                              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl uppercase tracking-wider transition-colors cursor-pointer border-none"
+                            >
+                              Post Doubt (+10 XP)
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {composerPostType === 'poll' && (
+                        <div className="space-y-2 text-xs">
+                          <input
+                            type="text"
+                            placeholder="Poll question (e.g. Do you prefer SQL or NoSQL?)"
+                            value={newMessageText}
+                            onChange={(e) => setNewMessageText(e.target.value)}
+                            className="w-full px-4 py-2 bg-slate-955 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-600 focus:border-[#10B981]/40 font-semibold"
+                          />
+                          <p className="text-[9px] text-zinc-550 font-bold uppercase tracking-wider text-left">
+                            ℹ️ Form: Prefix option strings with `/poll Question; option1; option2` in chat, or submit chat above.
+                          </p>
+                        </div>
+                      )}
                     </form>
                   </div>
                 </div>
+
+                {/* COLUMN 3: RIGHT PANEL (AI tools, voice rooms, leaderboard) */}
+                <div className="lg:col-span-3 space-y-6">
+                  
+                  {/* Daily Insights */}
+                  <div className="p-4 bg-[#0B0F19] border border-white/5 rounded-[24px] shadow-lg text-white space-y-3">
+                    <span className="text-[9px] font-black uppercase text-zinc-450 tracking-wider block text-left">
+                      📊 Daily Cohort Insights
+                    </span>
+                    <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                      <div className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5">
+                        <p className="text-sm font-black text-[#10B981]">{dailyMetrics.studentsActive}</p>
+                        <p className="text-[8px] text-zinc-555 uppercase font-black">Active</p>
+                      </div>
+                      <div className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5">
+                        <p className="text-sm font-black text-amber-505">{dailyMetrics.doubtsResolved}</p>
+                        <p className="text-[8px] text-zinc-555 uppercase font-black">Solved</p>
+                      </div>
+                      <div className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5">
+                        <p className="text-sm font-black text-indigo-400">{dailyMetrics.resourcesShared}</p>
+                        <p className="text-[8px] text-zinc-555 uppercase font-black">Files Shared</p>
+                      </div>
+                      <div className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5">
+                        <p className="text-sm font-black text-rose-455">{dailyMetrics.liveStudySessions}</p>
+                        <p className="text-[8px] text-zinc-555 uppercase font-black">Live Lounges</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AI Assistant summary tool */}
+                  <div className="p-4 bg-gradient-to-br from-indigo-950/40 to-slate-900/60 border border-indigo-500/25 rounded-[24px] shadow-lg text-white space-y-3">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-4.5 w-4.5 text-indigo-400" />
+                      <span className="text-[9px] font-black uppercase text-indigo-400 tracking-wider">
+                        AI Hub Assistant
+                      </span>
+                    </div>
+
+                    <div className="text-left space-y-2.5">
+                      <p className="text-[10px] text-zinc-300 leading-relaxed font-semibold italic">
+                        "{aiChannelSummaries[activeChannel] || 'Active learning and networking lobby.'}"
+                      </p>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-[9px] font-black uppercase">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAiLoading(true);
+                            setActiveAiTool('flashcard');
+                            setCurrentFlashcardIdx(0);
+                            setIsCardFlipped(false);
+                            setTimeout(() => setAiLoading(false), 800);
+                          }}
+                          className="py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-lg cursor-pointer transition-all uppercase font-bold"
+                        >
+                          📚 Flashcards
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAiLoading(true);
+                            setActiveAiTool('quiz');
+                            setAiQuizAnswers({});
+                            setAiQuizSubmitted(false);
+                            setTimeout(() => setAiLoading(false), 800);
+                          }}
+                          className="py-2 bg-[#10B981]/10 hover:bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/20 rounded-lg cursor-pointer transition-all uppercase font-bold"
+                        >
+                          ⚡ Practice Quiz
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Live Voice Study Desks */}
+                  <div className="p-4 bg-[#0B0F19] border border-white/5 rounded-[24px] shadow-lg text-white space-y-3">
+                    <span className="text-[9px] font-black uppercase text-zinc-405 tracking-wider block text-left">
+                      🎙️ Live Voice Desks
+                    </span>
+                    <div className="space-y-2">
+                      {voiceDesks.map((desk) => {
+                        const isJoined = joinedVoiceId === desk.id;
+                        return (
+                          <div
+                            key={desk.id}
+                            className={`p-3 bg-slate-950/40 rounded-xl border flex items-center justify-between text-xs transition-all ${isJoined ? 'border-[#10B981]/30 bg-[#10B981]/5' : 'border-white/5'}`}
+                          >
+                            <div className="text-left flex items-center gap-2">
+                              <div>
+                                <p className="font-extrabold text-white text-[11px]">{desk.name}</p>
+                                <p className="text-[9px] text-zinc-550 font-mono font-bold">
+                                  {desk.activeCount} joined
+                                </p>
+                              </div>
+                              {isJoined && (
+                                <div className="flex items-center gap-0.5 px-1 animate-pulse">
+                                  <span className="w-0.5 h-3 bg-[#10B981] rounded animate-bounce" />
+                                  <span className="w-0.5 h-4 bg-[#10B981] rounded animate-bounce" />
+                                  <span className="w-0.5 h-2 bg-[#10B981] rounded animate-bounce" />
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleVoiceChannel(desk.id)}
+                              className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all border cursor-pointer ${isJoined ? 'bg-rose-500/10 text-rose-500 border-rose-500/20 hover:bg-rose-500/20' : 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20 hover:bg-[#10B981]/20'}`}
+                            >
+                              {isJoined ? 'Disconnect' : 'Join'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Leaderboard Top Contributors */}
+                  <div className="p-4 bg-[#0B0F19] border border-white/5 rounded-[24px] shadow-lg text-white space-y-3">
+                    <span className="text-[9px] font-black uppercase text-zinc-405 tracking-wider block text-left">
+                      🏆 Weekly Contributors
+                    </span>
+                    <div className="space-y-2 text-xs">
+                      {topContributors.map((c, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-2 bg-slate-950/30 rounded-xl border border-white/5">
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-full overflow-hidden bg-slate-800 border border-white/10 shrink-0">
+                              <img src={c.avatar} className="h-full w-full object-cover" alt={c.name} />
+                            </div>
+                            <div className="text-left">
+                              <p className="font-extrabold text-white text-[10px]">{c.name}</p>
+                              <p className="text-[8px] text-zinc-550 font-bold uppercase tracking-wider">
+                                {c.doubtsSolved} doubts solved
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono font-black text-amber-500">
+                            +{c.xp} XP
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Upcoming sessions */}
+                  <div className="p-4 bg-[#0B0F19] border border-white/5 rounded-[24px] shadow-lg text-white space-y-3">
+                    <span className="text-[9px] font-black uppercase text-zinc-405 tracking-wider block text-left">
+                      📅 Upcoming Live Sessions
+                    </span>
+                    <div className="space-y-2">
+                      {upcomingCommunitySessions.map((s, idx) => (
+                        <div key={idx} className="p-3 bg-slate-955/40 rounded-xl border border-white/5 text-left text-xs space-y-2">
+                          <div>
+                            <p className="font-extrabold text-white text-[11px] leading-snug">{s.title}</p>
+                            <p className="text-[9px] text-[#10B981] font-mono font-bold">{s.time}</p>
+                            <p className="text-[8px] text-zinc-550 font-semibold mt-0.5">By {s.mentor}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => showToast('Session reminder set. You will be notified when live.', 'info')}
+                            className="w-full py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer border border-white/5"
+                          >
+                            Set Reminder
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+
               </div>
+
+              {/* OVERLAYS / DRAWERS / MODALS */}
+
+              {/* Thread detail sliding drawer overlay */}
+              {selectedDoubtForThread && (
+                <>
+                  <div
+                    className="fixed inset-0 bg-black/60 z-40 transition-opacity"
+                    onClick={() => setSelectedDoubtForThread(null)}
+                  />
+                  <div className="fixed inset-y-0 right-0 w-full md:w-[460px] bg-[#090D1A] border-l border-white/10 shadow-2xl z-50 p-6 flex flex-col animate-in slide-in-from-right duration-350 text-white">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-4 shrink-0">
+                      <div className="text-left">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-amber-500">
+                          {selectedDoubtForThread.type === 'doubt' ? 'Doubt Thread Detail' : 'Discussion Thread'}
+                        </span>
+                        <h4 className="text-sm font-black text-white truncate max-w-[320px]">
+                          {selectedDoubtForThread.title}
+                        </h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDoubtForThread(null)}
+                        className="p-2 hover:bg-white/5 rounded-xl text-zinc-400 hover:text-white transition-all cursor-pointer font-bold border-none"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto py-4 space-y-4 scrollbar-thin text-left">
+                      {/* Main original doubt card */}
+                      <div className="p-4 bg-slate-950/40 border border-white/5 rounded-2xl space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-7 w-7 rounded-full overflow-hidden bg-slate-800 border border-white/10">
+                            <img src={selectedDoubtForThread.avatar} className="h-full w-full object-cover" alt="avatar" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-white">{selectedDoubtForThread.user}</p>
+                            <p className="text-[8px] text-zinc-550 font-mono">{selectedDoubtForThread.time}</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-zinc-300 font-semibold leading-relaxed">
+                          {selectedDoubtForThread.description}
+                        </p>
+                      </div>
+
+                      {/* Answers Section */}
+                      <div className="space-y-3">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-zinc-500 block">
+                          Replies ({selectedDoubtForThread.answers?.length || 0})
+                        </span>
+                        
+                        {(selectedDoubtForThread.answers || []).length === 0 ? (
+                          <div className="p-6 text-center text-zinc-550 font-bold text-[11px] bg-slate-950/20 rounded-xl border border-white/5">
+                            No answers yet. Be the first to help out!
+                          </div>
+                        ) : (
+                          (selectedDoubtForThread.answers || []).map((ans: any) => (
+                            <div
+                              key={ans.id}
+                              className={`p-3.5 rounded-xl border text-xs space-y-2 relative transition-all ${ans.isAccepted ? 'border-emerald-500/30 bg-emerald-500/[0.03]' : 'border-white/5 bg-slate-950/25'}`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-6.5 w-6.5 rounded-full overflow-hidden bg-slate-800 border border-white/10">
+                                    <img src={ans.avatar} className="h-full w-full object-cover" alt="avatar" />
+                                  </div>
+                                  <div>
+                                    <span className="font-extrabold text-[11px] text-white flex items-center gap-1.5">
+                                      {ans.user}
+                                      <span className={`text-[7px] font-black uppercase px-1 py-0.25 rounded ${ans.role === 'mentor' ? 'bg-[#5227EB]/10 text-indigo-400 border border-[#5227EB]/20' : 'bg-zinc-800 text-zinc-400'}`}>
+                                        {ans.role}
+                                      </span>
+                                    </span>
+                                    <span className="text-[8px] text-zinc-550 font-mono block mt-0.5">{ans.time}</span>
+                                  </div>
+                                </div>
+                                {ans.isAccepted && (
+                                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[7px] font-black uppercase tracking-wider">
+                                    ✓ Accepted Solution
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="text-zinc-300 font-semibold text-[11px] leading-relaxed text-left">
+                                {ans.text}
+                              </p>
+
+                              <div className="flex items-center justify-between pt-1.5 border-t border-white/5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpvoteAnswer(selectedDoubtForThread.id, ans.id)}
+                                  className="text-[9px] font-black text-zinc-500 hover:text-white uppercase tracking-wider flex items-center gap-1"
+                                >
+                                  ▲ Upvote ({ans.upvotes || 0})
+                                </button>
+                                
+                                {selectedDoubtForThread.type === 'doubt' && !ans.isAccepted && (user?.role === 'mentor' || selectedDoubtForThread.user === user?.fullName) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAcceptSolution(selectedDoubtForThread.id, ans.id)}
+                                    className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all border-none font-bold"
+                                  >
+                                    Accept Solution (+20 XP)
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Compose Answer Form */}
+                    <form onSubmit={handlePostReply} className="pt-4 border-t border-white/5 shrink-0 space-y-2">
+                      <textarea
+                        placeholder="Write a helpful answer or reply..."
+                        value={replyMessageText}
+                        onChange={(e) => setReplyMessageText(e.target.value)}
+                        rows={2}
+                        className="w-full px-3 py-2 bg-slate-955 border border-white/10 rounded-xl text-xs outline-none text-white focus:border-[#10B981]/40 font-medium resize-none placeholder-zinc-650"
+                      />
+                      <div className="flex justify-end">
+                        <button
+                          type="submit"
+                          className="px-4 py-2 bg-[#10B981] hover:bg-[#0d9488] text-white text-xs font-black rounded-xl uppercase tracking-wider transition-colors cursor-pointer border-none"
+                        >
+                          Submit Reply (+5 XP)
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </>
+              )}
+
+              {/* AI Tools Modals (Flashcard / Quiz) */}
+              {activeAiTool && (
+                <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+                  <div className="bg-[#0B0F19] border border-white/10 rounded-[32px] max-w-lg w-full overflow-hidden shadow-2xl flex flex-col p-6 animate-in zoom-in-95 duration-200 text-white relative">
+                    
+                    <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+                      <div className="flex items-center gap-1.5 text-left">
+                        <Sparkles className="h-4.5 w-4.5 text-indigo-400" />
+                        <h4 className="text-xs font-black uppercase text-white tracking-wider">
+                          {activeAiTool === 'flashcard' ? 'AI Generated Revision Flashcards' : 'AI Academic Practice Quiz'}
+                        </h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveAiTool(null)}
+                        className="p-2 hover:bg-white/5 rounded-xl text-zinc-400 hover:text-white transition-all font-bold cursor-pointer border-none"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {aiLoading ? (
+                      <div className="py-16 flex flex-col items-center justify-center space-y-3">
+                        <RefreshCw className="h-8 w-8 text-indigo-400 animate-spin" />
+                        <p className="text-[10px] text-zinc-450 uppercase font-black tracking-widest animate-pulse">
+                          Generating Custom Content...
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex-1 py-4 text-left">
+                        {activeAiTool === 'flashcard' && (
+                          <div className="space-y-6">
+                            <p className="text-[10px] text-zinc-450 text-center font-extrabold uppercase tracking-wide">
+                              Flashcard {currentFlashcardIdx + 1} of {aiFlashcards.length} • Click Card to Flip
+                            </p>
+
+                            {/* Flipped Card Component */}
+                            <div
+                              onClick={() => setIsCardFlipped(!isCardFlipped)}
+                              className="h-48 w-full bg-slate-900/60 border border-indigo-500/20 rounded-3xl flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-all hover:bg-slate-900/80 active:scale-[0.99] select-none"
+                            >
+                              {!isCardFlipped ? (
+                                <div className="space-y-2">
+                                  <span className="text-[8px] px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded font-black uppercase tracking-wider animate-none">
+                                    Concept / Term
+                                  </span>
+                                  <h3 className="text-sm font-black text-white leading-relaxed">
+                                    {aiFlashcards[currentFlashcardIdx]?.front}
+                                  </h3>
+                                  <p className="text-[9px] text-zinc-550 uppercase font-black tracking-wider pt-2">
+                                    Click card to show definition
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2 animate-in fade-in duration-300">
+                                  <span className="text-[8px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-black uppercase tracking-wider animate-none">
+                                    Explanation
+                                  </span>
+                                  <p className="text-xs font-semibold text-zinc-300 leading-relaxed">
+                                    {aiFlashcards[currentFlashcardIdx]?.back}
+                                  </p>
+                                  <p className="text-[9px] text-zinc-550 uppercase font-black tracking-wider pt-2">
+                                    Click card to show term
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Carousel controls */}
+                            <div className="flex justify-between items-center">
+                              <button
+                                type="button"
+                                disabled={currentFlashcardIdx === 0}
+                                onClick={() => {
+                                  setCurrentFlashcardIdx(currentFlashcardIdx - 1);
+                                  setIsCardFlipped(false);
+                                }}
+                                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                              >
+                                ◀ Previous
+                              </button>
+                              <button
+                                type="button"
+                                disabled={currentFlashcardIdx === aiFlashcards.length - 1}
+                                onClick={() => {
+                                  setCurrentFlashcardIdx(currentFlashcardIdx + 1);
+                                  setIsCardFlipped(false);
+                                }}
+                                className="px-4 py-2 bg-[#10B981] hover:bg-[#0d9488] text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed transition-all border-none cursor-pointer"
+                              >
+                                Next ▶
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {activeAiTool === 'quiz' && (
+                          <div className="space-y-6 max-h-[420px] overflow-y-auto pr-1 scrollbar-thin">
+                            {aiQuizQuestions.map((q, qIdx) => {
+                              const selectedOpt = aiQuizAnswers[q.id];
+                              const isCorrect = selectedOpt === q.answer;
+                              return (
+                                <div key={q.id} className="p-4 bg-slate-900/40 border border-white/5 rounded-2xl space-y-3 text-left">
+                                  <p className="text-xs font-black text-white">
+                                    Q{qIdx + 1}. {q.question}
+                                  </p>
+
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {q.options.map((opt, oIdx) => {
+                                      const isOptSelected = selectedOpt === opt;
+                                      let optStyles = 'border-white/10 bg-slate-950/40 text-zinc-400 hover:text-white hover:bg-slate-955/70';
+                                      if (aiQuizSubmitted) {
+                                        if (opt === q.answer) {
+                                          optStyles = 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400';
+                                        } else if (isOptSelected) {
+                                          optStyles = 'border-rose-500/40 bg-rose-500/10 text-rose-455';
+                                        } else {
+                                          optStyles = 'border-white/5 bg-slate-950/10 text-zinc-650 opacity-60';
+                                        }
+                                      } else if (isOptSelected) {
+                                        optStyles = 'border-indigo-500/40 bg-indigo-500/10 text-indigo-450';
+                                      }
+
+                                      return (
+                                        <button
+                                          key={oIdx}
+                                          type="button"
+                                          disabled={aiQuizSubmitted}
+                                          onClick={() => {
+                                            setAiQuizAnswers({
+                                              ...aiQuizAnswers,
+                                              [q.id]: opt
+                                            });
+                                          }}
+                                          className={`w-full text-left p-2.5 rounded-xl border text-xs font-extrabold transition-all ${optStyles}`}
+                                        >
+                                          {opt}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {aiQuizSubmitted && (
+                                    <div className="p-3 bg-slate-955/60 rounded-xl text-[10px] text-zinc-400 leading-relaxed border border-white/5 text-left">
+                                      <p className={`font-black uppercase mb-0.5 ${isCorrect ? 'text-emerald-400' : 'text-rose-455'}`}>
+                                        {isCorrect ? '✓ Correct Answer' : `✗ Incorrect (Correct: ${q.answer})`}
+                                      </p>
+                                      <p>{q.explanation}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                            <div className="flex justify-between items-center pt-2">
+                              {!aiQuizSubmitted ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (Object.keys(aiQuizAnswers).length < aiQuizQuestions.length) {
+                                      showToast('Please answer all questions first.', 'error');
+                                      return;
+                                    }
+                                    setAiQuizSubmitted(true);
+                                    let score = 0;
+                                    aiQuizQuestions.forEach(q => {
+                                      if (aiQuizAnswers[q.id] === q.answer) score++;
+                                    });
+                                    triggerXpReward(score * 15, `Quiz Completed! Correct: ${score}/${aiQuizQuestions.length}. +${score * 15} XP`);
+                                    showToast(`Quiz completed! Score: ${score}/${aiQuizQuestions.length}`, 'success');
+                                  }}
+                                  className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-black rounded-xl uppercase tracking-wider transition-all border-none cursor-pointer font-bold"
+                                >
+                                  Submit Answers
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAiQuizAnswers({});
+                                    setAiQuizSubmitted(false);
+                                  }}
+                                  className="w-full py-3 bg-white/5 hover:bg-white/10 text-white text-xs font-black rounded-xl uppercase tracking-wider transition-all border border-white/10 cursor-pointer font-bold"
+                                >
+                                  Retake Quiz
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Floating XP Rewards overlay */}
+              <div className="fixed inset-0 pointer-events-none z-55 overflow-hidden">
+                {xpRewards.map((reward) => (
+                  <div
+                    key={reward.id}
+                    className="absolute text-sm font-black text-amber-400 bg-slate-950/80 border border-amber-500/30 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-2xl animate-bounce"
+                    style={{
+                      left: reward.x,
+                      top: reward.y,
+                      transform: 'translate(-50%, -50%)',
+                      transition: 'all 2s ease'
+                    }}
+                  >
+                    <span>🔥</span> {reward.text} (+{reward.amount} XP)
+                  </div>
+                ))}
+              </div>
+
+              {/* Create Academic Doubt Floating Action Dialog */}
+              {newDoubtModalOpen && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                  <div className="bg-[#0B0F19] border border-white/10 rounded-[32px] max-w-md w-full overflow-hidden shadow-2xl flex flex-col p-6 animate-in zoom-in-95 duration-205 text-white relative text-left">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+                      <h4 className="text-xs font-black uppercase text-white tracking-wider flex items-center gap-1.5">
+                        <HelpCircle className="h-4.5 w-4.5 text-amber-500" /> Ask Academic Doubt
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setNewDoubtModalOpen(false)}
+                        className="p-2 hover:bg-white/5 rounded-xl text-zinc-400 hover:text-white transition-all font-bold cursor-pointer border-none"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleAskDoubt} className="space-y-4">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">
+                          Channel / subject
+                        </label>
+                        <select
+                          value={activeChannel}
+                          onChange={(e) => setActiveChannel(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs outline-none text-white focus:border-[#10B981]/40 font-semibold"
+                        >
+                          <option value="#general-lobby">#general-lobby</option>
+                          <option value="#dbms-circle">#dbms-circle</option>
+                          <option value="#operating-systems">#operating-systems</option>
+                          <option value="#computer-networks">#computer-networks</option>
+                          <option value="#aptitude">#aptitude</option>
+                          <option value="#interview-prep">#interview-prep</option>
+                          <option value="#coding-rounds">#coding-rounds</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">
+                          Doubt Title
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Summarize your doubt in one short sentence..."
+                          value={newDoubtTitle}
+                          onChange={(e) => setNewDoubtTitle(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-955 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-650 focus:border-amber-500/40 font-semibold"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">
+                          Detail Description
+                        </label>
+                        <textarea
+                          placeholder="Describe your issue, paste compiler logs, explain what you tried, etc. Mentors will review this..."
+                          value={newDoubtDescription}
+                          onChange={(e) => setNewDoubtDescription(e.target.value)}
+                          rows={4}
+                          className="w-full px-4 py-2.5 bg-slate-955 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-650 focus:border-amber-500/40 font-medium resize-none"
+                        />
+                      </div>
+
+                      <div className="flex gap-4 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setNewDoubtModalOpen(false)}
+                          className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-black rounded-xl transition-all cursor-pointer text-center uppercase border border-white/10 font-bold"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all cursor-pointer text-center uppercase border-none font-bold"
+                        >
+                          Post Doubt (+10 XP)
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
 
