@@ -692,7 +692,7 @@ export default function RegisterPage() {
                     I agree to the{' '}
                     <button
                       type="button"
-                      onClick={() => { setTermsModalContent('terms'); setShowTermsModal(true); }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTermsModalContent('terms'); setShowTermsModal(true); }}
                       className="text-[#00b074] hover:underline font-bold bg-transparent border-none p-0 inline cursor-pointer transition-all focus:outline-none"
                     >
                       Terms of Service
@@ -700,7 +700,7 @@ export default function RegisterPage() {
                     and{' '}
                     <button
                       type="button"
-                      onClick={() => { setTermsModalContent('policy'); setShowTermsModal(true); }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTermsModalContent('policy'); setShowTermsModal(true); }}
                       className="text-[#00b074] hover:underline font-bold bg-transparent border-none p-0 inline cursor-pointer transition-all focus:outline-none"
                     >
                       Privacy Policy
@@ -1027,7 +1027,7 @@ export default function RegisterPage() {
                     I agree to the{' '}
                     <button
                       type="button"
-                      onClick={() => { setTermsModalContent('terms'); setShowTermsModal(true); }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTermsModalContent('terms'); setShowTermsModal(true); }}
                       className="text-[#818CF8] hover:underline font-bold bg-transparent border-none p-0 inline cursor-pointer transition-all focus:outline-none"
                     >
                       Terms of Service
@@ -1035,7 +1035,7 @@ export default function RegisterPage() {
                     and{' '}
                     <button
                       type="button"
-                      onClick={() => { setTermsModalContent('policy'); setShowTermsModal(true); }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTermsModalContent('policy'); setShowTermsModal(true); }}
                       className="text-[#818CF8] hover:underline font-bold bg-transparent border-none p-0 inline cursor-pointer transition-all focus:outline-none"
                     >
                       Privacy Policy
