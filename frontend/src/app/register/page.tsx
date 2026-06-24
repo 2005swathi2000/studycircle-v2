@@ -90,6 +90,10 @@ export default function RegisterPage() {
   const [showStudentPass, setShowStudentPass] = useState(false);
   const [showMentorPass, setShowMentorPass] = useState(false);
 
+  // Terms and conditions modal states
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsModalContent, setTermsModalContent] = useState<'terms' | 'policy' | null>(null);
+
   // Username validation state
   const [usernameToCheck, setUsernameToCheck] = useState('');
   const [usernameStatus, setUsernameStatus] = useState<{ checked: boolean; available: boolean; method?: string } | null>(null);
@@ -686,13 +690,21 @@ export default function RegisterPage() {
                   />
                   <span>
                     I agree to the{' '}
-                    <a href="#" className="text-[#00b074] hover:underline font-bold transition-all">
+                    <button
+                      type="button"
+                      onClick={() => { setTermsModalContent('terms'); setShowTermsModal(true); }}
+                      className="text-[#00b074] hover:underline font-bold bg-transparent border-none p-0 inline cursor-pointer transition-all focus:outline-none"
+                    >
                       Terms of Service
-                    </a>{' '}
+                    </button>{' '}
                     and{' '}
-                    <a href="#" className="text-[#00b074] hover:underline font-bold transition-all">
+                    <button
+                      type="button"
+                      onClick={() => { setTermsModalContent('policy'); setShowTermsModal(true); }}
+                      className="text-[#00b074] hover:underline font-bold bg-transparent border-none p-0 inline cursor-pointer transition-all focus:outline-none"
+                    >
                       Privacy Policy
-                    </a>
+                    </button>
                   </span>
                 </label>
 
@@ -1013,13 +1025,21 @@ export default function RegisterPage() {
                   />
                   <span>
                     I agree to the{' '}
-                    <a href="#" className="text-[#818CF8] hover:underline font-bold transition-all">
+                    <button
+                      type="button"
+                      onClick={() => { setTermsModalContent('terms'); setShowTermsModal(true); }}
+                      className="text-[#818CF8] hover:underline font-bold bg-transparent border-none p-0 inline cursor-pointer transition-all focus:outline-none"
+                    >
                       Terms of Service
-                    </a>{' '}
+                    </button>{' '}
                     and{' '}
-                    <a href="#" className="text-[#818CF8] hover:underline font-bold transition-all">
+                    <button
+                      type="button"
+                      onClick={() => { setTermsModalContent('policy'); setShowTermsModal(true); }}
+                      className="text-[#818CF8] hover:underline font-bold bg-transparent border-none p-0 inline cursor-pointer transition-all focus:outline-none"
+                    >
                       Privacy Policy
-                    </a>
+                    </button>
                   </span>
                 </label>
 
@@ -1086,6 +1106,86 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
+
+      {/* Terms of Service & Privacy Policy Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[9999] backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#090d1e] border border-white/10 max-w-2xl w-full rounded-3xl p-6 md:p-8 text-left space-y-6 shadow-2xl relative animate-in zoom-in-95 duration-200 text-slate-100 max-h-[85vh] overflow-y-auto scrollbar-thin">
+            
+            <div className="flex justify-between items-start border-b border-white/5 pb-4">
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-indigo-400" />
+                  {termsModalContent === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
+                </h3>
+                <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide mt-1">
+                  StudyCircle Platform Agreements
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="text-slate-400 hover:text-white transition-all bg-transparent border-none p-2 cursor-pointer font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-300 leading-relaxed font-semibold">
+              {termsModalContent === 'terms' ? (
+                <>
+                  <p>Welcome to StudyCircle. By accessing or using our collaborative study platform, you agree to comply with and be bound by the following terms:</p>
+                  
+                  <div className="space-y-2">
+                    <h4 className="text-white font-extrabold text-xs uppercase tracking-wide">1. Acceptable Use & Academic Integrity</h4>
+                    <p className="text-slate-400 pl-3">StudyCircle is designed strictly for peer-to-peer learning, doubt resolution, and collaborative research. Sharing of plagiarized solutions, copyrighted exam keys, or commercial advertising is strictly prohibited.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-white font-extrabold text-xs uppercase tracking-wide">2. Gamification & System Limits</h4>
+                    <p className="text-slate-400 pl-3">Users are rewarded with Experience Points (XP) and Focus Coins for contributing value. Any attempt to abuse or automate points allocation through bots or spam posts will result in permanent account suspension.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-white font-extrabold text-xs uppercase tracking-wide">3. Account Moderation</h4>
+                    <p className="text-slate-400 pl-3">Mentors and Administrators reserve the right to flag content, delete inappropriate threads, and restrict account privileges to maintain a safe, high-focus learning workspace for all students.</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p>StudyCircle is committed to protecting your privacy. This policy describes how we collect, store, and utilize your personal information:</p>
+                  
+                  <div className="space-y-2">
+                    <h4 className="text-white font-extrabold text-xs uppercase tracking-wide">1. Information Collection</h4>
+                    <p className="text-slate-400 pl-3">We collect personal registration details including your full name, username, email address, phone number, gender, and academic institution to authenticate your session and link you to local college circles.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-white font-extrabold text-xs uppercase tracking-wide">2. Study Analytics & Progress Data</h4>
+                    <p className="text-slate-400 pl-3">We record study logs, coins history, and community interactions (likes, doubts, and replies) purely to generate leaderboards, award streak achievements, and build collaborative analytics panels.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-white font-extrabold text-xs uppercase tracking-wide">3. Security & Cookies</h4>
+                    <p className="text-slate-400 pl-3">We use secure HTTP-only cookies to handle authentication tokens. Your password credentials are encrypted using bcrypt hashing client-to-server and are never exposed to other third parties.</p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex justify-end border-t border-white/5 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-none shadow-md"
+              >
+                Accept and Close
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
