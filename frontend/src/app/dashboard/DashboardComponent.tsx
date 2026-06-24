@@ -476,16 +476,16 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [newDoubtDescription, setNewDoubtDescription] = useState<string>('');
 
   const [voiceDesks, setVoiceDesks] = useState([
-    { id: 1, name: '🎙 DBMS Study Lounge', activeCount: 8, joined: false },
-    { id: 2, name: '🎙 OS Exam Prep Desk', activeCount: 12, joined: false },
-    { id: 3, name: '🎙 Placement Sprint Lounge', activeCount: 15, joined: false }
+    { id: 1, name: '🎙 DBMS Study Lounge', activeCount: 0, joined: false },
+    { id: 2, name: '🎙 OS Exam Prep Desk', activeCount: 0, joined: false },
+    { id: 3, name: '🎙 Placement Sprint Lounge', activeCount: 0, joined: false }
   ]);
 
   const dailyMetrics = {
-    studentsActive: 42,
-    doubtsResolved: 17,
-    resourcesShared: 8,
-    liveStudySessions: 3
+    studentsActive: 0,
+    doubtsResolved: 0,
+    resourcesShared: 0,
+    liveStudySessions: 0
   };
 
   const aiChannelSummaries: Record<string, string> = {
@@ -524,127 +524,11 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     { front: 'BCNF (Boyce-Codd Normal Form)', back: 'For every functional dependency X -> Y, X must be a super key.' }
   ];
 
-  const topContributors = [
-    { name: 'Bhagya', role: 'student', xp: 480, doubtsSolved: 8, avatar: '/bhagya-avatar.png' },
-    { name: 'Rathna', role: 'student', xp: 390, doubtsSolved: 6, avatar: '/rathna-avatar.png' },
-    { name: 'Karthik', role: 'student', xp: 320, doubtsSolved: 5, avatar: '/karthik-avatar.png' },
-    { name: 'Charan', role: 'student', xp: 280, doubtsSolved: 4, avatar: '/charan-avatar.png' }
-  ];
+  const topContributors: any[] = [];
 
-  const upcomingCommunitySessions = [
-    { title: 'DBMS Schema Design Review', time: 'Today at 6:00 PM', mentor: 'Mentor Prasad', count: 18 },
-    { title: 'OS Deadlock Live Practice', time: 'Tomorrow at 4:30 PM', mentor: 'Mentor Sai', count: 12 }
-  ];
+  const upcomingCommunitySessions: any[] = [];
 
-  const [communityMessages, setCommunityMessages] = useState<any[]>([
-    {
-      id: 'm1',
-      type: 'doubt',
-      channel: '#dbms-circle',
-      user: 'Swathi Hani',
-      role: 'student',
-      title: 'How does BCNF handle overlapping candidate keys?',
-      description: 'I am reading about BCNF vs 3NF. Can someone explain an example where a relation is in 3NF but not in BCNF due to overlapping candidate keys?',
-      time: '10:45 AM',
-      avatar: '/swathi-avatar.png',
-      upvotes: 8,
-      upvotedBy: [],
-      status: 'unresolved',
-      isPinned: true,
-      answers: [
-        {
-          id: 'a1',
-          user: 'Mentor Prasad',
-          role: 'mentor',
-          avatar: '/charan-avatar.png',
-          text: 'Consider R(A, B, C) with FDs: AB -> C and C -> B. Here, candidate keys are AB and AC (overlapping). It is in 3NF because all prime attributes (A, B, C) are part of candidate keys. But C -> B violates BCNF because C is not a superkey.',
-          time: '11:02 AM',
-          upvotes: 4,
-          isAccepted: false
-        },
-        {
-          id: 'a2',
-          user: 'Bhagya',
-          role: 'student',
-          avatar: '/bhagya-avatar.png',
-          text: 'In 3NF, the dependent attribute is allowed to be prime. In BCNF, this exception is removed, so the determinant MUST be a superkey. That is why BCNF is stricter!',
-          time: '11:15 AM',
-          upvotes: 3,
-          isAccepted: false
-        }
-      ]
-    },
-    {
-      id: 'm2',
-      type: 'announcement',
-      channel: '#general-lobby',
-      user: 'Mentor Prasad',
-      role: 'mentor',
-      title: '📢 LIVE DBMS Room Session at 6:00 PM',
-      description: 'I will be hosting a live coding and diagram review session in the DBMS Study Lounge. We will go through the normalization of an E-commerce schema and solve BCNF decomposition step by step. Join directly from the Voice study desk list!',
-      time: 'Yesterday at 05:30 PM',
-      avatar: '/charan-avatar.png',
-      isPinned: true,
-      priority: 'high',
-      upvotes: 15,
-      upvotedBy: []
-    },
-    {
-      id: 'm3',
-      type: 'resource',
-      channel: '#operating-systems',
-      user: 'Bhagya',
-      role: 'student',
-      title: '📚 Semaphores & Deadlocks Cheatsheet',
-      description: 'Here is a quick summary PDF covering Peterson\'s solution, Semaphores (counting vs binary), and Deadlock conditions (Mutual exclusion, Hold & wait, No preemption, Circular wait). Ideal for quick revisions before midterm!',
-      time: '09:30 AM',
-      avatar: '/bhagya-avatar.png',
-      resourceName: 'OS_Semaphores_CheatSheet.pdf',
-      resourceSize: '1.2 MB',
-      resourceType: 'pdf',
-      downloads: 24,
-      upvotes: 11,
-      upvotedBy: []
-    },
-    {
-      id: 'm4',
-      type: 'poll',
-      channel: '#aptitude',
-      user: 'Karthik',
-      role: 'student',
-      title: '🗳️ Next Aptitude Practice Topic?',
-      description: 'Which topic should we focus on during the Aptitude Marathon voice desk session tomorrow?',
-      time: '08:15 AM',
-      avatar: '/karthik-avatar.png',
-      isPinned: false,
-      pollOptions: [
-        { label: 'Time & Work Shortcuts', votes: 14 },
-        { label: 'Probability & Permutations', votes: 20 },
-        { label: 'Ratio & Proportions', votes: 8 },
-        { label: 'Data Interpretation Charts', votes: 6 }
-      ],
-      totalVotes: 48,
-      votedOption: null,
-      upvotes: 5,
-      upvotedBy: []
-    },
-    {
-      id: 'm5',
-      type: 'discussion',
-      channel: '#general-lobby',
-      user: 'Charan',
-      role: 'student',
-      title: 'Project Group Openings',
-      description: 'Looking for 2 members for our Android App development study circle project. Stack: React Native + Spring Boot. Let me know in `#team-collaboration` if interested!',
-      time: '09:12 AM',
-      avatar: '/charan-avatar.png',
-      upvotes: 4,
-      upvotedBy: [],
-      replies: [
-        { user: 'Karthik', role: 'student', text: 'Interested! Let\'s coordinate on the team channel.', time: '09:20 AM' }
-      ]
-    }
-  ]);
+  const [communityMessages, setCommunityMessages] = useState<any[]>([]);
 
   const triggerXpReward = (amount: number, text: string) => {
     const id = Date.now() + Math.random();
