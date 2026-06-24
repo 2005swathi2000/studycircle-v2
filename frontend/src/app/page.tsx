@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 import { apiRequest } from './utils/api';
 import { useApp } from './context/AppContext';
 import { useToast } from './components/ToastProvider';
@@ -44,9 +44,7 @@ import {
   Play,
   MessageSquare,
   Flame,
-  Trophy,
-  Plus,
-  ChevronDown
+  Trophy
 } from 'lucide-react';
 
 const COLLEGES = [
@@ -79,31 +77,6 @@ function getTimeGreeting(): { label: string; icon: 'sun' | 'sunset' | 'moon' } {
 export default function Home() {
   const router = useRouter();
   const { showToast } = useToast();
-  
-  const googleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      try {
-        setFormLoading(true);
-        const res = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
-          headers: {
-            Authorization: `Bearer ${tokenResponse.access_token}`
-          }
-        });
-        if (!res.ok) throw new Error('Failed to fetch user info from Google');
-        const userInfo = await res.json();
-        
-        const mockCred = `mock_google_credential_token:${userInfo.email}:${userInfo.name}:male`;
-        await handleGoogleInitiate(mockCred);
-      } catch (err: any) {
-        showToast(err.message || 'Google user info retrieval failed.', 'error');
-      } finally {
-        setFormLoading(false);
-      }
-    },
-    onError: () => {
-      showToast('Google Sign-In failed or was closed.', 'error');
-    }
-  });
 
   const [showBook, setShowBook] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -262,7 +235,6 @@ export default function Home() {
   const [lastSentAdminEmail, setLastSentAdminEmail] = useState('');
   const [lastSentForgotUser, setLastSentForgotUser] = useState('');
   
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
   const lastSeenEmailIdRef = useRef<string | null>(null);
 
   // ─────────────────────────────────────────────
@@ -797,7 +769,6 @@ export default function Home() {
       });
       setCurrentUser(data.user, data.token);
       showToast('Welcome to StudyCircle, ' + data.user.fullName + '!', 'success');
-      setShowGoogleModal(false);
       router.push('/student/dashboard');
     } catch (err: any) {
       showToast(err.message || 'Google Login failed.', 'error');
@@ -1732,34 +1703,23 @@ export default function Home() {
                   <div className="flex-1 h-px bg-slate-200"></div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAuthModal(false);
-                    setShowGoogleModal(true);
-                  }}
-                  className="w-full py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-sm hover:shadow"
-                >
-                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
-                    <path
-                      fill="#EA4335"
-                      d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.33 0 3.327 2.68 1.486 6.58l3.78 3.185z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M16.04 15.345c-1.07.72-2.482 1.155-4.04 1.155a7.09 7.09 0 0 1-6.734-4.855L1.48 14.83C3.32 18.738 7.33 21.42 12 21.42c3.055 0 5.89-.982 8.027-2.855l-3.986-3.22z"
-                    />
-                    <path
-                      fill="#4285F4"
-                      d="M23.82 12.24c0-.77-.07-1.56-.2-2.31H12v4.51h6.633a5.688 5.688 0 0 1-2.466 3.73l3.986 3.22c2.333-2.155 3.667-5.32 3.667-9.15z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.266 11.655a6.853 6.853 0 0 1 0-1.89l-3.78-3.185A11.954 11.954 0 0 0 0 12.24c0 2.01.49 3.91 1.486 5.59l3.78-3.185z"
-                    />
-                  </svg>
-                  <span>Continue with Google</span>
-                </button>
+                <div className="flex justify-center w-full mt-2">
+                  <GoogleLogin
+                    onSuccess={(credentialResponse) => {
+                      if (credentialResponse.credential) {
+                        setShowAuthModal(false);
+                        handleGoogleInitiate(credentialResponse.credential);
+                      }
+                    }}
+                    onError={() => {
+                      showToast('Google Sign-In failed.', 'error');
+                    }}
+                    theme="outline"
+                    size="large"
+                    shape="rectangular"
+                    width="320px"
+                  />
+                </div>
                 <div className="text-center pt-2">
                   <span className="text-[10px] text-slate-500">Don't have an account? </span>
                   <button
@@ -1862,182 +1822,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 🔐 Google Account Picker Modal */}
-      <AnimatePresence>
-        {showGoogleModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]"
-          >
-            <div 
-              onClick={() => setShowGoogleModal(false)}
-              className="absolute inset-0 cursor-pointer"
-            />
-            
-            <motion.div
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              transition={{ duration: 0.25, ease: 'easeOut' }}
-              className="relative w-full md:w-[560px] max-md:w-[95%] max-sm:w-full bg-white border border-slate-200/60 rounded-[28px] p-8 md:p-10 shadow-[0_8px_35px_rgba(0,0,0,0.06)] z-10 text-left flex flex-col focus:outline-none overflow-y-auto max-h-[90vh]"
-            >
-              {/* Header */}
-              <div className="flex flex-col w-full">
-                <div className="flex items-center justify-between pb-3">
-                  <div className="flex items-center gap-3">
-                    <svg className="h-[20px] w-[20px]" viewBox="0 0 24 24">
-                      <path
-                        fill="#EA4335"
-                        d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.33 0 3.327 2.68 1.486 6.58l3.78 3.185z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M16.04 15.345c-1.07.72-2.482 1.155-4.04 1.155a7.09 7.09 0 0 1-6.734-4.855L1.48 14.83C3.32 18.738 7.33 21.42 12 21.42c3.055 0 5.89-.982 8.027-2.855l-3.986-3.22z"
-                      />
-                      <path
-                        fill="#4285F4"
-                        d="M23.82 12.24c0-.77-.07-1.56-.2-2.31H12v4.51h6.633a5.688 5.688 0 0 1-2.466 3.73l3.986 3.22c2.333-2.155 3.667-5.32 3.667-9.15z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M5.266 11.655a6.853 6.853 0 0 1 0-1.89l-3.78-3.185A11.954 11.954 0 0 0 0 12.24c0 2.01.49 3.91 1.486 5.59l3.78-3.185z"
-                      />
-                    </svg>
-                    <span className="text-[14px] font-normal text-[#1F2124] tracking-wide font-sans select-none">
-                      Sign in with Google
-                    </span>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => setShowGoogleModal(false)}
-                    className="text-[#5F6368] hover:text-[#202124] hover:bg-slate-100 transition-all cursor-pointer text-base p-1.5 rounded-full"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="w-full h-px bg-[#E0E0E0] mb-6" />
-              </div>
-
-              {/* Main Content */}
-              <div className="flex flex-col items-center text-center">
-                <div className="flex items-center gap-2 mb-4 justify-center select-none">
-                  <div className="relative h-8 w-8 flex items-center justify-center shrink-0">
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-[#4F46E5] to-[#6366F1] opacity-90 shadow-[0_3px_10px_rgba(79,70,229,0.2)]" />
-                    <div className="absolute inset-[1.5px] rounded bg-white flex items-center justify-center font-bold">
-                      <BookOpen className="h-3.5 w-3.5 text-[#4F46E5]" />
-                    </div>
-                  </div>
-                  <span className="font-extrabold text-lg tracking-tight text-[#0F172A] font-sans">
-                    StudyCircle
-                  </span>
-                </div>
-                <h2 className="text-[24px] font-semibold text-[#202124] tracking-tight leading-tight font-sans">
-                  Choose an account
-                </h2>
-                <p className="text-[14px] text-[#5F6368] mt-1.5 font-normal font-sans">
-                  to continue to <span className="font-semibold text-slate-850">StudyCircle</span>
-                </p>
-              </div>
-
-              {/* Account List */}
-              <div className="mt-8 space-y-0.5 border-t border-b border-[#E0E0E0] divide-y divide-[#E0E0E0]">
-                {/* Swathi Hani Row */}
-                <button
-                  type="button"
-                  onClick={() => handleGoogleInitiate('mock_google_credential_token:hanumanthuswathi24@gmail.com:Swathi Hani:female')}
-                  className="w-full py-3.5 px-4 flex items-center gap-4 hover:bg-[#F8F9FA] focus:bg-[#F8F9FA] focus:outline-none transition-all duration-200 cursor-pointer text-left focus:ring-2 focus:ring-indigo-500/20 active:bg-slate-100/60"
-                >
-                  <img
-                    src="/swathi-avatar.png"
-                    alt="Swathi Hani"
-                    className="h-12 w-12 rounded-full object-cover border border-slate-200 shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-[14px] font-semibold text-[#3C4043] leading-none">
-                      Swathi Hani
-                    </h4>
-                    <p className="text-[12px] text-[#5F6368] mt-1 truncate">
-                      hanumanthuswathi24@gmail.com
-                    </p>
-                  </div>
-                </button>
-
-                {/* Vijay Kumar Row */}
-                <button
-                  type="button"
-                  onClick={() => handleGoogleInitiate('mock_google_credential_token:student.demo@studycircle.com:Vijay Kumar:male')}
-                  className="w-full py-3.5 px-4 flex items-center gap-4 hover:bg-[#F8F9FA] focus:bg-[#F8F9FA] focus:outline-none transition-all duration-200 cursor-pointer text-left focus:ring-2 focus:ring-indigo-500/20 active:bg-slate-100/60"
-                >
-                  <img
-                    src="/charan-avatar.png"
-                    alt="Vijay Kumar"
-                    className="h-12 w-12 rounded-full object-cover border border-slate-200 shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-[14px] font-semibold text-[#3C4043] leading-none">
-                      Vijay Kumar
-                    </h4>
-                    <p className="text-[12px] text-[#5F6368] mt-1 truncate">
-                      student.demo@studycircle.com
-                    </p>
-                  </div>
-                </button>
-
-                {/* Use another account Row */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
-                      googleLogin();
-                    } else {
-                      showToast('Real Google Sign-In is not configured. Please choose one of the pre-set demo accounts.', 'warning');
-                    }
-                  }}
-                  className="w-full py-3.5 px-4 flex items-center gap-4 hover:bg-[#F8F9FA] focus:bg-[#F8F9FA] focus:outline-none transition-all duration-200 cursor-pointer text-left focus:ring-2 focus:ring-indigo-500/20 active:bg-slate-100/60"
-                >
-                  <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-[#1a73e8] border border-slate-200 shrink-0">
-                    <Plus className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-[14px] font-semibold text-[#1a73e8] leading-none">
-                      Use another account
-                    </h4>
-                  </div>
-                </button>
-              </div>
-
-              {/* Consent Section */}
-              <div className="mt-8 text-[12px] text-[#5F6368] leading-relaxed font-sans text-left">
-                To continue, Google will share your name, email address, language preference, and profile picture with StudyCircle. See StudyCircle's{' '}
-                <a href="#" onClick={(e) => { e.preventDefault(); showToast('Privacy Policy viewed.', 'info'); }} className="text-[#1a73e8] hover:underline font-semibold transition-colors">
-                  Privacy Policy
-                </a>{' '}
-                and{' '}
-                <a href="#" onClick={(e) => { e.preventDefault(); showToast('Terms of Service viewed.', 'info'); }} className="text-[#1a73e8] hover:underline font-semibold transition-colors">
-                  Terms of Service
-                </a>.
-              </div>
-
-              {/* Footer */}
-              <div className="mt-8 pt-4 border-t border-slate-150 flex items-center justify-between text-[12px] text-[#70757a]">
-                <div className="flex items-center gap-1 hover:text-slate-800 cursor-pointer transition-colors font-sans select-none">
-                  <span>English (United States)</span>
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </div>
-                <div className="flex items-center gap-4 font-sans font-medium">
-                  <a href="#" onClick={(e) => { e.preventDefault(); showToast('Help Center opened.', 'info'); }} className="hover:text-slate-800 transition-colors">Help</a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); showToast('Privacy Policy viewed.', 'info'); }} className="hover:text-slate-800 transition-colors">Privacy</a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); showToast('Terms of Service viewed.', 'info'); }} className="hover:text-slate-800 transition-colors">Terms</a>
-                </div>
-              </div>
-
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* 🔐 Google Account Picker Modal Removed (Using direct official Google popup login instead) */}
 
       {/* ── BUG FIX #3 — Profile Edit Modal ── */}
       {showProfileEdit && (
