@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { apiRequest } from './utils/api';
 import { useApp } from './context/AppContext';
 import { useToast } from './components/ToastProvider';
@@ -44,7 +44,9 @@ import {
   Play,
   MessageSquare,
   Flame,
-  Trophy
+  Trophy,
+  Plus,
+  ChevronDown
 } from 'lucide-react';
 
 const COLLEGES = [
@@ -77,6 +79,32 @@ function getTimeGreeting(): { label: string; icon: 'sun' | 'sunset' | 'moon' } {
 export default function Home() {
   const router = useRouter();
   const { showToast } = useToast();
+  
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        setFormLoading(true);
+        const res = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.access_token}`
+          }
+        });
+        if (!res.ok) throw new Error('Failed to fetch user info from Google');
+        const userInfo = await res.json();
+        
+        const mockCred = `mock_google_credential_token:${userInfo.email}:${userInfo.name}:male`;
+        await handleGoogleInitiate(mockCred);
+      } catch (err: any) {
+        showToast(err.message || 'Google user info retrieval failed.', 'error');
+      } finally {
+        setFormLoading(false);
+      }
+    },
+    onError: () => {
+      showToast('Google Sign-In failed or was closed.', 'error');
+    }
+  });
+
   const [showBook, setShowBook] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -235,13 +263,6 @@ export default function Home() {
   const [lastSentForgotUser, setLastSentForgotUser] = useState('');
   
   const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleStep, setGoogleStep] = useState<'picker' | 'consent'>('picker');
-  const [googleSelectedUser, setGoogleSelectedUser] = useState<{ email: string, name: string, picture?: string, gender?: string, credential?: string } | null>(null);
-  const [googleTermsAccepted, setGoogleTermsAccepted] = useState(false);
-  const [googlePrivacyAccepted, setGooglePrivacyAccepted] = useState(false);
-  const [googleMockCustomName, setGoogleMockCustomName] = useState('');
-  const [googleMockCustomEmail, setGoogleMockCustomEmail] = useState('');
-  const [googleMockCustomGender, setGoogleMockCustomGender] = useState('female');
   const lastSeenEmailIdRef = useRef<string | null>(null);
 
   // ─────────────────────────────────────────────
@@ -762,50 +783,9 @@ export default function Home() {
   };
 
   // Google Sign-In Success Initiator
-  const handleGoogleInitiate = (credential: string | undefined) => {
+  const handleGoogleInitiate = async (credential: string | undefined) => {
     if (!credential) {
       showToast('Google credential token is missing.', 'error');
-      return;
-    }
-
-    let email = '';
-    let name = '';
-    let gender = 'other';
-    let picture = '';
-
-    if (credential.startsWith('mock_google_credential_token')) {
-      const parts = credential.split(':');
-      email = parts[1] || 'student.demo@studycircle.com';
-      name = parts[2] || 'Vijay Kumar';
-      gender = parts[3] || 'male';
-      picture = gender === 'female' ? '/swathi-avatar.png' : gender === 'male' ? '/charan-avatar.png' : '';
-    } else {
-      // Decode real Google ID Token
-      const decoded = decodeJwt(credential);
-      if (!decoded) {
-        showToast('Failed to parse Google account information.', 'error');
-        return;
-      }
-      email = decoded.email || '';
-      name = decoded.name || '';
-      picture = decoded.picture || '';
-      gender = decoded.gender || 'other';
-    }
-
-    setGoogleSelectedUser({ email, name, picture, gender, credential });
-    setGoogleStep('consent');
-    setGoogleTermsAccepted(false);
-    setGooglePrivacyAccepted(false);
-    setShowGoogleModal(true);
-    setShowAuthModal(false);
-  };
-
-  // Perform Google Register/Login on Consent Submit
-  const handleGoogleConsentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!googleSelectedUser) return;
-    if (!googleTermsAccepted || !googlePrivacyAccepted) {
-      showToast('You must accept the Terms of Service and Privacy Policy to continue.', 'error');
       return;
     }
 
@@ -813,12 +793,12 @@ export default function Home() {
     try {
       const data = await apiRequest('/auth/google', {
         method: 'POST',
-        body: JSON.stringify({ credential: googleSelectedUser.credential })
+        body: JSON.stringify({ credential })
       });
       setCurrentUser(data.user, data.token);
       showToast('Welcome to StudyCircle, ' + data.user.fullName + '!', 'success');
       setShowGoogleModal(false);
-      router.push('/dashboard');
+      router.push('/student/dashboard');
     } catch (err: any) {
       showToast(err.message || 'Google Login failed.', 'error');
     } finally {
@@ -1752,34 +1732,34 @@ export default function Home() {
                   <div className="flex-1 h-px bg-slate-200"></div>
                 </div>
 
-                {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
-                  <div className="w-full flex justify-center">
-                    <GoogleLogin
-                      onSuccess={(response) => handleGoogleInitiate(response.credential)}
-                      onError={() => showToast('Google Sign-In failed.', 'error')}
-                      theme="filled_blue"
-                      shape="pill"
-                      size="large"
-                      width="350"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAuthModal(false);
+                    setShowGoogleModal(true);
+                  }}
+                  className="w-full py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-sm hover:shadow"
+                >
+                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                    <path
+                      fill="#EA4335"
+                      d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.33 0 3.327 2.68 1.486 6.58l3.78 3.185z"
                     />
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAuthModal(false);
-                      setShowGoogleModal(true);
-                      setGoogleStep('picker');
-                      setGoogleSelectedUser(null);
-                    }}
-                    className="w-full py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-sm hover:shadow"
-                  >
-                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-6.887 4.114-4.694 0-8.503-3.809-8.503-8.5s3.81-8.5 8.503-8.5c2.297 0 4.387.873 5.966 2.484l3.056-3.056C19.121 1.129 15.89 0 12.24 0 5.481 0 0 5.48 0 12.24s5.481 12.24 12.24 12.24c7.058 0 11.726-4.958 11.726-11.914 0-.8-.073-1.427-.18-2.281H12.24z"/>
-                    </svg>
-                    <span>Continue with Google</span>
-                  </button>
-                )}
+                    <path
+                      fill="#34A853"
+                      d="M16.04 15.345c-1.07.72-2.482 1.155-4.04 1.155a7.09 7.09 0 0 1-6.734-4.855L1.48 14.83C3.32 18.738 7.33 21.42 12 21.42c3.055 0 5.89-.982 8.027-2.855l-3.986-3.22z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M23.82 12.24c0-.77-.07-1.56-.2-2.31H12v4.51h6.633a5.688 5.688 0 0 1-2.466 3.73l3.986 3.22c2.333-2.155 3.667-5.32 3.667-9.15z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.266 11.655a6.853 6.853 0 0 1 0-1.89l-3.78-3.185A11.954 11.954 0 0 0 0 12.24c0 2.01.49 3.91 1.486 5.59l3.78-3.185z"
+                    />
+                  </svg>
+                  <span>Continue with Google</span>
+                </button>
                 <div className="text-center pt-2">
                   <span className="text-[10px] text-slate-500">Don't have an account? </span>
                   <button
@@ -1882,265 +1862,182 @@ export default function Home() {
         </div>
       )}
 
-      {/* 🔐 Google Unified Sign-In Modal */}
-      {showGoogleModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div 
-            onClick={() => setShowGoogleModal(false)}
-            className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity cursor-pointer"
-          />
-          
-          <div className="relative w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-8 shadow-2xl z-10 text-left animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
-            <button 
+      {/* 🔐 Google Account Picker Modal */}
+      <AnimatePresence>
+        {showGoogleModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]"
+          >
+            <div 
               onClick={() => setShowGoogleModal(false)}
-              className="absolute top-6 right-6 text-slate-400 hover:text-slate-900 transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-slate-100"
+              className="absolute inset-0 cursor-pointer"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="relative w-full md:w-[560px] max-md:w-[95%] max-sm:w-full bg-white border border-slate-200/60 rounded-[28px] p-8 md:p-10 shadow-[0_8px_35px_rgba(0,0,0,0.06)] z-10 text-left flex flex-col focus:outline-none overflow-y-auto max-h-[90vh]"
             >
-              ✕
-            </button>
-
-            {googleStep === 'picker' ? (
-              <>
-                <div className="text-center space-y-2 mb-6">
-                  <div className="inline-flex h-10 w-10 rounded-full bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] items-center justify-center">
-                    <Sparkles className="h-5 w-5" />
+              {/* Header */}
+              <div className="flex flex-col w-full">
+                <div className="flex items-center justify-between pb-3">
+                  <div className="flex items-center gap-3">
+                    <svg className="h-[20px] w-[20px]" viewBox="0 0 24 24">
+                      <path
+                        fill="#EA4335"
+                        d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.33 0 3.327 2.68 1.486 6.58l3.78 3.185z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M16.04 15.345c-1.07.72-2.482 1.155-4.04 1.155a7.09 7.09 0 0 1-6.734-4.855L1.48 14.83C3.32 18.738 7.33 21.42 12 21.42c3.055 0 5.89-.982 8.027-2.855l-3.986-3.22z"
+                      />
+                      <path
+                        fill="#4285F4"
+                        d="M23.82 12.24c0-.77-.07-1.56-.2-2.31H12v4.51h6.633a5.688 5.688 0 0 1-2.466 3.73l3.986 3.22c2.333-2.155 3.667-5.32 3.667-9.15z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.266 11.655a6.853 6.853 0 0 1 0-1.89l-3.78-3.185A11.954 11.954 0 0 0 0 12.24c0 2.01.49 3.91 1.486 5.59l3.78-3.185z"
+                      />
+                    </svg>
+                    <span className="text-[14px] font-normal text-[#1F2124] tracking-wide font-sans select-none">
+                      Sign in with Google
+                    </span>
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">
-                    Google Account Picker
-                  </h3>
-                  <p className="text-xs text-slate-550 font-bold">
-                    Select a Google account to continue to StudyCircle
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  {!isDevMode && (
-                    <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-center my-3">
-                      <p className="text-[10px] font-bold text-amber-800 leading-normal">
-                        ⚠️ Official Google Sign-In is not configured on hosting platform. Using simulated sandbox Google accounts for demonstration.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Option 1: Swathi Hani */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleGoogleInitiate('mock_google_credential_token:hanumanthuswathi24@gmail.com:Swathi Hani:female');
-                      }}
-                      className="p-5 bg-[#E6F2ED]/60 border border-[#0E3E31]/20 hover:border-[#0E3E31]/60 rounded-2xl text-left space-y-2.5 transition-all hover:scale-[1.02] cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <img src="/swathi-avatar.png" alt="Swathi" className="h-10 w-10 rounded-full border border-white" />
-                        <div>
-                          <h4 className="text-xs font-black text-slate-900 leading-tight">Swathi Hani</h4>
-                          <span className="text-[9px] font-black uppercase text-emerald-600">Female</span>
-                        </div>
-                      </div>
-                      <p className="text-[9px] text-slate-550 font-bold leading-normal truncate">
-                        hanumanthuswathi24@gmail.com
-                      </p>
-                    </button>
-
-                    {/* Option 2: Vijay Kumar */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleGoogleInitiate('mock_google_credential_token:student.demo@studycircle.com:Vijay Kumar:male');
-                      }}
-                      className="p-5 bg-slate-50 border border-slate-200 hover:border-indigo-500/30 rounded-2xl text-left space-y-2.5 transition-all hover:scale-[1.02] cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <img src="/charan-avatar.png" alt="Vijay" className="h-10 w-10 rounded-full border border-white" />
-                        <div>
-                          <h4 className="text-xs font-black text-slate-900 leading-tight">Vijay Kumar</h4>
-                          <span className="text-[9px] font-black uppercase text-indigo-500">Male</span>
-                        </div>
-                      </div>
-                      <p className="text-[9px] text-slate-550 font-bold leading-normal truncate">
-                        student.demo@studycircle.com
-                      </p>
-                    </button>
-                  </div>
-
-                  <div className="flex items-center my-4 gap-2">
-                    <div className="flex-1 h-px bg-slate-200"></div>
-                    <span className="text-[9px] text-slate-400 font-black uppercase">Or Custom Profile</span>
-                    <div className="flex-1 h-px bg-slate-200"></div>
-                  </div>
-
-                  {/* Custom Selector Form */}
-                  <form 
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (!googleMockCustomName.trim() || !googleMockCustomEmail.trim()) {
-                        showToast('Name and Email are required.', 'error');
-                        return;
-                      }
-                      handleGoogleInitiate(`mock_google_credential_token:${googleMockCustomEmail.trim().toLowerCase()}:${googleMockCustomName.trim()}:${googleMockCustomGender}`);
-                    }}
-                    className="space-y-4 text-left"
+                  <button 
+                    type="button"
+                    onClick={() => setShowGoogleModal(false)}
+                    className="text-[#5F6368] hover:text-[#202124] hover:bg-slate-100 transition-all cursor-pointer text-base p-1.5 rounded-full"
                   >
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Full Name</label>
-                      <input
-                        type="text"
-                        placeholder="Enter your simulated Google name"
-                        value={googleMockCustomName}
-                        onChange={(e) => setGoogleMockCustomName(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-805 outline-none focus:border-[#0E3E31]/50 focus:bg-white transition-all"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Email Address</label>
-                      <input
-                        type="email"
-                        placeholder="Enter your simulated Google email"
-                        value={googleMockCustomEmail}
-                        onChange={(e) => setGoogleMockCustomEmail(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-805 outline-none focus:border-[#0E3E31]/50 focus:bg-white transition-all"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Gender Selection (Sets profile picture)</label>
-                      <div className="flex gap-4">
-                        <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
-                          <input
-                            type="radio"
-                            name="mockGender"
-                            value="female"
-                            checked={googleMockCustomGender === 'female'}
-                            onChange={() => setGoogleMockCustomGender('female')}
-                            className="accent-[#0E3E31]"
-                          />
-                          <span>Female Avatar</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
-                          <input
-                            type="radio"
-                            name="mockGender"
-                            value="male"
-                            checked={googleMockCustomGender === 'male'}
-                            onChange={() => setGoogleMockCustomGender('male')}
-                            className="accent-[#0E3E31]"
-                          />
-                          <span>Male Avatar</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 text-xs text-slate-700 font-bold cursor-pointer">
-                          <input
-                            type="radio"
-                            name="mockGender"
-                            value="other"
-                            checked={googleMockCustomGender === 'other'}
-                            onChange={() => setGoogleMockCustomGender('other')}
-                            className="accent-[#0E3E31]"
-                          />
-                          <span>Neutral Avatar</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="w-full py-3 bg-[#0E3E31] hover:bg-[#0B3026] text-white rounded-xl text-xs font-extrabold shadow-lg shadow-[#0E3E31]/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      Choose simulated account
-                    </button>
-                  </form>
+                    ✕
+                  </button>
                 </div>
-              </>
-            ) : (
-              <>
-                <div className="text-center space-y-2 mb-6">
-                  <div className="inline-flex h-10 w-10 rounded-full bg-[#E6F2ED] border border-[#0E3E31]/10 text-[#0E3E31] items-center justify-center">
-                    <Lock className="h-5 w-5" />
+                <div className="w-full h-px bg-[#E0E0E0] mb-6" />
+              </div>
+
+              {/* Main Content */}
+              <div className="flex flex-col items-center text-center">
+                <div className="flex items-center gap-2 mb-4 justify-center select-none">
+                  <div className="relative h-8 w-8 flex items-center justify-center shrink-0">
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-[#4F46E5] to-[#6366F1] opacity-90 shadow-[0_3px_10px_rgba(79,70,229,0.2)]" />
+                    <div className="absolute inset-[1.5px] rounded bg-white flex items-center justify-center font-bold">
+                      <BookOpen className="h-3.5 w-3.5 text-[#4F46E5]" />
+                    </div>
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">
-                    Consent & Terms of Service
-                  </h3>
-                  <p className="text-xs text-slate-550 font-bold">
-                    To continue signing in with Google, please review and accept our policies.
-                  </p>
+                  <span className="font-extrabold text-lg tracking-tight text-[#0F172A] font-sans">
+                    StudyCircle
+                  </span>
                 </div>
+                <h2 className="text-[24px] font-semibold text-[#202124] tracking-tight leading-tight font-sans">
+                  Choose an account
+                </h2>
+                <p className="text-[14px] text-[#5F6368] mt-1.5 font-normal font-sans">
+                  to continue to <span className="font-semibold text-slate-850">StudyCircle</span>
+                </p>
+              </div>
 
-                <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-3.5 mb-6">
-                  <div className="h-10 w-10 rounded-full bg-[#E6F2ED] border border-white flex items-center justify-center overflow-hidden shrink-0">
-                    {googleSelectedUser?.picture ? (
-                      <img src={googleSelectedUser.picture} className="h-full w-full object-cover" alt="Google Avatar" />
-                    ) : (
-                      <span className="text-xs font-black uppercase text-[#0E3E31]">
-                        {googleSelectedUser?.name?.charAt(0) || 'G'}
-                      </span>
-                    )}
+              {/* Account List */}
+              <div className="mt-8 space-y-0.5 border-t border-b border-[#E0E0E0] divide-y divide-[#E0E0E0]">
+                {/* Swathi Hani Row */}
+                <button
+                  type="button"
+                  onClick={() => handleGoogleInitiate('mock_google_credential_token:hanumanthuswathi24@gmail.com:Swathi Hani:female')}
+                  className="w-full py-3.5 px-4 flex items-center gap-4 hover:bg-[#F8F9FA] focus:bg-[#F8F9FA] focus:outline-none transition-all duration-200 cursor-pointer text-left focus:ring-2 focus:ring-indigo-500/20 active:bg-slate-100/60"
+                >
+                  <img
+                    src="/swathi-avatar.png"
+                    alt="Swathi Hani"
+                    className="h-12 w-12 rounded-full object-cover border border-slate-200 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-[14px] font-semibold text-[#3C4043] leading-none">
+                      Swathi Hani
+                    </h4>
+                    <p className="text-[12px] text-[#5F6368] mt-1 truncate">
+                      hanumanthuswathi24@gmail.com
+                    </p>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-xs font-black text-slate-900 leading-tight truncate">{googleSelectedUser?.name}</h4>
-                    <p className="text-[10px] text-slate-500 font-semibold leading-normal truncate">{googleSelectedUser?.email}</p>
+                </button>
+
+                {/* Vijay Kumar Row */}
+                <button
+                  type="button"
+                  onClick={() => handleGoogleInitiate('mock_google_credential_token:student.demo@studycircle.com:Vijay Kumar:male')}
+                  className="w-full py-3.5 px-4 flex items-center gap-4 hover:bg-[#F8F9FA] focus:bg-[#F8F9FA] focus:outline-none transition-all duration-200 cursor-pointer text-left focus:ring-2 focus:ring-indigo-500/20 active:bg-slate-100/60"
+                >
+                  <img
+                    src="/charan-avatar.png"
+                    alt="Vijay Kumar"
+                    className="h-12 w-12 rounded-full object-cover border border-slate-200 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-[14px] font-semibold text-[#3C4043] leading-none">
+                      Vijay Kumar
+                    </h4>
+                    <p className="text-[12px] text-[#5F6368] mt-1 truncate">
+                      student.demo@studycircle.com
+                    </p>
                   </div>
+                </button>
+
+                {/* Use another account Row */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+                      googleLogin();
+                    } else {
+                      showToast('Real Google Sign-In is not configured. Please choose one of the pre-set demo accounts.', 'warning');
+                    }
+                  }}
+                  className="w-full py-3.5 px-4 flex items-center gap-4 hover:bg-[#F8F9FA] focus:bg-[#F8F9FA] focus:outline-none transition-all duration-200 cursor-pointer text-left focus:ring-2 focus:ring-indigo-500/20 active:bg-slate-100/60"
+                >
+                  <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-[#1a73e8] border border-slate-200 shrink-0">
+                    <Plus className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-[14px] font-semibold text-[#1a73e8] leading-none">
+                      Use another account
+                    </h4>
+                  </div>
+                </button>
+              </div>
+
+              {/* Consent Section */}
+              <div className="mt-8 text-[12px] text-[#5F6368] leading-relaxed font-sans text-left">
+                To continue, Google will share your name, email address, language preference, and profile picture with StudyCircle. See StudyCircle's{' '}
+                <a href="#" onClick={(e) => { e.preventDefault(); showToast('Privacy Policy viewed.', 'info'); }} className="text-[#1a73e8] hover:underline font-semibold transition-colors">
+                  Privacy Policy
+                </a>{' '}
+                and{' '}
+                <a href="#" onClick={(e) => { e.preventDefault(); showToast('Terms of Service viewed.', 'info'); }} className="text-[#1a73e8] hover:underline font-semibold transition-colors">
+                  Terms of Service
+                </a>.
+              </div>
+
+              {/* Footer */}
+              <div className="mt-8 pt-4 border-t border-slate-150 flex items-center justify-between text-[12px] text-[#70757a]">
+                <div className="flex items-center gap-1 hover:text-slate-800 cursor-pointer transition-colors font-sans select-none">
+                  <span>English (United States)</span>
+                  <ChevronDown className="h-3.5 w-3.5" />
                 </div>
+                <div className="flex items-center gap-4 font-sans font-medium">
+                  <a href="#" onClick={(e) => { e.preventDefault(); showToast('Help Center opened.', 'info'); }} className="hover:text-slate-800 transition-colors">Help</a>
+                  <a href="#" onClick={(e) => { e.preventDefault(); showToast('Privacy Policy viewed.', 'info'); }} className="hover:text-slate-800 transition-colors">Privacy</a>
+                  <a href="#" onClick={(e) => { e.preventDefault(); showToast('Terms of Service viewed.', 'info'); }} className="hover:text-slate-800 transition-colors">Terms</a>
+                </div>
+              </div>
 
-                <form onSubmit={handleGoogleConsentSubmit} className="space-y-6 text-left">
-                  <div className="space-y-3.5">
-                    <label className="flex items-start gap-3 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={googleTermsAccepted}
-                        onChange={(e) => setGoogleTermsAccepted(e.target.checked)}
-                        className="w-4 h-4 rounded accent-[#0E3E31] border-slate-300 text-[#0E3E31] focus:ring-0 cursor-pointer mt-0.5"
-                        required
-                      />
-                      <span className="text-xs text-slate-600 font-semibold leading-normal">
-                        I agree to the <a href="#" onClick={(e) => e.preventDefault()} className="text-[#0E3E31] hover:underline font-extrabold">Terms and Conditions</a> and authorize StudyCircle to access my Google profile name and email address.
-                      </span>
-                    </label>
-
-                    <label className="flex items-start gap-3 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={googlePrivacyAccepted}
-                        onChange={(e) => setGooglePrivacyAccepted(e.target.checked)}
-                        className="w-4 h-4 rounded accent-[#0E3E31] border-slate-300 text-[#0E3E31] focus:ring-0 cursor-pointer mt-0.5"
-                        required
-                      />
-                      <span className="text-xs text-slate-600 font-semibold leading-normal">
-                        I agree to the <a href="#" onClick={(e) => e.preventDefault()} className="text-[#0E3E31] hover:underline font-extrabold">Privacy Policy</a> regarding secure storage and data usage.
-                      </span>
-                    </label>
-                  </div>
-
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (googleSelectedUser?.credential?.startsWith('mock_google_credential_token')) {
-                          setGoogleStep('picker');
-                        } else {
-                          setShowGoogleModal(false);
-                        }
-                      }}
-                      className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
-                    >
-                      {googleSelectedUser?.credential?.startsWith('mock_google_credential_token') ? 'Back' : 'Cancel'}
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={formLoading || !googleTermsAccepted || !googlePrivacyAccepted}
-                      className="flex-1 py-2.5 bg-[#0E3E31] hover:bg-[#0B3026] disabled:opacity-50 disabled:bg-[#0E3E31]/50 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-[#0E3E31]/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      {formLoading && <RefreshCw className="h-3 w-3 animate-spin" />}
-                      Agree & Continue
-                    </button>
-                  </div>
-                </form>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── BUG FIX #3 — Profile Edit Modal ── */}
       {showProfileEdit && (
