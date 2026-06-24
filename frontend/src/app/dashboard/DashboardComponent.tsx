@@ -346,6 +346,52 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [editSessSubject, setEditSessSubject] = useState('');
   const [editSessStatus, setEditSessStatus] = useState('Upcoming');
 
+  // AI Tutor Chat State
+  const [showAiTutorChat, setShowAiTutorChat] = useState(false);
+  const [aiTutorInput, setAiTutorInput] = useState('');
+  const [aiTutorMessages, setAiTutorMessages] = useState<Array<{ sender: 'user' | 'tutor', text: string }>>([
+    { sender: 'tutor', text: "Hello! I am your StudyCircle AI Academic Tutor. 🎓 I can explain complex subjects like DBMS or Operating Systems, outline custom study plans, or help you understand how to navigate the platform. What are you studying today?" }
+  ]);
+  const [isAiTutorTyping, setIsAiTutorTyping] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [aiTutorMessages, isAiTutorTyping]);
+
+  const handleSendAiTutorMessage = (text: string) => {
+    if (!text.trim()) return;
+    
+    // Add user message
+    const userMsg = { sender: 'user' as const, text };
+    setAiTutorMessages(prev => [...prev, userMsg]);
+    setAiTutorInput('');
+    setIsAiTutorTyping(true);
+    
+    // Prepare AI response
+    let responseText = "";
+    const lowerText = text.toLowerCase();
+    
+    if (lowerText.includes('dbms') || lowerText.includes('normal')) {
+      responseText = `### Database Normalization Explained 📊\n\nNormalization is the process of organizing data in a database to reduce redundancy and improve data integrity. Here are the first three Normal Forms (NF):\n\n1. **First Normal Form (1NF)**:\n   * Values in each column must be **atomic** (indivisible).\n   * No repeating groups of columns.\n   * *Example*: If a field contains multiple phone numbers, split them into separate rows.\n\n2. **Second Normal Form (2NF)**:\n   * Must be in **1NF**.\n   * All non-key attributes must be **fully functionally dependent** on the primary key (no partial dependency).\n   * *Example*: In a composite primary key \`(StudentID, SubjectID)\`, a column \`SubjectTeacherName\` depends only on \`SubjectID\`. This violates 2NF and must be moved to a separate \`Subjects\` table.\n\n3. **Third Normal Form (3NF)**:\n   * Must be in **2NF**.\n   * There must be no **transitive functional dependency** (non-key columns depending on other non-key columns).\n   * *Example*: If a table has \`StudentID\`, \`ZipCode\`, and \`City\`, where \`City\` depends on \`ZipCode\` and \`ZipCode\` depends on \`StudentID\`. Move \`ZipCode\` and \`City\` to a separate address table to satisfy 3NF.`;
+    } else if (lowerText.includes('process') || lowerText.includes('thread')) {
+      responseText = `### Processes vs. Threads in Operating Systems 🧠\n\nAn operating system uses both **processes** and **threads** to run code, but they have major differences:\n\n| Feature | Process | Thread |\n| :--- | :--- | :--- |\n| **Definition** | An independent program in execution. | A lightweight segment of a process. |\n| **Address Space** | Has its own separate address space. | Shares the parent process's address space. |\n| **Overhead** | High creation and switching overhead. | Low creation and switching overhead. |\n| **Communication** | Uses Inter-Process Communication (IPC). | Can communicate directly via shared memory. |\n| **Fault Tolerance** | If one process crashes, others are unaffected. | If one thread crashes, the entire process crashes. |\n\n*Quick Tip*: Think of a process as a **house** and threads as the **rooms** inside. The rooms share the plumbing (memory) of the house!`;
+    } else if (lowerText.includes('coin') || lowerText.includes('xp') || lowerText.includes('reward') || lowerText.includes('points') || lowerText.includes('shop') || lowerText.includes('unlock')) {
+      responseText = `### 🪙 StudyCircle Rewards & Gamification Guide\n\nYou can earn experience points (**XP**) and **Focus Coins** by being active on the platform. Here is how:\n\n1. **Voice Study Desks**: Join a Voice Desk (Lounge or Circle rooms) to start your timer. For every 10 minutes of active desking, you earn **+10 XP** and **+5 Focus Coins**.\n2. **Community Hub Doubts**: Ask a question or answer doubts. Marking an answer as the **Accepted Solution** awards the solver **+20 XP**.\n3. **Daily Missions**: Check the checklist on your dashboard. Completing daily goals awards bonus coins and XP.\n4. **Custom Shop**: Spend your **Focus Coins** in the **Vault Shop** to purchase profile badges, custom interface skins, and dynamic status headers!`;
+    } else if (lowerText.includes('distract') || lowerText.includes('pomodoro') || lowerText.includes('focus') || lowerText.includes('study') || lowerText.includes('tip') || lowerText.includes('plan')) {
+      responseText = `### ⚡ 5 Tips to Maintain Ultimate Focus\n\nAs your AI Tutor, here are my top recommendations to stay in high-focus learning zones:\n\n1. **Use the Pomodoro Technique**: Study for 25 minutes, then take a 5-minute break. After 4 cycles, take a longer 15-minute break. Use the Learning Space stopwatch timer on your dashboard to log this!\n2. **Eliminate Micro-Distractions**: Put your phone in another room and close unrelated browser tabs. \n3. **Join Active Voice Desks**: StudyCircle's voice rooms provide social accountability. Studying alongside other cluster students helps keep you on track.\n4. **Set Daily Micro-Goals**: Rather than "study for exams", write "Solve 3 DBMS normalization queries". Use your dashboard tasks list to track them.\n5. **Reward Yourself**: Complete your daily missions, claim your Focus Coins, and check out the customization skins in the Shop!`;
+    } else {
+      responseText = `### Learning Workspace Support 🤖\n\nThat is a great question! As your AI Academic Tutor, I can assist you with:\n* **Concept Explanations**: DBMS Normalization, CPU Scheduling algorithms, Computer Networks, and web development.\n* **Study Techniques**: Time management, Pomodoro, and study circles.\n* **Platform Rewards**: Tips on how to earn XP, maintain streaks, and spend Focus Coins in the Shop.\n\nCould you elaborate on what specific topic you would like me to explain next? You can also click one of the quick prompts below to get started!`;
+    }
+    
+    setTimeout(() => {
+      setAiTutorMessages(prev => [...prev, { sender: 'tutor' as const, text: responseText }]);
+      setIsAiTutorTyping(false);
+    }, 1200);
+  };
+
   // Login states for dashboard Auth Guard Overlay
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
@@ -5671,7 +5717,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
                     <div className="shrink-0">
                       <button
-                        onClick={() => showToast('AI Chatbot Session initiated! Ask any questions or schedule revisions in the Lounge.', 'success')}
+                        onClick={() => setShowAiTutorChat(true)}
                         className="px-6 py-3.5 bg-[#5227EB] hover:bg-[#431fd0] text-white text-xs font-black rounded-2xl shadow-lg border border-indigo-500/20 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer shadow-indigo-950/30 font-mono tracking-wide"
                       >
                         <Sparkles className="h-4 w-4 fill-white/20" /> Ask AI Tutor
@@ -8549,6 +8595,178 @@ Based on your desking logs and consistency, the AI tutor recommends:
               animation-name: confettiFall;
             }
           `}</style>
+        </div>
+      )}
+
+      {/* 🤖 AI Tutor Chat Drawer */}
+      {showAiTutorChat && (
+        <div className="fixed inset-0 z-[9999] flex justify-end animate-in fade-in duration-200">
+          <div 
+            onClick={() => setShowAiTutorChat(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+          />
+          <div className="relative w-full max-w-md bg-[#090d1e] border-l border-white/10 h-full flex flex-col shadow-2xl z-10 text-left animate-in slide-in-from-right duration-350">
+            {/* Header */}
+            <div className="p-5 border-b border-white/5 flex items-center justify-between bg-[#0b1026]">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
+                  <Sparkles className="h-5 w-5 fill-indigo-400/20" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider font-mono">AI Study Tutor</h3>
+                  <span className="text-[9px] text-[#A78BFA] font-black uppercase flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Online Academic Assistant
+                  </span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowAiTutorChat(false)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-white/5"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* Messages Log */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4 scrollbar-thin">
+              {aiTutorMessages.map((msg, idx) => (
+                <div key={idx} className={`flex items-start gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  {msg.sender === 'tutor' && (
+                    <div className="h-8 w-8 rounded-full border border-indigo-500/30 overflow-hidden bg-slate-950 flex items-center justify-center shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="h-6 w-6">
+                        <rect x="18" y="24" width="64" height="52" fill="#1E1B4B" rx="22" stroke="#818CF8" strokeWidth="2.5" />
+                        <circle cx="38" cy="46" r="4.5" fill="#38BDF8" />
+                        <circle cx="62" cy="46" r="4.5" fill="#38BDF8" />
+                        <path d="M42 54 Q50 59 58 54" stroke="#A78BFA" strokeWidth="2.5" strokeLinecap="round" fill="transparent" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className={`max-w-[80%] rounded-2xl p-4 text-xs ${
+                    msg.sender === 'user' 
+                      ? 'bg-[#5227EB] text-white rounded-tr-none' 
+                      : 'bg-[#151a30] border border-white/5 text-slate-200 rounded-tl-none space-y-2'
+                  }`}>
+                    {msg.sender === 'tutor' ? (
+                      <div className="space-y-2 leading-relaxed">
+                        {msg.text.split('\n\n').map((paragraph, pIdx) => {
+                          if (paragraph.startsWith('### ')) {
+                            return <h4 key={pIdx} className="text-white font-extrabold text-xs uppercase tracking-wide border-b border-white/5 pb-1 mt-3">{paragraph.replace('### ', '')}</h4>;
+                          }
+                          if (paragraph.startsWith('|')) {
+                            const rows = paragraph.split('\n').filter(Boolean);
+                            return (
+                              <div key={pIdx} className="overflow-x-auto my-2 border border-white/5 rounded-xl bg-slate-950/40 p-2">
+                                <table className="min-w-full text-[10px] text-slate-350">
+                                  <thead>
+                                    <tr>
+                                      {rows[0].split('|').map(r => r.trim()).filter(Boolean).map((cell, cIdx) => (
+                                        <th key={cIdx} className="text-left font-black text-white p-1 border-b border-white/10 uppercase tracking-wide">{cell}</th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {rows.slice(2).map((row, rIdx) => (
+                                      <tr key={rIdx} className="border-b border-white/5 last:border-0">
+                                        {row.split('|').map(r => r.trim()).filter(Boolean).map((cell, cIdx) => (
+                                          <td key={cIdx} className="p-1 font-semibold text-slate-400">{cell}</td>
+                                        ))}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            );
+                          }
+                          if (paragraph.includes('* ')) {
+                            return (
+                              <ul key={pIdx} className="list-disc pl-4 space-y-1 mt-1 font-semibold text-slate-350">
+                                {paragraph.split('\n').filter(l => l.trim().startsWith('* ')).map((item, iIdx) => (
+                                  <li key={iIdx}>{item.replace('* ', '')}</li>
+                                ))}
+                              </ul>
+                            );
+                          }
+                          const parts = paragraph.split('**');
+                          return (
+                            <p key={pIdx} className="font-semibold text-slate-300 text-xs">
+                              {parts.map((part, partIdx) => partIdx % 2 === 1 ? <strong key={partIdx} className="text-white font-black">{part}</strong> : part)}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="font-bold leading-normal text-xs">{msg.text}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {isAiTutorTyping && (
+                <div className="flex items-start gap-2.5 justify-start">
+                  <div className="h-8 w-8 rounded-full border border-indigo-500/30 overflow-hidden bg-slate-950 flex items-center justify-center shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="h-6 w-6">
+                      <rect x="18" y="24" width="64" height="52" fill="#1E1B4B" rx="22" stroke="#818CF8" strokeWidth="2.5" />
+                      <circle cx="38" cy="46" r="4.5" fill="#38BDF8" />
+                      <circle cx="62" cy="46" r="4.5" fill="#38BDF8" />
+                      <path d="M42 54 Q50 59 58 54" stroke="#A78BFA" strokeWidth="2.5" strokeLinecap="round" fill="transparent" />
+                    </svg>
+                  </div>
+                  <div className="bg-[#151a30] border border-white/5 rounded-2xl rounded-tl-none p-3 flex items-center gap-1 shrink-0">
+                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0s' }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0.15s' }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0.3s' }} />
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            
+            {/* Suggestions Zone */}
+            <div className="p-4 border-t border-white/5 bg-[#090d1e] space-y-2">
+              <span className="text-[9px] font-black uppercase text-zinc-500 block text-left">Quick Study Prompts</span>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { text: "Explain DBMS Normalization", label: "📊 Normalization" },
+                  { text: "Difference between Process and Thread in OS", label: "🧠 Processes vs Threads" },
+                  { text: "How do I earn XP and Focus Coins?", label: "🪙 Rewards Guide" },
+                  { text: "Give me study tips to avoid distractions", label: "⚡ Focus Tips" }
+                ].map((prompt, idx) => (
+                  <button
+                    key={idx}
+                    disabled={isAiTutorTyping}
+                    onClick={() => handleSendAiTutorMessage(prompt.text)}
+                    className="px-2.5 py-1.5 rounded-lg border border-white/5 bg-[#12172f] hover:border-indigo-500/25 hover:bg-[#1a203f] transition-all text-[10px] font-bold text-slate-350 hover:text-white shrink-0 cursor-pointer"
+                  >
+                    {prompt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Input Form */}
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendAiTutorMessage(aiTutorInput);
+              }}
+              className="p-4 border-t border-white/5 bg-[#0b1026] flex gap-2"
+            >
+              <input 
+                type="text" 
+                value={aiTutorInput}
+                onChange={(e) => setAiTutorInput(e.target.value)}
+                disabled={isAiTutorTyping}
+                placeholder="Ask AI Tutor a question..."
+                className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition-all disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={!aiTutorInput.trim() || isAiTutorTyping}
+                className="px-4 py-2 bg-[#5227EB] hover:bg-[#431fd0] disabled:bg-[#5227EB]/40 text-white rounded-xl text-xs font-black transition-all flex items-center justify-center shrink-0 cursor-pointer border-none"
+              >
+                Send
+              </button>
+            </form>
+          </div>
         </div>
       )}
 
