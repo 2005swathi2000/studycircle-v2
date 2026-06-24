@@ -471,7 +471,21 @@ export default function Home() {
       setIsDevMode(isLocal);
 
       if (isLocal) {
-        console.log("[Google Auth Debug] Loaded Google Client ID:", process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "MISSING / UNDEFINED");
+        console.log("[Google Auth Diagnostics] Development environment detected.");
+        console.log(" - NEXT_PUBLIC_GOOGLE_CLIENT_ID:", process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "MISSING (Recommended for Next.js App Router)");
+        console.log(" - VITE_GOOGLE_CLIENT_ID:", process.env.VITE_GOOGLE_CLIENT_ID || "MISSING (Vite Compatibility Fallback)");
+        
+        const resolvedId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || "";
+        if (!resolvedId) {
+          console.error(" - Status: Google Client ID is completely missing!");
+        } else if (resolvedId.includes("dummy") || resolvedId.includes("YOUR_REAL_CLIENT_ID")) {
+          console.warn(" - Status: Google Client ID is using a placeholder/dummy value:", resolvedId);
+        } else if (!resolvedId.endsWith(".apps.googleusercontent.com")) {
+          console.error(" - Status: Google Client ID has an invalid format! Expected suffix '.apps.googleusercontent.com', found:", resolvedId);
+        } else {
+          console.log(" - Status: Active Google Client ID is loaded correctly:", resolvedId);
+        }
+
         fetchMockInbox();
         const interval = setInterval(fetchMockInbox, 2000);
         return () => clearInterval(interval);
@@ -1705,54 +1719,59 @@ export default function Home() {
                 </div>
 
                 <div className="flex justify-center w-full mt-2">
-                  {(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && 
-                    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID.trim() !== "" && 
-                    !process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID.includes("dummy") && 
-                    !process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID.includes("YOUR_REAL_CLIENT_ID")) ? (
-                    <GoogleLogin
-                      onSuccess={(credentialResponse) => {
-                        if (credentialResponse.credential) {
-                          setShowAuthModal(false);
-                          handleGoogleInitiate(credentialResponse.credential);
-                        }
-                      }}
-                      onError={() => {
-                        showToast('Google Sign-In failed.', 'error');
-                      }}
-                      theme="outline"
-                      size="large"
-                      shape="rectangular"
-                      width="320px"
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        showToast("Google OAuth is not configured correctly. Please verify Client ID and Google Cloud Console settings.", "error");
-                      }}
-                      className="w-[320px] py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-sm hover:shadow"
-                    >
-                      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
-                        <path
-                          fill="#EA4335"
-                          d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.33 0 3.327 2.68 1.486 6.58l3.78 3.185z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M16.04 15.345c-1.07.72-2.482 1.155-4.04 1.155a7.09 7.09 0 0 1-6.734-4.855L1.48 14.83C3.32 18.738 7.33 21.42 12 21.42c3.055 0 5.89-.982 8.027-2.855l-3.986-3.22z"
-                        />
-                        <path
-                          fill="#4285F4"
-                          d="M23.82 12.24c0-.77-.07-1.56-.2-2.31H12v4.51h6.633a5.688 5.688 0 0 1-2.466 3.73l3.986 3.22c2.333-2.155 3.667-5.32 3.667-9.15z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M5.266 11.655a6.853 6.853 0 0 1 0-1.89l-3.78-3.185A11.954 11.954 0 0 0 0 12.24c0 2.01.49 3.91 1.486 5.59l3.78-3.185z"
-                        />
-                      </svg>
-                      <span>Continue with Google</span>
-                    </button>
-                  )}
+                  {(() => {
+                    const resolvedClientId = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || "").trim();
+                    const isValidFormat = resolvedClientId !== "" && 
+                                          !resolvedClientId.includes("dummy") && 
+                                          !resolvedClientId.includes("YOUR_REAL_CLIENT_ID") && 
+                                          resolvedClientId.endsWith(".apps.googleusercontent.com");
+                    
+                    return isValidFormat ? (
+                      <GoogleLogin
+                        onSuccess={(credentialResponse) => {
+                          if (credentialResponse.credential) {
+                            setShowAuthModal(false);
+                            handleGoogleInitiate(credentialResponse.credential);
+                          }
+                        }}
+                        onError={() => {
+                          showToast('Google Sign-In failed.', 'error');
+                        }}
+                        theme="outline"
+                        size="large"
+                        shape="rectangular"
+                        width="320px"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          showToast("Google OAuth is not configured correctly. Please verify Client ID and Google Cloud Console settings.", "error");
+                        }}
+                        className="w-[320px] py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-sm hover:shadow"
+                      >
+                        <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                          <path
+                            fill="#EA4335"
+                            d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.33 0 3.327 2.68 1.486 6.58l3.78 3.185z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M16.04 15.345c-1.07.72-2.482 1.155-4.04 1.155a7.09 7.09 0 0 1-6.734-4.855L1.48 14.83C3.32 18.738 7.33 21.42 12 21.42c3.055 0 5.89-.982 8.027-2.855l-3.986-3.22z"
+                          />
+                          <path
+                            fill="#4285F4"
+                            d="M23.82 12.24c0-.77-.07-1.56-.2-2.31H12v4.51h6.633a5.688 5.688 0 0 1-2.466 3.73l3.986 3.22c2.333-2.155 3.667-5.32 3.667-9.15z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M5.266 11.655a6.853 6.853 0 0 1 0-1.89l-3.78-3.185A11.954 11.954 0 0 0 0 12.24c0 2.01.49 3.91 1.486 5.59l3.78-3.185z"
+                          />
+                        </svg>
+                        <span>Continue with Google</span>
+                      </button>
+                    );
+                  })()}
                 </div>
                 <div className="text-center pt-2">
                   <span className="text-[10px] text-slate-500">Don't have an account? </span>
