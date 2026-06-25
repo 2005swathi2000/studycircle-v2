@@ -82,8 +82,71 @@ app.post('/api/ai-tutor', async (req, res) => {
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.warn('[AI Tutor Warning] GEMINI_API_KEY is not defined in backend .env. Falling back to educational rules.');
+  const systemPrompt = `You are the StudyCircle AI Academic Tutor, a helpful and knowledgeable learning assistant. 
+Explain complex academic topics in a clear, friendly, and structured tutoring style. 
+If the user asks questions in another language (such as Telugu, Tenglish, Hindi, Spanish, etc.), reply naturally in that same language or code-mixed format (e.g. Tenglish).
+Always output formatted Markdown using clear sections, lists, tables, or bold text.
+If the question is about StudyCircle XP, coins, shop, or study rooms, explain that:
+- Desking/timer study hours in Voice Desks earns XP (+10 XP) and Focus Coins (+5 Coins) every 10 minutes.
+- Doubts resolved in the Community Hub awards +20 XP.
+- Coins are spent in the Vault Shop to unlock profile badges and dark mode themes.
+
+User Query: ${text}`;
+
+  if (apiKey) {
+    try {
+      console.log('[AI Tutor] Querying Google Gemini API...');
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: systemPrompt }] }]
+          })
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (responseText) {
+          return res.json({ response: responseText });
+        }
+      }
+      console.warn('[AI Tutor Warning] Gemini API failed or returned empty. Trying Pollinations AI fallback...');
+    } catch (error) {
+      console.error('[AI Tutor Error] Gemini API error:', error);
+      console.log('Trying Pollinations AI fallback...');
+    }
+  } else {
+    console.log('[AI Tutor] GEMINI_API_KEY is not defined. Using Pollinations AI.');
+  }
+
+  // Pollinations AI Fallback (100% Free, Keyless, Dynamic AI)
+  try {
+    const response = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: 'You are the StudyCircle AI Academic Tutor, a helpful and knowledgeable learning assistant. Explain complex academic topics in a clear, friendly, and structured tutoring style. If the user asks questions in another language (such as Telugu, Tenglish, Hindi, Spanish, etc.), reply naturally in that same language or code-mixed format (e.g. Tenglish). Always output formatted Markdown using clear sections, lists, tables, or bold text. If the question is about StudyCircle XP, coins, shop, or study rooms, explain that: desking/timer study hours in Voice Desks earns XP (+10 XP) and Focus Coins (+5 Coins) every 10 minutes; doubts resolved in the Community Hub awards +20 XP; coins are spent in the Vault Shop to unlock profile badges and dark mode themes.' },
+          { role: 'user', content: text }
+        ]
+      })
+    });
+
+    if (response.ok) {
+      const responseText = await response.text();
+      if (responseText && responseText.trim()) {
+        return res.json({ response: responseText });
+      }
+    }
+    throw new Error(`Pollinations API returned status ${response.status}`);
+  } catch (error) {
+    console.error('[AI Tutor Error] Pollinations AI error:', error);
+    
+    // Final Static Fallback in case of absolute network failure
     const lowerText = text.toLowerCase();
     let responseText = "";
     if (lowerText.includes('dbms') || lowerText.includes('normal')) {
@@ -95,45 +158,9 @@ app.post('/api/ai-tutor', async (req, res) => {
     } else if (lowerText.includes('distract') || lowerText.includes('pomodoro') || lowerText.includes('focus') || lowerText.includes('study') || lowerText.includes('tip') || lowerText.includes('plan')) {
       responseText = `### ⚡ 5 Tips to Maintain Ultimate Focus\n\nAs your AI Tutor, here are my top recommendations to stay in high-focus learning zones:\n\n1. **Use the Pomodoro Technique**: Study for 25 minutes, then take a 5-minute break. After 4 cycles, take a longer 15-minute break. Use the Learning Space stopwatch timer on your dashboard to log this!\n2. **Eliminate Micro-Distractions**: Put your phone in another room and close unrelated browser tabs. \n3. **Join Active Voice Desks**: StudyCircle's voice rooms provide social accountability. Studying alongside other cluster students helps keep you on track.\n4. **Set Daily Micro-Goals**: Rather than "study for exams", write "Solve 3 DBMS normalization queries". Use your dashboard tasks list to track them.\n5. **Reward Yourself**: Complete your daily missions, claim your Focus Coins, and check out the customization skins in the Shop!`;
     } else {
-      responseText = `As your **AI Academic Tutor**, I can explain complex academic concepts or platform rewards in any language! (Please add \`GEMINI_API_KEY\` to the backend \`.env\` file to activate the live Gemini model for custom prompts).\n\nHere is what I can explain right now:\n* **DBMS Normalization**\n* **Operating Systems (Processes vs. Threads)**\n* **Platform Rewards (XP/Coins)**\n* **Pomodoro Focus Tips**`;
+      responseText = `Hello! I am your AI Study Tutor. I can answer any question about DBMS, Operating Systems, Computer Networks, or platform features. Please let me know what you would like to learn today!`;
     }
-    return res.json({ response: responseText });
-  }
-
-  try {
-    const systemPrompt = `You are the StudyCircle AI Academic Tutor, a helpful and knowledgeable learning assistant. 
-Explain complex academic topics in a clear, friendly, and structured tutoring style. 
-If the user asks questions in another language (such as Telugu, Tenglish, Hindi, Spanish, etc.), reply naturally in that same language or code-mixed format (e.g. Tenglish).
-Always output formatted Markdown using clear sections, lists, tables, or bold text.
-If the question is about StudyCircle XP, coins, shop, or study rooms, explain that:
-- Desking/timer study hours in Voice Desks earns XP (+10 XP) and Focus Coins (+5 Coins) every 10 minutes.
-- Doubts resolved in the Community Hub awards +20 XP.
-- Coins are spent in the Vault Shop to unlock profile badges and dark mode themes.
-
-User Query: ${text}`;
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: systemPrompt }] }]
-        })
-      }
-    );
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Gemini API error status: ${response.status} - ${errText}`);
-    }
-
-    const data = await response.json();
-    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response. Please try again.";
     res.json({ response: responseText });
-  } catch (error) {
-    console.error('Error calling Gemini API:', error);
-    res.status(500).json({ error: `AI Tutor failed: ${error.message}` });
   }
 });
 
