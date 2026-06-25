@@ -137,8 +137,24 @@ User Query: ${text}`;
     });
 
     if (response.ok) {
-      const responseText = await response.text();
+      let responseText = await response.text();
       if (responseText && responseText.trim()) {
+        // Strip Pollinations.AI support section/ad footer if present
+        const footerIndex = responseText.indexOf('**Support Pollinations.AI:**');
+        if (footerIndex !== -1) {
+          responseText = responseText.substring(0, footerIndex).trim();
+        }
+        const adIndex = responseText.indexOf('🌸 **Ad** 🌸');
+        if (adIndex !== -1) {
+          responseText = responseText.substring(0, adIndex).trim();
+        }
+        const supportIndex = responseText.indexOf('Support Pollinations.AI');
+        if (supportIndex !== -1) {
+          responseText = responseText.substring(0, supportIndex).trim();
+        }
+        // Remove trailing markdown horizontal rules and spaces
+        responseText = responseText.replace(/[\s\-\*\_]*$/g, '').trim();
+
         return res.json({ response: responseText });
       }
     }
