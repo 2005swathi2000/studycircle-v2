@@ -74,6 +74,69 @@ app.use('/api/doubts', doubtRoutes);
 app.use('/api/shared-notes', sharedNoteRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// AI Tutor API Route calling Gemini API
+app.post('/api/ai-tutor', async (req, res) => {
+  const { text } = req.body;
+  if (!text) {
+    return res.status(400).json({ error: 'Text prompt is required.' });
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.warn('[AI Tutor Warning] GEMINI_API_KEY is not defined in backend .env. Falling back to educational rules.');
+    const lowerText = text.toLowerCase();
+    let responseText = "";
+    if (lowerText.includes('dbms') || lowerText.includes('normal')) {
+      responseText = `### Database Normalization Explained 📊\n\nNormalization is the process of organizing data in a database to reduce redundancy and improve data integrity. Here are the first three Normal Forms (NF):\n\n1. **First Normal Form (1NF)**:\n   * Values in each column must be **atomic** (indivisible).\n   * No repeating groups of columns.\n   * *Example*: If a field contains multiple phone numbers, split them into separate rows.\n\n2. **Second Normal Form (2NF)**:\n   * Must be in **1NF**.\n   * All non-key attributes must be **fully functionally dependent** on the primary key (no partial dependency).\n   * *Example*: In a composite primary key \`(StudentID, SubjectID)\`, a column \`SubjectTeacherName\` depends only on \`SubjectID\`. This violates 2NF and must be moved to a separate \`Subjects\` table.\n\n3. **Third Normal Form (3NF)**:\n   * Must be in **2NF**.\n   * There must be no **transitive functional dependency** (non-key columns depending on other non-key columns).\n   * *Example*: If a table has \`StudentID\`, \`ZipCode\`, and \`City\`, where \`City\` depends on \`ZipCode\` and \`ZipCode\` depends on \`StudentID\`. Move \`ZipCode\` and \`City\` to a separate address table to satisfy 3NF.`;
+    } else if (lowerText.includes('process') || lowerText.includes('thread')) {
+      responseText = `### Processes vs. Threads in Operating Systems 🧠\n\nAn operating system uses both **processes** and **threads** to run code, but they have major differences:\n\n| Feature | Process | Thread |\n| :--- | :--- | :--- |\n| **Definition** | An independent program in execution. | A lightweight segment of a process. |\n| **Address Space** | Has its own separate address space. | Shares the parent process's address space. |\n| **Overhead** | High creation and switching overhead. | Low creation and switching overhead. |\n| **Communication** | Uses Inter-Process Communication (IPC). | Can communicate directly via shared memory. |\n| **Fault Tolerance** | If one process crashes, others are unaffected. | If one thread crashes, the entire process crashes. |\n\n*Quick Tip*: Think of a process as a **house** and threads as the **rooms** inside. The rooms share the plumbing (memory) of the house!`;
+    } else if (lowerText.includes('coin') || lowerText.includes('xp') || lowerText.includes('reward') || lowerText.includes('points') || lowerText.includes('shop') || lowerText.includes('unlock')) {
+      responseText = `### 🪙 StudyCircle Rewards & Gamification Guide\n\nYou can earn experience points (**XP**) and **Focus Coins** by being active on the platform. Here is how:\n\n1. **Voice Study Desks**: Join a Voice Desk (Lounge or Circle rooms) to start your timer. For every 10 minutes of active desking, you earn **+10 XP** and **+5 Focus Coins**.\n2. **Community Hub Doubts**: Ask a question or answer doubts. Marking an answer as the **Accepted Solution** awards the solver **+20 XP**.\n3. **Daily Missions**: Check the checklist on your dashboard. Completing daily goals awards bonus coins and XP.\n4. **Custom Shop**: Spend your **Focus Coins** in the **Vault Shop** to purchase profile badges, custom interface skins, and dynamic status headers!`;
+    } else if (lowerText.includes('distract') || lowerText.includes('pomodoro') || lowerText.includes('focus') || lowerText.includes('study') || lowerText.includes('tip') || lowerText.includes('plan')) {
+      responseText = `### ⚡ 5 Tips to Maintain Ultimate Focus\n\nAs your AI Tutor, here are my top recommendations to stay in high-focus learning zones:\n\n1. **Use the Pomodoro Technique**: Study for 25 minutes, then take a 5-minute break. After 4 cycles, take a longer 15-minute break. Use the Learning Space stopwatch timer on your dashboard to log this!\n2. **Eliminate Micro-Distractions**: Put your phone in another room and close unrelated browser tabs. \n3. **Join Active Voice Desks**: StudyCircle's voice rooms provide social accountability. Studying alongside other cluster students helps keep you on track.\n4. **Set Daily Micro-Goals**: Rather than "study for exams", write "Solve 3 DBMS normalization queries". Use your dashboard tasks list to track them.\n5. **Reward Yourself**: Complete your daily missions, claim your Focus Coins, and check out the customization skins in the Shop!`;
+    } else {
+      responseText = `As your **AI Academic Tutor**, I can explain complex academic concepts or platform rewards in any language! (Please add \`GEMINI_API_KEY\` to the backend \`.env\` file to activate the live Gemini model for custom prompts).\n\nHere is what I can explain right now:\n* **DBMS Normalization**\n* **Operating Systems (Processes vs. Threads)**\n* **Platform Rewards (XP/Coins)**\n* **Pomodoro Focus Tips**`;
+    }
+    return res.json({ response: responseText });
+  }
+
+  try {
+    const systemPrompt = `You are the StudyCircle AI Academic Tutor, a helpful and knowledgeable learning assistant. 
+Explain complex academic topics in a clear, friendly, and structured tutoring style. 
+If the user asks questions in another language (such as Telugu, Tenglish, Hindi, Spanish, etc.), reply naturally in that same language or code-mixed format (e.g. Tenglish).
+Always output formatted Markdown using clear sections, lists, tables, or bold text.
+If the question is about StudyCircle XP, coins, shop, or study rooms, explain that:
+- Desking/timer study hours in Voice Desks earns XP (+10 XP) and Focus Coins (+5 Coins) every 10 minutes.
+- Doubts resolved in the Community Hub awards +20 XP.
+- Coins are spent in the Vault Shop to unlock profile badges and dark mode themes.
+
+User Query: ${text}`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: systemPrompt }] }]
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Gemini API error status: ${response.status} - ${errText}`);
+    }
+
+    const data = await response.json();
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response. Please try again.";
+    res.json({ response: responseText });
+  } catch (error) {
+    console.error('Error calling Gemini API:', error);
+    res.status(500).json({ error: `AI Tutor failed: ${error.message}` });
+  }
+});
+
 // Socket.IO binding
 require('./sockets/presence')(io);
 
