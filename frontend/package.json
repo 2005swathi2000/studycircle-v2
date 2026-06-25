@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@heyputer/puter.js": "^2.5.4",
     "@react-oauth/google": "^0.13.5",
     "framer-motion": "^12.40.0",
     "lucide-react": "^0.525.0",
