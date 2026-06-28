@@ -14,6 +14,16 @@ const nextConfig: NextConfig = {
       };
     }
     return config;
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: process.env.NODE_ENV === "production"
+          ? "https://studycircle-v2.onrender.com/api/:path*"
+          : "http://localhost:5000/api/:path*",
+      },
+    ];
   }
 };
 

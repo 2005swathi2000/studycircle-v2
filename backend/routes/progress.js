@@ -5,8 +5,34 @@ const authRoutes = require('./auth');
 const { Op } = require('sequelize');
 
 const getTodayISTString = authRoutes.getTodayISTString;
+const getYesterdayISTString = authRoutes.getYesterdayISTString;
 const calculateLevel = authRoutes.calculateLevel;
 const getXpThresholdForLevel = authRoutes.getXpThresholdForLevel;
+
+const decayAllStaleStreaks = async () => {
+  const today = getTodayISTString();
+  const yesterday = getYesterdayISTString();
+  await User.update(
+    { streakCount: 0 },
+    {
+      where: {
+        streakCount: { [Op.gt]: 0 },
+        lastStudyDate: {
+          [Op.or]: [
+            { [Op.is]: null },
+            { [Op.eq]: '' },
+            {
+              [Op.and]: [
+                { [Op.ne]: today },
+                { [Op.ne]: yesterday }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  );
+};
 
 const router = express.Router();
 
@@ -81,8 +107,22 @@ router.post('/log', authMiddleware, async (req, res) => {
       console.error('Failed to update challenges on progress log:', challengeErr);
     }
 
-    // Simple streak logic: increment streak
-    user.streakCount = (user.streakCount || 0) + 1;
+    // Streak logic: check daily consistency
+    const todayStr = getTodayISTString();
+    const yesterdayStr = getYesterdayISTString();
+    const lastStudy = user.lastStudyDate || '';
+
+    if (lastStudy === todayStr) {
+      // Already studied today, keep streak as is, do not increment
+    } else if (lastStudy === yesterdayStr) {
+      // Studied yesterday, increment streak
+      user.streakCount = (user.streakCount || 0) + 1;
+      user.lastStudyDate = todayStr;
+    } else {
+      // Streak broken, reset to 1
+      user.streakCount = 1;
+      user.lastStudyDate = todayStr;
+    }
     await user.save();
 
     return res.json({
@@ -103,6 +143,7 @@ router.post('/log', authMiddleware, async (req, res) => {
 // Get group leaderboard
 router.get('/group/:groupId/leaderboard', authMiddleware, async (req, res) => {
   try {
+    await decayAllStaleStreaks();
     const { groupId } = req.params;
 
     const isMember = await GroupMember.findOne({
@@ -314,11 +355,21 @@ router.post('/complete-practice', authMiddleware, async (req, res) => {
 
     const { actualXpAwarded, leveledUp } = await awardUserXpAndCoins(user, Number(xpReward), Number(coinReward));
 
-    // Streak logic: Ensure user has at least 1 day streak upon active solving
-    if (!user.streakCount || user.streakCount === 0) {
-      user.streakCount = 1;
+    // Streak logic: check daily consistency
+    const todayStr = getTodayISTString();
+    const yesterdayStr = getYesterdayISTString();
+    const lastStudy = user.lastStudyDate || '';
+
+    if (lastStudy === todayStr) {
+      // Already studied today, keep streak as is, do not increment
+    } else if (lastStudy === yesterdayStr) {
+      // Studied yesterday, increment streak
+      user.streakCount = (user.streakCount || 0) + 1;
+      user.lastStudyDate = todayStr;
     } else {
-      user.streakCount += 1;
+      // Streak broken, reset to 1
+      user.streakCount = 1;
+      user.lastStudyDate = todayStr;
     }
 
     // Check and award badges
@@ -415,6 +466,7 @@ router.post('/award-credits', authMiddleware, async (req, res) => {
 // GET /api/progress/global-leaderboards (Dynamically queries the DB to avoid stale stored values)
 router.get('/global-leaderboards', authMiddleware, async (req, res) => {
   try {
+    await decayAllStaleStreaks();
     const topLearners = await User.findAll({
       where: { role: 'student' },
       attributes: ['id', 'fullName', 'username', 'avatarUrl', 'gender', 'totalStudyHours', 'streakCount', 'level'],

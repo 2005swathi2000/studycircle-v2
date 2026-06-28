@@ -177,6 +177,13 @@ export default function OpeningBook({ onComplete }: OpeningBookProps) {
               Connecting thousands of engineering & degree students under a unified accountability framework.
             </p>
           </div>
+          <div className="flex-1 flex items-center justify-center my-4 select-none pointer-events-none">
+            <img 
+              src="/welcome.png" 
+              alt="Welcome to StudyCircle" 
+              className="w-full max-h-[160px] object-contain rounded-xl shadow-sm border border-pink-150/10"
+            />
+          </div>
           <div className="text-[8px] font-mono text-slate-400 tracking-wider uppercase border-t border-slate-100 pt-2 flex justify-between items-center">
             <span>StudyCircle v2.0</span>
             <span>2026 Edition</span>

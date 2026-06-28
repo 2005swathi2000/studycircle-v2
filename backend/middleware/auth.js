@@ -74,6 +74,9 @@ const authMiddleware = async (req, res, next) => {
         maxAge: remember ? 24 * 60 * 60 * 1000 : 15 * 60 * 1000 // 1 day vs 15 mins
       });
 
+      // Also set a custom header so the client API wrapper can sync its local fallback token
+      res.setHeader('x-new-access-token', newAccessToken);
+
       req.user = { id: user.id, username: user.username, role: user.role };
       req.newAccessToken = newAccessToken; // Expose to the request
       return next();

@@ -114,6 +114,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('explicit_logout', 'true');
+      }
       googleLogout();
     } catch (googleErr) {
       console.error('Google logout error:', googleErr);

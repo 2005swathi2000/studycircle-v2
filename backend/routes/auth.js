@@ -18,6 +18,14 @@ const getTodayISTString = () => {
 };
 router.getTodayISTString = getTodayISTString;
 
+const getYesterdayISTString = () => {
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  return yesterday.toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kolkata"
+  });
+};
+router.getYesterdayISTString = getYesterdayISTString;
+
 const getXpThresholdForLevel = (level) => {
   let totalXp = 0;
   for (let l = 1; l < level; l++) {
@@ -424,6 +432,15 @@ router.post('/register', async (req, res) => {
 
 const checkAndResetDailyMissions = async (user) => {
   const todayStr = getTodayISTString();
+  const yesterdayStr = getYesterdayISTString();
+
+  if (user.role === 'student') {
+    const lastStudy = user.lastStudyDate || '';
+    if (lastStudy !== todayStr && lastStudy !== yesterdayStr) {
+      user.streakCount = 0;
+    }
+  }
+
   if (user.role === 'student' && user.dailyMissionDate !== todayStr) {
     user.dailyMissions = [
       { id: 'join_circle', text: 'Join Study Circle', completed: false, xp: 30 },
@@ -439,6 +456,8 @@ const checkAndResetDailyMissions = async (user) => {
     user.xp = (user.xp || 0) + 5;
     user.level = calculateLevel(user.xp);
     
+    await user.save();
+  } else if (user.changed('streakCount')) {
     await user.save();
   }
 };

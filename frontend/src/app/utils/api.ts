@@ -1,9 +1,8 @@
 let rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-// Enforce correct Render domain (studycircle-v2) when running in production Vercel environment
-if (typeof window !== 'undefined' && 
-    (window.location.hostname.includes('vercel.app') || rawApiUrl.includes('studycircle-v2') || rawApiUrl.includes('studycircle-backend'))) {
-  rawApiUrl = 'https://studycircle-v2.onrender.com/api';
+// Enforce relative /api in client browser so Next.js rewrites proxy the requests securely (cross-domain cookies)
+if (typeof window !== 'undefined') {
+  rawApiUrl = '/api';
 }
 
 const BASE_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
@@ -52,6 +51,14 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     credentials: 'include',
     headers: headers as HeadersInit,
   });
+
+  // Sync refreshed access token from header if backend updated it
+  if (typeof window !== 'undefined') {
+    const newAccessToken = response.headers.get('x-new-access-token');
+    if (newAccessToken) {
+      localStorage.setItem('studycircle_token', newAccessToken);
+    }
+  }
 
   let data: any = null;
   const contentType = response.headers.get('content-type');

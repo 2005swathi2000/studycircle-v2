@@ -2,9 +2,11 @@ require('dotenv').config();
 const crypto = require('crypto');
 
 if (process.env.NODE_ENV === 'production') {
-  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'super_secret_study_circle_token_2026_key_ap_telangana') {
-    console.warn('[SECURITY WARNING] JWT_SECRET is missing or insecure in production mode. Generating a secure, temporary secret dynamically...');
+  if (!process.env.JWT_SECRET) {
+    console.warn('[SECURITY WARNING] JWT_SECRET is missing in production mode. Generating a secure, temporary secret dynamically...');
     process.env.JWT_SECRET = crypto.randomBytes(64).toString('hex');
+  } else if (process.env.JWT_SECRET === 'super_secret_study_circle_token_2026_key_ap_telangana') {
+    console.warn('[SECURITY WARNING] JWT_SECRET is using the insecure default key in production mode. Please define a custom JWT_SECRET in your Render/production environment variables to ensure secure and persistent user sessions.');
   }
 }
 
@@ -46,7 +48,8 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  exposedHeaders: ['x-new-access-token', 'x-new-refresh-token']
 };
 
 const app = express();
@@ -196,6 +199,16 @@ const startServer = async () => {
     const isSqlite = sequelize.options.dialect === 'sqlite';
     if (isSqlite) {
       await sequelize.query('PRAGMA foreign_keys = OFF;');
+    }
+    // Fail-safe column migration check
+    try {
+      await sequelize.query('ALTER TABLE Users ADD COLUMN lastStudyDate VARCHAR(255) DEFAULT "";');
+    } catch (e1) {
+      try {
+        await sequelize.query('ALTER TABLE "Users" ADD COLUMN "lastStudyDate" VARCHAR(255) DEFAULT \'\';');
+      } catch (e2) {
+        // Column already exists or table does not exist yet (sync will create it)
+      }
     }
     if (isProduction || isSqlite) {
       await sequelize.sync();

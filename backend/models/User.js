@@ -41,6 +41,11 @@ const User = sequelize.define('User', {
     type: DataTypes.INTEGER,
     defaultValue: 0
   },
+  lastStudyDate: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: ''
+  },
   totalStudyHours: {
     type: DataTypes.FLOAT,
     defaultValue: 0.0
@@ -130,12 +135,14 @@ const User = sequelize.define('User', {
 }, {
   hooks: {
     beforeCreate: async (user) => {
-      if (user.password) {
+      const isBcryptHash = typeof user.password === 'string' && /^\$2[ayb]\$[0-9]{2}\$[./A-Za-z0-9]{53}$/.test(user.password);
+      if (user.password && !isBcryptHash) {
         user.password = await bcrypt.hash(user.password, 10);
       }
     },
     beforeUpdate: async (user) => {
-      if (user.changed('password')) {
+      const isBcryptHash = typeof user.password === 'string' && /^\$2[ayb]\$[0-9]{2}\$[./A-Za-z0-9]{53}$/.test(user.password);
+      if (user.changed('password') && user.password && !isBcryptHash) {
         user.password = await bcrypt.hash(user.password, 10);
       }
     }
