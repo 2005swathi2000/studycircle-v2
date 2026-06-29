@@ -5232,10 +5232,12 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             return (
                               <div
                                 key={student.id}
-                                className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                                onClick={() => router.push(`/profile/${student.username}`)}
+                                title="Click to view profile"
+                                className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer hover:scale-[1.01] hover:shadow-lg ${
                                   isMe 
-                                    ? 'bg-[#10B981]/5 border-[#10B981]/25 hover:border-[#10B981]/40' 
-                                    : 'bg-slate-955/20 border-white/5 hover:border-white/10'
+                                    ? 'bg-[#10B981]/10 border-[#10B981]/45 hover:border-[#10B981]/60' 
+                                    : 'bg-slate-955/20 border-white/5 hover:border-indigo-500/30 hover:bg-slate-900/40'
                                 }`}
                               >
                                 <div className="flex items-center gap-4 min-w-0">
@@ -5308,10 +5310,12 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             return (
                               <div
                                 key={mentor.id}
-                                className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                                onClick={() => router.push(`/profile/${mentor.username}`)}
+                                title="Click to view profile & rate mentor"
+                                className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer hover:scale-[1.01] hover:shadow-lg ${
                                   isMe 
-                                    ? 'bg-[#10B981]/5 border-[#10B981]/25 hover:border-[#10B981]/40' 
-                                    : 'bg-slate-955/20 border-white/5 hover:border-white/10'
+                                    ? 'bg-[#10B981]/10 border-[#10B981]/45 hover:border-[#10B981]/60' 
+                                    : 'bg-slate-955/20 border-white/5 hover:border-indigo-500/30 hover:bg-slate-900/40'
                                 }`}
                               >
                                 <div className="flex items-center gap-4 min-w-0">
