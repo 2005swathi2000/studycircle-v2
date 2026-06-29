@@ -297,12 +297,7 @@ export default function Home() {
     }
   }, [currentUser]);
 
-  // Redirect already logged-in users directly to dashboard
-  useEffect(() => {
-    if (currentUser && !globalLoading) {
-      router.push('/dashboard');
-    }
-  }, [currentUser, globalLoading, router]);
+
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
