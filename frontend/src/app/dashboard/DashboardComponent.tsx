@@ -2332,10 +2332,10 @@ Based on your desking logs and consistency, the AI tutor recommends:
         </div>
 
         {/* 3-Column main student view */}
-        <div className="grid lg:grid-cols-10 gap-6">
+        <div className="grid lg:grid-cols-12 gap-6">
           
-          {/* Main Left/Center column span 7 */}
-          <div className="lg:col-span-7 space-y-6">
+          {/* Main Left/Center column span 8 */}
+          <div className="lg:col-span-8 space-y-6">
             {/* Stats Row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-in slide-in-from-top-4 duration-300">
               <div className="bg-[#0B0F19] border border-white/5 rounded-[20px] p-4 flex items-center gap-3 shadow-lg text-left">
@@ -2603,8 +2603,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
           </div>
 
-          {/* Sidebar Right Column span 3 */}
-          <div className="lg:col-span-3 space-y-6">
+          {/* Sidebar Right Column span 4 */}
+          <div className="lg:col-span-4 space-y-6">
             
             {/* User Profile Card */}
             <div className="p-5 bg-gradient-to-b from-[#0B0F19] to-[#0d1629] border border-white/5 rounded-[24px] text-center text-white flex flex-col justify-center items-center gap-3 shadow-lg relative overflow-hidden group">
@@ -2758,116 +2758,6 @@ Based on your desking logs and consistency, the AI tutor recommends:
               </div>
             </div>
 
-            {/* Rewards Shop Card */}
-            <div className="p-5 bg-gradient-to-br from-[#0B0F19] to-[#120B24] border border-white/10 rounded-[24px] shadow-lg text-left text-white space-y-4">
-              <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                <h3 className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
-                  <Award className="h-4 w-4 text-amber-400" /> Rewards Shop
-                </h3>
-                <span className="text-[10px] font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                  ¢ {stats.focusCoins} Coins
-                </span>
-              </div>
-              
-              <div className="space-y-2.5">
-                {[
-                  { id: 'cyberpunk', type: 'theme', label: 'Neon Cyberpunk Theme', desc: 'Futuristic purple & pink overlay glow.', cost: 100 },
-                  { id: 'zengarden', type: 'theme', label: 'Zen Sanctuary Theme', desc: 'Calming forest green workspace aesthetic.', cost: 100 },
-                  { id: 'badge_premium', type: 'badge', label: 'Premium Badge Title', desc: 'Showcase VIP elite learner status.', cost: 250 },
-                  { id: 'mentor_spotlight', type: 'badge', label: 'Mentor Spotlight Perk', desc: 'Pin profile card to dashboard showcases.', cost: 500 },
-                  { id: 'avatar_frame_exclusive', type: 'badge', label: 'Exclusive Golden Frame', desc: 'Golden animated glow ring around your avatars.', cost: 1000 }
-                ].map(item => {
-                  const parsedBadges = (() => {
-                    try {
-                      return JSON.parse(stats.badges || '[]');
-                    } catch (e) {
-                      return [];
-                    }
-                  })();
-                  const hasPurchased = parsedBadges.some((b: any) => 
-                    b === item.id || 
-                    (b && b.id === item.id)
-                  );
-                  const canBuy = stats.focusCoins >= item.cost;
-                  const isEquipped = item.type === 'theme' ? equippedTheme === item.id : user?.bio === item.label;
-
-                  return (
-                    <div key={item.id} className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5 flex flex-col gap-2">
-                      <div className="flex justify-between items-start">
-                        <div className="min-w-0 text-left">
-                          <div className="text-[10.5px] font-black text-slate-200 truncate">{item.label}</div>
-                          <p className="text-[8px] text-zinc-550 leading-tight mt-0.5 font-bold">{item.desc}</p>
-                        </div>
-                        <span className="text-[9px] font-black text-amber-500 shrink-0">¢ {item.cost}</span>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        {hasPurchased ? (
-                          <button
-                            onClick={() => {
-                              if (item.type === 'theme') {
-                                setEquippedTheme(item.id);
-                                localStorage.setItem('studycircle_theme', item.id);
-                                showToast(`Equipped ${item.label}!`, 'success');
-                              } else {
-                                handleEquipTitle(item.label);
-                              }
-                            }}
-                            className={`flex-1 py-1.5 text-[8.5px] font-black uppercase rounded transition-all border border-transparent cursor-pointer ${
-                              isEquipped 
-                                ? 'bg-emerald-500/25 text-emerald-450 border-emerald-500/30' 
-                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                            }`}
-                          >
-                            {isEquipped ? 'Equipped' : 'Equip'}
-                          </button>
-                        ) : (
-                          <button
-                            disabled={!canBuy}
-                            onClick={() => handleBuyShopItem(item.id, item.cost, item.label, item.type)}
-                            className="flex-1 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 disabled:opacity-40 border border-amber-500/30 text-amber-400 text-[8.5px] font-black uppercase rounded transition-all cursor-pointer"
-                          >
-                            Unlock Item
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Leaderboard Card */}
-            <div className="p-5 bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] border border-white/10 rounded-[24px] shadow-lg text-left text-white">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-white">Leaderboard</h3>
-                <button onClick={() => setActiveTab('leaderboard')} className="text-[8px] font-black text-zinc-450 hover:text-[#10B981] uppercase cursor-pointer">
-                  Details
-                </button>
-              </div>
-
-              <div className="space-y-2.5">
-                {[
-                  { name: 'Charan', hours: 18.2, streak: 8, avatar: '/charan-avatar.png' },
-                  { name: user?.fullName ? `${user.fullName} (You)` : 'Swathi (You)', hours: 15.5, streak: 7, avatar: user?.avatarUrl || getAvatarByName(user?.fullName || 'Swathi', user?.gender) },
-                  { name: 'Bhagya', hours: 12.0, streak: 6, avatar: '/bhagya-avatar.png' }
-                ].map((student, rank) => (
-                  <div key={rank} className="flex items-center justify-between gap-2 border-b border-white/5 pb-2 last:border-0 last:pb-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-[10px] font-black text-zinc-455 w-4">#{rank + 1}</span>
-                      <div className="h-7 w-7 rounded-full overflow-hidden bg-slate-800 border border-white/10 shrink-0">
-                        <img src={student.avatar} className="h-full w-full object-cover" alt={student.name} />
-                      </div>
-                      <span className="text-[11px] font-bold text-zinc-200 truncate">{student.name}</span>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-[10px] font-extrabold text-white">{student.hours}h</div>
-                      <div className="text-[8px] text-zinc-450 font-bold">{student.streak} streak</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
 
             {/* Notes Quick Widget */}
             <div className="p-5 bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] border border-white/10 rounded-[24px] shadow-lg text-left text-white">
