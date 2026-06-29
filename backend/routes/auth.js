@@ -478,6 +478,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         [Op.or]: [
           { username: normalizedUsername },
           { email: normalizedUsername },
+          { phone: normalizedUsername },
           { phoneOrEmail: normalizedUsername }
         ]
       }
