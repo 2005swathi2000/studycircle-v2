@@ -2,6 +2,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import './globals.css';
 import { ToastProvider } from './components/ToastProvider';
 import { FloatingLogo } from './components/FloatingLogo';
+import { FloatingAiTutor } from './components/FloatingAiTutor';
 import { AppProvider } from './context/AppContext';
 
 export const metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({
               <AppProvider>
                 <ToastProvider>
                   {children}
+                  <FloatingAiTutor />
                 </ToastProvider>
               </AppProvider>
             );
@@ -44,6 +46,7 @@ export default function RootLayout({
               <AppProvider>
                 <ToastProvider>
                   {children}
+                  <FloatingAiTutor />
                 </ToastProvider>
               </AppProvider>
             </GoogleOAuthProvider>

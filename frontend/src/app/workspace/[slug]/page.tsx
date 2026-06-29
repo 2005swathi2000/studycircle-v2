@@ -1579,232 +1579,173 @@ export default function WorkspacePage() {
                 </div>
               </div>
 
-              {/* TODAY'S CHALLENGE ACTION */}
+              {/* POMODORO TIMER CARD IN HERO */}
               <div className="w-full md:w-80 shrink-0 bg-[#0B0F19]/80 border border-white/10 rounded-2xl p-5 space-y-4 relative shadow-lg">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
-                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Today's Challenge</span>
+                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
+                    <Clock className="h-4.5 w-4.5 text-indigo-400" /> Pomodoro Arena
                   </div>
-                  <span className="text-[9px] font-black bg-white/5 border border-white/10 text-indigo-400 px-2 py-0.5 rounded">
-                    +20 XP | +10 ¢
+                  <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase ${
+                    pomodoroMode === 'focus' 
+                      ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' 
+                      : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                  }`}>
+                    {pomodoroMode === 'focus' ? '🔥 Focus' : '☀️ Break'}
                   </span>
                 </div>
-                
-                {(() => {
-                  const categoryKey = (slug && todayChallenges[slug as keyof typeof todayChallenges]) ? slug : 'general';
-                  const challenge = todayChallenges[categoryKey as keyof typeof todayChallenges];
-                  return (
-                    <>
-                      <div className="space-y-2 text-left">
-                        <p className="text-[10px] font-black text-slate-200">{challenge.question}</p>
-                        
-                        <div className="grid gap-2">
-                          {challenge.options.map((option, idx) => {
-                            const isSelected = todayChallengeAnswer === idx;
-                            const isSolved = todayChallengeSolved;
-                            const isCorrect = idx === challenge.correctIndex;
-                            
-                            return (
-                              <button
-                                key={idx}
-                                disabled={isSolved}
-                                onClick={() => {
-                                  setTodayChallengeAnswer(idx);
-                                  setTodayChallengeFeedback(null);
-                                }}
-                                className={`p-2.5 rounded-xl border text-left text-[9px] font-bold transition-all ${
-                                  isSolved
-                                    ? isCorrect
-                                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                                      : 'bg-[#0B0F19]/45 border-white/5 text-slate-500'
-                                    : isSelected
-                                      ? 'bg-indigo-500/10 border-indigo-500/50 text-white'
-                                      : 'bg-slate-900/60 border-white/5 text-slate-450 hover:bg-slate-900 hover:text-white'
-                                }`}
-                              >
-                                <span className="mr-1.5 font-black uppercase text-indigo-400">{String.fromCharCode(65 + idx)}.</span> {option}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
 
-                      {todayChallengeFeedback === 'wrong' && !todayChallengeSolved && (
-                        <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-[9px] font-bold text-left">
-                          ❌ Wrong answer! Re-check and try again.
-                        </div>
-                      )}
+                <div className="flex flex-col items-center space-y-3">
+                  {/* Timer Display */}
+                  <div className="relative flex items-center justify-center h-28 w-28">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        stroke="rgba(255, 255, 255, 0.03)"
+                        strokeWidth="5"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="56"
+                        cy="56"
+                        r="48"
+                        stroke={pomodoroMode === 'focus' ? '#EF4444' : '#10B981'}
+                        strokeWidth="5"
+                        fill="transparent"
+                        strokeDasharray="301.6"
+                        strokeDashoffset={301.6 * (1 - pomodoroTimeLeft / pomodoroTotalDuration)}
+                        className="transition-all duration-1000 ease-linear"
+                      />
+                    </svg>
+                    <div className="absolute flex flex-col items-center justify-center">
+                      <span className="text-xl font-black text-white font-mono leading-none tracking-tight">
+                        {Math.floor(pomodoroTimeLeft / 60).toString().padStart(2, '0')}:
+                        {(pomodoroTimeLeft % 60).toString().padStart(2, '0')}
+                      </span>
+                    </div>
+                  </div>
 
-                      {todayChallengeSolved && (
-                        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 rounded-xl text-[9px] font-semibold text-left leading-relaxed">
-                          <p className="font-extrabold text-white">💡 Explanation:</p>
-                          <p>{challenge.explanation}</p>
-                        </div>
-                      )}
-
-                      <div className="pt-1 flex items-center justify-between gap-4">
-                        <div className="flex-1 h-1.5 rounded-full bg-slate-900 border border-white/5 overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-500 ${todayChallengeSolved ? 'w-full bg-emerald-500' : 'w-1/3 bg-indigo-500'}`} 
-                          />
-                        </div>
-                        {!todayChallengeSolved ? (
-                          <button
-                            onClick={handleClaimTodayChallenge}
-                            className="px-4.5 py-2.5 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-[9px] font-black rounded-xl border-none uppercase tracking-wider cursor-pointer shadow-md active:scale-[0.98] transition-all"
-                          >
-                            Verify Answer
-                          </button>
-                        ) : (
-                          <div className="px-4.5 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 text-[9px] font-black uppercase rounded-xl">
-                            ✓ Claimed
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  );
-                })()}
+                  {/* Controls */}
+                  <div className="w-full flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPomodoroIsRunning(!pomodoroIsRunning)}
+                      className={`flex-grow py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer border-none text-white flex items-center justify-center gap-1 ${
+                        pomodoroIsRunning ? 'bg-amber-600 hover:bg-amber-500' : 'bg-indigo-650 hover:bg-indigo-500'
+                      }`}
+                    >
+                      {pomodoroIsRunning ? 'Pause' : 'Start'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetPomodoroPreset(pomodoroActivePreset, customDurationInput)}
+                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border-none text-slate-200 text-[10px] font-black rounded-xl transition-all cursor-pointer"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
               </div>
+
             </section>
 
                      {/* T1: LIVE STUDY LOBBY (Visual Playgrounds) */}
             {activeTab === 'lobby' && (
               <div className="grid lg:grid-cols-2 gap-8 items-start">
-                
                 {/* COLUMN 1: FOCUS ZONE */}
                 <div className="space-y-6">
                   
-                  {/* POMODORO TIMER CARD */}
-                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                  {/* TODAY'S CHALLENGE CARD */}
+                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-2xl pointer-events-none" />
                     
-                    <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-6">
-                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
-                        <Clock className="h-4.5 w-4.5 text-indigo-400" /> Pomodoro Focus Arena
+                    <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+                        <span className="text-xs font-black uppercase tracking-wider text-white">Today's Challenge</span>
                       </div>
-                      <span className={`text-[9px] px-2.5 py-1 rounded-lg font-black uppercase ${
-                        pomodoroMode === 'focus' 
-                          ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' 
-                          : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-                      }`}>
-                        {pomodoroMode === 'focus' ? '🔥 Focus Mode' : '☀️ Break Time'}
+                      <span className="text-[9px] font-black bg-white/5 border border-white/10 text-indigo-400 px-2.5 py-1 rounded">
+                        +20 XP | +10 ¢
                       </span>
                     </div>
 
-                    <div className="flex flex-col items-center space-y-6">
-                      {/* Timer Display */}
-                      <div className="relative flex items-center justify-center h-48 w-48">
-                        {/* Circular track progress */}
-                        <svg className="w-full h-full transform -rotate-90">
-                          <circle
-                            cx="96"
-                            cy="96"
-                            r="80"
-                            stroke="rgba(255, 255, 255, 0.03)"
-                            strokeWidth="8"
-                            fill="transparent"
-                          />
-                          <circle
-                            cx="96"
-                            cy="96"
-                            r="80"
-                            stroke={pomodoroMode === 'focus' ? '#EF4444' : '#10B981'}
-                            strokeWidth="8"
-                            fill="transparent"
-                            strokeDasharray="502.6"
-                            strokeDashoffset={502.6 * (1 - pomodoroTimeLeft / pomodoroTotalDuration)}
-                            className="transition-all duration-1000 ease-linear"
-                          />
-                        </svg>
-                        
-                        {/* Countdown text inside */}
-                        <div className="absolute flex flex-col items-center justify-center">
-                          <span className="text-3xl font-black text-white font-mono leading-none tracking-tight">
-                            {Math.floor(pomodoroTimeLeft / 60).toString().padStart(2, '0')}:
-                            {(pomodoroTimeLeft % 60).toString().padStart(2, '0')}
-                          </span>
-                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 mt-1">
-                            {pomodoroIsRunning ? 'Running' : 'Paused'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Presets Grid */}
-                      <div className="w-full grid grid-cols-4 gap-2">
-                        {(['25/5', '50/10', '90/15', 'custom'] as const).map((preset) => (
-                          <button
-                            key={preset}
-                            onClick={() => {
-                              if (preset !== 'custom') {
-                                handleSetPomodoroPreset(preset);
-                              } else {
-                                handleSetPomodoroPreset('custom', customDurationInput);
-                              }
-                            }}
-                            className={`py-2 px-1 text-[9px] font-black rounded-xl border transition-all uppercase tracking-wider cursor-pointer ${
-                              pomodoroActivePreset === preset
-                                ? 'bg-indigo-500/10 border-indigo-500/30 text-white font-black'
-                                : 'bg-slate-955 border-white/5 text-slate-400 hover:bg-slate-900'
-                            }`}
-                          >
-                            {preset === 'custom' ? 'Custom' : preset}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Custom Range Slider if custom selected */}
-                      {pomodoroActivePreset === 'custom' && (
-                        <div className="w-full space-y-1.5 px-1">
-                          <div className="flex justify-between items-center text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                            <span>Duration</span>
-                            <span className="text-indigo-400 font-mono">{customDurationInput} Mins</span>
+                    {(() => {
+                      const categoryKey = (slug && todayChallenges[slug as keyof typeof todayChallenges]) ? slug : 'general';
+                      const challenge = todayChallenges[categoryKey as keyof typeof todayChallenges];
+                      return (
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <p className="text-xs font-bold text-slate-200 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-white/5">
+                              {challenge.question}
+                            </p>
+                            
+                            <div className="grid gap-2">
+                              {challenge.options.map((option, idx) => {
+                                const isSelected = todayChallengeAnswer === idx;
+                                const isSolved = todayChallengeSolved;
+                                const isCorrect = idx === challenge.correctIndex;
+                                
+                                return (
+                                  <button
+                                    key={idx}
+                                    disabled={isSolved}
+                                    onClick={() => {
+                                      setTodayChallengeAnswer(idx);
+                                      setTodayChallengeFeedback(null);
+                                    }}
+                                    className={`p-3 rounded-xl border text-left text-xs font-bold transition-all ${
+                                      isSolved
+                                        ? isCorrect
+                                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                          : 'bg-[#0B0F19]/45 border-white/5 text-slate-500'
+                                        : isSelected
+                                          ? 'bg-indigo-500/10 border-indigo-500/50 text-white'
+                                          : 'bg-slate-955 border-white/5 text-slate-400 hover:bg-slate-900/40 hover:text-white'
+                                    }`}
+                                  >
+                                    <span className="mr-1.5 font-black uppercase text-indigo-400">{String.fromCharCode(65 + idx)}.</span> {option}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
-                          <input
-                            type="range"
-                            min="1"
-                            max="120"
-                            value={customDurationInput}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setCustomDurationInput(val);
-                              handleSetPomodoroPreset('custom', val);
-                            }}
-                            disabled={pomodoroIsRunning}
-                            className="w-full accent-indigo-500 cursor-pointer"
-                          />
-                        </div>
-                      )}
 
-                      {/* Controls Buttons */}
-                      <div className="w-full flex gap-3 pt-2">
-                        <button
-                          onClick={() => setPomodoroIsRunning(!pomodoroIsRunning)}
-                          className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md cursor-pointer border-none flex items-center justify-center gap-1.5 ${
-                            pomodoroIsRunning
-                              ? 'bg-amber-600 hover:bg-amber-500 text-white'
-                              : 'bg-indigo-650 hover:bg-indigo-500 text-white'
-                          }`}
-                        >
-                          {pomodoroIsRunning ? (
-                            <>
-                              <span className="h-2.5 w-2.5 bg-white/20 rounded flex items-center justify-center" /> Pause Focus
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-3.5 w-3.5" /> Start Focus
-                            </>
+                          {todayChallengeFeedback === 'wrong' && !todayChallengeSolved && (
+                            <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-bold">
+                              ❌ Wrong answer! Re-check and try again.
+                            </div>
                           )}
-                        </button>
-                        <button
-                          onClick={() => handleSetPomodoroPreset(pomodoroActivePreset, customDurationInput)}
-                          className="px-4 py-3 bg-slate-800 hover:bg-slate-700 border-none text-slate-200 text-xs font-black rounded-xl transition-all uppercase tracking-widest cursor-pointer active:scale-[0.98] flex items-center justify-center"
-                          title="Reset Timer"
-                        >
-                          <RotateCcw className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
+
+                          {todayChallengeSolved && (
+                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 rounded-xl text-xs leading-relaxed">
+                              <strong className="text-white block mb-0.5 uppercase tracking-wide text-[10px]">Explanation:</strong>
+                              {challenge.explanation}
+                            </div>
+                          )}
+
+                          <div className="pt-2 flex items-center justify-between gap-4">
+                            <div className="flex-1 h-1.5 rounded-full bg-slate-900 border border-white/5 overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-500 ${todayChallengeSolved ? 'w-full bg-emerald-500' : 'w-1/3 bg-indigo-500'}`} 
+                              />
+                            </div>
+                            {!todayChallengeSolved ? (
+                              <button
+                                onClick={handleClaimTodayChallenge}
+                                className="px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-[10px] font-black rounded-xl border-none uppercase tracking-wider cursor-pointer shadow-md transition-all shrink-0"
+                              >
+                                Verify Answer
+                              </button>
+                            ) : (
+                              <div className="px-5 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-455 text-[10px] font-black uppercase rounded-xl shrink-0">
+                                ✓ Claimed
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* COMMITMENT TRACKER CARD */}
@@ -2002,99 +1943,11 @@ export default function WorkspacePage() {
                     })()}
                   </div>
 
-                  {/* CONCEPT QUIZ OF THE DAY */}
-                  {(() => {
-                    const categoryKey = (slug && workspaceQuizzes[slug as keyof typeof workspaceQuizzes]) ? slug : 'general';
-                    const activeQuizzes = workspaceQuizzes[categoryKey as keyof typeof workspaceQuizzes];
-                    const currentQuiz = activeQuizzes[activeQuizIndex];
-                    
-                    return (
-                      <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl text-left relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
-                        
-                        <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
-                          <div className="space-y-0.5">
-                            <h4 className="text-xs font-black uppercase tracking-wider text-white">🧠 Concept Quiz Challenge</h4>
-                            <p className="text-[9px] text-slate-500 font-bold">Reinforce learning concepts. Correct answers award XP and Coins.</p>
-                          </div>
-                          <span className="text-[8px] font-mono bg-indigo-500/15 border border-indigo-500/25 px-2 py-0.5 rounded text-indigo-400 uppercase font-black">
-                            Q {activeQuizIndex + 1} / {activeQuizzes.length}
-                          </span>
-                        </div>
-
-                        <div className="space-y-4">
-                          <p className="text-xs font-bold text-slate-200 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-white/5">
-                            {currentQuiz.question}
-                          </p>
-
-                          <div className="grid gap-2">
-                            {currentQuiz.options.map((option, idx) => {
-                              const isSelected = selectedQuizOption === idx;
-                              const isCorrect = idx === currentQuiz.correctIndex;
-                              
-                              let optionStyle = 'bg-slate-950/30 border-white/5 text-slate-400 hover:bg-slate-900/40 cursor-pointer';
-                              if (quizSubmitted) {
-                                if (isCorrect) {
-                                  optionStyle = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-black';
-                                } else if (isSelected) {
-                                  optionStyle = 'bg-rose-500/10 border-rose-500/30 text-rose-400 font-black';
-                                } else {
-                                  optionStyle = 'bg-slate-950/20 border-white/5 text-slate-650 opacity-60';
-                                }
-                              } else if (isSelected) {
-                                optionStyle = 'bg-indigo-500/10 border-indigo-500/50 text-white font-bold';
-                              }
-
-                              return (
-                                <button
-                                  key={idx}
-                                  disabled={quizSubmitted}
-                                  onClick={() => handleSelectQuizOption(idx)}
-                                  className={`p-3 rounded-xl border text-left text-xs font-bold transition-all ${optionStyle}`}
-                                >
-                                  {option}
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {!quizSubmitted ? (
-                            <button
-                              disabled={selectedQuizOption === null}
-                              onClick={handleVerifyQuiz}
-                              className={`w-full py-2.5 text-[10px] font-black rounded-xl border-none uppercase tracking-widest transition-all ${
-                                selectedQuizOption !== null
-                                  ? 'bg-indigo-650 hover:bg-indigo-500 text-white cursor-pointer shadow-md'
-                                  : 'bg-zinc-800 text-zinc-550 cursor-not-allowed'
-                              }`}
-                            >
-                              Submit Answer
-                            </button>
-                          ) : (
-                            <div className="space-y-4 pt-2 border-t border-white/5">
-                              <div className="p-3 bg-slate-950/40 border border-white/5 rounded-xl text-[10px] text-slate-400 leading-relaxed font-semibold">
-                                <strong className="text-white block mb-0.5 uppercase tracking-wide text-[9px]">Explanation:</strong>
-                                {currentQuiz.explanation}
-                              </div>
-                              <button
-                                onClick={handleNextQuiz}
-                                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer transition-all"
-                              >
-                                Next Challenge
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
-
                 </div>
 
               </div>
             )}
 
-            {/* T2: SHARED NOTES (CRUD + AI Summarizer) */}
             {activeTab === 'notes' && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div className="flex justify-between items-center">
@@ -2119,8 +1972,6 @@ export default function WorkspacePage() {
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-6 items-start">
-                  
-                  {/* Left Side: Notes List */}
                   <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
                     {notes.length === 0 ? (
                       <div className="p-8 bg-[#0B0F19]/40 border border-white/5 rounded-2xl text-center space-y-2">

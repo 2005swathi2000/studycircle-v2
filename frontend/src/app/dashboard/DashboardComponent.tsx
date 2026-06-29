@@ -347,52 +347,6 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [editSessSubject, setEditSessSubject] = useState('');
   const [editSessStatus, setEditSessStatus] = useState('Upcoming');
 
-  // AI Tutor Chat State
-  const [showAiTutorChat, setShowAiTutorChat] = useState(false);
-  const [aiTutorInput, setAiTutorInput] = useState('');
-  const [aiTutorMessages, setAiTutorMessages] = useState<Array<{ sender: 'user' | 'tutor', text: string }>>([
-    { sender: 'tutor', text: "Hello! I am your StudyCircle AI Academic Tutor. 🎓 I can explain complex subjects like DBMS or Operating Systems, outline custom study plans, or help you understand how to navigate the platform. What are you studying today?" }
-  ]);
-  const [isAiTutorTyping, setIsAiTutorTyping] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [aiTutorMessages, isAiTutorTyping]);
-
-  const handleSendAiTutorMessage = async (text: string) => {
-    if (!text.trim()) return;
-    
-    // Add user message
-    const userMsg = { sender: 'user' as const, text };
-    setAiTutorMessages(prev => [...prev, userMsg]);
-    setAiTutorInput('');
-    setIsAiTutorTyping(true);
-    
-    try {
-      const data = await apiRequest('/ai-tutor', {
-        method: 'POST',
-        body: JSON.stringify({ text })
-      });
-
-      if (data && data.response) {
-        setAiTutorMessages(prev => [...prev, { sender: 'tutor' as const, text: data.response }]);
-      } else {
-        throw new Error(data?.error || 'Invalid response from AI Tutor.');
-      }
-    } catch (err: any) {
-      console.error("AI Tutor response error:", err);
-      setAiTutorMessages(prev => [...prev, { 
-        sender: 'tutor' as const, 
-        text: `⚠️ **AI Chat Error**: ${err.message || 'The AI Tutor is currently busy. Please try again in a few moments!'}` 
-      }]);
-    } finally {
-      setIsAiTutorTyping(false);
-    }
-  };
-
   // Login states for dashboard Auth Guard Overlay
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
@@ -2181,47 +2135,15 @@ Based on your desking logs and consistency, the AI tutor recommends:
   // ==========================================
   const renderSidebar = () => {
     if (user?.role === 'student') {
-      const studentLinks = [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'rooms', label: 'Study Rooms', icon: Wifi },
-        { id: 'groups', label: 'Workspaces', icon: GraduationCap },
-        { id: 'notes', label: 'Notes', icon: FileText },
-        { id: 'doubts', label: 'Doubts', icon: HelpCircle },
-        { id: 'sessions', label: 'Schedule', icon: Calendar },
-        { id: 'progress', label: 'Progress', icon: TrendingUp },
-        { id: 'leaderboard', label: 'Leaderboard', icon: Award },
-        { id: 'messages', label: 'Community Hub', icon: Users },
-        { id: 'resources', label: 'Resources', icon: BookOpen },
-        { id: 'settings', label: 'Settings', icon: Settings }
-      ];
-      
       return (
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto text-left">
-          {studentLinks.map((link) => {
-            const Icon = link.icon;
-            const isActive = activeTab === link.id;
-            const activeStyles = 'bg-[#10B981]/10 text-[#10B981] border-l-4 border-[#10B981] shadow-sm';
-            return (
-              <button
-                key={link.id}
-                onClick={() => {
-                  if (link.id === 'doubts') {
-                    setActiveTab('discussions');
-                  } else {
-                    setActiveTab(link.id as TabType);
-                  }
-                }}
-                className={`w-full px-3 py-2.5 rounded-xl text-[11px] font-bold flex items-center gap-3 transition-all cursor-pointer text-left ${
-                  isActive || (link.id === 'doubts' && activeTab === 'discussions')
-                    ? activeStyles 
-                    : 'text-slate-400 hover:bg-white/[0.02] hover:text-white'
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0" /> {link.label}
-              </button>
-            );
-          })}
-        </nav>
+        <div className="flex-1 p-4 flex flex-col justify-between text-left">
+          <div className="space-y-4">
+            <span className="text-[9px] font-black text-slate-550 uppercase tracking-widest px-3 block">Navigation Hub</span>
+            <p className="text-[10px] text-slate-450 px-3 font-semibold leading-relaxed">
+              Use the horizontal navigation bar at the top of the content area to jump between modules.
+            </p>
+          </div>
+        </div>
       );
     }
 
@@ -2948,6 +2870,42 @@ Based on your desking logs and consistency, the AI tutor recommends:
         {/* Content Area */}
         <main className="p-8 space-y-6 flex-1 w-full max-w-[1400px] mx-auto">
           
+          {/* Horizontal Navigation for Student Users */}
+          {user?.role === 'student' && (
+            <div className="flex border-b border-white/5 pb-3 overflow-x-auto gap-2 scrollbar-none mb-6">
+              {[
+                { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
+                { id: 'rooms', label: 'Study Rooms', icon: Wifi },
+                { id: 'groups', label: 'Workspaces', icon: GraduationCap },
+                { id: 'notes', label: 'Notes', icon: FileText },
+                { id: 'discussions', label: 'Doubts', icon: HelpCircle },
+                { id: 'sessions', label: 'Schedule', icon: Calendar },
+                { id: 'progress', label: 'Progress', icon: TrendingUp },
+                { id: 'leaderboard', label: 'Leaderboard', icon: Award },
+                { id: 'resources', label: 'Resources', icon: BookOpen },
+                { id: 'messages', label: 'Community', icon: Users },
+                { id: 'settings', label: 'Settings', icon: Settings }
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as TabType)}
+                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 border border-transparent ${
+                      isActive
+                        ? 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 shadow-md font-extrabold'
+                        : 'text-slate-400 hover:text-white hover:bg-white/[0.02]'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Tab 1: Dashboard Routing */}
           {activeTab === 'dashboard' && (
             user?.role === 'student' ? renderStudentDashboard() :
@@ -5122,7 +5080,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
                     <div className="shrink-0">
                       <button
-                        onClick={() => setShowAiTutorChat(true)}
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-ai-tutor'))}
                         className="px-6 py-3.5 bg-[#5227EB] hover:bg-[#431fd0] text-white text-xs font-black rounded-2xl shadow-lg border border-indigo-500/20 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer shadow-indigo-950/30 font-mono tracking-wide"
                       >
                         <Sparkles className="h-4 w-4 fill-white/20" /> Ask AI Tutor
@@ -8004,178 +7962,6 @@ Based on your desking logs and consistency, the AI tutor recommends:
               animation-name: confettiFall;
             }
           `}</style>
-        </div>
-      )}
-
-      {/* 🤖 AI Tutor Chat Drawer */}
-      {showAiTutorChat && (
-        <div className="fixed inset-0 z-[9999] flex justify-end animate-in fade-in duration-200">
-          <div 
-            onClick={() => setShowAiTutorChat(false)}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
-          />
-          <div className="relative w-full max-w-md bg-[#090d1e] border-l border-white/10 h-full flex flex-col shadow-2xl z-10 text-left animate-in slide-in-from-right duration-350">
-            {/* Header */}
-            <div className="p-5 border-b border-white/5 flex items-center justify-between bg-[#0b1026]">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
-                  <Sparkles className="h-5 w-5 fill-indigo-400/20" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-wider font-mono">AI Study Tutor</h3>
-                  <span className="text-[9px] text-[#A78BFA] font-black uppercase flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Online Academic Assistant
-                  </span>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowAiTutorChat(false)}
-                className="text-slate-400 hover:text-white transition-colors cursor-pointer text-lg p-2 rounded-xl hover:bg-white/5"
-              >
-                ✕
-              </button>
-            </div>
-            
-            {/* Messages Log */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4 scrollbar-thin">
-              {aiTutorMessages.map((msg, idx) => (
-                <div key={idx} className={`flex items-start gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  {msg.sender === 'tutor' && (
-                    <div className="h-8 w-8 rounded-full border border-indigo-500/30 overflow-hidden bg-slate-950 flex items-center justify-center shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="h-6 w-6">
-                        <rect x="18" y="24" width="64" height="52" fill="#1E1B4B" rx="22" stroke="#818CF8" strokeWidth="2.5" />
-                        <circle cx="38" cy="46" r="4.5" fill="#38BDF8" />
-                        <circle cx="62" cy="46" r="4.5" fill="#38BDF8" />
-                        <path d="M42 54 Q50 59 58 54" stroke="#A78BFA" strokeWidth="2.5" strokeLinecap="round" fill="transparent" />
-                      </svg>
-                    </div>
-                  )}
-                  <div className={`max-w-[80%] rounded-2xl p-4 text-xs ${
-                    msg.sender === 'user' 
-                      ? 'bg-[#5227EB] text-white rounded-tr-none' 
-                      : 'bg-[#151a30] border border-white/5 text-slate-200 rounded-tl-none space-y-2'
-                  }`}>
-                    {msg.sender === 'tutor' ? (
-                      <div className="space-y-2 leading-relaxed">
-                        {msg.text.split('\n\n').map((paragraph, pIdx) => {
-                          if (paragraph.startsWith('### ')) {
-                            return <h4 key={pIdx} className="text-white font-extrabold text-xs uppercase tracking-wide border-b border-white/5 pb-1 mt-3">{paragraph.replace('### ', '')}</h4>;
-                          }
-                          if (paragraph.startsWith('|')) {
-                            const rows = paragraph.split('\n').filter(Boolean);
-                            return (
-                              <div key={pIdx} className="overflow-x-auto my-2 border border-white/5 rounded-xl bg-slate-950/40 p-2">
-                                <table className="min-w-full text-[10px] text-slate-350">
-                                  <thead>
-                                    <tr>
-                                      {rows[0].split('|').map(r => r.trim()).filter(Boolean).map((cell, cIdx) => (
-                                        <th key={cIdx} className="text-left font-black text-white p-1 border-b border-white/10 uppercase tracking-wide">{cell}</th>
-                                      ))}
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {rows.slice(2).map((row, rIdx) => (
-                                      <tr key={rIdx} className="border-b border-white/5 last:border-0">
-                                        {row.split('|').map(r => r.trim()).filter(Boolean).map((cell, cIdx) => (
-                                          <td key={cIdx} className="p-1 font-semibold text-slate-400">{cell}</td>
-                                        ))}
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            );
-                          }
-                          if (paragraph.includes('* ')) {
-                            return (
-                              <ul key={pIdx} className="list-disc pl-4 space-y-1 mt-1 font-semibold text-slate-350">
-                                {paragraph.split('\n').filter(l => l.trim().startsWith('* ')).map((item, iIdx) => (
-                                  <li key={iIdx}>{item.replace('* ', '')}</li>
-                                ))}
-                              </ul>
-                            );
-                          }
-                          const parts = paragraph.split('**');
-                          return (
-                            <p key={pIdx} className="font-semibold text-slate-300 text-xs">
-                              {parts.map((part, partIdx) => partIdx % 2 === 1 ? <strong key={partIdx} className="text-white font-black">{part}</strong> : part)}
-                            </p>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="font-bold leading-normal text-xs">{msg.text}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {isAiTutorTyping && (
-                <div className="flex items-start gap-2.5 justify-start">
-                  <div className="h-8 w-8 rounded-full border border-indigo-500/30 overflow-hidden bg-slate-950 flex items-center justify-center shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="h-6 w-6">
-                      <rect x="18" y="24" width="64" height="52" fill="#1E1B4B" rx="22" stroke="#818CF8" strokeWidth="2.5" />
-                      <circle cx="38" cy="46" r="4.5" fill="#38BDF8" />
-                      <circle cx="62" cy="46" r="4.5" fill="#38BDF8" />
-                      <path d="M42 54 Q50 59 58 54" stroke="#A78BFA" strokeWidth="2.5" strokeLinecap="round" fill="transparent" />
-                    </svg>
-                  </div>
-                  <div className="bg-[#151a30] border border-white/5 rounded-2xl rounded-tl-none p-3 flex items-center gap-1 shrink-0">
-                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0s' }} />
-                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0.15s' }} />
-                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0.3s' }} />
-                  </div>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-            
-            {/* Suggestions Zone */}
-            <div className="p-4 border-t border-white/5 bg-[#090d1e] space-y-2">
-              <span className="text-[9px] font-black uppercase text-zinc-500 block text-left">Quick Study Prompts</span>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { text: "Explain DBMS Normalization", label: "📊 Normalization" },
-                  { text: "Difference between Process and Thread in OS", label: "🧠 Processes vs Threads" },
-                  { text: "How do I earn XP and Focus Coins?", label: "🪙 Rewards Guide" },
-                  { text: "Give me study tips to avoid distractions", label: "⚡ Focus Tips" }
-                ].map((prompt, idx) => (
-                  <button
-                    key={idx}
-                    disabled={isAiTutorTyping}
-                    onClick={() => handleSendAiTutorMessage(prompt.text)}
-                    className="px-2.5 py-1.5 rounded-lg border border-white/5 bg-[#12172f] hover:border-indigo-500/25 hover:bg-[#1a203f] transition-all text-[10px] font-bold text-slate-350 hover:text-white shrink-0 cursor-pointer"
-                  >
-                    {prompt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            {/* Input Form */}
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendAiTutorMessage(aiTutorInput);
-              }}
-              className="p-4 border-t border-white/5 bg-[#0b1026] flex gap-2"
-            >
-              <input 
-                type="text" 
-                value={aiTutorInput}
-                onChange={(e) => setAiTutorInput(e.target.value)}
-                disabled={isAiTutorTyping}
-                placeholder="Ask AI Tutor a question..."
-                className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition-all disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={!aiTutorInput.trim() || isAiTutorTyping}
-                className="px-4 py-2 bg-[#5227EB] hover:bg-[#431fd0] disabled:bg-[#5227EB]/40 text-white rounded-xl text-xs font-black transition-all flex items-center justify-center shrink-0 cursor-pointer border-none"
-              >
-                Send
-              </button>
-            </form>
-          </div>
         </div>
       )}
 
