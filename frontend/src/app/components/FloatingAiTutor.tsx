@@ -15,6 +15,54 @@ export const FloatingAiTutor = () => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  const getConversationalContextBadge = () => {
+    const context = typeof window !== 'undefined' ? (window as any).aiTutorContext : '';
+    if (!context) return null;
+    let message = "How is your study session going today?";
+    if (context.toLowerCase().includes('questions') || context.toLowerCase().includes('dsa') || context.toLowerCase().includes('array')) {
+      message = "I see you're practicing Arrays. Need some help?";
+    } else if (context.toLowerCase().includes('rooms') || context.toLowerCase().includes('dbms')) {
+      message = "Ask me anything about DBMS database topics.";
+    } else if (context.toLowerCase().includes('workspaces')) {
+      message = "Studying with your peers? Let's clear doubts together!";
+    } else if (context.toLowerCase().includes('analytics') || context.toLowerCase().includes('xp') || context.toLowerCase().includes('progress')) {
+      message = "Reviewing your progress milestones today?";
+    } else if (context.toLowerCase().includes('settings')) {
+      message = "Need help setting up your account configurations?";
+    }
+    return message;
+  };
+
+  const getSuggestionChips = () => {
+    const context = typeof window !== 'undefined' ? (window as any).aiTutorContext : '';
+    if (context && (context.toLowerCase().includes('practice') || context.toLowerCase().includes('dsa') || context.toLowerCase().includes('array'))) {
+      return [
+        { label: 'Explain Arrays', query: 'Can you explain array operations and dynamic sizing?' },
+        { label: 'Complexity Guide', query: 'What is the time complexity of searching an unsorted array?' },
+        { label: 'DSA Study Plan', query: 'Outline a plan to learn DSA sorting algorithms.' }
+      ];
+    }
+    if (context && (context.toLowerCase().includes('rooms') || context.toLowerCase().includes('dbms'))) {
+      return [
+        { label: 'Explain Normalization', query: 'Can you explain the difference between 2NF and 3NF in DBMS?' },
+        { label: 'SQL Practice', query: 'What is a SQL JOIN and how do I write one?' },
+        { label: 'Database indexing', query: 'How does database indexing speed up search operations?' }
+      ];
+    }
+    if (context && (context.toLowerCase().includes('progress') || context.toLowerCase().includes('analytics') || context.toLowerCase().includes('xp'))) {
+      return [
+        { label: 'Streaks Help', query: 'How do streaks and XP coins work in StudyCircle?' },
+        { label: 'Level Milestones', query: 'What are the rewards for reaching high Level milestones?' },
+        { label: 'Certificates info', query: 'How do I verify and download my mock test certificates?' }
+      ];
+    }
+    return [
+      { label: 'Explain DBMS', query: 'Can you explain the key concepts of DBMS normalization?' },
+      { label: 'Study Plan', query: 'Help me outline a 7-day study plan for Operating Systems.' },
+      { label: 'Streaks Help', query: 'How do streaks and XP coins work in StudyCircle?' }
+    ];
+  };
+
   // Scroll to bottom on new messages
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -24,16 +72,20 @@ export const FloatingAiTutor = () => {
 
   // Register window custom event listener to open from other modules
   useEffect(() => {
-    const handleOpenRequest = () => {
+    const handleOpenRequest = (e: Event) => {
       setIsOpen(true);
+      const customEvent = e as CustomEvent;
+      if (customEvent && customEvent.detail && customEvent.detail.prefill) {
+        setInput(customEvent.detail.prefill);
+      }
     };
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('open-ai-tutor', handleOpenRequest);
+      window.addEventListener('open-ai-tutor', handleOpenRequest as EventListener);
     }
     return () => {
       if (typeof window !== 'undefined') {
-        window.removeEventListener('open-ai-tutor', handleOpenRequest);
+        window.removeEventListener('open-ai-tutor', handleOpenRequest as EventListener);
       }
     };
   }, []);
@@ -44,6 +96,10 @@ export const FloatingAiTutor = () => {
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
 
+    // Prepend context if active to guide the response contextually
+    const context = typeof window !== 'undefined' ? (window as any).aiTutorContext : '';
+    const promptText = context ? `[Context: User is currently on ${context}] ${text}` : text;
+
     // Append user message
     const userMsg = { sender: 'user' as const, text };
     setMessages(prev => [...prev, userMsg]);
@@ -53,7 +109,7 @@ export const FloatingAiTutor = () => {
     try {
       const data = await apiRequest('/ai-tutor', {
         method: 'POST',
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text: promptText })
       });
 
       if (data && data.response) {
@@ -115,6 +171,14 @@ export const FloatingAiTutor = () => {
               <X className="h-4 w-4" />
             </button>
           </div>
+
+          {/* Dynamic Conversational Context Banner */}
+          {getConversationalContextBadge() && (
+            <div className="px-4 py-2 bg-indigo-500/10 border-b border-white/5 text-[10px] font-black text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
+              {getConversationalContextBadge()}
+            </div>
+          )}
 
           {/* Messages Log */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin max-h-[300px] min-h-[220px]">
@@ -182,15 +246,11 @@ export const FloatingAiTutor = () => {
 
           {/* Quick Suggestions Chips */}
           <div className="px-4 py-2 border-t border-white/5 bg-[#0b1026]/40 flex gap-1.5 overflow-x-auto scrollbar-none shrink-0">
-            {[
-              { label: 'Explain DBMS', query: 'Can you explain the key concepts of DBMS normalization?' },
-              { label: 'Study Plan', query: 'Help me outline a 7-day study plan for Operating Systems.' },
-              { label: 'Streaks Help', query: 'How do streaks and XP coins work in StudyCircle?' }
-            ].map((chip, idx) => (
+            {getSuggestionChips().map((chip, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSendMessage(chip.query)}
-                className="px-2.5 py-1 bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 text-slate-350 hover:text-white rounded-lg text-[9px] font-bold whitespace-nowrap transition-all cursor-pointer border-none"
+                className="px-2.5 py-1 bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 text-slate-355 hover:text-white rounded-lg text-[9px] font-bold whitespace-nowrap transition-all cursor-pointer border-none"
               >
                 {chip.label}
               </button>

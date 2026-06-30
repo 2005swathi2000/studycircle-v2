@@ -551,4 +551,67 @@ router.post('/:groupId/challenges/:challengeId/claim', authMiddleware, async (re
   }
 });
 
+// PUT /groups/:id - Update group details (Owner only)
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, subject, isPublic } = req.body;
+
+    const group = await Group.findByPk(id);
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found.' });
+    }
+
+    // Check if the user is admin/owner
+    const member = await GroupMember.findOne({
+      where: { userId: req.user.id, groupId: id }
+    });
+    if (!member || member.role !== 'admin') {
+      return res.status(403).json({ error: 'Only the room creator/admin can update details.' });
+    }
+
+    group.name = name || group.name;
+    group.description = description || group.description;
+    group.subject = subject || group.subject;
+    if (typeof isPublic === 'boolean') {
+      group.isPublic = isPublic;
+    }
+
+    await group.save();
+    return res.json({ message: 'Study room details updated successfully!', group });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error updating study room.' });
+  }
+});
+
+// DELETE /groups/:id - Delete group (Owner only)
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const group = await Group.findByPk(id);
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found.' });
+    }
+
+    // Check if the user is admin/owner
+    const member = await GroupMember.findOne({
+      where: { userId: req.user.id, groupId: id }
+    });
+    if (!member || member.role !== 'admin') {
+      return res.status(403).json({ error: 'Only the room creator/admin can delete this room.' });
+    }
+
+    // Delete members and challenges first
+    await GroupMember.destroy({ where: { groupId: id } });
+    await group.destroy();
+
+    return res.json({ message: 'Study room deleted successfully!' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error deleting study room.' });
+  }
+});
+
 module.exports = router;

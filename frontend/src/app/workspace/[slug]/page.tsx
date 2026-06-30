@@ -39,11 +39,14 @@ import {
   Settings,
   Sparkles,
   Play,
+  Pause,
   RotateCcw,
   CheckCircle2,
   ChevronRight,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  X,
+  Edit
 } from 'lucide-react';
 
 interface Group {
@@ -272,6 +275,18 @@ export default function WorkspacePage() {
   const [myRole, setMyRole] = useState<'admin' | 'mentor' | 'student'>('student');
   const [loading, setLoading] = useState(true);
 
+  // Edit Room form states
+  const [showEditRoomModal, setShowEditRoomModal] = useState(false);
+  const [editRoomName, setEditRoomName] = useState('');
+  const [editRoomDesc, setEditRoomDesc] = useState('');
+  const [editRoomTopic, setEditRoomTopic] = useState('');
+  const [editRoomDiff, setEditRoomDiff] = useState('Beginner');
+  const [editRoomIsPublic, setEditRoomIsPublic] = useState(true);
+  const [editRoomMax, setEditRoomMax] = useState('25');
+  const [editRoomIcon, setEditRoomIcon] = useState('📚');
+  const [editRoomCover, setEditRoomCover] = useState('/images/dsa-cover.jpg');
+  const [savingEdit, setSavingEdit] = useState(false);
+
   // Tabs state: 'lobby' | 'notes' | 'sessions' | 'doubts' | 'resources' | 'leaderboard'
   
   const [activeTab, setActiveTab] = useState<'lobby' | 'notes' | 'sessions' | 'doubts' | 'resources' | 'leaderboard' | 'challenges'>('lobby');
@@ -480,22 +495,19 @@ export default function WorkspacePage() {
   // Pomodoro States
   const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState(25 * 60);
   const [pomodoroIsRunning, setPomodoroIsRunning] = useState(false);
-  const [pomodoroActivePreset, setPomodoroActivePreset] = useState<'25/5' | '50/10' | '90/15' | 'custom'>('25/5');
-  const [pomodoroMode, setPomodoroMode] = useState<'focus' | 'break'>('focus');
+  const [pomodoroMode, setPomodoroMode] = useState<'focus' | 'short-break' | 'long-break'>('focus');
   const [pomodoroTotalDuration, setPomodoroTotalDuration] = useState(25 * 60);
+  const [pomodoroCustomMinutes, setPomodoroCustomMinutes] = useState('');
+  const [pomodoroActivePreset, setPomodoroActivePreset] = useState<'25/5' | '50/10' | '90/15' | 'custom'>('25/5');
   const [customDurationInput, setCustomDurationInput] = useState(25);
 
-  // Checked topics checklist
-  const [checkedTopics, setCheckedTopics] = useState<string[]>([]);
-
-  // Study Buddy Matcher states
-  const [isScanningBuddy, setIsScanningBuddy] = useState(false);
-  const [matchedBuddy, setMatchedBuddy] = useState<any>(null);
-
-  // Concept Quizzes states
-  const [activeQuizIndex, setActiveQuizIndex] = useState(0);
-  const [selectedQuizOption, setSelectedQuizOption] = useState<number | null>(null);
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  // Learning Checklist states
+  const [checklistTasks, setChecklistTasks] = useState<Array<{ id: string; text: string; done: boolean }>>([
+    { id: '1', text: 'Analyze lecture notes on binary search complexity', done: true },
+    { id: '2', text: 'Draft whiteboard diagrams for pointer reversals', done: false },
+    { id: '3', text: 'Solve daily programming challenge problem', done: false }
+  ]);
+  const [newChecklistText, setNewChecklistText] = useState('');
 
   // Pomodoro countdown timer logic
   useEffect(() => {
@@ -530,13 +542,12 @@ export default function WorkspacePage() {
                 })
                   .then((res) => {
                     if (res.user) {
-                      setUserStats((prev) => ({
+                      setUserStats((prev: any) => ({
                         ...prev,
                         totalStudyHours: res.user.totalStudyHours,
                         streakCount: res.user.streakCount
                       }));
                     }
-                    loadExtraGroupData(group.id);
                   })
                   .catch((err) => console.error('Error logging study session:', err));
               }
@@ -551,7 +562,7 @@ export default function WorkspacePage() {
                 })
               })
                 .then((res) => {
-                  setUserStats((prev) => ({
+                  setUserStats((prev: any) => ({
                     ...prev,
                     xp: res.xp,
                     focusCoins: res.focusCoins,
@@ -561,16 +572,14 @@ export default function WorkspacePage() {
                 })
                 .catch((err) => console.error('Error rewarding focus session:', err));
 
-              setPomodoroMode('break');
-              const breakDur = pomodoroActivePreset === '50/10' ? 10 * 60 : pomodoroActivePreset === '90/15' ? 15 * 60 : 5 * 60;
-              setPomodoroTimeLeft(breakDur);
-              setPomodoroTotalDuration(breakDur);
+              setPomodoroMode('short-break');
+              setPomodoroTimeLeft(5 * 60);
+              setPomodoroTotalDuration(5 * 60);
             } else {
               showToast("☀️ Break is over! Time to start focusing again.", 'info');
               setPomodoroMode('focus');
-              const focusDur = pomodoroActivePreset === '50/10' ? 50 * 60 : pomodoroActivePreset === '90/15' ? 90 * 60 : 25 * 60;
-              setPomodoroTimeLeft(focusDur);
-              setPomodoroTotalDuration(focusDur);
+              setPomodoroTimeLeft(25 * 60);
+              setPomodoroTotalDuration(25 * 60);
             }
             return 0;
           }
@@ -581,7 +590,17 @@ export default function WorkspacePage() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [pomodoroIsRunning, pomodoroMode, pomodoroActivePreset, pomodoroTotalDuration, group?.id]);
+  }, [pomodoroIsRunning, pomodoroMode, pomodoroTotalDuration, group?.id]);
+
+  const handleSetPresetMode = (mode: 'focus' | 'short-break' | 'long-break') => {
+    setPomodoroIsRunning(false);
+    setPomodoroMode(mode);
+    let secs = 25 * 60;
+    if (mode === 'short-break') secs = 5 * 60;
+    else if (mode === 'long-break') secs = 15 * 60;
+    setPomodoroTimeLeft(secs);
+    setPomodoroTotalDuration(secs);
+  };
 
   const handleSetPomodoroPreset = (preset: '25/5' | '50/10' | '90/15' | 'custom', customMin?: number) => {
     setPomodoroIsRunning(false);
@@ -595,69 +614,61 @@ export default function WorkspacePage() {
     setPomodoroTotalDuration(secs);
   };
 
-  const handleFindStudyBuddy = () => {
-    setIsScanningBuddy(true);
-    setMatchedBuddy(null);
-    setTimeout(() => {
-      setIsScanningBuddy(false);
-      const names = ['Swathi', 'Rahul', 'Swetha', 'Charan', 'Sneha', 'Aarav', 'Neha', 'Pranav', 'Deepika', 'Karthik', 'Ananya'];
-      const randomName = names[Math.floor(Math.random() * names.length)];
-      
-      const goalsMap: Record<string, string> = {
-        'programming-dsa': 'DSA Coding Mastery',
-        'web-development': 'Fullstack Web Development',
-        'ai-ml': 'AI/ML Engineering & Neural Nets',
-        'general': 'System Design & Computer Science'
-      };
-      
-      const categoryKey = (slug && learningPathTopics[slug as keyof typeof learningPathTopics]) ? slug : 'general';
-      const sharedGoal = goalsMap[categoryKey as keyof typeof goalsMap];
-      
-      setMatchedBuddy({
-        name: randomName,
-        goal: sharedGoal,
-        level: learningLevel.charAt(0).toUpperCase() + learningLevel.slice(1),
-        action: `Let's focus for a session and solve challenges together!`
-      });
-      showToast(`🤝 Connected with ${randomName} for co-studying!`, 'success');
-    }, 2000);
+  const handleToggleTimer = () => {
+    setPomodoroIsRunning(!pomodoroIsRunning);
   };
 
-  const handleToggleTopic = async (topic: string) => {
-    const isChecked = checkedTopics.includes(topic);
-    if (!isChecked) {
-      try {
-        const data = await apiRequest('/progress/complete-practice', {
-          method: 'POST',
-          body: JSON.stringify({
-            interest: group?.subject || 'Programming & DSA',
-            challengeId: 'topic_' + topic.replace(/\s+/g, '_').toLowerCase(),
-            xpReward: 10,
-            coinReward: 5
-          })
-        });
-        
-        setUserStats(prev => ({
-          ...prev,
-          xp: data.xp,
-          focusCoins: data.focusCoins,
-          level: data.level,
-          streakCount: data.streakCount
-        }));
-        
-        setCheckedTopics(prev => [...prev, topic]);
-        showToast(`✅ Completed topic: ${topic}! +10 XP | +5 Focus Coins!`, 'success');
-        
-        if (data.leveledUp) {
-          showToast(`🎉 Level Up! You are now Level ${data.level}!`, 'success');
-        }
-      } catch (err: any) {
-        showToast('Error saving topic completion: ' + (err.message || err), 'error');
-      }
-    } else {
-      setCheckedTopics(prev => prev.filter(t => t !== topic));
-    }
+  const handleResetTimer = () => {
+    setPomodoroIsRunning(false);
+    let secs = 25 * 60;
+    if (pomodoroMode === 'short-break') secs = 5 * 60;
+    else if (pomodoroMode === 'long-break') secs = 15 * 60;
+    setPomodoroTimeLeft(secs);
+    setPomodoroTotalDuration(secs);
   };
+
+  const handleCustomMinutesSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const mins = parseInt(pomodoroCustomMinutes);
+    if (isNaN(mins) || mins <= 0 || mins > 180) {
+      showToast('Please enter a duration between 1 and 180 minutes.', 'error');
+      return;
+    }
+    setPomodoroIsRunning(false);
+    setPomodoroTimeLeft(mins * 60);
+    setPomodoroTotalDuration(mins * 60);
+  };
+
+  const handleAddChecklistTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newChecklistText.trim()) return;
+    setChecklistTasks((prev) => [
+      ...prev,
+      {
+        id: String(Date.now()),
+        text: newChecklistText.trim(),
+        done: false
+      }
+    ]);
+    setNewChecklistText('');
+    showToast('Learning objective added!', 'success');
+  };
+
+  const handleToggleChecklistTask = (id: string) => {
+    setChecklistTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t))
+    );
+  };
+
+  const handleDeleteChecklistTask = (id: string) => {
+    setChecklistTasks((prev) => prev.filter((t) => t.id !== id));
+    showToast('Learning objective removed.', 'info');
+  };
+
+  // Concept Quizzes states
+  const [activeQuizIndex, setActiveQuizIndex] = useState(0);
+  const [selectedQuizOption, setSelectedQuizOption] = useState<number | null>(null);
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
 
   const handleSelectQuizOption = (optionIdx: number) => {
     if (quizSubmitted) return;
@@ -712,6 +723,87 @@ export default function WorkspacePage() {
     setActiveQuizIndex((prev) => (prev + 1) % totalQuizzes);
     setSelectedQuizOption(null);
     setQuizSubmitted(false);
+  };
+
+  const parseGroupMeta = (descriptionText: string) => {
+    try {
+      const parsed = JSON.parse(descriptionText);
+      if (parsed && typeof parsed === 'object' && 'text' in parsed) {
+        return {
+          text: parsed.text || '',
+          difficulty: parsed.difficulty || 'Intermediate',
+          maxParticipants: parsed.maxParticipants || 25,
+          topic: parsed.topic || 'General',
+          tags: parsed.tags || '',
+          icon: parsed.icon || '📚',
+          coverImage: parsed.coverImage || ''
+        };
+      }
+    } catch (e) {
+      // ignore
+    }
+    return {
+      text: descriptionText || '',
+      difficulty: 'Intermediate',
+      maxParticipants: 25,
+      topic: 'General',
+      tags: '',
+      icon: '📚',
+      coverImage: ''
+    };
+  };
+
+  const handleUpdateGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!group) return;
+    setSavingEdit(true);
+    try {
+      const metaDescription = JSON.stringify({
+        text: editRoomDesc,
+        difficulty: editRoomDiff,
+        maxParticipants: Number(editRoomMax),
+        topic: editRoomTopic || 'General Study',
+        tags: '',
+        icon: editRoomIcon,
+        coverImage: editRoomCover
+      });
+
+      await apiRequest(`/groups/${group.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: editRoomName,
+          description: metaDescription,
+          subject: group.subject,
+          isPublic: editRoomIsPublic
+        })
+      });
+
+      showToast('Workspace details updated successfully!', 'success');
+      setShowEditRoomModal(false);
+      
+      const data = await apiRequest(`/groups/by-slug/${slug}`);
+      setGroup(data.group);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update workspace details.', 'error');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!group) return;
+    if (!window.confirm('Are you absolutely sure you want to delete this study room? This action is permanent.')) {
+      return;
+    }
+    try {
+      await apiRequest(`/groups/${group.id}`, {
+        method: 'DELETE'
+      });
+      showToast('Study room deleted successfully.', 'success');
+      router.push('/dashboard');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete study room.', 'error');
+    }
   };
 
   // Load User Stats & Group from slug
@@ -1327,11 +1419,161 @@ export default function WorkspacePage() {
       showToast(err.message || 'Error accepting answer.', 'error');
     }
   };
-
   if (loading || !group) {
     return (
       <div className="min-h-screen bg-[#060913] flex items-center justify-center">
         <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // Edit Room Modal
+  if (showEditRoomModal) {
+    return (
+      <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+        <div className="bg-[#0b0f19] border border-white/10 rounded-[32px] w-full max-w-lg p-6 space-y-4 shadow-2xl text-left overflow-y-auto max-h-[90vh]">
+          <div className="flex justify-between items-center pb-2 border-b border-white/5">
+            <h3 className="text-sm font-black uppercase tracking-wider text-white">Edit Study Room Details</h3>
+            <button 
+              onClick={() => setShowEditRoomModal(false)}
+              className="text-slate-400 hover:text-white transition cursor-pointer p-1 rounded-lg hover:bg-white/5 border-none bg-transparent"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <form onSubmit={handleUpdateGroup} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Room Name</label>
+                <input 
+                  type="text"
+                  required
+                  value={editRoomName}
+                  onChange={(e) => setEditRoomName(e.target.value)}
+                  className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Focus Topic</label>
+                <input 
+                  type="text"
+                  value={editRoomTopic}
+                  onChange={(e) => setEditRoomTopic(e.target.value)}
+                  className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Difficulty</label>
+                <select
+                  value={editRoomDiff}
+                  onChange={(e) => setEditRoomDiff(e.target.value)}
+                  className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                >
+                  <option value="Beginner">Beginner</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Advanced">Advanced</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Visibility</label>
+                <select
+                  value={editRoomIsPublic ? 'public' : 'private'}
+                  onChange={(e) => setEditRoomIsPublic(e.target.value === 'public')}
+                  className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                >
+                  <option value="public">🌍 Public</option>
+                  <option value="private">🔒 Private</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Max Participants</label>
+                <select
+                  value={editRoomMax}
+                  onChange={(e) => setEditRoomMax(e.target.value)}
+                  className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                >
+                  <option value="10">10 Members</option>
+                  <option value="25">25 Members</option>
+                  <option value="50">50 Members</option>
+                  <option value="100">100 Members</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Description</label>
+              <textarea 
+                required
+                value={editRoomDesc}
+                onChange={(e) => setEditRoomDesc(e.target.value)}
+                rows={3}
+                className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none resize-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Room Emoji Icon</label>
+                <div className="flex gap-2">
+                  {['📚', '💻', '🤖', '🔐', '🎯', '🏛', '🧮'].map((emoji) => (
+                    <button
+                      type="button"
+                      key={emoji}
+                      onClick={() => setEditRoomIcon(emoji)}
+                      className={`text-base p-1.5 rounded-lg border transition ${
+                        editRoomIcon === emoji ? 'bg-indigo-500/10 border-indigo-500 text-white' : 'border-white/5 bg-transparent'
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Cover Preset</label>
+                <div className="flex gap-2">
+                  {['/images/dsa-cover.jpg', '/images/web-cover.jpg', '/images/ai-cover.jpg'].map((cover, idx) => (
+                    <button
+                      type="button"
+                      key={cover}
+                      onClick={() => setEditRoomCover(cover)}
+                      className={`text-[10px] font-mono p-1 rounded-lg border transition ${
+                        editRoomCover === cover ? 'bg-indigo-500/10 border-indigo-500 text-white' : 'border-white/5 bg-transparent'
+                      }`}
+                    >
+                      Cover {idx + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button 
+                type="button"
+                onClick={() => setShowEditRoomModal(false)}
+                className="px-4 py-2 bg-transparent hover:bg-white/5 border border-white/5 text-slate-400 hover:text-white text-[10px] font-black uppercase rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit"
+                disabled={savingEdit}
+                className="px-4 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase rounded-xl transition cursor-pointer border-none"
+              >
+                {savingEdit ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     );
   }
@@ -1456,13 +1698,10 @@ export default function WorkspacePage() {
           </div>
 
           {[
-            { id: 'lobby', title: 'Live Study Lobby', icon: Activity },
+            { id: 'lobby', title: 'Workspace Overview', icon: Activity },
             { id: 'notes', title: 'Shared Notes', icon: FileText },
-            { id: 'sessions', title: 'Scheduled Calls', icon: Calendar },
-            { id: 'doubts', title: 'Discussion Board', icon: MessageSquare },
             { id: 'resources', title: 'Curated Resources', icon: Bookmark },
-            { id: 'challenges', title: 'Circle Challenges', icon: Award },
-            { id: 'leaderboard', title: 'Workspace Leaderboard', icon: Trophy }
+            { id: 'doubts', title: 'Discussion Board', icon: MessageSquare }
           ].map((tab) => {
             const Icon = tab.icon;
             const isSel = activeTab === tab.id;
@@ -1476,7 +1715,7 @@ export default function WorkspacePage() {
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-none text-left ${
                   isSel 
-                    ? 'bg-indigo-600/15 border border-indigo-500/20 text-white font-extrabold shadow-sm' 
+                    ? 'bg-indigo-650/15 border border-indigo-500/20 text-white font-extrabold shadow-sm' 
                     : 'text-slate-400 hover:text-white hover:bg-white/[0.02] border border-transparent'
                 }`}
               >
@@ -1512,12 +1751,53 @@ export default function WorkspacePage() {
         <header className="h-16 border-b border-white/5 bg-[#0B0F19]/60 backdrop-blur-md px-8 flex items-center justify-between sticky top-0 z-20 shrink-0">
           <div className="flex items-center gap-4 text-left">
             <div>
-              <span className="text-[9px] font-black uppercase text-indigo-400 tracking-wider">Active Workspace</span>
-              <h2 className="text-sm font-extrabold text-white leading-tight">{group?.name || 'Interactive Room'}</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-black uppercase text-indigo-400 tracking-wider">Active Workspace</span>
+                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${
+                  group?.isPublic ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/10' : 'bg-rose-500/10 text-rose-455 border border-rose-500/10'
+                }`}>
+                  {group?.isPublic ? '🌍 Public' : '🔒 Private'}
+                </span>
+                <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/10">
+                  🟢 4 active
+                </span>
+              </div>
+              <h2 className="text-sm font-extrabold text-white leading-tight mt-0.5">{group?.name || 'Interactive Room'}</h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            {/* Owner Actions */}
+            {myRole === 'admin' && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (group) {
+                      const meta = parseGroupMeta(group.description);
+                      setEditRoomName(group.name);
+                      setEditRoomDesc(meta.text);
+                      setEditRoomTopic(meta.topic);
+                      setEditRoomDiff(meta.difficulty);
+                      setEditRoomIsPublic(group.isPublic);
+                      setEditRoomMax(String(meta.maxParticipants));
+                      setEditRoomIcon(meta.icon);
+                      setEditRoomCover(meta.coverImage);
+                      setShowEditRoomModal(true);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase rounded-lg border-none transition cursor-pointer flex items-center gap-1"
+                >
+                  <Edit className="h-3 w-3" /> Edit
+                </button>
+                <button
+                  onClick={handleDeleteGroup}
+                  className="px-3 py-1.5 bg-rose-950/40 hover:bg-rose-900 border border-rose-500/20 text-rose-400 text-[10px] font-black uppercase rounded-lg transition cursor-pointer flex items-center gap-1"
+                >
+                  <Trash2 className="h-3 w-3" /> Delete
+                </button>
+              </div>
+            )}
+
             {/* Gamification stats overlay */}
             <div className="flex items-center gap-4 bg-slate-900/50 border border-white/5 rounded-xl px-4 py-1.5 text-xs font-black shadow-inner">
               <div className="flex items-center gap-1 text-orange-400" title="Daily Streak">
@@ -1650,10 +1930,190 @@ export default function WorkspacePage() {
 
             </section>
 
-                     {/* T1: LIVE STUDY LOBBY (Visual Playgrounds) */}
             {activeTab === 'lobby' && (
               <div className="grid lg:grid-cols-2 gap-8 items-start">
-                {/* COLUMN 1: FOCUS ZONE */}
+                
+                {/* COLUMN 1: POMODORO & CHECKLIST */}
+                <div className="space-y-6">
+                  
+                  {/* POMODORO TIMER CARD */}
+                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left space-y-5">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
+                      <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
+                        <Clock className="h-4 w-4 text-indigo-400" /> Pomodoro Focus Desk
+                      </h4>
+                      <span className="text-[9px] font-black bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2.5 py-0.5 rounded uppercase tracking-wider">
+                        {pomodoroMode.replace('-', ' ')}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-center py-4 space-y-4">
+                      {/* Timer Display with progress ring */}
+                      <div className="relative h-40 w-40 flex items-center justify-center">
+                        <svg className="absolute inset-0 w-full h-full transform -rotate-90">
+                          <circle
+                            cx="80"
+                            cy="80"
+                            r="70"
+                            stroke="rgba(255, 255, 255, 0.02)"
+                            strokeWidth="6"
+                            fill="transparent"
+                          />
+                          <circle
+                            cx="80"
+                            cy="80"
+                            r="70"
+                            stroke="#6366f1"
+                            strokeWidth="6"
+                            fill="transparent"
+                            strokeDasharray={440}
+                            strokeDashoffset={440 * (1 - pomodoroTimeLeft / (pomodoroMode === 'focus' ? 25 * 60 : pomodoroMode === 'short-break' ? 5 * 60 : 15 * 60))}
+                            className="transition-all duration-1000"
+                          />
+                        </svg>
+                        
+                        <div className="text-center z-10 space-y-1">
+                          <p className="text-3xl font-extrabold text-white tracking-wider font-mono">
+                            {Math.floor(pomodoroTimeLeft / 60)}:{String(pomodoroTimeLeft % 60).padStart(2, '0')}
+                          </p>
+                          <p className="text-[8px] text-slate-550 font-black uppercase tracking-wider">Minutes Left</p>
+                        </div>
+                      </div>
+
+                      {/* Presets */}
+                      <div className="flex gap-2">
+                        {[
+                          { mode: 'focus', label: '🎯 Focus (25m)' },
+                          { mode: 'short-break', label: '☕ Break (5m)' },
+                          { mode: 'long-break', label: '🌴 Long (15m)' }
+                        ].map((btn) => (
+                          <button
+                            key={btn.mode}
+                            type="button"
+                            onClick={() => handleSetPresetMode(btn.mode as any)}
+                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all border cursor-pointer ${
+                              pomodoroMode === btn.mode
+                                ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400 font-extrabold'
+                                : 'bg-transparent border-white/5 text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {btn.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Controls */}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleToggleTimer}
+                          className="px-6 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition border-none cursor-pointer flex items-center gap-1.5"
+                        >
+                          {pomodoroIsRunning ? (
+                            <>
+                              <Pause className="h-3.5 w-3.5" /> Pause
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-3.5 w-3.5 fill-white" /> Start Focus
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={handleResetTimer}
+                          className="px-4 py-2 bg-transparent hover:bg-white/5 border border-white/5 text-slate-400 hover:text-white text-[10px] font-black uppercase rounded-xl transition cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      </div>
+
+                      {/* Custom Minutes Input */}
+                      <form onSubmit={handleCustomMinutesSubmit} className="flex gap-2 w-full max-w-xs pt-2">
+                        <input
+                          type="number"
+                          value={pomodoroCustomMinutes}
+                          onChange={(e) => setPomodoroCustomMinutes(e.target.value)}
+                          placeholder="Custom min (e.g. 45)..."
+                          min="1"
+                          max="180"
+                          className="flex-1 bg-slate-900 border border-white/5 rounded-lg px-2.5 py-1.5 text-[10px] text-white outline-none placeholder-slate-600"
+                        />
+                        <button
+                          type="submit"
+                          className="px-3.5 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 text-[9px] font-black uppercase rounded-lg border border-white/5 transition cursor-pointer animate-in fade-in"
+                        >
+                          Set Timer
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+
+                  {/* LEARNING CHECKLIST CARD */}
+                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left space-y-4">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#10B981]/5 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
+                      <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
+                        <CheckCircle2 className="h-4 w-4 text-[#10B981]" /> Workspace Learning Checklist
+                      </h4>
+                      <span className="text-[9px] font-black text-emerald-400 font-mono">
+                        {checklistTasks.filter(t => t.done).length} / {checklistTasks.length} Completed
+                      </span>
+                    </div>
+
+                    {/* Add checklist item */}
+                    <form onSubmit={handleAddChecklistTask} className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newChecklistText}
+                        onChange={(e) => setNewChecklistText(e.target.value)}
+                        placeholder="Add new learning objective..."
+                        className="flex-grow bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none placeholder-slate-600"
+                      />
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase rounded-xl border-none cursor-pointer"
+                      >
+                        Add Task
+                      </button>
+                    </form>
+
+                    {/* Task list */}
+                    <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+                      {checklistTasks.map((task) => (
+                        <div key={task.id} className="flex justify-between items-center p-3.5 bg-slate-900/60 border border-white/5 rounded-2xl gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleChecklistTask(task.id)}
+                            className="flex items-center gap-3 text-left bg-transparent border-none outline-none cursor-pointer text-xs"
+                          >
+                            <span className={`h-4.5 w-4.5 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
+                              task.done 
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                                : 'border-white/10 bg-transparent text-slate-700'
+                            }`}>
+                              {task.done && <Check className="h-3 w-3 stroke-[3]" />}
+                            </span>
+                            <span className={`font-bold transition-all ${task.done ? 'text-slate-505 line-through' : 'text-slate-200'}`}>
+                              {task.text}
+                            </span>
+                          </button>
+                          
+                          <button
+                            onClick={() => handleDeleteChecklistTask(task.id)}
+                            className="text-slate-505 hover:text-rose-450 p-1 bg-transparent border-none cursor-pointer transition rounded-lg"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* COLUMN 2: TODAY'S CHALLENGE & WHITEBOARD */}
                 <div className="space-y-6">
                   
                   {/* TODAY'S CHALLENGE CARD */}
@@ -1701,7 +2161,7 @@ export default function WorkspacePage() {
                                           : 'bg-[#0B0F19]/45 border-white/5 text-slate-500'
                                         : isSelected
                                           ? 'bg-indigo-500/10 border-indigo-500/50 text-white'
-                                          : 'bg-slate-955 border-white/5 text-slate-400 hover:bg-slate-900/40 hover:text-white'
+                                          : 'bg-[#0B0F19]/45 border-white/5 text-slate-400 hover:bg-[#070b16]/40 hover:text-white'
                                     }`}
                                   >
                                     <span className="mr-1.5 font-black uppercase text-indigo-400">{String.fromCharCode(65 + idx)}.</span> {option}
@@ -1742,201 +2202,6 @@ export default function WorkspacePage() {
                                 ✓ Claimed
                               </div>
                             )}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* COMMITMENT TRACKER CARD */}
-                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
-                    
-                    <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans mb-4">🎯 Daily Commitment Tracker</h4>
-                    
-                    <div className="flex items-center gap-6">
-                      {/* Circular target tracker */}
-                      <div className="relative h-24 w-24 flex items-center justify-center shrink-0">
-                        <svg className="w-full h-full transform -rotate-90">
-                          <circle
-                            cx="48"
-                            cy="48"
-                            r="38"
-                            stroke="rgba(255, 255, 255, 0.03)"
-                            strokeWidth="5"
-                            fill="transparent"
-                          />
-                          <circle
-                            cx="48"
-                            cy="48"
-                            r="38"
-                            stroke="#10B981"
-                            strokeWidth="5"
-                            fill="transparent"
-                            strokeDasharray="238.7"
-                            strokeDashoffset={238.7 * (1 - Math.min(100, Math.round((userStats.totalStudyHours / (currentUser?.dailyTarget || 2.0)) * 100)) / 100)}
-                            className="transition-all duration-500 ease-out"
-                          />
-                        </svg>
-                        <div className="absolute flex flex-col items-center justify-center text-center">
-                          <span className="text-base font-black text-white font-mono leading-none">
-                            {Math.min(100, Math.round((userStats.totalStudyHours / (currentUser?.dailyTarget || 2.0)) * 100))}%
-                          </span>
-                          <span className="text-[7px] font-black uppercase text-slate-500 tracking-wider mt-0.5">Target</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 text-left">
-                        <div className="text-xs font-bold text-slate-200">
-                          Focused <strong className="text-indigo-400 text-sm font-black">{userStats.totalStudyHours.toFixed(1)}</strong> of <strong className="text-emerald-400 text-sm font-black">{(currentUser?.dailyTarget || 2.0).toFixed(1)}</strong> hours today
-                        </div>
-                        <p className="text-[10px] text-slate-455 font-bold leading-relaxed">
-                          Your daily target is synchronized with your onboarding choices. Complete focus blocks to level up your scholar ranking.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* STUDY BUDDY MATCHER CARD */}
-                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl text-left relative overflow-hidden">
-                    <div className="absolute bottom-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
-                    
-                    <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
-                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
-                        <Users className="h-4.5 w-4.5 text-purple-400 animate-pulse" /> Accountability Study Buddy
-                      </div>
-                    </div>
-
-                    {!matchedBuddy ? (
-                      <div className="space-y-4">
-                        <p className="text-[11px] text-slate-455 leading-relaxed font-bold">
-                          Find an active partner co-studying the same topics. Share goals and double your focus motivation.
-                        </p>
-                        
-                        {isScanningBuddy ? (
-                          <div className="p-4 bg-slate-950/40 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-3">
-                            <RefreshCw className="h-6 w-6 text-indigo-500 animate-spin" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 animate-pulse">Scanning lounge for matches...</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={handleFindStudyBuddy}
-                            className="w-full py-2.5 bg-purple-650 hover:bg-purple-600 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow-md transition-all"
-                          >
-                            Find Study Buddy
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="p-4 bg-purple-950/20 border border-purple-500/20 rounded-2xl space-y-2 text-left relative">
-                          <button
-                            onClick={() => setMatchedBuddy(null)}
-                            className="absolute top-2 right-2 text-[10px] text-slate-500 hover:text-white font-bold bg-transparent border-none cursor-pointer"
-                            title="Disconnect Buddy"
-                          >
-                            ✕
-                          </button>
-                          
-                          <div className="flex items-center gap-2.5">
-                            <div className="h-8 w-8 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center font-black uppercase text-sm">
-                              {matchedBuddy.name.charAt(0)}
-                            </div>
-                            <div>
-                              <div className="text-xs font-black text-white">@{matchedBuddy.name} matched!</div>
-                              <div className="text-[8px] text-purple-400 font-black uppercase tracking-wider">Goal: {matchedBuddy.goal}</div>
-                            </div>
-                          </div>
-                          <p className="text-[10px] text-slate-350 italic font-semibold leading-relaxed pt-1">
-                            "{matchedBuddy.action}"
-                          </p>
-                        </div>
-                        <div className="flex gap-2.5">
-                          <span className="flex-1 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[9px] font-black text-emerald-400 uppercase text-center">
-                            🤝 Accountability Connected
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-
-                {/* COLUMN 2: LEARNING PATH & QUIZZES */}
-                <div className="space-y-6">
-                  
-                  {/* LEARNING PATH TOPIC MAP */}
-                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl text-left relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-                    
-                    <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
-                      <div className="space-y-0.5">
-                        <h4 className="text-xs font-black uppercase tracking-wider text-white">🎓 Learning Path Checklist</h4>
-                        <p className="text-[9px] text-slate-500 font-bold">Track key concepts and verify completion for XP and Coins.</p>
-                      </div>
-                    </div>
-
-                    {/* Completion progress */}
-                    {(() => {
-                      const categoryKey = (slug && learningPathTopics[slug as keyof typeof learningPathTopics]) ? slug : 'general';
-                      const activePath = learningPathTopics[categoryKey as keyof typeof learningPathTopics];
-                      const allTopics = [
-                        ...activePath.levels.beginner,
-                        ...activePath.levels.intermediate,
-                        ...activePath.levels.advanced
-                      ];
-                      const completedCount = allTopics.filter(t => checkedTopics.includes(t)).length;
-                      const pct = Math.round((completedCount / allTopics.length) * 100);
-
-                      return (
-                        <div className="space-y-4">
-                          <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-2">
-                            <div className="flex justify-between items-center text-[10px] font-black text-slate-400">
-                              <span>Path Progress ({activePath.title})</span>
-                              <span className="text-indigo-400">{completedCount} / {allTopics.length} ({pct}%)</span>
-                            </div>
-                            <div className="h-1.5 w-full rounded-full bg-slate-900 border border-white/5 overflow-hidden">
-                              <div className="h-full rounded-full bg-indigo-500 transition-all duration-300" style={{ width: `${pct}%` }} />
-                            </div>
-                          </div>
-
-                          {/* Levels Checklists */}
-                          <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
-                            {(['beginner', 'intermediate', 'advanced'] as const).map((level) => {
-                              const levelTopics = activePath.levels[level];
-                              return (
-                                <div key={level} className="space-y-2">
-                                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-                                    {level} track
-                                  </div>
-                                  <div className="grid gap-2">
-                                    {levelTopics.map((topic) => {
-                                      const isChecked = checkedTopics.includes(topic);
-                                      return (
-                                        <div
-                                          key={topic}
-                                          onClick={() => handleToggleTopic(topic)}
-                                          className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex items-center justify-between gap-3 ${
-                                            isChecked
-                                              ? 'bg-indigo-500/5 border-indigo-500/30 text-slate-200'
-                                              : 'bg-slate-950/30 border-white/5 text-slate-400 hover:bg-slate-900/40 hover:text-slate-250'
-                                          }`}
-                                        >
-                                          <span className="text-xs font-bold font-sans">{topic}</span>
-                                          <div className={`h-4.5 w-4.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                                            isChecked 
-                                              ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' 
-                                              : 'bg-transparent border-white/10 text-transparent'
-                                          }`}>
-                                            {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              );
-                            })}
                           </div>
                         </div>
                       );
@@ -2770,72 +3035,43 @@ export default function WorkspacePage() {
                 </div>
               </div>
             )}
-  </div>
+          </div>
 
-          {/* RIGHT SIDEBAR PANEL: ACHIEVEMENTS & MILESTONES (1/4) */}
-          <aside className="space-y-6 text-left shrink-0">
+            {/* RIGHT SIDEBAR PANEL: PEERS, SHORTCUTS, AI QUICK CHAT (1/4) */}
+          <aside className="space-y-6 text-left shrink-0 w-80">
             
-            {/* PROGRESS STATUS CARD */}
-            <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl space-y-4">
-              <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans">Workspace Checklist</h4>
+            {/* Online Members (Peers) */}
+            <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-5 shadow-xl space-y-4">
+              <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
+                <Users className="h-4 w-4 text-indigo-400" /> Online Members (4)
+              </h4>
               
               <div className="space-y-3">
-                <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
-                  <span>Track Completion</span>
-                  <span className="text-indigo-400 font-black">
-                    {Math.round((achievements.filter(a => a.done).length / achievements.length) * 100)}%
-                  </span>
-                </div>
-                
-                <div className="h-2 w-full rounded-full bg-slate-950 border border-white/5 overflow-hidden">
-                  <div 
-                    className="h-full rounded-full bg-indigo-500 transition-all duration-500" 
-                    style={{ width: `${(achievements.filter(a => a.done).length / achievements.length) * 100}%` }} 
-                  />
-                </div>
-              </div>
-
-              {/* Today's Stats summary */}
-              <div className="pt-2 grid grid-cols-2 gap-3.5 border-t border-white/5">
-                <div className="p-3 bg-slate-950/40 border border-white/5 rounded-xl text-left">
-                  <span className="text-base font-black text-white">{userStats.totalStudyHours.toFixed(1)}h</span>
-                  <span className="text-[8px] text-slate-550 font-black uppercase block mt-0.5">Study Logged</span>
-                </div>
-                <div className="p-3 bg-slate-950/40 border border-white/5 rounded-xl text-left">
-                  <span className="text-base font-black text-indigo-400">{userStats.xp}</span>
-                  <span className="text-[8px] text-slate-550 font-black uppercase block mt-0.5">Focus XP</span>
-                </div>
-              </div>
-            </div>
-
-            {/* CHECKLIST MILESTONES */}
-            <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl space-y-4">
-              <div className="flex justify-between items-center">
-                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans">Achievements</h4>
-                <Trophy className="h-4.5 w-4.5 text-amber-500" />
-              </div>
-
-              <div className="space-y-3.5 font-sans">
-                {achievements.map((ach) => (
-                  <div key={ach.id} className="flex gap-3 items-start opacity-90">
-                    <div className={`mt-0.5 h-4.5 w-4.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                      ach.done 
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                        : 'bg-transparent border-white/10 text-slate-700'
-                    }`}>
-                      {ach.done && <Check className="h-3 w-3 stroke-[3]" />}
+                {[
+                  { name: 'Swathi (You)', role: 'Owner', status: '🟢 Active' },
+                  { name: 'Swapna', role: 'Student', status: '🟢 Active' },
+                  { name: 'Charan', role: 'Student', status: '🟢 Active' },
+                  { name: 'Rathna', role: 'Mentor', status: '🟢 Active' }
+                ].map((peer, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 bg-[#070b16]/40 border border-white/5 rounded-xl">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-7 w-7 rounded-full bg-slate-850 border border-white/10 flex items-center justify-center font-black text-xs text-white uppercase relative">
+                        {peer.name.charAt(0)}
+                        <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 border border-[#0B0F19]" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-black text-white">{peer.name}</p>
+                        <p className="text-[8px] text-slate-550 font-extrabold uppercase">{peer.role}</p>
+                      </div>
                     </div>
-                    <div className="space-y-0.5">
-                      <p className={`text-[11px] font-black leading-none ${ach.done ? 'text-slate-350 line-through' : 'text-slate-200'}`}>{ach.title}</p>
-                      <p className="text-[9px] text-slate-500 font-semibold">{ach.desc}</p>
-                    </div>
+                    <span className="text-[8px] text-emerald-400 font-black font-mono">{peer.status}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* WORKSPACE DETAILS CARD */}
-            <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl space-y-4 text-left">
+            {/* Workspace Details */}
+            <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-5 shadow-xl space-y-3">
               <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans">Workspace Details</h4>
               <div className="space-y-2.5 font-sans text-[11px] font-bold text-slate-400">
                 <div className="flex justify-between">
@@ -2855,6 +3091,64 @@ export default function WorkspacePage() {
                     }
                   }}>{group?.inviteCode}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Quick Resource Shortcuts */}
+            <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-5 shadow-xl space-y-4">
+              <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
+                <Bookmark className="h-4 w-4 text-indigo-400" /> Resource Shortcuts
+              </h4>
+              
+              <div className="space-y-2">
+                {[
+                  { name: 'Lecture Notes Chapters.pdf', size: '4.8 MB' },
+                  { name: 'Exam cheatsheet formulas.pdf', size: '1.2 MB' },
+                  { name: 'Practice Code blueprints.zip', size: '15.4 MB' }
+                ].map((res, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => showToast(`Downloading ${res.name}...`, 'success')}
+                    className="w-full text-left p-2.5 bg-[#070b16]/40 hover:bg-[#070b16]/80 border border-white/5 rounded-xl flex items-center justify-between text-[10px] text-slate-330 font-bold transition cursor-pointer"
+                  >
+                    <span className="truncate pr-2">📄 {res.name}</span>
+                    <span className="text-slate-500 font-mono text-[8px] shrink-0 font-semibold">{res.size}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* AI Tutor Quick Dispatch */}
+            <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-5 shadow-xl space-y-4">
+              <div className="space-y-1">
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-[#F43F5E]" /> Quick AI Doubt
+                </h4>
+                <p className="text-[8px] text-slate-555 leading-normal font-semibold">Prefill the tutor and get immediate answers.</p>
+              </div>
+
+              <div className="space-y-2.5">
+                <textarea
+                  id="quick-doubt-input"
+                  rows={3}
+                  placeholder="Type a doubt to ask AI tutor..."
+                  className="w-full bg-slate-900 border border-white/5 rounded-xl px-2.5 py-2 text-[10px] text-white outline-none resize-none placeholder-slate-550"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const txt = (document.getElementById('quick-doubt-input') as HTMLTextAreaElement)?.value || '';
+                    window.dispatchEvent(new CustomEvent('open-ai-tutor', { 
+                      detail: { prefill: txt || 'I need help with...' } 
+                    }));
+                    const input = document.getElementById('quick-doubt-input') as HTMLTextAreaElement;
+                    if (input) input.value = '';
+                  }}
+                  className="w-full py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase rounded-xl transition border-none cursor-pointer text-center"
+                >
+                  Ask AI Tutor
+                </button>
               </div>
             </div>
 

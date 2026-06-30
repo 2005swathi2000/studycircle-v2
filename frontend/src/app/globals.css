@@ -27,112 +27,173 @@ body::-webkit-scrollbar, html::-webkit-scrollbar {
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* For light theme (theme-dashboard overrides) */
-.theme-dashboard ::-webkit-scrollbar-thumb {
-  background: rgba(14, 62, 49, 0.15);
-}
-.theme-dashboard ::-webkit-scrollbar-thumb:hover {
-  background: rgba(14, 62, 49, 0.3);
-}
-
 :root {
+  /* Default/Dark Theme variables */
   --background: #020617;
-  --foreground: #f8fafc;
-
-  /* Theme variables default (Landing/Login): True Violet & Indigo */
-  --accent-violet-950: #0f0b26;
-  --accent-violet-900: #1a0f3d;
-  --accent-violet-600: #8b5cf6; /* True Violet */
-  --accent-violet-500: #a78bfa;
-  --accent-violet-400: #c4b5fd;
-  --accent-violet-300: #ddd6fe;
-  
-  --accent-indigo-955: #020617;
-  --accent-indigo-950: #020617;
-  --accent-indigo-900: #0B0F19;
-  --accent-indigo-650: #94A3B8;
-  --accent-indigo-600: #4f46e5; /* Indigo */
-  --accent-indigo-500: #6366f1;
+  --surface: #0b0f19;
+  --card: #1e293b;
+  --border: rgba(255, 255, 255, 0.05);
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --secondary: #10b981;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --icon-color: #818cf8;
+  --shadow: rgba(0, 0, 0, 0.3);
 }
 
-/* Dashboard Theme: Emerald & Teal (Green Accent) */
-.theme-dashboard {
-  --accent-violet-955: #022c22;
-  --accent-violet-950: #022c22; /* Emerald 950 */
-  --accent-violet-900: #064e3b; /* Emerald 900 */
-  --accent-violet-600: #10b981; /* Emerald 600 */
-  --accent-violet-500: #059669; /* Emerald 500 */
-  --accent-violet-400: #34d399; /* Emerald 400 */
-  --accent-violet-300: #6ee7b7; /* Emerald 300 */
-  
-  --accent-indigo-955: #042f2e; /* Teal 950 */
-  --accent-indigo-950: #042f2e; /* Teal 950 */
-  --accent-indigo-900: #115e59; /* Teal 900 */
-  --accent-indigo-650: #0d9488;
-  --accent-indigo-600: #0d9488; /* Teal 600 */
-  --accent-indigo-500: #14b8a6; /* Teal 500 */
-
-  /* Direct overrides for Tailwind v4 color mapping resolution */
-  --color-violet-955: #022c22;
-  --color-violet-950: #022c22;
-  --color-violet-900: #064e3b
-  .text-zinc-100 { color: #0f172a !important; }
-  .text-zinc-200 { color: #1e293b !important; }
-  .text-zinc-300 { color: #334155 !important; }
-  .text-zinc-400 { color: #475569 !important; }
-  .text-zinc-500 { color: #64748b !important; }
-  
-  /* Border elements */
-  .border-zinc-900 { border-color: #e2e8f0 !important; }
-  .border-zinc-800 { border-color: #cbd5e1 !important; }
-  .border-zinc-850 { border-color: #cbd5e1 !important; }
-  
-  /* Glass panels and cards */
-  .glass-panel {
-    background: rgba(248, 250, 252, 0.85) !important;
-    border: 1px solid rgba(226, 232, 240, 0.8) !important;
-    color: #0f172a !important;
-  }
-  
-  .glass-card {
-    background: rgba(255, 255, 255, 0.95) !important;
-    border: 1px solid rgba(226, 232, 240, 0.6) !important;
-    color: #0f172a !important;
-  }
-
-  /* Table head styles */
-  thead tr {
-    background: #f1f5f9 !important;
-  }
-  
-  /* Input fields, select dropdowns, textareas */
-  input, select, textarea {
-    background-color: #ffffff !important;
-    border-color: #cbd5e1 !important;
-    color: #0f172a !important;
-  }
-  
-  /* Coding Arena white textarea constraint */
-  textarea.bg-white {
-    background-color: #ffffff !important;
-    color: #000000 !important;
-  }
-
-  /* Background blur decorations */
-  .blur-\[140px\] {
-    opacity: 0.08 !important;
-  }
-
-  /* Custom overlays and tags */
-  .bg-zinc-900\/20 {
-    background-color: rgba(241, 245, 249, 0.5) !important;
-  }
-  .bg-zinc-950\/40 {
-    background-color: rgba(248, 250, 252, 0.6) !important;
-  }
-  .bg-zinc-900\/35 {
-    background-color: rgba(241, 245, 249, 0.4) !important;
-  }
+[data-theme='default'] {
+  --background: #020617;
+  --surface: #0b0f19;
+  --card: #111827;
+  --border: rgba(255, 255, 255, 0.05);
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --secondary: #10b981;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --icon-color: #818cf8;
+  --shadow: rgba(0, 0, 0, 0.35);
 }
 
+[data-theme='dark'] {
+  --background: #09090b;
+  --surface: #18181b;
+  --card: #27272a;
+  --border: rgba(255, 255, 255, 0.07);
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --secondary: #3b82f6;
+  --text-primary: #fafafa;
+  --text-secondary: #e4e4e7;
+  --text-muted: #a1a1aa;
+  --icon-color: #a5b4fc;
+  --shadow: rgba(0, 0, 0, 0.4);
+}
 
+[data-theme='light'] {
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --card: #f1f5f9;
+  --border: rgba(0, 0, 0, 0.08);
+  --primary: #5227eb;
+  --primary-hover: #431cd3;
+  --secondary: #10b981;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --icon-color: #4f46e5;
+  --shadow: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='midnight'] {
+  --background: #020205;
+  --surface: #07070f;
+  --card: #0c0d1b;
+  --border: rgba(99, 102, 241, 0.08);
+  --primary: #4338ca;
+  --primary-hover: #3730a3;
+  --secondary: #3b82f6;
+  --text-primary: #e0e7ff;
+  --text-secondary: #c7d2fe;
+  --text-muted: #818cf8;
+  --icon-color: #6366f1;
+  --shadow: rgba(0, 0, 0, 0.6);
+}
+
+[data-theme='emerald'] {
+  --background: #022c22;
+  --surface: #064e3b;
+  --card: #0f766e;
+  --border: rgba(255, 255, 255, 0.08);
+  --primary: #10b981;
+  --primary-hover: #059669;
+  --secondary: #14b8a6;
+  --text-primary: #f0fdf4;
+  --text-secondary: #a7f3d0;
+  --text-muted: #34d399;
+  --icon-color: #10b981;
+  --shadow: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='purple'] {
+  --background: #12001a;
+  --surface: #240033;
+  --card: #3a0052;
+  --border: rgba(217, 70, 239, 0.1);
+  --primary: #a855f7;
+  --primary-hover: #9333ea;
+  --secondary: #ec4899;
+  --text-primary: #faf5ff;
+  --text-secondary: #e9d5ff;
+  --text-muted: #c084fc;
+  --icon-color: #c084fc;
+  --shadow: rgba(0, 0, 0, 0.5);
+}
+
+/* Global Theme variables application with 300ms transition */
+body, html {
+  background-color: var(--background) !important;
+  color: var(--text-primary) !important;
+  transition: background-color 350ms ease, color 350ms ease;
+}
+
+aside, header, nav, .bg-\[\#0B0F19\], .bg-\[\#090d1e\], .bg-\[\#0b1026\] {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+  transition: background-color 350ms ease, border-color 350ms ease;
+}
+
+.bg-gradient-to-br, .bg-gradient-to-r, .bg-\[\#0B0F19\]\/60, .bg-\[\#0B0F19\]\/40, .bg-white\/\[0\.01\], .bg-white\/\[0\.03\], .bg-slate-955, .bg-slate-950\/40, .bg-white\/5, .bg-slate-900\/50, .bg-\[\#1E293B\]\/40, .bg-\[\#1E293B\]\/70, .bg-\[\#0F172A\]\/80, .bg-\[\#1e1b4b\]\/30, .bg-\[\#1E293B\]\/60, .bg-\[\#0F172A\]\/70, .bg-\[\#1E1B4B\] {
+  background-color: var(--card) !important;
+  background-image: none !important;
+  border-color: var(--border) !important;
+  transition: background-color 350ms ease, border-color 350ms ease;
+}
+
+/* Text overrides */
+h1, h2, h3, h4, h5, h6, .text-white, .text-slate-100 {
+  color: var(--text-primary) !important;
+}
+
+p, span, .text-slate-205, .text-slate-200, .text-slate-300, .text-slate-350, .text-slate-400, .text-slate-450 {
+  color: var(--text-secondary) !important;
+}
+
+.text-slate-500, .text-slate-550, .text-slate-650, .text-slate-600 {
+  color: var(--text-muted) !important;
+}
+
+.border, .border-white\/5, .border-white\/10, .border-t, .border-b, .border-l, .border-r {
+  border-color: var(--border) !important;
+}
+
+/* Inputs and interactive elements */
+input, select, textarea {
+  background-color: var(--background) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Keyframe animations for Hanging Lamp Switcher */
+@keyframes lamp-swing {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(3deg); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes lamp-swing-active {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+  100% { transform: rotate(0deg); }
+}
+.animate-swing {
+  transform-origin: top center;
+  animation: lamp-swing 4s ease-in-out infinite;
+}
+.animate-swing-active:hover {
+  transform-origin: top center;
+  animation: lamp-swing-active 1.5s ease-in-out infinite;
+}
