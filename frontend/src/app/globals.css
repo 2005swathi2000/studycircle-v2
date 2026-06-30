@@ -134,19 +134,19 @@ body::-webkit-scrollbar, html::-webkit-scrollbar {
 }
 
 /* Global Theme variables application with 300ms transition */
-body, html {
+html:not(.landing-html), html:not(.landing-html) body {
   background-color: var(--background) !important;
   color: var(--text-primary) !important;
   transition: background-color 350ms ease, color 350ms ease;
 }
 
-aside, header, nav, .bg-\[\#0B0F19\], .bg-\[\#090d1e\], .bg-\[\#0b1026\] {
+html:not(.landing-html) aside, html:not(.landing-html) header, html:not(.landing-html) nav, html:not(.landing-html) .bg-\[\#0B0F19\], html:not(.landing-html) .bg-\[\#090d1e\], html:not(.landing-html) .bg-\[\#0b1026\] {
   background-color: var(--surface) !important;
   border-color: var(--border) !important;
   transition: background-color 350ms ease, border-color 350ms ease;
 }
 
-.bg-gradient-to-br, .bg-gradient-to-r, .bg-\[\#0B0F19\]\/60, .bg-\[\#0B0F19\]\/40, .bg-white\/\[0\.01\], .bg-white\/\[0\.03\], .bg-slate-955, .bg-slate-950\/40, .bg-white\/5, .bg-slate-900\/50, .bg-\[\#1E293B\]\/40, .bg-\[\#1E293B\]\/70, .bg-\[\#0F172A\]\/80, .bg-\[\#1e1b4b\]\/30, .bg-\[\#1E293B\]\/60, .bg-\[\#0F172A\]\/70, .bg-\[\#1E1B4B\] {
+html:not(.landing-html) .bg-gradient-to-br, html:not(.landing-html) .bg-gradient-to-r, html:not(.landing-html) .bg-\[\#0B0F19\]\/60, html:not(.landing-html) .bg-\[\#0B0F19\]\/40, html:not(.landing-html) .bg-white\/\[0\.01\], html:not(.landing-html) .bg-white\/\[0\.03\], html:not(.landing-html) .bg-slate-955, html:not(.landing-html) .bg-slate-950\/40, html:not(.landing-html) .bg-white\/5, html:not(.landing-html) .bg-slate-900\/50, html:not(.landing-html) .bg-\[\#1E293B\]\/40, html:not(.landing-html) .bg-\[\#1E293B\]\/70, html:not(.landing-html) .bg-\[\#0F172A\]\/80, html:not(.landing-html) .bg-\[\#1e1b4b\]\/30, html:not(.landing-html) .bg-\[\#1E293B\]\/60, html:not(.landing-html) .bg-\[\#0F172A\]\/70, html:not(.landing-html) .bg-\[\#1E1B4B\] {
   background-color: var(--card) !important;
   background-image: none !important;
   border-color: var(--border) !important;
@@ -154,24 +154,24 @@ aside, header, nav, .bg-\[\#0B0F19\], .bg-\[\#090d1e\], .bg-\[\#0b1026\] {
 }
 
 /* Text overrides */
-h1, h2, h3, h4, h5, h6, .text-white, .text-slate-100 {
+html:not(.landing-html) h1, html:not(.landing-html) h2, html:not(.landing-html) h3, html:not(.landing-html) h4, html:not(.landing-html) h5, html:not(.landing-html) h6, html:not(.landing-html) .text-white, html:not(.landing-html) .text-slate-100 {
   color: var(--text-primary) !important;
 }
 
-p, span, .text-slate-205, .text-slate-200, .text-slate-300, .text-slate-350, .text-slate-400, .text-slate-450 {
+html:not(.landing-html) p, html:not(.landing-html) span, html:not(.landing-html) .text-slate-205, html:not(.landing-html) .text-slate-200, html:not(.landing-html) .text-slate-300, html:not(.landing-html) .text-slate-350, html:not(.landing-html) .text-slate-400, html:not(.landing-html) .text-slate-450 {
   color: var(--text-secondary) !important;
 }
 
-.text-slate-500, .text-slate-550, .text-slate-650, .text-slate-600 {
+html:not(.landing-html) .text-slate-500, html:not(.landing-html) .text-slate-550, html:not(.landing-html) .text-slate-650, html:not(.landing-html) .text-slate-600 {
   color: var(--text-muted) !important;
 }
 
-.border, .border-white\/5, .border-white\/10, .border-t, .border-b, .border-l, .border-r {
+html:not(.landing-html) .border, html:not(.landing-html) .border-white\/5, html:not(.landing-html) .border-white\/10, html:not(.landing-html) .border-t, html:not(.landing-html) .border-b, html:not(.landing-html) .border-l, html:not(.landing-html) .border-r {
   border-color: var(--border) !important;
 }
 
 /* Inputs and interactive elements */
-input, select, textarea {
+html:not(.landing-html) input, html:not(.landing-html) select, html:not(.landing-html) textarea {
   background-color: var(--background) !important;
   border-color: var(--border) !important;
   color: var(--text-primary) !important;

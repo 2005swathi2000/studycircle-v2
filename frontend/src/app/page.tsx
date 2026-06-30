@@ -103,6 +103,21 @@ export default function Home() {
     }
   }, []);
 
+  // Scope styling classes to reset background variable overrides
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      document.documentElement.classList.add('landing-html');
+      document.body.classList.add('landing-body');
+      document.documentElement.removeAttribute('data-theme');
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        document.documentElement.classList.remove('landing-html');
+        document.body.classList.remove('landing-body');
+      }
+    };
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
