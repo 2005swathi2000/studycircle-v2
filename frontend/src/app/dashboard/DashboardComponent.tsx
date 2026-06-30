@@ -2416,24 +2416,44 @@ Based on your desking logs and consistency, the AI tutor recommends:
               <div 
                 onClick={() => setShowThemeSelector(!showThemeSelector)}
                 className="group relative cursor-pointer flex flex-col items-center animate-swing hover:animate-swing-active"
-                title="Pull rope to toggle theme selector"
+                title="Click the lamp to toggle theme selector"
               >
-                {/* Rope */}
-                <div className="w-[1.5px] h-14 bg-slate-550/80 group-hover:bg-indigo-400 transition-colors" />
+                {/* Braided Rope */}
+                <div className="w-[3px] h-16 bg-[repeating-linear-gradient(45deg,#3A281E,#3A281E_2px,#5C3C24_2px,#5C3C24_4px)] rounded-full shadow-md group-hover:brightness-110 transition-all" />
                 
-                {/* Socket cap */}
-                <div className="w-3.5 h-1.5 bg-slate-700 rounded-t-sm" />
+                {/* Metallic loop (ring) */}
+                <div className="w-4 h-4 rounded-full border-2 border-slate-600 bg-transparent -mt-1 flex items-center justify-center z-10 shadow-sm" />
+
+                {/* Cylindrical Socket Cap */}
+                <div className="w-5 h-2.5 bg-slate-800 border-t border-slate-700 rounded-sm -mt-0.5 z-10 shadow-inner" />
                 
-                {/* Lamp shade or bulb */}
-                <div className="relative w-8 h-8 bg-slate-850 rounded-full flex items-center justify-center border border-slate-700 shadow-inner group-hover:border-amber-400/50 transition-colors">
-                  <div className="absolute inset-0.5 rounded-full bg-amber-400/10 group-hover:bg-amber-400/30 animate-pulse transition-colors" />
-                  <span className="text-xs z-10 filter drop-shadow-[0_0_4px_rgba(245,158,11,0.5)]">💡</span>
+                {/* Flared dome lamp shade */}
+                <div className="w-14 h-7 bg-slate-900 border border-slate-700 rounded-[50%_50%_15%_15%] shadow-lg relative -mt-0.5 z-10 flex items-center justify-center">
+                  <div className="absolute inset-x-0.5 bottom-0 h-[2px] bg-amber-500/20" />
+                </div>
+
+                {/* Glowing Lightbulb */}
+                <div className="w-6.5 h-6.5 bg-gradient-to-b from-amber-300/30 to-amber-400/10 border border-amber-300/40 rounded-full -mt-1 flex items-center justify-center relative shadow-[0_4px_15px_rgba(245,158,11,0.4)] z-20">
+                  <div className="absolute inset-0.5 rounded-full bg-amber-400/5 group-hover:bg-amber-400/20 animate-pulse transition-all" />
+                  {/* Filament */}
+                  <div className="w-1.5 h-2.5 rounded-t-full bg-white shadow-[0_0_8px_#FFF,0_0_3px_#F59E0B]" />
                 </div>
                 
-                {/* Glow backdrop cone */}
-                <div className="absolute top-20 w-12 h-12 bg-amber-400/5 group-hover:bg-amber-400/15 blur-lg rounded-full pointer-events-none transition-all duration-300" />
+                {/* Glowing cone backdrop */}
+                <div className="absolute top-24 w-16 h-16 bg-amber-400/5 group-hover:bg-amber-400/15 blur-lg rounded-full pointer-events-none transition-all duration-300" />
+                
+                {/* Spark particles */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute top-16 left-[-10px] w-1 h-1 rounded-full bg-amber-400/70 blur-[0.5px] animate-pulse" />
+                  <div className="absolute top-20 right-[-8px] w-1.5 h-1.5 rounded-full bg-amber-400/60 blur-[0.5px] animate-pulse delay-75" />
+                  <div className="absolute top-24 left-[8px] w-1 h-1 rounded-full bg-amber-300/50 blur-[0.5px] animate-pulse delay-150" />
+                </div>
               </div>
-              <span className="text-[8px] font-black uppercase text-slate-450 tracking-widest mt-3.5 text-center block">Theme Lamp</span>
+
+              <div className="text-center mt-3.5 space-y-0.5">
+                <span className="text-[10px] font-black uppercase text-slate-350 tracking-wider block font-mono">Appearance</span>
+                <span className="text-[8px] font-semibold text-slate-450 block">Click the lamp to change theme</span>
+              </div>
             </div>
 
             {/* Floating theme selection dropdown/popup */}

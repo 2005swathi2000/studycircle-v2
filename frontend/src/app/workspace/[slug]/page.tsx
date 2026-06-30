@@ -509,6 +509,23 @@ export default function WorkspacePage() {
   ]);
   const [newChecklistText, setNewChecklistText] = useState('');
 
+  // Global Theme persistence
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('studycircle_theme') || 'default';
+    }
+    return 'default';
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('studycircle_theme', theme);
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+  }, [theme]);
+
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
+
   // Pomodoro countdown timer logic
   useEffect(() => {
     let intervalId: any = null;
@@ -1725,6 +1742,82 @@ export default function WorkspacePage() {
             );
           })}
         </nav>
+
+        {/* Hanging Lamp theme switcher */}
+        <div className="relative flex flex-col items-center pt-2 pb-6 border-t border-b border-white/5 select-none shrink-0">
+          <div 
+            onClick={() => setShowThemeSelector(!showThemeSelector)}
+            className="group relative cursor-pointer flex flex-col items-center animate-swing hover:animate-swing-active"
+            title="Click the lamp to toggle theme selector"
+          >
+            {/* Braided Rope */}
+            <div className="w-[3px] h-14 bg-[repeating-linear-gradient(45deg,#3A281E,#3A281E_2px,#5C3C24_2px,#5C3C24_4px)] rounded-full shadow-md group-hover:brightness-110 transition-all" />
+            
+            {/* Metallic loop (ring) */}
+            <div className="w-4 h-4 rounded-full border-2 border-slate-600 bg-transparent -mt-1 flex items-center justify-center z-10 shadow-sm" />
+
+            {/* Cylindrical Socket Cap */}
+            <div className="w-5 h-2.5 bg-slate-800 border-t border-slate-700 rounded-sm -mt-0.5 z-10 shadow-inner" />
+            
+            {/* Flared dome lamp shade */}
+            <div className="w-14 h-7 bg-slate-900 border border-slate-700 rounded-[50%_50%_15%_15%] shadow-lg relative -mt-0.5 z-10 flex items-center justify-center">
+              <div className="absolute inset-x-0.5 bottom-0 h-[2px] bg-amber-500/20" />
+            </div>
+
+            {/* Glowing Lightbulb */}
+            <div className="w-6.5 h-6.5 bg-gradient-to-b from-amber-300/30 to-amber-400/10 border border-amber-300/40 rounded-full -mt-1 flex items-center justify-center relative shadow-[0_4px_15px_rgba(245,158,11,0.4)] z-20">
+              <div className="absolute inset-0.5 rounded-full bg-amber-400/5 group-hover:bg-amber-400/20 animate-pulse transition-all" />
+              {/* Filament */}
+              <div className="w-1.5 h-2.5 rounded-t-full bg-white shadow-[0_0_8px_#FFF,0_0_3px_#F59E0B]" />
+            </div>
+            
+            {/* Glowing cone backdrop */}
+            <div className="absolute top-24 w-16 h-16 bg-amber-400/5 group-hover:bg-amber-400/15 blur-lg rounded-full pointer-events-none transition-all duration-300" />
+            
+            {/* Spark particles */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute top-14 left-[-8px] w-1 h-1 rounded-full bg-amber-400/70 blur-[0.5px] animate-pulse" />
+              <div className="absolute top-18 right-[-6px] w-1.5 h-1.5 rounded-full bg-amber-400/60 blur-[0.5px] animate-pulse delay-75" />
+            </div>
+          </div>
+
+          <div className="text-center mt-3.5 space-y-0.5">
+            <span className="text-[10px] font-black uppercase text-slate-350 tracking-wider block font-mono">Appearance</span>
+            <span className="text-[8px] font-semibold text-slate-450 block font-sans">Click the lamp to change theme</span>
+          </div>
+
+          {/* Inline Theme selection options list */}
+          {showThemeSelector && (
+            <div className="w-11/12 bg-[#070b16]/90 border border-white/10 rounded-2xl p-2.5 mt-3.5 space-y-1.5 animate-in zoom-in-95 duration-150 z-50">
+              <div className="text-[8px] font-black uppercase text-slate-500 tracking-wider px-2">Theme Selector</div>
+              {[
+                { id: 'default', label: '🎨 Default' },
+                { id: 'dark', label: '🌙 Charcoal Dark' },
+                { id: 'light', label: '☀️ Clean Light' },
+                { id: 'midnight', label: '🌌 Midnight Blue' },
+                { id: 'emerald', label: '🌿 Cosmic Emerald' },
+                { id: 'purple', label: '💜 Mystic Purple' }
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setTheme(t.id);
+                    showToast(`Theme changed to ${t.label}!`, 'success');
+                    setShowThemeSelector(false);
+                  }}
+                  className={`w-full px-2.5 py-1.5 text-left rounded-xl text-[10px] font-bold transition-all border-none flex items-center justify-between cursor-pointer ${
+                    theme === t.id 
+                      ? 'bg-indigo-650 text-white font-extrabold shadow-sm' 
+                      : 'text-slate-400 hover:bg-white/5 hover:text-white bg-transparent'
+                  }`}
+                >
+                  <span>{t.label}</span>
+                  {theme === t.id && <span className="text-[9px] text-emerald-450">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Back navigation */}
         <div className="p-4 border-t border-white/5 shrink-0">

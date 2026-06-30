@@ -213,7 +213,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/5">
           <div className="text-left space-y-1">
             <h1 className="text-2xl font-black text-white tracking-tight">
-              {getGreeting()}, {user?.firstName || 'Charan'}! 👋
+              {getGreeting()}! 👋
             </h1>
             <p className="text-xs text-slate-400 font-semibold leading-relaxed">Let's coordinate focus desking to keep your placement ready milestones accelerating.</p>
           </div>
