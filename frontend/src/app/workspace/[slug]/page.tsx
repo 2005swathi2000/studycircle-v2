@@ -264,6 +264,585 @@ const getAvatarByName = (fullName: string | null | undefined, gender?: string): 
   return '/charan-avatar.png';
 };
 
+interface Lesson {
+  id: string;
+  title: string;
+  duration: string;
+  challenge: {
+    question: string;
+    options: string[];
+    correctIndex: number;
+    explanation: string;
+  };
+  resources: Array<{ name: string; size: string; type: string }>;
+  discussions: Array<{ title: string; author: string; replies: number; time: string }>;
+}
+
+interface PathDetails {
+  badge: string;
+  xpReward: number;
+  lessons: Lesson[];
+}
+
+interface SubjectData {
+  beginner: PathDetails;
+  intermediate: PathDetails;
+  advanced: PathDetails;
+}
+
+const subjectPathData: Record<string, SubjectData> = {
+  'ai-machine-learning': {
+    beginner: {
+      badge: '🟢 Beginner',
+      xpReward: 10,
+      lessons: [
+        {
+          id: 'ai-beg-1',
+          title: 'What is Artificial Intelligence?',
+          duration: '10m read',
+          challenge: {
+            question: 'Which of the following best defines Turing Test?',
+            options: [
+              'A test of a machine\'s ability to exhibit intelligent behavior equivalent to, or indistinguishable from, that of a human',
+              'A compiler speed test',
+              'A test to check CPU instruction limits',
+              'An optimization test for neural nets'
+            ],
+            correctIndex: 0,
+            explanation: 'The Turing Test, developed by Alan Turing in 1950, is a test of a machine\'s ability to exhibit intelligent behavior indistinguishable from a human.'
+          },
+          resources: [
+            { name: 'AI Introduction Notes.pdf', size: '1.4 MB', type: 'pdf' },
+            { name: 'History of AI Timeline.pdf', size: '0.8 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'Is Turing Test still relevant in the age of LLMs?', author: 'Charan', replies: 5, time: '2h ago' },
+            { title: 'Welcome to AI track! Introduce yourselves.', author: 'Rathna', replies: 12, time: '1d ago' }
+          ]
+        },
+        {
+          id: 'ai-beg-2',
+          title: 'Machine Learning Basics',
+          duration: '15m read',
+          challenge: {
+            question: 'What is the main difference between Supervised and Unsupervised Learning?',
+            options: [
+              'Supervised learning uses labeled training data; unsupervised learning finds patterns in unlabeled data',
+              'Supervised learning is faster',
+              'Unsupervised learning requires active human supervisors',
+              'There is no difference'
+            ],
+            correctIndex: 0,
+            explanation: 'Supervised learning works on labeled inputs to map features to target values, whereas unsupervised learning analyzes structure and clustering in unlabeled data.'
+          },
+          resources: [
+            { name: 'ML Labeled vs Unlabeled.pdf', size: '2.1 MB', type: 'pdf' },
+            { name: 'Intro to Algorithms cheatsheet.pdf', size: '1.1 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'Real-world examples of unsupervised learning?', author: 'Swapna', replies: 3, time: '4h ago' }
+          ]
+        },
+        {
+          id: 'ai-beg-3',
+          title: 'Linear & Logistic Regression',
+          duration: '20m study',
+          challenge: {
+            question: 'Which loss function is commonly used for Linear Regression?',
+            options: [
+              'Mean Squared Error (MSE)',
+              'Binary Cross-Entropy',
+              'Categorical Cross-Entropy',
+              'Hinge Loss'
+            ],
+            correctIndex: 0,
+            explanation: 'Mean Squared Error (MSE) measures the average squared differences between predicted values and actual coordinates, making it perfect for regression lines.'
+          },
+          resources: [
+            { name: 'Math Behind Regression.pdf', size: '3.2 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'Why is Logistic Regression called regression if it classifies?', author: 'Charan', replies: 8, time: '10h ago' }
+          ]
+        }
+      ]
+    },
+    intermediate: {
+      badge: '🟡 Intermediate',
+      xpReward: 20,
+      lessons: [
+        {
+          id: 'ai-int-1',
+          title: 'Neural Network Architectures',
+          duration: '25m study',
+          challenge: {
+            question: 'What is the primary function of an activation function like ReLU in a neural network?',
+            options: [
+              'To introduce non-linearity into the network',
+              'To normalize the dataset elements',
+              'To speed up model saving times',
+              'To calculate derivative loss'
+            ],
+            correctIndex: 0,
+            explanation: 'Without non-linear activation functions like Rectified Linear Unit (ReLU), a neural network with any number of layers behaves exactly like a single-layer linear model.'
+          },
+          resources: [
+            { name: 'Deep Learning Part1.pdf', size: '4.5 MB', type: 'pdf' },
+            { name: 'Activations compared.xlsx', size: '0.4 MB', type: 'xlsx' }
+          ],
+          discussions: [
+            { title: 'Why choose ReLU over Sigmoid or Tanh in hidden layers?', author: 'Swapna', replies: 7, time: '5h ago' }
+          ]
+        },
+        {
+          id: 'ai-int-2',
+          title: 'Convolutional Neural Networks (CNNs)',
+          duration: '30m study',
+          challenge: {
+            question: 'In CNNs, what is the primary role of Max Pooling layers?',
+            options: [
+              'To reduce spatial dimensions (width and height) while retaining critical feature information',
+              'To multiply filter weights',
+              'To flatten the image data matrix',
+              'To pad image margins with zeros'
+            ],
+            correctIndex: 0,
+            explanation: 'Max Pooling scales down spatial representations, decreasing the network parameters count, which reduces computation load and controls overfitting.'
+          },
+          resources: [
+            { name: 'CNN Image Kernels.zip', size: '12.8 MB', type: 'zip' },
+            { name: 'Pooling and Strides visual guide.pdf', size: '2.5 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'How does stride size affect output dimensions?', author: 'Rathna', replies: 2, time: '3h ago' }
+          ]
+        },
+        {
+          id: 'ai-int-3',
+          title: 'Recurrent Neural Networks (RNNs) & LSTM',
+          duration: '35m study',
+          challenge: {
+            question: 'What major problem in standard RNNs do LSTMs resolve?',
+            options: [
+              'Vanishing and Exploding Gradients over long sequences',
+              'Slow training times',
+              'Image feature extraction errors',
+              'High learning rate spikes'
+            ],
+            correctIndex: 0,
+            explanation: 'Long Short-Term Memory (LSTM) networks introduce forget, input, and output gates that regulate gradient flow, solving vanishing gradient issues for long-term sequences.'
+          },
+          resources: [
+            { name: 'RNN and Sequential data.pdf', size: '3.6 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'LSTMs vs GRUs: Which is better for small sequence models?', author: 'Charan', replies: 4, time: '1d ago' }
+          ]
+        }
+      ]
+    },
+    advanced: {
+      badge: '🔴 Advanced',
+      xpReward: 50,
+      lessons: [
+        {
+          id: 'ai-adv-1',
+          title: 'Attention & Transformers',
+          duration: '45m study',
+          challenge: {
+            question: 'What is the core innovation introduced in the paper "Attention Is All You Need"?',
+            options: [
+              'Self-Attention mechanism eliminating recurrent structure for parallel token processing',
+              'Stochastic Gradient Descent',
+              'Batch Normalization layers',
+              'Fully connected linear capsules'
+            ],
+            correctIndex: 0,
+            explanation: 'The Self-Attention mechanism allows the model to analyze dependencies between distant tokens instantly, replacing sequential loops with parallel matrix calculations.'
+          },
+          resources: [
+            { name: 'Attention Is All You Need.pdf', size: '5.2 MB', type: 'pdf' },
+            { name: 'Transformer Math formulas.docx', size: '1.2 MB', type: 'docx' }
+          ],
+          discussions: [
+            { title: 'Breaking down Key, Value, and Query matrices', author: 'Rathna', replies: 11, time: '6h ago' },
+            { title: 'Has anyone read the Attention paper recently?', author: 'Swapna', replies: 6, time: '2d ago' }
+          ]
+        },
+        {
+          id: 'ai-adv-2',
+          title: 'Large Language Models (LLMs)',
+          duration: '50m study',
+          challenge: {
+            question: 'Which method uses low-rank adaptation to fine-tune LLMs efficiently?',
+            options: [
+              'LoRA (Low-Rank Adaptation)',
+              'Full parameter updates',
+              'Quantization only',
+              'RLHF alignment only'
+            ],
+            correctIndex: 0,
+            explanation: 'LoRA freezes the pre-trained model weights and injects trainable rank decomposition matrices into each layer, drastically reducing trainable parameter counts.'
+          },
+          resources: [
+            { name: 'LoRA Fine-tuning parameters script.py', size: '15 KB', type: 'py' },
+            { name: 'LLM Quantization guide.pdf', size: '3.0 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'LoRA vs QLoRA: VRAM requirements comparison', author: 'Charan', replies: 9, time: '12h ago' }
+          ]
+        },
+        {
+          id: 'ai-adv-3',
+          title: 'Reinforcement Learning & Alignment',
+          duration: '55m study',
+          challenge: {
+            question: 'What does RLHF stand for in LLM training methodologies?',
+            options: [
+              'Reinforcement Learning from Human Feedback',
+              'Recurrent Loss with Hinge Filters',
+              'Randomized Linear Hybrid Function',
+              'Rate Limit Hybrid Feeders'
+            ],
+            correctIndex: 0,
+            explanation: 'Reinforcement Learning from Human Feedback (RLHF) optimizes LLM response alignment by training a reward model based on human quality rankings.'
+          },
+          resources: [
+            { name: 'RLHF Alignment pipelines.pdf', size: '4.1 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'DPO (Direct Preference Optimization) vs RLHF', author: 'Swapna', replies: 3, time: '1d ago' }
+          ]
+        }
+      ]
+    }
+  },
+  'programming-dsa': {
+    beginner: {
+      badge: '🟢 Beginner',
+      xpReward: 10,
+      lessons: [
+        {
+          id: 'dsa-beg-1',
+          title: 'Time & Space Complexity',
+          duration: '12m read',
+          challenge: {
+            question: 'What is the time complexity of searching in a sorted array using Binary Search?',
+            options: [
+              'O(log N)',
+              'O(N)',
+              'O(N log N)',
+              'O(1)'
+            ],
+            correctIndex: 0,
+            explanation: 'Binary Search halves the search space at each step, resulting in a logarithmic O(log N) time complexity.'
+          },
+          resources: [
+            { name: 'Big O Complexity cheatsheet.pdf', size: '1.2 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'How to calculate Space Complexity for recursive calls?', author: 'Charan', replies: 4, time: '4h ago' }
+          ]
+        },
+        {
+          id: 'dsa-beg-2',
+          title: 'Arrays & Dynamic Lists',
+          duration: '15m study',
+          challenge: {
+            question: 'What is the time complexity of inserting an element at the beginning of a dynamic array?',
+            options: [
+              'O(N)',
+              'O(1)',
+              'O(log N)',
+              'O(N^2)'
+            ],
+            correctIndex: 0,
+            explanation: 'Inserting at index 0 requires shifting all existing N elements to the right, which takes O(N) linear time.'
+          },
+          resources: [
+            { name: 'Arrays Memory Allocation.pdf', size: '1.8 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'Vector in C++ vs ArrayList in Java implementation details', author: 'Swapna', replies: 2, time: '6h ago' }
+          ]
+        }
+      ]
+    },
+    intermediate: {
+      badge: '🟡 Intermediate',
+      xpReward: 20,
+      lessons: [
+        {
+          id: 'dsa-int-1',
+          title: 'Linked Lists & Two Pointers',
+          duration: '22m study',
+          challenge: {
+            question: 'Which algorithm detects cycles in a Linked List using two pointers moving at different speeds?',
+            options: [
+              'Floyd\'s Cycle-Finding Algorithm (Tortoise and Hare)',
+              'Dijkstra\'s Algorithm',
+              'Kruskal\'s Algorithm',
+              'Kadane\'s Algorithm'
+            ],
+            correctIndex: 0,
+            explanation: 'Floyd\'s cycle-finding algorithm uses a slow pointer (1 step) and a fast pointer (2 steps). If a cycle exists, they will eventually meet.'
+          },
+          resources: [
+            { name: 'Pointer Reversals guide.pdf', size: '2.2 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'Stack overflow in recursion vs iterative cycle check', author: 'Rathna', replies: 3, time: '3h ago' }
+          ]
+        },
+        {
+          id: 'dsa-int-2',
+          title: 'Stacks & Queues',
+          duration: '25m study',
+          challenge: {
+            question: 'Which data structure is best suited for implementing Breadth-First Search (BFS)?',
+            options: [
+              'Queue (FIFO)',
+              'Stack (LIFO)',
+              'Binary Search Tree',
+              'Priority Queue'
+            ],
+            correctIndex: 0,
+            explanation: 'BFS explores node levels sequentially. A queue ensures nodes are visited in the order they were discovered (First In First Out).'
+          },
+          resources: [
+            { name: 'BFS queue structures.zip', size: '5.1 MB', type: 'zip' }
+          ],
+          discussions: [
+            { title: 'Implementing a queue using two stacks logic', author: 'Charan', replies: 5, time: '8h ago' }
+          ]
+        }
+      ]
+    },
+    advanced: {
+      badge: '🔴 Advanced',
+      xpReward: 50,
+      lessons: [
+        {
+          id: 'dsa-adv-1',
+          title: 'Dynamic Programming (DP)',
+          duration: '40m study',
+          challenge: {
+            question: 'What is the time complexity of the 0/1 Knapsack problem using Dynamic Programming with N items and Capacity W?',
+            options: [
+              'O(N * W)',
+              'O(2^N)',
+              'O(N + W)',
+              'O(N log W)'
+            ],
+            correctIndex: 0,
+            explanation: 'DP constructs a 2D table of size N x W, updating each cell in constant time, resulting in O(N * W) time complexity.'
+          },
+          resources: [
+            { name: 'Dynamic Programming TopDown vs BottomUp.pdf', size: '3.5 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'How to optimize 2D DP matrices to 1D arrays?', author: 'Rathna', replies: 9, time: '5h ago' }
+          ]
+        },
+        {
+          id: 'dsa-adv-2',
+          title: 'Graph Algorithms & Trees',
+          duration: '45m study',
+          challenge: {
+            question: 'What is the time complexity of Dijkstra\'s Algorithm using a Binary Min-Heap?',
+            options: [
+              'O((V + E) log V)',
+              'O(V^2)',
+              'O(V * E)',
+              'O(E^2)'
+            ],
+            correctIndex: 0,
+            explanation: 'With a binary heap, extracting min and updating decrease-key actions take O(log V), resulting in O((V + E) log V) overall.'
+          },
+          resources: [
+            { name: 'Dijkstra Min-Heap code.zip', size: '8.4 MB', type: 'zip' }
+          ],
+          discussions: [
+            { title: 'When does Dijkstra fail? (Negative weight edges)', author: 'Swapna', replies: 6, time: '1d ago' }
+          ]
+        }
+      ]
+    }
+  },
+  'web-development': {
+    beginner: {
+      badge: '🟢 Beginner',
+      xpReward: 10,
+      lessons: [
+        {
+          id: 'web-beg-1',
+          title: 'HTML5 Semantic Layouts',
+          duration: '10m read',
+          challenge: {
+            question: 'Which of the following is a semantic HTML5 tag representing self-contained content?',
+            options: [
+              '<article>',
+              '<div>',
+              '<span>',
+              '<section-container>'
+            ],
+            correctIndex: 0,
+            explanation: '<article> represents an independent, self-contained composition in a document, article, or site.'
+          },
+          resources: [
+            { name: 'HTML5 Semantic structures.pdf', size: '1.0 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'Why semantic tags help search engines?', author: 'Charan', replies: 3, time: '1d ago' }
+          ]
+        }
+      ]
+    },
+    intermediate: {
+      badge: '🟡 Intermediate',
+      xpReward: 20,
+      lessons: [
+        {
+          id: 'web-int-1',
+          title: 'CSS Grid & Flexbox layouts',
+          duration: '20m study',
+          challenge: {
+            question: 'Which property defines the alignment of items along the main-axis inside a Flexbox container?',
+            options: [
+              'justify-content',
+              'align-items',
+              'flex-direction',
+              'align-content'
+            ],
+            correctIndex: 0,
+            explanation: 'justify-content distributes space between and around flex items along the main-axis of their container.'
+          },
+          resources: [
+            { name: 'CSS Grid cheatsheet template.pdf', size: '1.8 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'When to choose Flexbox over Grid?', author: 'Swapna', replies: 4, time: '12h ago' }
+          ]
+        }
+      ]
+    },
+    advanced: {
+      badge: '🔴 Advanced',
+      xpReward: 50,
+      lessons: [
+        {
+          id: 'web-adv-1',
+          title: 'Server-Side Rendering (SSR) & Next.js',
+          duration: '40m study',
+          challenge: {
+            question: 'What Next.js configuration is used to optimize static page generation paths dynamically?',
+            options: [
+              'generateStaticParams()',
+              'getServerSideProps()',
+              'getStaticProps()',
+              'export const dynamic = "force-static"'
+            ],
+            correctIndex: 0,
+            explanation: 'In the Next.js App Router, generateStaticParams() is used to define the list of route segment parameters that will be statically generated at build time.'
+          },
+          resources: [
+            { name: 'Nextjs App Router pipelines.pdf', size: '3.1 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'Server components vs Client components rendering times', author: 'Rathna', replies: 8, time: '2d ago' }
+          ]
+        }
+      ]
+    }
+  },
+  'general-study': {
+    beginner: {
+      badge: '🟢 Beginner',
+      xpReward: 10,
+      lessons: [
+        {
+          id: 'gen-beg-1',
+          title: 'Effective Note Taking',
+          duration: '8m read',
+          challenge: {
+            question: 'Which note-taking technique splits the page into Notes, Cues, and Summary columns?',
+            options: [
+              'Cornell Method',
+              'Mind Mapping',
+              'Outlining Method',
+              'Sentence Method'
+            ],
+            correctIndex: 0,
+            explanation: 'The Cornell Note-taking System divides a page into cue, note, and summary areas to facilitate active review.'
+          },
+          resources: [
+            { name: 'Cornell template layout.pdf', size: '0.8 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'Do you take handwritten or digital notes?', author: 'Charan', replies: 6, time: '2h ago' }
+          ]
+        }
+      ]
+    },
+    intermediate: {
+      badge: '🟡 Intermediate',
+      xpReward: 20,
+      lessons: [
+        {
+          id: 'gen-int-1',
+          title: 'Feynman Study Technique',
+          duration: '15m study',
+          challenge: {
+            question: 'What is the core step of the Feynman Technique?',
+            options: [
+              'Explain the concept to a child or someone unfamiliar with it in simple terms',
+              'Highlight the entire textbook page',
+              'Solve 100 practice exercises in a row',
+              'Reread notes until memorized'
+            ],
+            correctIndex: 0,
+            explanation: 'The Feynman Technique involves attempting to explain a complex topic in simple language to identify gaps in your own understanding.'
+          },
+          resources: [
+            { name: 'Feynman simplified learning.pdf', size: '1.2 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'Sharing my experience using Feynman on DSA topics', author: 'Swapna', replies: 5, time: '4h ago' }
+          ]
+        }
+      ]
+    },
+    advanced: {
+      badge: '🔴 Advanced',
+      xpReward: 50,
+      lessons: [
+        {
+          id: 'gen-adv-1',
+          title: 'Active Recall & Spaced Repetition',
+          duration: '20m study',
+          challenge: {
+            question: 'What algorithm is commonly utilized in digital flashcard software like Anki?',
+            options: [
+              'SuperMemo SM-2',
+              'Dijkstra\'s shortest path',
+              'Turing state machine',
+              'Kadane\'s array offset'
+            ],
+            correctIndex: 0,
+            explanation: 'SM-2 is a spacing algorithm used to compute optimal repetition intervals based on user responses.'
+          },
+          resources: [
+            { name: 'Spaced repetition systems.pdf', size: '2.5 MB', type: 'pdf' }
+          ],
+          discussions: [
+            { title: 'Best intervals for reviewing coding formulas', author: 'Rathna', replies: 4, time: '1d ago' }
+          ]
+        }
+      ]
+    }
+  }
+};
+
 export default function WorkspacePage() {
   const router = useRouter();
   const params = useParams();
@@ -403,7 +982,125 @@ export default function WorkspacePage() {
   const [todayChallengeFeedback, setTodayChallengeFeedback] = useState<'correct' | 'wrong' | null>(null);
 
   // Learning Level State
-  const [learningLevel, setLearningLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+  const [learningLevel, setLearningLevel] = useState<'beginner' | 'intermediate' | 'advanced'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('sc_level_' + slug) as any) || 'beginner';
+    }
+    return 'beginner';
+  });
+
+  const [activeLessonId, setActiveLessonId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('sc_lesson_' + slug) || '';
+    }
+    return '';
+  });
+
+  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return JSON.parse(localStorage.getItem('sc_completed_' + slug) || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  const [fadeTransition, setFadeTransition] = useState(false);
+
+  const [solvedLessonChallengeIds, setSolvedLessonChallengeIds] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return JSON.parse(localStorage.getItem('sc_solved_challenges_' + slug) || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  const getSubjectKey = () => {
+    if (!group?.subject) return 'general-study';
+    const subj = group.subject.toLowerCase();
+    if (subj.includes('machine') || subj.includes('ai')) return 'ai-machine-learning';
+    if (subj.includes('dsa') || subj.includes('data structure') || subj.includes('programming')) return 'programming-dsa';
+    if (subj.includes('web')) return 'web-development';
+    return 'general-study';
+  };
+
+  const getActivePath = () => {
+    const key = getSubjectKey();
+    return subjectPathData[key]?.[learningLevel] || subjectPathData['general-study'].beginner;
+  };
+
+  const handleSelectLesson = (lessonId: string) => {
+    setFadeTransition(true);
+    setTimeout(() => {
+      setActiveLessonId(lessonId);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sc_lesson_' + slug, lessonId);
+      }
+      setFadeTransition(false);
+    }, 150);
+  };
+
+  const handleSwitchLevel = (level: 'beginner' | 'intermediate' | 'advanced') => {
+    setFadeTransition(true);
+    setTimeout(() => {
+      setLearningLevel(level);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sc_level_' + slug, level);
+      }
+      const key = getSubjectKey();
+      const firstId = subjectPathData[key]?.[level]?.lessons[0]?.id || '';
+      setActiveLessonId(firstId);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sc_lesson_' + slug, firstId);
+      }
+      setFadeTransition(false);
+    }, 150);
+  };
+
+  const handleToggleLessonComplete = (lessonId: string) => {
+    setCompletedLessonIds((prev) => {
+      const next = prev.includes(lessonId) 
+        ? prev.filter((id) => id !== lessonId) 
+        : [...prev, lessonId];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sc_completed_' + slug, JSON.stringify(next));
+      }
+      return next;
+    });
+  };
+
+  // Sync active lesson with AI context
+  useEffect(() => {
+    if (!group) return;
+    const subjKey = getSubjectKey();
+    const path = subjectPathData[subjKey]?.[learningLevel];
+    const lesson = path?.lessons.find(l => l.id === activeLessonId);
+    if (typeof window !== 'undefined') {
+      (window as any).aiTutorContext = {
+        subject: group.subject,
+        level: learningLevel,
+        activeLesson: lesson?.title || ''
+      };
+      window.dispatchEvent(new CustomEvent('sc-context-updated'));
+    }
+  }, [learningLevel, activeLessonId, group]);
+
+  // Handle auto-initialization of lesson id
+  useEffect(() => {
+    if (group && !activeLessonId) {
+      const key = getSubjectKey();
+      const firstId = subjectPathData[key]?.[learningLevel]?.lessons[0]?.id || '';
+      setActiveLessonId(firstId);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sc_lesson_' + slug, firstId);
+      }
+    }
+  }, [group, learningLevel, activeLessonId]);
 
   // Notes state
   const [notes, setNotes] = useState<Note[]>([]);
@@ -1845,14 +2542,15 @@ export default function WorkspacePage() {
           <div className="flex items-center gap-4 text-left">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[9px] font-black uppercase text-indigo-400 tracking-wider">Active Workspace</span>
-                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${
-                  group?.isPublic ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/10' : 'bg-rose-500/10 text-rose-455 border border-rose-500/10'
+                <span className="text-[9px] font-black uppercase text-indigo-400 tracking-wider">Active Desk</span>
+                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border ${
+                  learningLevel === 'beginner' 
+                    ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' 
+                    : learningLevel === 'intermediate' 
+                      ? 'bg-amber-500/10 text-amber-450 border-amber-500/20' 
+                      : 'bg-rose-500/10 text-rose-450 border-rose-500/20'
                 }`}>
-                  {group?.isPublic ? '🌍 Public' : '🔒 Private'}
-                </span>
-                <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/10">
-                  🟢 4 active
+                  {learningLevel === 'beginner' ? '🟢 Beginner' : learningLevel === 'intermediate' ? '🟡 Intermediate' : '🔴 Advanced'} Track
                 </span>
               </div>
               <h2 className="text-sm font-extrabold text-white leading-tight mt-0.5">{group?.name || 'Interactive Room'}</h2>
@@ -1919,11 +2617,11 @@ export default function WorkspacePage() {
           <div className="lg:col-span-3 space-y-8 text-left">
             
             {/* WELCOME BANNER & LEARNING PATH HERO */}
-            <section className="bg-gradient-to-br from-[#0b1224] via-[#070b16] to-[#120b24] border border-white/5 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center justify-between relative overflow-hidden shadow-2xl">
+            <section className="bg-gradient-to-br from-[#0b1224] via-[#070b16] to-[#120b24] border border-white/5 rounded-3xl p-6 md:p-8 flex flex-col xl:flex-row gap-6 items-stretch justify-between relative overflow-hidden shadow-2xl">
               <div className="absolute top-0 left-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
               
-              <div className="space-y-3 max-w-xl text-left">
-                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-indigo-500/15 border border-indigo-500/25 rounded-full text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+              <div className="space-y-3 flex-1 flex flex-col justify-center text-left">
+                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-indigo-500/15 border border-indigo-500/25 rounded-full text-[9px] font-black text-indigo-400 uppercase tracking-widest self-start">
                   ✨ Co-Study Lounge Workspace
                 </span>
                 <h3 className="text-xl md:text-2xl font-black text-white">🚀 Explore {group?.subject}</h3>
@@ -1938,7 +2636,7 @@ export default function WorkspacePage() {
                     {(['beginner', 'intermediate', 'advanced'] as const).map((level) => (
                       <button
                         key={level}
-                        onClick={() => setLearningLevel(level)}
+                        onClick={() => handleSwitchLevel(level)}
                         className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer border-none ${
                           learningLevel === level 
                             ? 'bg-[#4F46E5] text-white shadow' 
@@ -1951,6 +2649,55 @@ export default function WorkspacePage() {
                   </div>
                 </div>
               </div>
+
+              {(() => {
+                const activePath = getActivePath();
+                const activeLesson = activePath.lessons.find((l) => l.id === activeLessonId) || activePath.lessons[0];
+                const totalLessons = activePath.lessons.length;
+                const activeLessonIndex = activePath.lessons.findIndex((l) => l.id === activeLessonId);
+                const completedInPath = activePath.lessons.filter((l) => completedLessonIds.includes(l.id)).length;
+                const pathPercent = totalLessons > 0 ? Math.round((completedInPath / totalLessons) * 100) : 0;
+                
+                const filledCount = Math.round(pathPercent / 10);
+                const textProgressBar = '█'.repeat(filledCount) + '░'.repeat(10 - filledCount);
+
+                return (
+                  <div className="w-full md:w-80 shrink-0 bg-[#0B0F19]/85 border border-white/10 rounded-2xl p-5 space-y-4 relative shadow-lg flex flex-col justify-between">
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <div className="text-[9px] font-black uppercase text-indigo-400 tracking-wider">Continue Learning</div>
+                      <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold uppercase">
+                        {learningLevel} track
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-1 text-left">
+                      <h4 className="text-xs font-black text-white truncate max-w-[240px]">{activeLesson?.title || 'No active lesson'}</h4>
+                      <p className="text-[9px] text-slate-455 font-black uppercase">
+                        Lesson {activeLessonIndex !== -1 ? activeLessonIndex + 1 : 1} / {totalLessons}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5 pt-1 text-left">
+                      <div className="flex justify-between items-center text-[9px] font-black text-slate-400 font-mono">
+                        <span>{textProgressBar}</span>
+                        <span className="text-indigo-400 font-extrabold">{pathPercent}%</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        if (activeLesson) {
+                          handleSelectLesson(activeLesson.id);
+                          showToast(`Resuming: ${activeLesson.title}`, 'success');
+                        }
+                      }}
+                      className="w-full py-2 bg-indigo-650/15 hover:bg-indigo-650/30 border border-indigo-500/20 text-indigo-300 text-[9px] font-black uppercase tracking-wider rounded-xl transition cursor-pointer text-center"
+                    >
+                      Resume →
+                    </button>
+                  </div>
+                );
+              })()}
 
               {/* POMODORO TIMER CARD IN HERO */}
               <div className="w-full md:w-80 shrink-0 bg-[#0B0F19]/80 border border-white/10 rounded-2xl p-5 space-y-4 relative shadow-lg">
@@ -1983,12 +2730,12 @@ export default function WorkspacePage() {
                         cx="56"
                         cy="56"
                         r="48"
-                        stroke={pomodoroMode === 'focus' ? '#EF4444' : '#10B981'}
+                        stroke="#6366f1"
                         strokeWidth="5"
                         fill="transparent"
-                        strokeDasharray="301.6"
+                        strokeDasharray={301.6}
                         strokeDashoffset={301.6 * (1 - pomodoroTimeLeft / pomodoroTotalDuration)}
-                        className="transition-all duration-1000 ease-linear"
+                        className="transition-all duration-1000"
                       />
                     </svg>
                     <div className="absolute flex flex-col items-center justify-center">
@@ -2023,210 +2770,111 @@ export default function WorkspacePage() {
 
             </section>
 
-            {activeTab === 'lobby' && (
-              <div className="grid lg:grid-cols-2 gap-8 items-start">
-                
-                {/* COLUMN 1: POMODORO & CHECKLIST */}
-                <div className="space-y-6">
+            {activeTab === 'lobby' && (() => {
+              const activePath = getActivePath();
+              const currentLesson = activePath.lessons.find((l) => l.id === activeLessonId) || activePath.lessons[0];
+              const challenge = currentLesson?.challenge;
+              const xpReward = activePath.xpReward;
+              const isSolved = solvedLessonChallengeIds.includes(activeLessonId);
+
+              return (
+                <div className={`grid lg:grid-cols-2 gap-8 items-start transition-opacity duration-200 ${fadeTransition ? 'opacity-0' : 'opacity-100'}`}>
                   
-                  {/* POMODORO TIMER CARD */}
-                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left space-y-5">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
-                    
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
-                      <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
-                        <Clock className="h-4 w-4 text-indigo-400" /> Pomodoro Focus Desk
-                      </h4>
-                      <span className="text-[9px] font-black bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2.5 py-0.5 rounded uppercase tracking-wider">
-                        {pomodoroMode.replace('-', ' ')}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-col items-center py-4 space-y-4">
-                      {/* Timer Display with progress ring */}
-                      <div className="relative h-40 w-40 flex items-center justify-center">
-                        <svg className="absolute inset-0 w-full h-full transform -rotate-90">
-                          <circle
-                            cx="80"
-                            cy="80"
-                            r="70"
-                            stroke="rgba(255, 255, 255, 0.02)"
-                            strokeWidth="6"
-                            fill="transparent"
-                          />
-                          <circle
-                            cx="80"
-                            cy="80"
-                            r="70"
-                            stroke="#6366f1"
-                            strokeWidth="6"
-                            fill="transparent"
-                            strokeDasharray={440}
-                            strokeDashoffset={440 * (1 - pomodoroTimeLeft / (pomodoroMode === 'focus' ? 25 * 60 : pomodoroMode === 'short-break' ? 5 * 60 : 15 * 60))}
-                            className="transition-all duration-1000"
-                          />
-                        </svg>
-                        
-                        <div className="text-center z-10 space-y-1">
-                          <p className="text-3xl font-extrabold text-white tracking-wider font-mono">
-                            {Math.floor(pomodoroTimeLeft / 60)}:{String(pomodoroTimeLeft % 60).padStart(2, '0')}
-                          </p>
-                          <p className="text-[8px] text-slate-550 font-black uppercase tracking-wider">Minutes Left</p>
-                        </div>
+                  {/* COLUMN 1: VERTICAL ROADMAP */}
+                  <div className="space-y-6">
+                    <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left space-y-4">
+                      <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
+                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
+                          <BookOpen className="h-4 w-4 text-indigo-400" /> Dynamic Learning Path
+                        </h4>
+                        <span className="text-[9px] font-black bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2.5 py-0.5 rounded uppercase">
+                          {learningLevel} Track
+                        </span>
                       </div>
 
-                      {/* Presets */}
-                      <div className="flex gap-2">
-                        {[
-                          { mode: 'focus', label: '🎯 Focus (25m)' },
-                          { mode: 'short-break', label: '☕ Break (5m)' },
-                          { mode: 'long-break', label: '🌴 Long (15m)' }
-                        ].map((btn) => (
-                          <button
-                            key={btn.mode}
-                            type="button"
-                            onClick={() => handleSetPresetMode(btn.mode as any)}
-                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all border cursor-pointer ${
-                              pomodoroMode === btn.mode
-                                ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400 font-extrabold'
-                                : 'bg-transparent border-white/5 text-slate-400 hover:text-white'
-                            }`}
-                          >
-                            {btn.label}
-                          </button>
-                        ))}
-                      </div>
+                      <div className="relative pl-6 space-y-4 pt-1">
+                        {/* Vertical connector line */}
+                        <div className="absolute left-[11px] top-4 bottom-4 w-[1.5px] bg-slate-800" />
 
-                      {/* Controls */}
-                      <div className="flex gap-3">
-                        <button
-                          onClick={handleToggleTimer}
-                          className="px-6 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition border-none cursor-pointer flex items-center gap-1.5"
-                        >
-                          {pomodoroIsRunning ? (
-                            <>
-                              <Pause className="h-3.5 w-3.5" /> Pause
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-3.5 w-3.5 fill-white" /> Start Focus
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={handleResetTimer}
-                          className="px-4 py-2 bg-transparent hover:bg-white/5 border border-white/5 text-slate-400 hover:text-white text-[10px] font-black uppercase rounded-xl transition cursor-pointer"
-                        >
-                          Reset
-                        </button>
-                      </div>
-
-                      {/* Custom Minutes Input */}
-                      <form onSubmit={handleCustomMinutesSubmit} className="flex gap-2 w-full max-w-xs pt-2">
-                        <input
-                          type="number"
-                          value={pomodoroCustomMinutes}
-                          onChange={(e) => setPomodoroCustomMinutes(e.target.value)}
-                          placeholder="Custom min (e.g. 45)..."
-                          min="1"
-                          max="180"
-                          className="flex-1 bg-slate-900 border border-white/5 rounded-lg px-2.5 py-1.5 text-[10px] text-white outline-none placeholder-slate-600"
-                        />
-                        <button
-                          type="submit"
-                          className="px-3.5 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 text-[9px] font-black uppercase rounded-lg border border-white/5 transition cursor-pointer animate-in fade-in"
-                        >
-                          Set Timer
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-
-                  {/* LEARNING CHECKLIST CARD */}
-                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left space-y-4">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#10B981]/5 rounded-full blur-2xl pointer-events-none" />
-                    
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
-                      <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
-                        <CheckCircle2 className="h-4 w-4 text-[#10B981]" /> Workspace Learning Checklist
-                      </h4>
-                      <span className="text-[9px] font-black text-emerald-400 font-mono">
-                        {checklistTasks.filter(t => t.done).length} / {checklistTasks.length} Completed
-                      </span>
-                    </div>
-
-                    {/* Add checklist item */}
-                    <form onSubmit={handleAddChecklistTask} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newChecklistText}
-                        onChange={(e) => setNewChecklistText(e.target.value)}
-                        placeholder="Add new learning objective..."
-                        className="flex-grow bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none placeholder-slate-600"
-                      />
-                      <button
-                        type="submit"
-                        className="px-4 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase rounded-xl border-none cursor-pointer"
-                      >
-                        Add Task
-                      </button>
-                    </form>
-
-                    {/* Task list */}
-                    <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
-                      {checklistTasks.map((task) => (
-                        <div key={task.id} className="flex justify-between items-center p-3.5 bg-slate-900/60 border border-white/5 rounded-2xl gap-3">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleChecklistTask(task.id)}
-                            className="flex items-center gap-3 text-left bg-transparent border-none outline-none cursor-pointer text-xs"
-                          >
-                            <span className={`h-4.5 w-4.5 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
-                              task.done 
-                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                                : 'border-white/10 bg-transparent text-slate-700'
-                            }`}>
-                              {task.done && <Check className="h-3 w-3 stroke-[3]" />}
-                            </span>
-                            <span className={`font-bold transition-all ${task.done ? 'text-slate-505 line-through' : 'text-slate-200'}`}>
-                              {task.text}
-                            </span>
-                          </button>
+                        {activePath.lessons.map((lesson) => {
+                          const isCompleted = completedLessonIds.includes(lesson.id);
+                          const isActive = activeLessonId === lesson.id;
                           
-                          <button
-                            onClick={() => handleDeleteChecklistTask(task.id)}
-                            className="text-slate-505 hover:text-rose-450 p-1 bg-transparent border-none cursor-pointer transition rounded-lg"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
+                          return (
+                            <div 
+                              key={lesson.id} 
+                              className={`relative flex items-center gap-4 p-3.5 rounded-2xl border transition-all ${
+                                isActive 
+                                  ? 'bg-indigo-500/5 border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.05)]' 
+                                  : 'bg-transparent border-transparent hover:bg-white/[0.01]'
+                              }`}
+                            >
+                              {/* Node icon absolute container */}
+                              <div className="absolute left-[-23px] top-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleLessonComplete(lesson.id)}
+                                  className={`h-6 w-6 rounded-full border flex items-center justify-center transition-all cursor-pointer ${
+                                    isCompleted 
+                                      ? 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.3)]' 
+                                      : isActive
+                                        ? 'bg-indigo-650 border-indigo-500 text-white'
+                                        : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'
+                                  }`}
+                                >
+                                  {isCompleted ? (
+                                    <Check className="h-3.5 w-3.5 stroke-[3.5]" />
+                                  ) : isActive ? (
+                                    <Play className="h-2.5 w-2.5 fill-white ml-0.5" />
+                                  ) : (
+                                    <span className="h-2 w-2 rounded-full bg-slate-700" />
+                                  )}
+                                </button>
+                              </div>
+
+                              <div 
+                                onClick={() => handleSelectLesson(lesson.id)}
+                                className="flex-1 cursor-pointer text-left space-y-0.5 select-none"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <h5 className={`text-xs font-black transition-all ${
+                                    isActive 
+                                      ? 'text-white' 
+                                      : isCompleted 
+                                        ? 'text-slate-450 line-through' 
+                                        : 'text-slate-300'
+                                  }`}>
+                                    {lesson.title}
+                                  </h5>
+                                  <span className="text-[8px] text-slate-550 font-black font-mono uppercase shrink-0 ml-2">{lesson.duration}</span>
+                                </div>
+                                <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Click to switch topics & challenge</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 
-                </div>
-
-                {/* COLUMN 2: TODAY'S CHALLENGE & WHITEBOARD */}
-                <div className="space-y-6">
-                  
-                  {/* TODAY'S CHALLENGE CARD */}
-                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-2xl pointer-events-none" />
+                  {/* COLUMN 2: CHALLENGE, RESOURCES & DISCUSSIONS */}
+                  <div className="space-y-6">
                     
-                    <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
-                      <div className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
-                        <span className="text-xs font-black uppercase tracking-wider text-white">Today's Challenge</span>
-                      </div>
-                      <span className="text-[9px] font-black bg-white/5 border border-white/10 text-indigo-400 px-2.5 py-1 rounded">
-                        +20 XP | +10 ¢
-                      </span>
-                    </div>
+                    {/* TODAY'S CHALLENGE */}
+                    {challenge ? (
+                      <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-2xl pointer-events-none" />
+                        
+                        <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
+                          <div className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+                            <span className="text-xs font-black uppercase tracking-wider text-white">Lesson Challenge</span>
+                          </div>
+                          <span className="text-[9px] font-black bg-white/5 border border-white/10 text-indigo-400 px-2.5 py-1 rounded">
+                            +{xpReward} XP | +{Math.round(xpReward / 2)} ¢
+                          </span>
+                        </div>
 
-                    {(() => {
-                      const categoryKey = (slug && todayChallenges[slug as keyof typeof todayChallenges]) ? slug : 'general';
-                      const challenge = todayChallenges[categoryKey as keyof typeof todayChallenges];
-                      return (
                         <div className="space-y-4">
                           <div className="space-y-2">
                             <p className="text-xs font-bold text-slate-200 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-white/5">
@@ -2236,7 +2884,6 @@ export default function WorkspacePage() {
                             <div className="grid gap-2">
                               {challenge.options.map((option, idx) => {
                                 const isSelected = todayChallengeAnswer === idx;
-                                const isSolved = todayChallengeSolved;
                                 const isCorrect = idx === challenge.correctIndex;
                                 
                                 return (
@@ -2264,13 +2911,13 @@ export default function WorkspacePage() {
                             </div>
                           </div>
 
-                          {todayChallengeFeedback === 'wrong' && !todayChallengeSolved && (
+                          {todayChallengeFeedback === 'wrong' && !isSolved && (
                             <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-bold">
                               ❌ Wrong answer! Re-check and try again.
                             </div>
                           )}
 
-                          {todayChallengeSolved && (
+                          {isSolved && (
                             <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 rounded-xl text-xs leading-relaxed">
                               <strong className="text-white block mb-0.5 uppercase tracking-wide text-[10px]">Explanation:</strong>
                               {challenge.explanation}
@@ -2280,12 +2927,51 @@ export default function WorkspacePage() {
                           <div className="pt-2 flex items-center justify-between gap-4">
                             <div className="flex-1 h-1.5 rounded-full bg-slate-900 border border-white/5 overflow-hidden">
                               <div 
-                                className={`h-full rounded-full transition-all duration-500 ${todayChallengeSolved ? 'w-full bg-emerald-500' : 'w-1/3 bg-indigo-500'}`} 
+                                className={`h-full rounded-full transition-all duration-500 ${isSolved ? 'w-full bg-emerald-500' : 'w-1/3 bg-indigo-500'}`} 
                               />
                             </div>
-                            {!todayChallengeSolved ? (
+                            {!isSolved ? (
                               <button
-                                onClick={handleClaimTodayChallenge}
+                                onClick={() => {
+                                  if (todayChallengeAnswer === null) {
+                                    showToast('Please select an option first.', 'warning');
+                                    return;
+                                  }
+                                  if (todayChallengeAnswer === challenge.correctIndex) {
+                                    showToast(`🎉 Correct! +${xpReward} XP earned.`, 'success');
+                                    setSolvedLessonChallengeIds((prev) => {
+                                      const next = [...prev, activeLessonId];
+                                      if (typeof window !== 'undefined') {
+                                        localStorage.setItem('sc_solved_challenges_' + slug, JSON.stringify(next));
+                                      }
+                                      return next;
+                                    });
+                                    
+                                    // reward api
+                                    apiRequest('/progress/complete-practice', {
+                                      method: 'POST',
+                                      body: JSON.stringify({
+                                        interest: group?.subject || 'Programming & DSA',
+                                        challengeId: 'lesson_challenge_' + activeLessonId,
+                                        xpReward: xpReward,
+                                        coinReward: Math.round(xpReward / 2)
+                                      })
+                                    })
+                                      .then((res) => {
+                                        setUserStats((prev: any) => ({
+                                          ...prev,
+                                          xp: res.xp,
+                                          focusCoins: res.focusCoins,
+                                          level: res.level,
+                                          streakCount: res.streakCount
+                                        }));
+                                      })
+                                      .catch((err) => console.error('Error rewarding challenge:', err));
+                                  } else {
+                                    setTodayChallengeFeedback('wrong');
+                                    showToast('Incorrect answer. Try again!', 'error');
+                                  }
+                                }}
                                 className="px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-[10px] font-black rounded-xl border-none uppercase tracking-wider cursor-pointer shadow-md transition-all shrink-0"
                               >
                                 Verify Answer
@@ -2297,14 +2983,75 @@ export default function WorkspacePage() {
                             )}
                           </div>
                         </div>
-                      );
-                    })()}
+                      </div>
+                    ) : (
+                      <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left">
+                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans">Lesson Challenge</h4>
+                        <div className="p-6 bg-slate-950/40 border border-white/5 rounded-2xl text-center select-none mt-3">
+                          <p className="text-[10px] text-slate-500 font-bold">No challenge quiz available for this topic yet.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* DYNAMIC CONTEXT-AWARE RESOURCES */}
+                    <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left space-y-4">
+                      <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
+                        <Bookmark className="h-4 w-4 text-indigo-400" /> Study Resources
+                      </h4>
+                      
+                      {!currentLesson?.resources || currentLesson.resources.length === 0 ? (
+                        <div className="p-6 bg-slate-955/40 border border-white/5 rounded-2xl text-center space-y-2 select-none">
+                          <Bookmark className="h-6 w-6 text-slate-700 mx-auto" />
+                          <p className="text-[10px] text-slate-500 font-bold">No downloadable notes for this lesson yet.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {currentLesson.resources.map((res, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => showToast(`Downloading ${res.name}...`, 'success')}
+                              className="w-full text-left p-3 bg-slate-950/45 hover:bg-slate-900/60 border border-white/5 rounded-xl flex items-center justify-between text-[10px] text-slate-300 font-bold transition cursor-pointer"
+                            >
+                              <span className="truncate pr-2">📄 {res.name}</span>
+                              <span className="text-slate-500 font-mono text-[8px] shrink-0 font-semibold">{res.size}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* DYNAMIC RECENT DISCUSSIONS */}
+                    <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left space-y-4">
+                      <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
+                        <MessageSquare className="h-4 w-4 text-indigo-400" /> Recent Doubts & Discussions
+                      </h4>
+                      
+                      {!currentLesson?.discussions || currentLesson.discussions.length === 0 ? (
+                        <div className="p-6 bg-slate-955/40 border border-white/5 rounded-2xl text-center space-y-2 select-none">
+                          <MessageSquare className="h-6 w-6 text-slate-700 mx-auto" />
+                          <p className="text-[10px] text-slate-550 font-bold">No discussions yet. Start the first discussion.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {currentLesson.discussions.map((disc, idx) => (
+                            <div key={idx} className="p-3.5 bg-slate-955/45 border border-white/5 rounded-xl text-left space-y-1">
+                              <p className="text-xs font-black text-slate-200">{disc.title}</p>
+                              <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold">
+                                <span>Asked by @{disc.author}</span>
+                                <span>{disc.replies} replies • {disc.time}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                   </div>
 
                 </div>
-
-              </div>
-            )}
+              );
+            })()}
 
             {activeTab === 'notes' && (
               <div className="space-y-6 animate-in fade-in duration-300">
@@ -3162,89 +3909,6 @@ export default function WorkspacePage() {
                 ))}
               </div>
             </div>
-
-            {/* Workspace Details */}
-            <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-5 shadow-xl space-y-3">
-              <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans">Workspace Details</h4>
-              <div className="space-y-2.5 font-sans text-[11px] font-bold text-slate-400">
-                <div className="flex justify-between">
-                  <span>Space Subject:</span>
-                  <span className="text-white">{group?.subject}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Room Type:</span>
-                  <span className="text-white">{group?.isPublic ? 'Public Workspace' : 'Private Workspace'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Invite Code:</span>
-                  <span className="text-mono text-indigo-400 font-black cursor-pointer hover:underline" onClick={() => {
-                    if (group?.inviteCode) {
-                      navigator.clipboard.writeText(group.inviteCode);
-                      showToast('Invite code copied!', 'success');
-                    }
-                  }}>{group?.inviteCode}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Resource Shortcuts */}
-            <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-5 shadow-xl space-y-4">
-              <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
-                <Bookmark className="h-4 w-4 text-indigo-400" /> Resource Shortcuts
-              </h4>
-              
-              <div className="space-y-2">
-                {[
-                  { name: 'Lecture Notes Chapters.pdf', size: '4.8 MB' },
-                  { name: 'Exam cheatsheet formulas.pdf', size: '1.2 MB' },
-                  { name: 'Practice Code blueprints.zip', size: '15.4 MB' }
-                ].map((res, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => showToast(`Downloading ${res.name}...`, 'success')}
-                    className="w-full text-left p-2.5 bg-[#070b16]/40 hover:bg-[#070b16]/80 border border-white/5 rounded-xl flex items-center justify-between text-[10px] text-slate-330 font-bold transition cursor-pointer"
-                  >
-                    <span className="truncate pr-2">📄 {res.name}</span>
-                    <span className="text-slate-500 font-mono text-[8px] shrink-0 font-semibold">{res.size}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* AI Tutor Quick Dispatch */}
-            <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-5 shadow-xl space-y-4">
-              <div className="space-y-1">
-                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4 text-[#F43F5E]" /> Quick AI Doubt
-                </h4>
-                <p className="text-[8px] text-slate-555 leading-normal font-semibold">Prefill the tutor and get immediate answers.</p>
-              </div>
-
-              <div className="space-y-2.5">
-                <textarea
-                  id="quick-doubt-input"
-                  rows={3}
-                  placeholder="Type a doubt to ask AI tutor..."
-                  className="w-full bg-slate-900 border border-white/5 rounded-xl px-2.5 py-2 text-[10px] text-white outline-none resize-none placeholder-slate-550"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const txt = (document.getElementById('quick-doubt-input') as HTMLTextAreaElement)?.value || '';
-                    window.dispatchEvent(new CustomEvent('open-ai-tutor', { 
-                      detail: { prefill: txt || 'I need help with...' } 
-                    }));
-                    const input = document.getElementById('quick-doubt-input') as HTMLTextAreaElement;
-                    if (input) input.value = '';
-                  }}
-                  className="w-full py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase rounded-xl transition border-none cursor-pointer text-center"
-                >
-                  Ask AI Tutor
-                </button>
-              </div>
-            </div>
-
           </aside>
 
         </div>
