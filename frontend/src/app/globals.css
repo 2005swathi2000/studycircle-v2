@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Apply Times New Roman globally */
+html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, p, span, a, label {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
 /* Hide browser scrollbar on body */
 body, html {
   -ms-overflow-style: none;
