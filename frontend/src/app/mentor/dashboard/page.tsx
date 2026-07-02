@@ -48,6 +48,7 @@ export default function MentorDashboard() {
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'rooms' | 'sessions' | 'assignments' | 'analytics' | 'profile'>('dashboard');
   const [showSidebar, setShowSidebar] = useState(false);
+  const [showAddGoalInput, setShowAddGoalInput] = useState(false);
 
   // Toggle mode to switcher between Zero State (new user) and populating an active existing cohort self.
   const [viewMode, setViewMode] = useState<'new' | 'existing'>('new');
@@ -584,10 +585,101 @@ export default function MentorDashboard() {
             <div className="space-y-8 max-w-7xl mx-auto">
               
               {/* Section 1 — Welcome */}
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-2 border-b border-white/5">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-white/5">
                 <div>
                   <h2 className="text-xl font-bold text-white tracking-tight">Good Morning, Mentor 👋</h2>
                   <p className="text-zinc-500 text-xs mt-0.5">Today's overview.</p>
+                </div>
+                
+                {/* Small Today's Goals Card on the Right of Welcome Header */}
+                <div className="bg-[#0B0F19] border border-white/5 rounded-xl p-4 w-full md:w-80 space-y-3 shrink-0">
+                  <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Today's Goals</span>
+                    <span className="text-[9px] text-zinc-500 font-bold font-mono">
+                      {goals.filter(g => g.completed).length}/{goals.length}
+                    </span>
+                  </div>
+
+                  {/* Active Goals list */}
+                  <div className="space-y-2 max-h-24 overflow-y-auto pr-1">
+                    {goals.length === 0 ? (
+                      <p className="text-[10px] text-zinc-500 italic py-1 text-center">No goals set for today.</p>
+                    ) : (
+                      goals.map(g => (
+                        <div key={g.id} className="flex items-center justify-between text-xs bg-white/[0.005] p-2 rounded-lg border border-white/5 gap-2">
+                          <label className="flex items-center gap-2 cursor-pointer flex-1 select-none">
+                            <input
+                              type="checkbox"
+                              checked={g.completed}
+                              onChange={() => handleToggleGoal(g.id)}
+                              className="h-3.5 w-3.5 bg-transparent border-white/10 rounded text-indigo-500 focus:ring-0"
+                            />
+                            <span className={g.completed ? 'line-through text-zinc-500' : 'text-zinc-300'}>
+                              {g.text}
+                            </span>
+                          </label>
+                          <button
+                            onClick={() => handleDeleteGoal(g.id)}
+                            className="p-1 hover:bg-red-950/20 text-zinc-500 hover:text-red-400 rounded transition-all border-none bg-transparent cursor-pointer"
+                            title="Delete Goal"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Add Goal Input Area */}
+                  {!showAddGoalInput ? (
+                    <button
+                      onClick={() => setShowAddGoalInput(true)}
+                      className="w-full py-1.5 bg-white/[0.01] hover:bg-white/5 border border-white/5 rounded-lg text-[10px] text-zinc-300 font-bold transition-all cursor-pointer"
+                    >
+                      + Add Goal
+                    </button>
+                  ) : (
+                    <form 
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!newGoalText.trim()) return;
+                        const newGoal: Goal = {
+                          id: `g-${Date.now()}`,
+                          text: newGoalText.trim(),
+                          completed: false
+                        };
+                        setGoals(prev => [...prev, newGoal]);
+                        setNewGoalText('');
+                        setShowAddGoalInput(false);
+                        addToast('Goal added successfully!', 'success');
+                      }} 
+                      className="flex gap-2"
+                    >
+                      <input
+                        type="text"
+                        placeholder="Enter goal..."
+                        value={newGoalText}
+                        onChange={(e) => setNewGoalText(e.target.value)}
+                        className="flex-1 bg-[#060813] border border-white/5 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-indigo-500 placeholder-zinc-600"
+                        autoFocus
+                      />
+                      <div className="flex gap-1">
+                        <button
+                          type="submit"
+                          className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold border-none cursor-pointer transition-all"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setShowAddGoalInput(false); setNewGoalText(''); }}
+                          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-xs font-bold border-none cursor-pointer transition-all"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               </div>
 
@@ -758,56 +850,6 @@ export default function MentorDashboard() {
 
                 {/* Right Side (30%) */}
                 <div className="lg:col-span-3 space-y-7">
-                  
-                  {/* Goals Widget Card */}
-                  <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
-                    <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-white">Today's Goals</h3>
-                      <span className="text-[9px] text-zinc-500 font-bold font-mono">
-                        {goals.filter(g => g.completed).length}/{goals.length}
-                      </span>
-                    </div>
-
-                    <form onSubmit={handleAddGoal} className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Add new goal..."
-                        value={newGoalText}
-                        onChange={(e) => setNewGoalText(e.target.value)}
-                        className="flex-1 bg-[#060813] border border-white/5 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-indigo-500"
-                      />
-                      <button
-                        type="submit"
-                        className="px-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold border-none cursor-pointer transition-all"
-                      >
-                        +
-                      </button>
-                    </form>
-
-                    <div className="space-y-2">
-                      {goals.map(g => (
-                        <div key={g.id} className="flex items-center justify-between bg-white/[0.005] p-2 rounded-lg border border-white/5 gap-2">
-                          <label className="flex items-center gap-2 cursor-pointer flex-1">
-                            <input
-                              type="checkbox"
-                              checked={g.completed}
-                              onChange={() => handleToggleGoal(g.id)}
-                              className="h-3.5 w-3.5 bg-transparent border-white/10 rounded text-indigo-500 focus:ring-0"
-                            />
-                            <span className={`text-xs ${g.completed ? 'line-through text-zinc-500' : 'text-zinc-300'}`}>
-                              {g.text}
-                            </span>
-                          </label>
-                          <button
-                            onClick={() => handleDeleteGoal(g.id)}
-                            className="p-1 hover:bg-red-950/20 text-zinc-500 hover:text-red-400 rounded transition-all border-none bg-transparent cursor-pointer"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
 
                   {/* Section 5 — Quick Actions (Compact Buttons, now includes Mark Attendance shortcut) */}
                   <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-3">
