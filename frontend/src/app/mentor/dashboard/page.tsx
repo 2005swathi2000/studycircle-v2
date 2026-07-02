@@ -408,12 +408,18 @@ export default function MentorDashboard() {
 
         {/* User Profile Widget */}
         <div className="flex items-center gap-3 pl-4 border-l border-white/5">
-          <div className="text-right hidden sm:block">
-            <p className="text-xs font-bold text-white">{user.fullName}</p>
-            <p className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold">{user.role}</p>
-          </div>
-          <div className="h-9 w-9 rounded-full bg-indigo-900/60 border border-indigo-500/20 flex items-center justify-center font-bold text-white uppercase text-xs">
-            {user.fullName.substring(0, 2)}
+          <div 
+            onClick={() => setActiveTab('profile')}
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-all select-none"
+            title="View Profile Settings"
+          >
+            <div className="text-right hidden sm:block">
+              <p className="text-xs font-bold text-white">{user.fullName}</p>
+              <p className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold">{user.role}</p>
+            </div>
+            <div className="h-9 w-9 rounded-full bg-indigo-900/60 border border-indigo-500/20 flex items-center justify-center font-bold text-white uppercase text-xs">
+              {user.fullName.substring(0, 2)}
+            </div>
           </div>
           <button 
             onClick={logout}
