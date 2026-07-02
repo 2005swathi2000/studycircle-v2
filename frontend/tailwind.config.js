@@ -8,8 +8,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Roboto', 'sans-serif'],
-        serif: ['Roboto', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
+        serif: ['Manrope', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
       },
     },
   },

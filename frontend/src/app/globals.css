@@ -2,12 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import Roboto from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+/* Import Inter, Manrope, and JetBrains Mono from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-/* Apply Roboto globally */
-html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, p, span, a, label {
-  font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
+/* Apply Inter as the default body typeface */
+html, body, button, input, select, textarea, p, span, a, label {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Apply Manrope for clean headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Manrope', 'Inter', sans-serif !important;
+}
+
+/* Apply JetBrains Mono for analytics/code/numbers */
+.font-mono, [class*='font-mono'], code, pre, .mono-data {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
 }
 
 /* Hide browser scrollbar on body */
