@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useApp } from '../../context/AppContext';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '../../utils/api';
@@ -29,7 +30,8 @@ import {
   Sparkles,
   BarChart2,
   RefreshCw,
-  UserCheck
+  UserCheck,
+  Menu
 } from 'lucide-react';
 
 interface Goal {
@@ -45,6 +47,7 @@ export default function MentorDashboard() {
 
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'rooms' | 'sessions' | 'assignments' | 'analytics' | 'profile'>('dashboard');
+  const [showSidebar, setShowSidebar] = useState(false);
 
   // Toggle mode to switcher between Zero State (new user) and populating an active existing cohort self.
   const [viewMode, setViewMode] = useState<'new' | 'existing'>('new');
@@ -353,28 +356,39 @@ export default function MentorDashboard() {
     <div className="min-h-screen bg-[#070913] text-zinc-100 flex flex-col font-sans select-none">
       
       {/* Top Banner Control Bar (Header) */}
-      <header className="h-16 border-b border-white/5 bg-[#0B0F19]/80 backdrop-blur-md px-8 flex items-center justify-between sticky top-0 z-40">
+      <header className="h-16 border-b border-white/5 bg-[#0B0F19]/80 backdrop-blur-md px-4 md:px-8 flex items-center justify-between sticky top-0 z-40 gap-4">
         
-        {/* Minimal Global Search bar */}
-        <div className="relative w-96">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
-          <input
-            type="text"
-            placeholder="Search students, rooms, topics..."
-            value={globalSearch}
-            onChange={(e) => setGlobalSearch(e.target.value)}
-            className="w-full bg-[#060813] border border-white/5 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:border-indigo-500/50 outline-none transition-all"
-          />
+        <div className="flex items-center gap-3">
+          {/* Hamburger menu button for mobile */}
+          <button 
+            onClick={() => setShowSidebar(!showSidebar)}
+            className="p-2 hover:bg-white/5 rounded-xl transition-all border-none bg-transparent cursor-pointer lg:hidden"
+            title="Toggle Sidebar"
+          >
+            <Menu className="h-5 w-5 text-zinc-450" />
+          </button>
+
+          {/* Minimal Global Search bar */}
+          <div className="relative w-48 sm:w-64 md:w-96">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+            <input
+              type="text"
+              placeholder="Search students, rooms, topics..."
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+              className="w-full bg-[#060813] border border-white/5 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:border-indigo-500/50 outline-none transition-all"
+            />
+          </div>
         </div>
 
-        {/* View mode toggle switcher (Satisfies "Make state as zero" and "Make an existing self") */}
-        <div className="flex bg-[#060813] border border-white/5 rounded-xl p-0.5 select-none shrink-0">
+        {/* View mode toggle switcher (Desktop View - Hidden on Mobile) */}
+        <div className="hidden md:flex bg-[#060813] border border-white/5 rounded-xl p-0.5 select-none shrink-0">
           <button
             onClick={() => setViewMode('new')}
             className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border-none ${
               viewMode === 'new' 
-                ? 'bg-indigo-600 text-white' 
-                : 'bg-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'bg-indigo-650 text-white' 
+                : 'bg-transparent text-zinc-450 hover:text-zinc-200'
             }`}
           >
             New User (Zero State)
@@ -383,8 +397,8 @@ export default function MentorDashboard() {
             onClick={() => setViewMode('existing')}
             className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border-none ${
               viewMode === 'existing' 
-                ? 'bg-indigo-600 text-white' 
-                : 'bg-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'bg-indigo-650 text-white' 
+                : 'bg-transparent text-zinc-450 hover:text-zinc-200'
             }`}
           >
             Existing Self (Active Cohort)
@@ -393,7 +407,7 @@ export default function MentorDashboard() {
 
         {/* User Profile Widget */}
         <div className="flex items-center gap-3 pl-4 border-l border-white/5">
-          <div className="text-right">
+          <div className="text-right hidden sm:block">
             <p className="text-xs font-bold text-white">{user.fullName}</p>
             <p className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold">{user.role}</p>
           </div>
@@ -402,7 +416,7 @@ export default function MentorDashboard() {
           </div>
           <button 
             onClick={logout}
-            className="p-2 hover:bg-red-950/20 text-zinc-400 hover:text-red-400 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+            className="p-2 hover:bg-red-950/20 text-zinc-450 hover:text-red-400 rounded-xl transition-all border-none bg-transparent cursor-pointer"
             title="Logout"
           >
             <LogOut className="h-4.5 w-4.5" />
@@ -410,28 +424,34 @@ export default function MentorDashboard() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         
-        {/* Sidebar Navigation */}
-        <aside className="w-64 border-r border-white/5 bg-[#0B0F19]/40 flex flex-col justify-between py-6">
+        {/* Sidebar Navigation (With responsive fixed/relative sliding transition drawer) */}
+        <aside className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-white/5 bg-[#0B0F19] lg:bg-[#0B0F19]/40 flex flex-col justify-between py-6 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${
+          showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}>
           <div className="space-y-6">
             
-            {/* Sidebar Logo */}
-            <div className="px-6 flex items-center gap-2.5">
+            {/* Clickable Logo pointing back to landing page */}
+            <Link 
+              href="/" 
+              onClick={() => setShowSidebar(false)}
+              className="px-6 flex items-center gap-2.5 hover:opacity-90 transition-all cursor-pointer decoration-none"
+            >
               <div className="h-8.5 w-8.5 rounded-xl bg-indigo-650 flex items-center justify-center">
                 <Sparkles className="h-4.5 w-4.5 text-white" />
               </div>
               <div>
                 <h1 className="text-sm font-bold tracking-tight text-white">StudyCircle</h1>
-                <p className="text-[9px] uppercase tracking-widest text-indigo-450 font-black">Mentor Hub</p>
+                <p className="text-[9px] uppercase tracking-widest text-indigo-400 font-black">Mentor Hub</p>
               </div>
-            </div>
+            </Link>
 
             <hr className="border-white/5 mx-6" />
 
             <div className="space-y-1 px-4">
               <button
-                onClick={() => setActiveTab('dashboard')}
+                onClick={() => { setActiveTab('dashboard'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'dashboard' 
                     ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
@@ -443,7 +463,7 @@ export default function MentorDashboard() {
               </button>
 
               <button
-                onClick={() => setActiveTab('students')}
+                onClick={() => { setActiveTab('students'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'students' 
                     ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
@@ -455,7 +475,7 @@ export default function MentorDashboard() {
               </button>
 
               <button
-                onClick={() => setActiveTab('rooms')}
+                onClick={() => { setActiveTab('rooms'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'rooms' 
                     ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
@@ -467,7 +487,7 @@ export default function MentorDashboard() {
               </button>
 
               <button
-                onClick={() => setActiveTab('sessions')}
+                onClick={() => { setActiveTab('sessions'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'sessions' 
                     ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
@@ -479,7 +499,7 @@ export default function MentorDashboard() {
               </button>
 
               <button
-                onClick={() => setActiveTab('assignments')}
+                onClick={() => { setActiveTab('assignments'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'assignments' 
                     ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
@@ -491,7 +511,7 @@ export default function MentorDashboard() {
               </button>
 
               <button
-                onClick={() => setActiveTab('analytics')}
+                onClick={() => { setActiveTab('analytics'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'analytics' 
                     ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
@@ -503,7 +523,7 @@ export default function MentorDashboard() {
               </button>
 
               <button
-                onClick={() => setActiveTab('profile')}
+                onClick={() => { setActiveTab('profile'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'profile' 
                     ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
@@ -516,15 +536,49 @@ export default function MentorDashboard() {
             </div>
           </div>
 
-          <div className="px-6 text-[10px] text-zinc-600 space-y-1">
+          <div className="px-6 text-[10px] text-zinc-500 space-y-1">
             <p>Logged in as: {user.username}</p>
             <p>© StudyCircle</p>
           </div>
         </aside>
 
+        {/* Mobile Sidebar Backdrop Overlay */}
+        {showSidebar && (
+          <div 
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"
+            onClick={() => setShowSidebar(false)}
+          />
+        )}
+
         {/* Core Workspace Panel */}
-        <main className="flex-1 overflow-y-auto p-8 bg-[#070913]">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#070913] w-full">
           
+          {/* Mobile View Mode switcher */}
+          <div className="flex justify-center md:hidden mb-6">
+            <div className="flex bg-[#060813] border border-white/5 rounded-xl p-0.5 select-none">
+              <button
+                onClick={() => setViewMode('new')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border-none ${
+                  viewMode === 'new' 
+                    ? 'bg-indigo-650 text-white' 
+                    : 'bg-transparent text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Zero State
+              </button>
+              <button
+                onClick={() => setViewMode('existing')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border-none ${
+                  viewMode === 'existing' 
+                    ? 'bg-indigo-650 text-white' 
+                    : 'bg-transparent text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Active Cohort
+              </button>
+            </div>
+          </div>
+
           {/* TAB 1: OPERATIONS COMMAND (Linear-style layout) */}
           {activeTab === 'dashboard' && (
             <div className="space-y-8 max-w-7xl mx-auto">
