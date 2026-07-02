@@ -882,6 +882,23 @@ export default function WorkspacePage() {
   const [creatingChallenge, setCreatingChallenge] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
+  // Peer Direct Message Chat States
+  const [selectedPeerForChat, setSelectedPeerForChat] = useState<any | null>(null);
+  const [peerMessages, setPeerMessages] = useState<Record<string, Array<{ sender: string; text: string; time: string }>>>({
+    'Swapna': [
+      { sender: 'Swapna', text: 'Hey Swathi! Solving arrays challenge?', time: '2:15 PM' },
+      { sender: 'You', text: 'Yes, stuck on the optimal merge logic.', time: '2:16 PM' },
+      { sender: 'Swapna', text: 'Try using a min-heap, it keeps elements sorted with O(log K) cost.', time: '2:17 PM' }
+    ],
+    'Charan': [
+      { sender: 'Charan', text: 'Hey, did you review the system design notes?', time: '1:45 PM' }
+    ],
+    'Rathna': [
+      { sender: 'Rathna', text: 'Hi Swathi, let me know if you have any questions on today\'s assignment.', time: 'Yesterday' }
+    ]
+  });
+  const [newPeerMessageText, setNewPeerMessageText] = useState('');
+
   const fetchChallenges = async (gId: string) => {
     try {
       setLoadingChallenges(true);
@@ -3893,7 +3910,18 @@ export default function WorkspacePage() {
                   { name: 'Charan', role: 'Student', status: '🟢 Active' },
                   { name: 'Rathna', role: 'Mentor', status: '🟢 Active' }
                 ].map((peer, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-2 bg-[#070b16]/40 border border-white/5 rounded-xl">
+                  <div 
+                    key={idx} 
+                    onClick={() => {
+                      if (peer.name.includes('(You)')) {
+                        showToast("This is your profile indicator. Tap other group peers to clarify doubts or connect!", "info");
+                        return;
+                      }
+                      setSelectedPeerForChat(peer);
+                    }}
+                    className="flex items-center justify-between p-2 bg-[#070b16]/40 border border-white/5 hover:border-indigo-500/30 rounded-xl cursor-pointer hover:bg-white/[0.02] active:scale-[0.99] transition-all select-none"
+                    title={peer.name.includes('(You)') ? "You" : `Click to connect & ask doubts to ${peer.name}`}
+                  >
                     <div className="flex items-center gap-2.5">
                       <div className="h-7 w-7 rounded-full bg-slate-850 border border-white/10 flex items-center justify-center font-black text-xs text-white uppercase relative">
                         {peer.name.charAt(0)}
@@ -4027,6 +4055,90 @@ export default function WorkspacePage() {
                   )}
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Direct Message (Chat) Modal */}
+      {selectedPeerForChat && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md bg-[#0B0F19] border border-white/10 rounded-3xl p-6 shadow-2xl space-y-4 text-left animate-in zoom-in-95 duration-155 text-white flex flex-col max-h-[500px]">
+            
+            {/* Header */}
+            <div className="flex justify-between items-center pb-3 border-b border-white/5">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-full bg-indigo-900/60 border border-indigo-500/30 flex items-center justify-center font-bold text-xs">
+                  {selectedPeerForChat.name.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-white">{selectedPeerForChat.name}</h3>
+                  <p className="text-[8px] text-indigo-400 font-black uppercase tracking-wider">{selectedPeerForChat.role} • Online</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedPeerForChat(null)}
+                className="text-slate-400 hover:text-white transition cursor-pointer p-1 rounded-lg hover:bg-white/5 border-none bg-transparent"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Messages Feed */}
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-[220px]">
+              {(peerMessages[selectedPeerForChat.name] || []).length === 0 ? (
+                <p className="text-[10px] text-zinc-500 italic text-center py-8">Start the conversation! Type a message below to connect.</p>
+              ) : (
+                (peerMessages[selectedPeerForChat.name] || []).map((msg, idx) => {
+                  const isMe = msg.sender === 'You';
+                  return (
+                    <div key={idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                      <div className={`p-2.5 rounded-2xl max-w-[80%] text-[11px] leading-relaxed ${
+                        isMe 
+                          ? 'bg-[#5227EB] text-white rounded-tr-none' 
+                          : 'bg-white/5 text-slate-200 border border-white/5 rounded-tl-none'
+                      }`}>
+                        {msg.text}
+                      </div>
+                      <span className="text-[8px] text-slate-500 mt-1 font-mono">{msg.time}</span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Input Form */}
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newPeerMessageText.trim()) return;
+                const newMessage = {
+                  sender: 'You',
+                  text: newPeerMessageText.trim(),
+                  time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                setPeerMessages(prev => ({
+                  ...prev,
+                  [selectedPeerForChat.name]: [...(prev[selectedPeerForChat.name] || []), newMessage]
+                }));
+                setNewPeerMessageText('');
+              }} 
+              className="flex gap-2 pt-2 border-t border-white/5"
+            >
+              <input
+                type="text"
+                placeholder={`Ask ${selectedPeerForChat.name} a doubt...`}
+                value={newPeerMessageText}
+                onChange={(e) => setNewPeerMessageText(e.target.value)}
+                className="flex-1 bg-slate-900 border border-white/5 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-indigo-500"
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition border-none cursor-pointer"
+              >
+                Send
+              </button>
             </form>
           </div>
         </div>
