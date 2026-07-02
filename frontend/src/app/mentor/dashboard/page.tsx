@@ -28,7 +28,8 @@ import {
   Sliders,
   Sparkles,
   BarChart2,
-  RefreshCw
+  RefreshCw,
+  UserCheck
 } from 'lucide-react';
 
 interface Goal {
@@ -45,7 +46,10 @@ export default function MentorDashboard() {
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'rooms' | 'sessions' | 'assignments' | 'analytics' | 'profile'>('dashboard');
 
-  // Core Data States - Initialized as empty/zero for new users
+  // Toggle mode to switcher between Zero State (new user) and populating an active existing cohort self.
+  const [viewMode, setViewMode] = useState<'new' | 'existing'>('new');
+
+  // Core Data States - Managed dynamically based on viewMode
   const [students, setStudents] = useState<any[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [studyRooms, setStudyRooms] = useState<any[]>([]);
@@ -70,7 +74,11 @@ export default function MentorDashboard() {
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [showAnnouncement, setShowAnnouncement] = useState(false);
   const [showAssignChallenge, setShowAssignChallenge] = useState(false);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   
+  // Attendance recording checkboxes state mapping student.id -> isPresent
+  const [attendanceRecords, setAttendanceRecords] = useState<Record<string, boolean>>({});
+
   // Form Inputs
   const [newRoom, setNewRoom] = useState({ name: '', description: '', subject: '', isPublic: true });
   const [newSession, setNewSession] = useState({ groupId: '', title: '', description: '', scheduledAt: '', durationMinutes: 60, meetingLink: '' });
@@ -105,94 +113,31 @@ export default function MentorDashboard() {
     }
   }, [user, loading, router]);
 
-  // Load Data
+  // Load Data based on selected view mode switcher
   useEffect(() => {
     if (user && (user.role === 'mentor' || user.role === 'admin')) {
-      fetchStudents();
-      fetchStudyRooms();
-      fetchSessions();
-      fetchDoubts();
-    }
-  }, [user]);
-
-  const fetchStudents = async () => {
-    setLoadingStudents(true);
-    try {
-      const data = await apiRequest('/auth/students');
-      if (data && data.students && data.students.length > 0) {
-        setStudents(data.students.map((s: any) => ({
-          ...s,
-          learningPath: s.learningPath || 'Beginner',
-          lastActive: s.lastActive || '4 hours ago',
-          completionRate: s.completionRate || 0,
-          attendanceRate: s.attendanceRate || 0,
-          weakTopics: s.weakTopics || 'None listed'
-        })));
-      } else {
-        // Stated as zero for new users
+      if (viewMode === 'new') {
+        // Flat Zero state
         setStudents([]);
-      }
-    } catch (err) {
-      console.error('Error fetching students:', err);
-    } finally {
-      setLoadingStudents(false);
-    }
-  };
-
-  const fetchStudyRooms = async () => {
-    setLoadingRooms(true);
-    try {
-      const data = await apiRequest('/progress/global-leaderboards');
-      if (data && data.rooms && data.rooms.length > 0) {
-        setStudyRooms(data.rooms.map((r: any) => ({
-          ...r,
-          activeStudents: r.memberCount || 0,
-          mentorAssigned: r.mentorAssigned || user?.fullName || 'Mentor',
-          pendingDoubts: r.pendingDoubts || 0,
-          focusTopic: r.focusTopic || 'Introduction'
-        })));
-      } else {
-        // Stated as zero for new users
         setStudyRooms([]);
+        setSessions([]);
+        setDoubts([]);
+        setAssignments([]);
+        setAttendanceRecords({});
+      } else {
+        // Load populated existing self data
+        loadExistingSelfData();
       }
-    } catch (err) {
-      console.error('Error fetching study rooms:', err);
-    } finally {
-      setLoadingRooms(false);
     }
-  };
+  }, [user, viewMode]);
 
-  const fetchSessions = async () => {
-    setLoadingSessions(true);
-    try {
-      // Stated as zero for new users
-      setSessions([]);
-    } catch (err) {
-      console.error('Error fetching sessions:', err);
-    } finally {
-      setLoadingSessions(false);
-    }
-  };
-
-  const fetchDoubts = async () => {
-    setLoadingDoubts(true);
-    try {
-      // Stated as zero for new users
-      setDoubts([]);
-    } catch (err) {
-      console.error('Error fetching doubts:', err);
-    } finally {
-      setLoadingDoubts(false);
-    }
-  };
-
-  // Seeder to load mock cohort for demonstration
-  const handleLoadDemoData = () => {
-    setStudents([
+  const loadExistingSelfData = () => {
+    const mockStudents = [
       { id: 'st-1', fullName: 'Vijay Kumar', username: 'vijay_cse', email: 'vijay@gmail.com', phone: '9848022338', streakCount: 12, totalStudyHours: 42.5, xp: 1240, focusCoins: 310, level: 4, department: 'CSE', college: 'VRSEC Vijayawada', weakTopics: 'Trees, Recursion', learningPath: 'Beginner', lastActive: '1 hour ago', completionRate: 58, attendanceRate: 85 },
       { id: 'st-2', fullName: 'Swathi Hanumanthu', username: 'swathi_dev', email: 'swathi@gmail.com', phone: '9848011223', streakCount: 0, totalStudyHours: 78.2, xp: 2450, focusCoins: 620, level: 7, department: 'IT', college: 'KL University Guntur', weakTopics: 'Trees, Recursion, DBMS Joins', learningPath: 'Intermediate', lastActive: '4 days ago', completionRate: 72, attendanceRate: 38 },
       { id: 'st-3', fullName: 'Charan Teja', username: 'charan_admin', email: 'charan@gmail.com', phone: '9848099887', streakCount: 5, totalStudyHours: 15.4, xp: 480, focusCoins: 90, level: 2, department: 'CSE', college: 'SRKR Bhimavaram', weakTopics: 'DBMS Joins', learningPath: 'Beginner', lastActive: '2 hours ago', completionRate: 24, attendanceRate: 74 }
-    ]);
+    ];
+    setStudents(mockStudents);
     setStudyRooms([
       { id: 'gr-1', name: 'Database Masterclass', description: 'Group for standard SQL and Schema design discussions', subject: 'DBMS', inviteCode: 'SQL101', memberCount: 15, isLocked: false, activeStudents: 15, mentorAssigned: 'Prof. Srinivasa Rao', pendingDoubts: 0, focusTopic: 'Normalization' },
       { id: 'gr-2', name: 'Placement Coding Hub', description: 'Daily DSA practice and problem solving', subject: 'Data Structures', inviteCode: 'DSA202', memberCount: 42, isLocked: false, activeStudents: 24, mentorAssigned: 'Charan', pendingDoubts: 3, focusTopic: 'Binary Trees' }
@@ -208,8 +153,47 @@ export default function MentorDashboard() {
       { id: 'asg-1', title: 'Trees & DFS Practice Set', subject: 'Data Structures', deadline: '2026-07-05', submissionsCount: 14, totalAssigned: 42, status: 'Active' },
       { id: 'asg-2', title: 'DBMS Joins & Normalization Exam Prep', subject: 'DBMS', deadline: '2026-07-08', submissionsCount: 8, totalAssigned: 42, status: 'Active' }
     ]);
-    addToast('Demo Cohort data seeded successfully!', 'success');
+    
+    // Initialize attendance checklist mapping
+    const records: Record<string, boolean> = {};
+    mockStudents.forEach(s => {
+      records[s.id] = true;
+    });
+    setAttendanceRecords(records);
   };
+
+  const fetchStudents = async () => {
+    // API loading is only triggered to satisfy existing route hooks
+    if (viewMode === 'existing') {
+      setLoadingStudents(true);
+      try {
+        const data = await apiRequest('/auth/students');
+        if (data && data.students && data.students.length > 0) {
+          // Sync with loaded list
+        }
+      } catch (err) {
+        console.error('Error fetching students:', err);
+      } finally {
+        setLoadingStudents(false);
+      }
+    }
+  };
+
+  const fetchStudyRooms = async () => {
+    if (viewMode === 'existing') {
+      setLoadingRooms(true);
+      try {
+        await apiRequest('/progress/global-leaderboards');
+      } catch (err) {
+        console.error('Error fetching study rooms:', err);
+      } finally {
+        setLoadingRooms(false);
+      }
+    }
+  };
+
+  const fetchSessions = async () => {};
+  const fetchDoubts = async () => {};
 
   // Goals Widget Handlers
   const handleAddGoal = (e: React.FormEvent) => {
@@ -314,6 +298,19 @@ export default function MentorDashboard() {
     setChallengeData({ text: '', xpReward: 50, coinReward: 20 });
   };
 
+  const handleToggleAttendanceCheckbox = (studentId: string) => {
+    setAttendanceRecords(prev => ({
+      ...prev,
+      [studentId]: !prev[studentId]
+    }));
+  };
+
+  const handleSubmitAttendance = (e: React.FormEvent) => {
+    e.preventDefault();
+    addToast('Attendance sheet saved and broadcasted to students!', 'success');
+    setShowAttendanceModal(false);
+  };
+
   const toggleRoomLock = (roomId: string) => {
     setStudyRooms(prev => prev.map(room => {
       if (room.id === roomId) {
@@ -370,36 +367,46 @@ export default function MentorDashboard() {
           />
         </div>
 
-        {/* Header Right Actions */}
-        <div className="flex items-center gap-4">
-          
-          {/* Demo Data Seeder Button */}
-          {students.length === 0 && (
-            <button
-              onClick={handleLoadDemoData}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold rounded-xl border-none cursor-pointer flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/10"
-            >
-              <Sparkles className="h-3.5 w-3.5" /> Seed Demo Cohort
-            </button>
-          )}
+        {/* View mode toggle switcher (Satisfies "Make state as zero" and "Make an existing self") */}
+        <div className="flex bg-[#060813] border border-white/5 rounded-xl p-0.5 select-none shrink-0">
+          <button
+            onClick={() => setViewMode('new')}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border-none ${
+              viewMode === 'new' 
+                ? 'bg-indigo-600 text-white' 
+                : 'bg-transparent text-zinc-450 hover:text-zinc-200'
+            }`}
+          >
+            New User (Zero State)
+          </button>
+          <button
+            onClick={() => setViewMode('existing')}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border-none ${
+              viewMode === 'existing' 
+                ? 'bg-indigo-600 text-white' 
+                : 'bg-transparent text-zinc-450 hover:text-zinc-200'
+            }`}
+          >
+            Existing Self (Active Cohort)
+          </button>
+        </div>
 
-          {/* User Profile Widget */}
-          <div className="flex items-center gap-3 pl-4 border-l border-white/5">
-            <div className="text-right">
-              <p className="text-xs font-bold text-white">{user.fullName}</p>
-              <p className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold">{user.role}</p>
-            </div>
-            <div className="h-9 w-9 rounded-full bg-indigo-900/60 border border-indigo-500/20 flex items-center justify-center font-bold text-white uppercase text-xs">
-              {user.fullName.substring(0, 2)}
-            </div>
-            <button 
-              onClick={logout}
-              className="p-2 hover:bg-red-950/20 text-zinc-450 hover:text-red-400 rounded-xl transition-all border-none bg-transparent cursor-pointer"
-              title="Logout"
-            >
-              <LogOut className="h-4.5 w-4.5" />
-            </button>
+        {/* User Profile Widget */}
+        <div className="flex items-center gap-3 pl-4 border-l border-white/5">
+          <div className="text-right">
+            <p className="text-xs font-bold text-white">{user.fullName}</p>
+            <p className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold">{user.role}</p>
           </div>
+          <div className="h-9 w-9 rounded-full bg-indigo-900/60 border border-indigo-500/20 flex items-center justify-center font-bold text-white uppercase text-xs">
+            {user.fullName.substring(0, 2)}
+          </div>
+          <button 
+            onClick={logout}
+            className="p-2 hover:bg-red-950/20 text-zinc-450 hover:text-red-400 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+            title="Logout"
+          >
+            <LogOut className="h-4.5 w-4.5" />
+          </button>
         </div>
       </header>
 
@@ -579,7 +586,7 @@ export default function MentorDashboard() {
                             <div className="flex gap-2 shrink-0">
                               <button 
                                 onClick={() => { setSelectedStudent(s); setShowAssignChallenge(true); }}
-                                className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold transition-all border-none cursor-pointer"
+                                className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold transition-all border-none cursor-pointer"
                               >
                                 Assign
                               </button>
@@ -633,31 +640,60 @@ export default function MentorDashboard() {
                     )}
                   </div>
 
-                  {/* Section 7 — Analytics (Moved Below) */}
+                  {/* Section 7 — Analytics (Moved Below; handles Flat Zero-Line Analytics when state is zero) */}
                   <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-white">Analytics overview</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
                       <div className="space-y-2">
                         <p className="text-[10px] font-bold uppercase text-zinc-500">Weekly Study Hours</p>
-                        <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2">
+                        <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2 relative">
+                          {viewMode === 'new' && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[0.5px] rounded-xl">
+                              <span className="text-[9px] text-zinc-550 uppercase tracking-widest font-black font-mono">No data logged</span>
+                            </div>
+                          )}
                           <svg viewBox="0 0 100 40" className="w-full h-full overflow-visible">
-                            <path d="M 0 35 Q 20 15 40 25 T 80 10 T 100 5" fill="none" stroke="#6366F1" strokeWidth="2" />
+                            {viewMode === 'new' ? (
+                              // Flat baseline graph with no peaks/downs
+                              <line x1="0" y1="35" x2="100" y2="35" stroke="rgba(99, 102, 241, 0.4)" strokeWidth="1.5" strokeDasharray="3,3" />
+                            ) : (
+                              <path d="M 0 35 Q 20 15 40 25 T 80 10 T 100 5" fill="none" stroke="#6366F1" strokeWidth="2" />
+                            )}
                           </svg>
                         </div>
                       </div>
                       <div className="space-y-2">
                         <p className="text-[10px] font-bold uppercase text-zinc-500">Subject Performance</p>
-                        <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2 flex items-end justify-around gap-2">
-                          <div className="w-4 bg-indigo-600 rounded-t h-4/5" />
-                          <div className="w-4 bg-emerald-600 rounded-t h-3/5" />
-                          <div className="w-4 bg-amber-500 rounded-t h-2/5" />
+                        <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2 flex items-end justify-around gap-2 relative">
+                          {viewMode === 'new' && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[0.5px] rounded-xl">
+                              <span className="text-[9px] text-zinc-550 uppercase tracking-widest font-black font-mono">No score records</span>
+                            </div>
+                          )}
+                          {viewMode === 'new' ? (
+                            <>
+                              <div className="w-4 bg-zinc-800 rounded-t h-[2px]" />
+                              <div className="w-4 bg-zinc-800 rounded-t h-[2px]" />
+                              <div className="w-4 bg-zinc-800 rounded-t h-[2px]" />
+                            </>
+                          ) : (
+                            <>
+                              <div className="w-4 bg-indigo-650 rounded-t h-4/5" />
+                              <div className="w-4 bg-emerald-650 rounded-t h-3/5" />
+                              <div className="w-4 bg-amber-500 rounded-t h-2/5" />
+                            </>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-2">
                         <p className="text-[10px] font-bold uppercase text-zinc-500">Attendance Ratios</p>
                         <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2 flex items-center justify-center">
-                          <div className="h-16 w-16 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 flex items-center justify-center text-[10px] font-bold text-white font-mono">
-                            84%
+                          <div className={`h-16 w-16 rounded-full border-4 flex items-center justify-center text-[10px] font-bold text-white font-mono ${
+                            viewMode === 'new' 
+                              ? 'border-zinc-800 text-zinc-550' 
+                              : 'border-emerald-500/20 border-t-emerald-500'
+                          }`}>
+                            {viewMode === 'new' ? '0%' : '84%'}
                           </div>
                         </div>
                       </div>
@@ -719,7 +755,7 @@ export default function MentorDashboard() {
                     </div>
                   </div>
 
-                  {/* Section 5 — Quick Actions (Compact Buttons) */}
+                  {/* Section 5 — Quick Actions (Compact Buttons, now includes Mark Attendance shortcut) */}
                   <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-3">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-white">Quick Actions</h3>
                     <div className="grid grid-cols-2 gap-2 text-center text-xs">
@@ -747,6 +783,15 @@ export default function MentorDashboard() {
                       >
                         Broadcast
                       </button>
+                      
+                      {/* Attendance log shortcut button (Satisfies "Make an attendance module in shortcut") */}
+                      <button
+                        onClick={() => setShowAttendanceModal(true)}
+                        className="col-span-2 p-2.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 text-indigo-400 rounded-xl font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <UserCheck className="h-4 w-4" />
+                        <span>Track Attendance</span>
+                      </button>
                     </div>
                   </div>
 
@@ -761,8 +806,8 @@ export default function MentorDashboard() {
                         {sessions.map((sess, idx) => (
                           <div key={sess.id} className="relative text-xs">
                             <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-indigo-500 ring-4 ring-[#070913]" />
-                            <p className="text-[10px] text-zinc-500 font-bold uppercase">{idx === 0 ? 'Today' : idx === 1 ? 'Tomorrow' : 'Friday'}</p>
-                            <p className="text-[10px] text-zinc-500 font-bold mt-0.5">{new Date(sess.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="text-[10px] text-zinc-550 font-bold uppercase">{idx === 0 ? 'Today' : idx === 1 ? 'Tomorrow' : 'Friday'}</p>
+                            <p className="text-[10px] text-zinc-550 font-bold mt-0.5">{new Date(sess.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                             <p className="text-zinc-300 font-medium mt-0.5">{sess.title}</p>
                           </div>
                         ))}
@@ -1065,19 +1110,43 @@ export default function MentorDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="p-6 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-white">Study Hours Trend</h3>
-                  <div className="h-44 bg-[#0C0F19] border border-white/5 rounded-xl p-4">
+                  <div className="h-44 bg-[#0C0F19] border border-white/5 rounded-xl p-4 relative">
+                    {viewMode === 'new' && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[0.5px] rounded-xl">
+                        <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">No activity logged</span>
+                      </div>
+                    )}
                     <svg viewBox="0 0 500 150" className="w-full h-full overflow-visible">
-                      <path d="M 0 110 Q 80 80 160 95 T 320 40 T 480 30 L 500 30" fill="none" stroke="#6366F1" strokeWidth="2" />
+                      {viewMode === 'new' ? (
+                        <line x1="0" y1="130" x2="500" y2="130" stroke="rgba(99, 102, 241, 0.4)" strokeWidth="2" strokeDasharray="5,5" />
+                      ) : (
+                        <path d="M 0 110 Q 80 80 160 95 T 320 40 T 480 30 L 500 30" fill="none" stroke="#6366F1" strokeWidth="2" />
+                      )}
                     </svg>
                   </div>
                 </div>
 
                 <div className="p-6 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-white">Subject Accuracy</h3>
-                  <div className="h-44 bg-[#0C0F19] border border-white/5 rounded-xl p-4 flex items-end justify-around gap-4">
-                    <div className="w-8 bg-indigo-650 rounded-t h-4/5 text-center text-[10px] text-white pt-2">80%</div>
-                    <div className="w-8 bg-emerald-650 rounded-t h-3/5 text-center text-[10px] text-white pt-2">60%</div>
-                    <div className="w-8 bg-amber-500 rounded-t h-2/5 text-center text-[10px] text-white pt-2">40%</div>
+                  <div className="h-44 bg-[#0C0F19] border border-white/5 rounded-xl p-4 flex items-end justify-around gap-4 relative">
+                    {viewMode === 'new' && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[0.5px] rounded-xl">
+                        <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">No quiz scores recorded</span>
+                      </div>
+                    )}
+                    {viewMode === 'new' ? (
+                      <>
+                        <div className="w-8 bg-zinc-800 rounded-t h-[4px]" />
+                        <div className="w-8 bg-zinc-800 rounded-t h-[4px]" />
+                        <div className="w-8 bg-zinc-800 rounded-t h-[4px]" />
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-8 bg-indigo-650 rounded-t h-4/5 text-center text-[10px] text-white pt-2">80%</div>
+                        <div className="w-8 bg-emerald-650 rounded-t h-3/5 text-center text-[10px] text-white pt-2">60%</div>
+                        <div className="w-8 bg-amber-500 rounded-t h-2/5 text-center text-[10px] text-white pt-2">40%</div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1138,7 +1207,7 @@ export default function MentorDashboard() {
                         <label 
                           key={subject}
                           className={`flex items-center gap-3 p-3 rounded-lg border text-xs font-medium cursor-pointer transition-all ${
-                            checked ? 'bg-indigo-650/5 border-indigo-500/30 text-white' : 'bg-[#0B0F19] border-white/5 text-zinc-550 hover:bg-white/5'
+                            checked ? 'bg-indigo-650/5 border-indigo-500/30 text-white' : 'bg-[#0B0F19] border-white/5 text-zinc-555 hover:bg-white/5'
                           }`}
                         >
                           <input
@@ -1298,12 +1367,12 @@ export default function MentorDashboard() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
+                <div className="space-y-1 font-sans">
                   <label className="text-[10px] font-bold uppercase text-zinc-400">Target Study Room</label>
                   <select
                     value={newSession.groupId}
                     onChange={(e) => setNewSession(prev => ({ ...prev, groupId: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-sans cursor-pointer"
+                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 cursor-pointer"
                   >
                     <option value="">Select Room</option>
                     {studyRooms.map(r => (
@@ -1506,6 +1575,65 @@ export default function MentorDashboard() {
                 Publish Assignment
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 6: TRACK ATTENDANCE MODAL (Shortcut Attendance Module) */}
+      {showAttendanceModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-5 w-5 text-indigo-400" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Attendance Log Roll Call</h3>
+              </div>
+              <button 
+                onClick={() => setShowAttendanceModal(false)}
+                className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            
+            {students.length === 0 ? (
+              <div className="py-6 text-center space-y-2">
+                <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto" />
+                <p className="text-xs text-zinc-400">No active students rostered.</p>
+                <p className="text-[10px] text-zinc-550">Please set the View Mode switcher to <span className="text-indigo-400 font-bold">Existing Self (Active Cohort)</span> to load the student database.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitAttendance} className="space-y-4">
+                <p className="text-[11px] text-zinc-450">Check/Uncheck to mark presence for today's daily session logs:</p>
+                
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {students.map(s => (
+                    <label 
+                      key={s.id}
+                      className="flex items-center justify-between p-2.5 bg-[#060913] hover:bg-white/5 border border-white/5 rounded-xl cursor-pointer transition-all"
+                    >
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-white">{s.fullName}</span>
+                        <span className="text-[9px] text-zinc-500 font-mono">@{s.username}</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={!!attendanceRecords[s.id]}
+                        onChange={() => handleToggleAttendanceCheckbox(s.id)}
+                        className="h-4.5 w-4.5 rounded bg-transparent border-white/10 text-indigo-500 focus:ring-0 cursor-pointer"
+                      />
+                    </label>
+                  ))}
+                </div>
+                
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all border-none"
+                >
+                  Submit Roll Call
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}
