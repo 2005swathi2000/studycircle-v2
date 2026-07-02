@@ -15,7 +15,8 @@ import {
   Upload,
   X,
   Edit3,
-  HelpCircle
+  HelpCircle,
+  Trash2
 } from 'lucide-react';
 import { apiRequest } from '../utils/api';
 import { useToast } from '../components/ToastProvider';
@@ -66,6 +67,15 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 }) => {
   const { showToast } = useToast();
   const [lastActivity, setLastActivity] = useState<any>(null);
+
+  // Today's Focus Goals State
+  const [focusGoals, setFocusGoals] = useState<any[]>([
+    { id: 'challenge', label: 'Complete Daily Challenge' },
+    { id: 'pomodoro', label: 'Run 2 Pomodoro Sessions' },
+    { id: 'dsa', label: 'Solve 5 DSA Problems' }
+  ]);
+  const [newGoalText, setNewGoalText] = useState('');
+  const [showAddGoalInput, setShowAddGoalInput] = useState(false);
 
   // Quick Action Modal States
   const [showCreateNoteModal, setShowCreateNoteModal] = useState(false);
@@ -201,6 +211,22 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     } else {
       setCompletedGoals(prev => [...prev, goalId]);
     }
+  };
+
+  const handleAddGoal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGoalText.trim()) return;
+    const newId = `g-${Date.now()}`;
+    setFocusGoals(prev => [...prev, { id: newId, label: newGoalText.trim() }]);
+    setNewGoalText('');
+    setShowAddGoalInput(false);
+    showToast('Focus goal added!', 'success');
+  };
+
+  const handleDeleteGoal = (id: string) => {
+    setFocusGoals(prev => prev.filter(g => g.id !== id));
+    setCompletedGoals(prev => prev.filter(g => g !== id));
+    showToast('Focus goal deleted', 'info');
   };
 
   return (
@@ -371,43 +397,87 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 <CheckSquare className="h-4 w-4 text-indigo-400" /> Today's Focus Goals
               </h3>
               <span className="text-[10px] font-extrabold text-indigo-400 font-mono uppercase bg-indigo-500/10 px-2 py-0.5 rounded">
-                {completedGoals.length} / 3 Done
+                {completedGoals.filter(g => focusGoals.some(fg => fg.id === g)).length} / {focusGoals.length} Done
               </span>
             </div>
             
-            <div className="space-y-2">
-              {[
-                { id: 'challenge', label: 'Complete Daily Challenge' },
-                { id: 'pomodoro', label: 'Run 2 Pomodoro Sessions' },
-                { id: 'dsa', label: 'Solve 5 DSA Problems' }
-              ].map(goal => {
-                const isChecked = completedGoals.includes(goal.id);
-                return (
-                  <div 
-                    key={goal.id}
-                    onClick={() => toggleGoal(goal.id)}
-                    className="p-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center gap-3 cursor-pointer transition-colors"
-                  >
-                    <input 
-                      type="checkbox" 
-                      checked={isChecked}
-                      readOnly
-                      className="rounded border-white/10 text-indigo-600 focus:ring-indigo-500/40 bg-slate-950 h-3.5 w-3.5 cursor-pointer"
-                    />
-                    <span className={`text-[11px] font-semibold transition-all ${isChecked ? 'line-through text-slate-500' : 'text-slate-200'}`}>
-                      {goal.label}
-                    </span>
-                  </div>
-                );
-              })}
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {focusGoals.length === 0 ? (
+                <p className="text-[10px] text-zinc-500 italic py-2 text-center">No focus tasks listed.</p>
+              ) : (
+                focusGoals.map(goal => {
+                  const isChecked = completedGoals.includes(goal.id);
+                  return (
+                    <div 
+                      key={goal.id}
+                      className="p-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between gap-3 transition-colors"
+                    >
+                      <label className="flex items-center gap-3 cursor-pointer flex-1 select-none">
+                        <input 
+                          type="checkbox" 
+                          checked={isChecked}
+                          onChange={() => toggleGoal(goal.id)}
+                          className="rounded border-white/10 text-indigo-650 focus:ring-indigo-500/40 bg-slate-950 h-3.5 w-3.5 cursor-pointer"
+                        />
+                        <span className={`text-[11px] font-semibold transition-all ${isChecked ? 'line-through text-slate-500' : 'text-slate-200'}`}>
+                          {goal.label}
+                        </span>
+                      </label>
+                      <button
+                        onClick={() => handleDeleteGoal(goal.id)}
+                        className="p-1 hover:bg-red-950/20 text-zinc-500 hover:text-red-400 rounded transition-all border-none bg-transparent cursor-pointer"
+                        title="Delete Goal"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
             </div>
+
+            {/* Add Goal Input Area */}
+            {!showAddGoalInput ? (
+              <button
+                onClick={() => setShowAddGoalInput(true)}
+                className="w-full py-2.5 bg-white/[0.01] hover:bg-white/5 border border-white/5 rounded-xl text-[10px] text-zinc-300 font-bold transition-all cursor-pointer mt-2"
+              >
+                + Add Custom Goal
+              </button>
+            ) : (
+              <form onSubmit={handleAddGoal} className="flex gap-2 mt-2">
+                <input
+                  type="text"
+                  placeholder="Enter focus task..."
+                  value={newGoalText}
+                  onChange={(e) => setNewGoalText(e.target.value)}
+                  className="flex-1 bg-[#060813] border border-white/5 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 placeholder-zinc-600"
+                  autoFocus
+                />
+                <div className="flex gap-1">
+                  <button
+                    type="submit"
+                    className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold border-none cursor-pointer transition-all"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddGoalInput(false); setNewGoalText(''); }}
+                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-xs font-bold border-none cursor-pointer transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
           
           <div className="pt-4 mt-4 border-t border-white/5">
             <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-white/5">
               <div 
                 className="h-full bg-indigo-500 rounded-full transition-all duration-300"
-                style={{ width: `${Math.round((completedGoals.length / 3) * 100)}%` }}
+                style={{ width: `${Math.round((completedGoals.filter(g => focusGoals.some(fg => fg.id === g)).length / Math.max(1, focusGoals.length)) * 100)}%` }}
               />
             </div>
           </div>

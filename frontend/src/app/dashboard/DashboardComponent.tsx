@@ -3667,14 +3667,14 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             setPracticeConsoleLogs([]);
                             setPracticeTested(false);
                           }}
-                          className={`p-5 rounded-[22px] border text-left transition-all duration-300 cursor-pointer relative overflow-hidden active:scale-[0.98] flex flex-col justify-between h-28 group ${
+                          className={`p-3.5 rounded-xl border text-left transition-all duration-300 cursor-pointer relative overflow-hidden active:scale-[0.98] flex items-center gap-3 group ${
                             isSelected
-                              ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-indigo-500/50 text-white shadow-lg shadow-indigo-500/10'
+                              ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-indigo-500/50 text-white shadow-lg shadow-indigo-500/10 font-bold'
                               : 'bg-[#0B0F19]/60 backdrop-blur-md border-white/5 text-slate-400 hover:bg-[#121829]/85 hover:border-white/15 hover:text-white'
                           }`}
                         >
-                          <span className="text-2xl filter drop-shadow-[0_0_8px_rgba(99,102,241,0.2)]">{interest.icon}</span>
-                          <span className="text-[11px] font-black tracking-wide">{interest.name}</span>
+                          <span className="text-xl filter drop-shadow-[0_0_8px_rgba(99,102,241,0.2)] shrink-0">{interest.icon}</span>
+                          <span className="text-[11px] font-black tracking-wide truncate">{interest.name}</span>
                         </button>
                       );
                     })}
