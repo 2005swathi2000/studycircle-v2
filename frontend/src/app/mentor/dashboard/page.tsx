@@ -353,7 +353,7 @@ export default function MentorDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070913] text-zinc-100 flex flex-col font-sans select-none">
+    <div className="min-h-screen bg-[#070913] text-zinc-100 flex flex-col font-sans">
       
       {/* Top Banner Control Bar (Header) */}
       <header className="h-16 border-b border-white/5 bg-[#0B0F19]/80 backdrop-blur-md px-4 md:px-8 flex items-center justify-between sticky top-0 z-40 gap-4">

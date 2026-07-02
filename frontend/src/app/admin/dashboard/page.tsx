@@ -288,7 +288,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070913] text-zinc-100 flex flex-col font-serif select-none">
+    <div className="min-h-screen bg-[#070913] text-zinc-100 flex flex-col font-serif">
       
       {/* Top Console Navigation bar */}
       <header className="h-16 border-b border-white/5 bg-[#0B0F19]/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40">
