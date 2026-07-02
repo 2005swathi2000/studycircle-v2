@@ -93,7 +93,7 @@ const signToken = (user, rememberMe = false) => {
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role },
     process.env.JWT_SECRET || 'super_secret_study_circle_token_2026_key_ap_telangana',
-    { expiresIn: rememberMe ? '30d' : '1d' }
+    { expiresIn: rememberMe ? '30d' : '7d' }
   );
 };
 
@@ -379,12 +379,12 @@ router.post('/register', async (req, res) => {
     const token = jwt.sign(
       { id: newUser.id, username: newUser.username, role: newUser.role },
       process.env.JWT_SECRET || 'super_secret_study_circle_token_2026_key_ap_telangana',
-      { expiresIn: '15m' }
+      { expiresIn: '7d' }
     );
     const refreshToken = jwt.sign(
       { id: newUser.id, type: 'refresh', rememberMe: false },
       process.env.JWT_REFRESH_SECRET || 'refresh_secret_study_circle_2026',
-      { expiresIn: '1d' }
+      { expiresIn: '30d' }
     );
 
     // Set HttpOnly cookies
@@ -393,13 +393,13 @@ router.post('/register', async (req, res) => {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 15 * 60 * 1000 // 15 mins
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
 
     return res.status(201).json({
@@ -519,12 +519,12 @@ router.post('/login', loginLimiter, async (req, res) => {
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET || 'super_secret_study_circle_token_2026_key_ap_telangana',
-      { expiresIn: remember ? '1d' : '15m' }
+      { expiresIn: remember ? '30d' : '7d' }
     );
     const refreshToken = jwt.sign(
       { id: user.id, type: 'refresh', rememberMe: remember },
       process.env.JWT_REFRESH_SECRET || 'refresh_secret_study_circle_2026',
-      { expiresIn: remember ? '30d' : '1d' }
+      { expiresIn: remember ? '30d' : '7d' }
     );
 
     // Set HttpOnly cookies
@@ -533,13 +533,13 @@ router.post('/login', loginLimiter, async (req, res) => {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
-      maxAge: remember ? 24 * 60 * 60 * 1000 : 15 * 60 * 1000 // 1 day vs 15 min
+      maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000
     });
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
-      maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000 // 30 days vs 1 day
+      maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000
     });
 
     return res.json({
@@ -1104,7 +1104,7 @@ router.post('/google', async (req, res) => {
     const refreshToken = jwt.sign(
       { id: user.id, type: 'refresh', rememberMe: false },
       process.env.JWT_REFRESH_SECRET || 'refresh_secret_study_circle_2026',
-      { expiresIn: '1d' }
+      { expiresIn: '7d' }
     );
 
     const isProduction = process.env.NODE_ENV === 'production';
@@ -1112,13 +1112,13 @@ router.post('/google', async (req, res) => {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 15 * 60 * 1000 // 15 mins
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
     return res.json({

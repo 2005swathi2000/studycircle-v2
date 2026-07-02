@@ -62,7 +62,7 @@ const authMiddleware = async (req, res, next) => {
       const newAccessToken = jwt.sign(
         { id: user.id, username: user.username, role: user.role },
         process.env.JWT_SECRET || 'super_secret_study_circle_token_2026_key_ap_telangana',
-        { expiresIn: remember ? '1d' : '15m' }
+        { expiresIn: remember ? '30d' : '7d' }
       );
 
       // Set new access token cookie
@@ -71,7 +71,7 @@ const authMiddleware = async (req, res, next) => {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'none' : 'lax',
-        maxAge: remember ? 24 * 60 * 60 * 1000 : 15 * 60 * 1000 // 1 day vs 15 mins
+        maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000
       });
 
       // Also set a custom header so the client API wrapper can sync its local fallback token
