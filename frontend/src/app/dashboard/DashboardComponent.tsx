@@ -3355,7 +3355,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                               <p className={`text-[10px] leading-tight ${notif.unread ? 'font-bold text-white' : 'text-zinc-400'}`}>
                                 {notif.message}
                               </p>
-                              <span className="text-[8px] text-zinc-555 font-mono block">{new Date(notif.createdAt).toLocaleString()}</span>
+                              <span className="text-[8px] text-zinc-500 font-mono block">{new Date(notif.createdAt).toLocaleString()}</span>
                             </div>
                           </div>
                         ))}
@@ -6233,7 +6233,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 
                 <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                   <div className="relative flex-1 md:flex-initial">
-                    <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-550" />
+                    <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-500" />
                     <input
                       type="text"
                       placeholder="Search messages/doubts..."
@@ -6580,7 +6580,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             placeholder={`Message in ${activeChannel}... (Use ? prefix for doubts, /poll ; opt1 ; opt2 for polls)`}
                             value={newMessageText}
                             onChange={(e) => setNewMessageText(e.target.value)}
-                            className="flex-1 px-4 py-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-650 focus:bg-slate-900/60 focus:border-[#10B981]/40 font-medium"
+                            className="flex-1 px-4 py-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-600 focus:bg-slate-900/60 focus:border-[#10B981]/40 font-medium"
                           />
                           <button
                             type="submit"
@@ -6635,7 +6635,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             onChange={(e) => setNewMessageText(e.target.value)}
                             className="w-full px-4 py-2 bg-slate-955 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-600 focus:border-[#10B981]/40 font-semibold"
                           />
-                          <p className="text-[9px] text-zinc-550 font-bold uppercase tracking-wider text-left">
+                          <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider text-left">
                             ℹ️ Form: Prefix option strings with `/poll Question; option1; option2` in chat, or submit chat above.
                           </p>
                         </div>
@@ -6649,25 +6649,25 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   
                   {/* Daily Insights */}
                   <div className="p-4 bg-[#0B0F19] border border-white/5 rounded-[24px] shadow-lg text-white space-y-3">
-                    <span className="text-[9px] font-black uppercase text-zinc-450 tracking-wider block text-left">
+                    <span className="text-[9px] font-black uppercase text-zinc-400 tracking-wider block text-left">
                       📊 Daily Cohort Insights
                     </span>
                     <div className="grid grid-cols-2 gap-2 text-center text-xs">
                       <div className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5">
                         <p className="text-sm font-black text-[#10B981]">{dailyMetrics.studentsActive}</p>
-                        <p className="text-[8px] text-zinc-555 uppercase font-black">Active</p>
+                        <p className="text-[8px] text-zinc-500 uppercase font-black">Active</p>
                       </div>
                       <div className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5">
                         <p className="text-sm font-black text-amber-505">{dailyMetrics.doubtsResolved}</p>
-                        <p className="text-[8px] text-zinc-555 uppercase font-black">Solved</p>
+                        <p className="text-[8px] text-zinc-500 uppercase font-black">Solved</p>
                       </div>
                       <div className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5">
                         <p className="text-sm font-black text-indigo-400">{dailyMetrics.resourcesShared}</p>
-                        <p className="text-[8px] text-zinc-555 uppercase font-black">Files Shared</p>
+                        <p className="text-[8px] text-zinc-500 uppercase font-black">Files Shared</p>
                       </div>
                       <div className="p-2.5 bg-slate-950/40 rounded-xl border border-white/5">
                         <p className="text-sm font-black text-rose-455">{dailyMetrics.liveStudySessions}</p>
-                        <p className="text-[8px] text-zinc-555 uppercase font-black">Live Lounges</p>
+                        <p className="text-[8px] text-zinc-500 uppercase font-black">Live Lounges</p>
                       </div>
                     </div>
                   </div>
@@ -6733,7 +6733,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             <div className="text-left flex items-center gap-2">
                               <div>
                                 <p className="font-extrabold text-white text-[11px]">{desk.name}</p>
-                                <p className="text-[9px] text-zinc-550 font-mono font-bold">
+                                <p className="text-[9px] text-zinc-500 font-mono font-bold">
                                   {desk.activeCount} joined
                                 </p>
                               </div>
@@ -6772,7 +6772,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             </div>
                             <div className="text-left">
                               <p className="font-extrabold text-white text-[10px]">{c.name}</p>
-                              <p className="text-[8px] text-zinc-550 font-bold uppercase tracking-wider">
+                              <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">
                                 {c.doubtsSolved} doubts solved
                               </p>
                             </div>
@@ -6796,7 +6796,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                           <div>
                             <p className="font-extrabold text-white text-[11px] leading-snug">{s.title}</p>
                             <p className="text-[9px] text-[#10B981] font-mono font-bold">{s.time}</p>
-                            <p className="text-[8px] text-zinc-550 font-semibold mt-0.5">By {s.mentor}</p>
+                            <p className="text-[8px] text-zinc-500 font-semibold mt-0.5">By {s.mentor}</p>
                           </div>
                           <button
                             type="button"
@@ -6851,7 +6851,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                           </div>
                           <div>
                             <p className="text-xs font-black text-white">{selectedDoubtForThread.user}</p>
-                            <p className="text-[8px] text-zinc-550 font-mono">{selectedDoubtForThread.time}</p>
+                            <p className="text-[8px] text-zinc-500 font-mono">{selectedDoubtForThread.time}</p>
                           </div>
                         </div>
                         <p className="text-xs text-zinc-300 font-semibold leading-relaxed">
@@ -6866,7 +6866,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                         </span>
                         
                         {(selectedDoubtForThread.answers || []).length === 0 ? (
-                          <div className="p-6 text-center text-zinc-550 font-bold text-[11px] bg-slate-950/20 rounded-xl border border-white/5">
+                          <div className="p-6 text-center text-zinc-500 font-bold text-[11px] bg-slate-950/20 rounded-xl border border-white/5">
                             No answers yet. Be the first to help out!
                           </div>
                         ) : (
@@ -6887,7 +6887,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                                         {ans.role}
                                       </span>
                                     </span>
-                                    <span className="text-[8px] text-zinc-550 font-mono block mt-0.5">{ans.time}</span>
+                                    <span className="text-[8px] text-zinc-500 font-mono block mt-0.5">{ans.time}</span>
                                   </div>
                                 </div>
                                 {ans.isAccepted && (
@@ -6933,7 +6933,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                         value={replyMessageText}
                         onChange={(e) => setReplyMessageText(e.target.value)}
                         rows={2}
-                        className="w-full px-3 py-2 bg-slate-955 border border-white/10 rounded-xl text-xs outline-none text-white focus:border-[#10B981]/40 font-medium resize-none placeholder-zinc-650"
+                        className="w-full px-3 py-2 bg-slate-955 border border-white/10 rounded-xl text-xs outline-none text-white focus:border-[#10B981]/40 font-medium resize-none placeholder-zinc-600"
                       />
                       <div className="flex justify-end">
                         <button
@@ -6972,7 +6972,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     {aiLoading ? (
                       <div className="py-16 flex flex-col items-center justify-center space-y-3">
                         <RefreshCw className="h-8 w-8 text-indigo-400 animate-spin" />
-                        <p className="text-[10px] text-zinc-450 uppercase font-black tracking-widest animate-pulse">
+                        <p className="text-[10px] text-zinc-400 uppercase font-black tracking-widest animate-pulse">
                           Generating Custom Content...
                         </p>
                       </div>
@@ -6980,7 +6980,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                       <div className="flex-1 py-4 text-left">
                         {activeAiTool === 'flashcard' && (
                           <div className="space-y-6">
-                            <p className="text-[10px] text-zinc-450 text-center font-extrabold uppercase tracking-wide">
+                            <p className="text-[10px] text-zinc-400 text-center font-extrabold uppercase tracking-wide">
                               Flashcard {currentFlashcardIdx + 1} of {aiFlashcards.length} • Click Card to Flip
                             </p>
 
@@ -6997,7 +6997,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                                   <h3 className="text-sm font-black text-white leading-relaxed">
                                     {aiFlashcards[currentFlashcardIdx]?.front}
                                   </h3>
-                                  <p className="text-[9px] text-zinc-550 uppercase font-black tracking-wider pt-2">
+                                  <p className="text-[9px] text-zinc-500 uppercase font-black tracking-wider pt-2">
                                     Click card to show definition
                                   </p>
                                 </div>
@@ -7009,7 +7009,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                                   <p className="text-xs font-semibold text-zinc-300 leading-relaxed">
                                     {aiFlashcards[currentFlashcardIdx]?.back}
                                   </p>
-                                  <p className="text-[9px] text-zinc-550 uppercase font-black tracking-wider pt-2">
+                                  <p className="text-[9px] text-zinc-500 uppercase font-black tracking-wider pt-2">
                                     Click card to show term
                                   </p>
                                 </div>
@@ -7065,7 +7065,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                                         } else if (isOptSelected) {
                                           optStyles = 'border-rose-500/40 bg-rose-500/10 text-rose-455';
                                         } else {
-                                          optStyles = 'border-white/5 bg-slate-950/10 text-zinc-650 opacity-60';
+                                          optStyles = 'border-white/5 bg-slate-950/10 text-zinc-600 opacity-60';
                                         }
                                       } else if (isOptSelected) {
                                         optStyles = 'border-indigo-500/40 bg-indigo-500/10 text-indigo-450';
@@ -7208,7 +7208,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                           placeholder="Summarize your doubt in one short sentence..."
                           value={newDoubtTitle}
                           onChange={(e) => setNewDoubtTitle(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-slate-955 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-650 focus:border-amber-500/40 font-semibold"
+                          className="w-full px-4 py-2.5 bg-slate-955 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-600 focus:border-amber-500/40 font-semibold"
                         />
                       </div>
 
@@ -7221,7 +7221,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                           value={newDoubtDescription}
                           onChange={(e) => setNewDoubtDescription(e.target.value)}
                           rows={4}
-                          className="w-full px-4 py-2.5 bg-slate-955 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-650 focus:border-amber-500/40 font-medium resize-none"
+                          className="w-full px-4 py-2.5 bg-slate-955 border border-white/10 rounded-xl text-xs outline-none text-white placeholder-zinc-600 focus:border-amber-500/40 font-medium resize-none"
                         />
                       </div>
 

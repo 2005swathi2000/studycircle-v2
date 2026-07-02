@@ -275,7 +275,7 @@ export const FloatingAiTutor = () => {
             <button
               type="submit"
               disabled={!input.trim() || isTyping}
-              className="p-2 bg-indigo-650 hover:bg-indigo-500 disabled:bg-zinc-800 text-white disabled:text-zinc-550 rounded-xl border-none cursor-pointer transition-all shrink-0"
+              className="p-2 bg-indigo-650 hover:bg-indigo-500 disabled:bg-zinc-800 text-white disabled:text-zinc-500 rounded-xl border-none cursor-pointer transition-all shrink-0"
             >
               <Send className="h-3.5 w-3.5" />
             </button>

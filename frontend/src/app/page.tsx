@@ -2425,7 +2425,7 @@ export default function Home() {
                 <div className="space-y-3 border-t border-slate-800 pt-4">
                   <span className="text-[9px] font-black uppercase text-amber-500 tracking-wider">Local Sandbox Test Environment</span>
                   <div className="bg-amber-500/5 border border-amber-500/10 p-4 rounded-2xl space-y-3.5 text-xs text-zinc-300">
-                    <p className="text-[11px] text-zinc-450">
+                    <p className="text-[11px] text-zinc-400">
                       You can test the exact two-step Google Authentication experience locally using our OAuth sandbox simulator. This generates a mock JWT token and displays the custom StudyCircle confirmation modal.
                     </p>
                     <button
@@ -2453,7 +2453,7 @@ export default function Home() {
               <div className="flex gap-4">
                 <button
                   onClick={() => setShowOauthDiagnostics(false)}
-                  className="flex-1 py-3 bg-zinc-850 hover:bg-zinc-850/80 active:scale-[0.99] text-white text-xs font-black rounded-xl cursor-pointer transition-all text-center font-bold"
+                  className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-800/80 active:scale-[0.99] text-white text-xs font-black rounded-xl cursor-pointer transition-all text-center font-bold"
                 >
                   Close Diagnostics
                 </button>

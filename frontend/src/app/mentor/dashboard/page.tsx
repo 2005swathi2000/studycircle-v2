@@ -374,7 +374,7 @@ export default function MentorDashboard() {
             className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border-none ${
               viewMode === 'new' 
                 ? 'bg-indigo-600 text-white' 
-                : 'bg-transparent text-zinc-450 hover:text-zinc-200'
+                : 'bg-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
             New User (Zero State)
@@ -384,7 +384,7 @@ export default function MentorDashboard() {
             className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border-none ${
               viewMode === 'existing' 
                 ? 'bg-indigo-600 text-white' 
-                : 'bg-transparent text-zinc-450 hover:text-zinc-200'
+                : 'bg-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
             Existing Self (Active Cohort)
@@ -402,7 +402,7 @@ export default function MentorDashboard() {
           </div>
           <button 
             onClick={logout}
-            className="p-2 hover:bg-red-950/20 text-zinc-450 hover:text-red-400 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+            className="p-2 hover:bg-red-950/20 text-zinc-400 hover:text-red-400 rounded-xl transition-all border-none bg-transparent cursor-pointer"
             title="Logout"
           >
             <LogOut className="h-4.5 w-4.5" />
@@ -516,7 +516,7 @@ export default function MentorDashboard() {
             </div>
           </div>
 
-          <div className="px-6 text-[10px] text-zinc-650 space-y-1">
+          <div className="px-6 text-[10px] text-zinc-600 space-y-1">
             <p>Logged in as: {user.username}</p>
             <p>© StudyCircle</p>
           </div>
@@ -533,7 +533,7 @@ export default function MentorDashboard() {
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-2 border-b border-white/5">
                 <div>
                   <h2 className="text-xl font-bold text-white tracking-tight">Good Morning, Mentor 👋</h2>
-                  <p className="text-zinc-550 text-xs mt-0.5">Today's overview.</p>
+                  <p className="text-zinc-500 text-xs mt-0.5">Today's overview.</p>
                 </div>
               </div>
 
@@ -571,14 +571,14 @@ export default function MentorDashboard() {
                     </h3>
 
                     {strugglingStudents.length === 0 ? (
-                      <p className="text-xs text-zinc-550 italic py-2">No students needing attention today.</p>
+                      <p className="text-xs text-zinc-500 italic py-2">No students needing attention today.</p>
                     ) : (
                       <div className="divide-y divide-white/5">
                         {strugglingStudents.map(s => (
                           <div key={s.id} className="py-3 flex flex-col md:flex-row md:items-center justify-between gap-4 first:pt-0 last:pb-0">
                             <div className="space-y-1">
                               <p className="text-xs font-bold text-white">{s.fullName}</p>
-                              <p className="text-[10px] text-zinc-550">
+                              <p className="text-[10px] text-zinc-500">
                                 Weak Topic: <span className="text-amber-500 font-bold">{s.weakTopics}</span> • Attendance: <span className="font-bold">{s.attendanceRate}%</span>
                               </p>
                               <p className="text-[10px] text-red-400 font-medium">Reason: No study activity for 4 days</p>
@@ -623,7 +623,7 @@ export default function MentorDashboard() {
                           <div key={d.id} className="py-3 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
                             <div>
                               <p className="text-xs font-bold text-white">{d.title}</p>
-                              <p className="text-[10px] text-zinc-550">Student: {d.studentName} • Topic: {d.topic} • Waiting: {d.waitingTime}</p>
+                              <p className="text-[10px] text-zinc-500">Student: {d.studentName} • Topic: {d.topic} • Waiting: {d.waitingTime}</p>
                             </div>
                             <button
                               onClick={() => {
@@ -649,7 +649,7 @@ export default function MentorDashboard() {
                         <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2 relative">
                           {viewMode === 'new' && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[0.5px] rounded-xl">
-                              <span className="text-[9px] text-zinc-550 uppercase tracking-widest font-black font-mono">No data logged</span>
+                              <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black font-mono">No data logged</span>
                             </div>
                           )}
                           <svg viewBox="0 0 100 40" className="w-full h-full overflow-visible">
@@ -667,7 +667,7 @@ export default function MentorDashboard() {
                         <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2 flex items-end justify-around gap-2 relative">
                           {viewMode === 'new' && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[0.5px] rounded-xl">
-                              <span className="text-[9px] text-zinc-550 uppercase tracking-widest font-black font-mono">No score records</span>
+                              <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black font-mono">No score records</span>
                             </div>
                           )}
                           {viewMode === 'new' ? (
@@ -690,7 +690,7 @@ export default function MentorDashboard() {
                         <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2 flex items-center justify-center">
                           <div className={`h-16 w-16 rounded-full border-4 flex items-center justify-center text-[10px] font-bold text-white font-mono ${
                             viewMode === 'new' 
-                              ? 'border-zinc-800 text-zinc-550' 
+                              ? 'border-zinc-800 text-zinc-500' 
                               : 'border-emerald-500/20 border-t-emerald-500'
                           }`}>
                             {viewMode === 'new' ? '0%' : '84%'}
@@ -709,7 +709,7 @@ export default function MentorDashboard() {
                   <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
                     <div className="flex justify-between items-center pb-2 border-b border-white/5">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-white">Today's Goals</h3>
-                      <span className="text-[9px] text-zinc-550 font-bold font-mono">
+                      <span className="text-[9px] text-zinc-500 font-bold font-mono">
                         {goals.filter(g => g.completed).length}/{goals.length}
                       </span>
                     </div>
@@ -720,7 +720,7 @@ export default function MentorDashboard() {
                         placeholder="Add new goal..."
                         value={newGoalText}
                         onChange={(e) => setNewGoalText(e.target.value)}
-                        className="flex-1 bg-[#060813] border border-white/5 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-zinc-650 outline-none focus:border-indigo-500"
+                        className="flex-1 bg-[#060813] border border-white/5 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-indigo-500"
                       />
                       <button
                         type="submit"
@@ -800,14 +800,14 @@ export default function MentorDashboard() {
                     <h3 className="text-xs font-bold uppercase tracking-wider text-white">Upcoming Sessions</h3>
                     
                     {sessions.length === 0 ? (
-                      <p className="text-xs text-zinc-550 italic">No sessions scheduled today.</p>
+                      <p className="text-xs text-zinc-500 italic">No sessions scheduled today.</p>
                     ) : (
                       <div className="relative border-l border-white/5 pl-4 ml-2 space-y-4">
                         {sessions.map((sess, idx) => (
                           <div key={sess.id} className="relative text-xs">
                             <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-indigo-500 ring-4 ring-[#070913]" />
-                            <p className="text-[10px] text-zinc-550 font-bold uppercase">{idx === 0 ? 'Today' : idx === 1 ? 'Tomorrow' : 'Friday'}</p>
-                            <p className="text-[10px] text-zinc-550 font-bold mt-0.5">{new Date(sess.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="text-[10px] text-zinc-500 font-bold uppercase">{idx === 0 ? 'Today' : idx === 1 ? 'Tomorrow' : 'Friday'}</p>
+                            <p className="text-[10px] text-zinc-500 font-bold mt-0.5">{new Date(sess.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                             <p className="text-zinc-300 font-medium mt-0.5">{sess.title}</p>
                           </div>
                         ))}
@@ -827,7 +827,7 @@ export default function MentorDashboard() {
             <div className="space-y-6 max-w-7xl mx-auto">
               <div>
                 <h2 className="text-xl font-bold text-white tracking-tight">Student Roster</h2>
-                <p className="text-zinc-550 text-xs mt-0.5 font-medium">Comprehensive cohort list.</p>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Comprehensive cohort list.</p>
               </div>
 
               {loadingStudents ? (
@@ -844,7 +844,7 @@ export default function MentorDashboard() {
                         <div className="flex justify-between items-start">
                           <div>
                             <h3 className="text-xs font-bold text-white">{student.fullName}</h3>
-                            <p className="text-[10px] text-zinc-550 font-mono">@{student.username} • {student.college}</p>
+                            <p className="text-[10px] text-zinc-500 font-mono">@{student.username} • {student.college}</p>
                           </div>
                           <span className="text-[9px] px-2 py-0.5 bg-indigo-500/10 text-indigo-400 font-bold uppercase rounded">
                             {student.learningPath}
@@ -898,7 +898,7 @@ export default function MentorDashboard() {
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-bold text-white tracking-tight">Study Rooms Hub</h2>
-                  <p className="text-zinc-550 text-xs mt-0.5 font-medium">Coordinate dynamic rooms.</p>
+                  <p className="text-zinc-500 text-xs mt-0.5 font-medium">Coordinate dynamic rooms.</p>
                 </div>
                 <button
                   onClick={() => setShowCreateRoom(true)}
@@ -971,7 +971,7 @@ export default function MentorDashboard() {
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-bold text-white tracking-tight">Mentoring Sessions</h2>
-                  <p className="text-zinc-550 text-xs mt-0.5 font-medium">Schedule and host lectures.</p>
+                  <p className="text-zinc-500 text-xs mt-0.5 font-medium">Schedule and host lectures.</p>
                 </div>
                 <button
                   onClick={() => setShowCreateSession(true)}
@@ -997,14 +997,14 @@ export default function MentorDashboard() {
                             <h3 className="text-xs font-bold text-white">{session.title}</h3>
                             <p className="text-[10px] text-zinc-500 font-medium">Cohort Group: <span className="text-indigo-400 font-bold">{session.groupName}</span></p>
                           </div>
-                          <span className="text-[10px] text-zinc-550 font-bold font-mono">
+                          <span className="text-[10px] text-zinc-500 font-bold font-mono">
                             {new Date(session.scheduledAt).toLocaleDateString()}
                           </span>
                         </div>
 
                         <p className="text-xs text-zinc-400 leading-normal font-medium">{session.description}</p>
                         
-                        <div className="grid grid-cols-3 gap-3 text-center py-2 bg-[#0C0F19] rounded-lg border border-white/5 font-mono text-xs text-zinc-550">
+                        <div className="grid grid-cols-3 gap-3 text-center py-2 bg-[#0C0F19] rounded-lg border border-white/5 font-mono text-xs text-zinc-500">
                           <div>
                             <p className="font-sans">Registered</p>
                             <p className="font-bold text-white mt-0.5">{session.registered}</p>
@@ -1043,7 +1043,7 @@ export default function MentorDashboard() {
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-bold text-white tracking-tight">Assignments</h2>
-                  <p className="text-zinc-550 text-xs mt-0.5 font-medium">Review and assign tasks.</p>
+                  <p className="text-zinc-500 text-xs mt-0.5 font-medium">Review and assign tasks.</p>
                 </div>
                 <button
                   onClick={() => setShowCreateAssignment(true)}
@@ -1070,11 +1070,11 @@ export default function MentorDashboard() {
                           </span>
                         </div>
 
-                        <div className="pt-2 flex justify-between text-xs text-zinc-550 font-medium">
+                        <div className="pt-2 flex justify-between text-xs text-zinc-500 font-medium">
                           <span>Deadline: <span className="text-white font-mono">{asg.deadline}</span></span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 text-center py-2 bg-white/[0.005] border border-white/5 rounded-lg font-mono text-xs text-zinc-550">
+                        <div className="grid grid-cols-2 gap-3 text-center py-2 bg-white/[0.005] border border-white/5 rounded-lg font-mono text-xs text-zinc-500">
                           <div>
                             <p className="font-sans">Submissions</p>
                             <p className="font-bold text-white mt-0.5">{asg.submissionsCount}</p>
@@ -1104,7 +1104,7 @@ export default function MentorDashboard() {
             <div className="space-y-8 max-w-7xl mx-auto">
               <div>
                 <h2 className="text-xl font-bold text-white tracking-tight">Analytics Dashboard</h2>
-                <p className="text-zinc-550 text-xs mt-0.5 font-medium">Comprehensive statistical distribution of study parameters.</p>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Comprehensive statistical distribution of study parameters.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1158,7 +1158,7 @@ export default function MentorDashboard() {
             <div className="max-w-2xl mx-auto space-y-6 bg-[#070913]">
               <div>
                 <h2 className="text-xl font-bold text-white tracking-tight">Profile Settings</h2>
-                <p className="text-zinc-550 text-xs mt-0.5 font-medium">Manage availability status.</p>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Manage availability status.</p>
               </div>
 
               <div className="p-6 rounded-xl bg-white/[0.01] border border-white/5 space-y-6">
@@ -1207,7 +1207,7 @@ export default function MentorDashboard() {
                         <label 
                           key={subject}
                           className={`flex items-center gap-3 p-3 rounded-lg border text-xs font-medium cursor-pointer transition-all ${
-                            checked ? 'bg-indigo-650/5 border-indigo-500/30 text-white' : 'bg-[#0B0F19] border-white/5 text-zinc-555 hover:bg-white/5'
+                            checked ? 'bg-indigo-650/5 border-indigo-500/30 text-white' : 'bg-[#0B0F19] border-white/5 text-zinc-500 hover:bg-white/5'
                           }`}
                         >
                           <input
@@ -1238,7 +1238,7 @@ export default function MentorDashboard() {
                           type="button"
                           onClick={() => setTeachingSchedule(prev => ({ ...prev, [day]: !isActive }))}
                           className={`px-3 py-2 rounded-lg text-xs font-bold border cursor-pointer capitalize transition-all ${
-                            isActive ? 'bg-indigo-650/10 border-indigo-500 text-white' : 'bg-[#0B0F19] border-white/5 text-zinc-550'
+                            isActive ? 'bg-indigo-650/10 border-indigo-500 text-white' : 'bg-[#0B0F19] border-white/5 text-zinc-500'
                           }`}
                         >
                           {day.substring(0, 3)}
@@ -1600,11 +1600,11 @@ export default function MentorDashboard() {
               <div className="py-6 text-center space-y-2">
                 <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto" />
                 <p className="text-xs text-zinc-400">No active students rostered.</p>
-                <p className="text-[10px] text-zinc-550">Please set the View Mode switcher to <span className="text-indigo-400 font-bold">Existing Self (Active Cohort)</span> to load the student database.</p>
+                <p className="text-[10px] text-zinc-500">Please set the View Mode switcher to <span className="text-indigo-400 font-bold">Existing Self (Active Cohort)</span> to load the student database.</p>
               </div>
             ) : (
               <form onSubmit={handleSubmitAttendance} className="space-y-4">
-                <p className="text-[11px] text-zinc-450">Check/Uncheck to mark presence for today's daily session logs:</p>
+                <p className="text-[11px] text-zinc-400">Check/Uncheck to mark presence for today's daily session logs:</p>
                 
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                   {students.map(s => (

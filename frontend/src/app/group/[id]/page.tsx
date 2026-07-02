@@ -1855,7 +1855,7 @@ export default function GroupPage() {
                             required
                             onChange={(e) => setNoteTitle(e.target.value)}
                             placeholder="Title of new note..."
-                            className="flex-1 px-3.5 py-2 bg-[#0E0F15] border border-zinc-850 focus:border-indigo-500 rounded-xl text-xs outline-none text-zinc-150"
+                            className="flex-1 px-3.5 py-2 bg-[#0E0F15] border border-zinc-800 focus:border-indigo-500 rounded-xl text-xs outline-none text-zinc-150"
                           />
                           <button
                             type="submit"
@@ -1869,7 +1869,7 @@ export default function GroupPage() {
                           onChange={(e) => setNoteContent(e.target.value)}
                           placeholder="Write collaborative notes here. Code snippets, exam keynotes, or formulas."
                           rows={3}
-                          className="w-full px-3.5 py-2.5 bg-[#0E0F15] border border-zinc-850 focus:border-indigo-500 rounded-xl text-xs outline-none text-zinc-150 resize-none font-mono"
+                          className="w-full px-3.5 py-2.5 bg-[#0E0F15] border border-zinc-800 focus:border-indigo-500 rounded-xl text-xs outline-none text-zinc-150 resize-none font-mono"
                         />
                         <div className="flex items-center gap-2">
                           <input
@@ -2161,7 +2161,7 @@ export default function GroupPage() {
                         <button
                           type="button"
                           onClick={() => setShowDoubtForm(false)}
-                          className="px-4 py-2 bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-semibold rounded-xl"
+                          className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-semibold rounded-xl"
                         >
                           Cancel
                         </button>
@@ -2251,7 +2251,7 @@ export default function GroupPage() {
                                 </p>
                               </div>
 
-                              <div className="flex justify-between items-center text-[9px] text-zinc-550 pt-2 border-t border-white/5">
+                              <div className="flex justify-between items-center text-[9px] text-zinc-500 pt-2 border-t border-white/5">
                                 <div className="flex gap-1.5 flex-wrap">
                                   {d.tags && d.tags.split(',').map((t: string) => (
                                     <span key={t} className="text-[8px] font-bold text-zinc-500 uppercase">
@@ -2288,7 +2288,7 @@ export default function GroupPage() {
 
             <form onSubmit={handleLogProgress} className="space-y-3.5">
               <div className="space-y-1">
-                <label className="text-[9px] font-bold text-zinc-450 uppercase tracking-wider">Minutes Studied</label>
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Minutes Studied</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="range"
@@ -2305,7 +2305,7 @@ export default function GroupPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-zinc-450 uppercase tracking-wider">Notes Created</label>
+                  <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Notes Created</label>
                   <input
                     type="number"
                     min="0"
@@ -2316,7 +2316,7 @@ export default function GroupPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-zinc-450 uppercase tracking-wider">Tasks Done</label>
+                  <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Tasks Done</label>
                   <input
                     type="number"
                     min="0"
@@ -2354,7 +2354,7 @@ export default function GroupPage() {
                   <div key={lbUser.id} className="p-3.5 flex items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className={`font-mono font-black text-[10px] w-4 text-center shrink-0 ${
-                        index === 0 ? 'text-[#FF8A75]' : index === 1 ? 'text-[#FFA07A]' : index === 2 ? 'text-amber-600' : 'text-zinc-550'
+                        index === 0 ? 'text-[#FF8A75]' : index === 1 ? 'text-[#FFA07A]' : index === 2 ? 'text-amber-600' : 'text-zinc-500'
                       }`}>
                         #{index + 1}
                       </span>
@@ -2487,7 +2487,7 @@ export default function GroupPage() {
                 <button
                   type="button"
                   onClick={() => setShowScheduleModal(false)}
-                  className="px-4 py-2 bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-semibold rounded-xl"
+                  className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-semibold rounded-xl"
                 >
                   Cancel
                 </button>
@@ -2519,7 +2519,7 @@ export default function GroupPage() {
               <button
                 type="button"
                 onClick={() => setNoteToDelete(null)}
-                className="px-4 py-2 bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
               >
                 Cancel
               </button>
