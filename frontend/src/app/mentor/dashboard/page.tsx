@@ -8,11 +8,8 @@ import { useToast } from '../../components/ToastProvider';
 import { 
   Users, 
   Clock, 
-  Flame, 
   MessageSquare, 
   Calendar, 
-  TrendingUp, 
-  AlertTriangle, 
   Plus, 
   Search, 
   ChevronRight, 
@@ -22,33 +19,33 @@ import {
   Lock, 
   Unlock, 
   BookOpen, 
-  ArrowRight,
-  LogOut,
-  UserCheck,
-  RefreshCw,
+  LogOut, 
+  FileText, 
+  Check, 
+  X, 
+  Trash2,
+  AlertTriangle,
+  Sliders,
   Sparkles,
   BarChart2,
-  Bell,
-  Activity,
-  FileText,
-  Mail,
-  Sliders,
-  Check,
-  Send,
-  X,
-  PhoneCall,
-  UserPlus
+  RefreshCw
 } from 'lucide-react';
 
+interface Goal {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
 export default function MentorDashboard() {
-  const { user, loading, logout, unreadCount } = useApp();
+  const { user, loading, logout } = useApp();
   const router = useRouter();
   const { showToast: addToast } = useToast();
 
-  // Navigation tab state (dashboard = Operations Command)
+  // Navigation tab state
   const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'rooms' | 'sessions' | 'assignments' | 'analytics' | 'profile'>('dashboard');
 
-  // Core Data States
+  // Core Data States - Initialized as empty/zero for new users
   const [students, setStudents] = useState<any[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [studyRooms, setStudyRooms] = useState<any[]>([]);
@@ -57,56 +54,45 @@ export default function MentorDashboard() {
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [doubts, setDoubts] = useState<any[]>([]);
   const [loadingDoubts, setLoadingDoubts] = useState(false);
+  const [assignments, setAssignments] = useState<any[]>([]);
 
-  // New Assignments State
-  const [assignments, setAssignments] = useState<any[]>([
-    { id: 'asg-1', title: 'Trees & DFS Practice Set', subject: 'Data Structures', deadline: '2026-07-05', submissionsCount: 14, totalAssigned: 42, status: 'Active' },
-    { id: 'asg-2', title: 'DBMS Joins & Normalization Exam Prep', subject: 'DBMS', deadline: '2026-07-08', submissionsCount: 8, totalAssigned: 42, status: 'Active' },
-    { id: 'asg-3', title: 'OS Processes & Deadlocks Homework', subject: 'OS', deadline: '2026-06-28', submissionsCount: 39, totalAssigned: 39, status: 'Graded' }
+  // Interactive Goals State
+  const [goals, setGoals] = useState<Goal[]>([
+    { id: 'g1', text: 'Solve 18 doubts', completed: false },
+    { id: 'g2', text: 'Conduct 2 sessions', completed: false },
+    { id: 'g3', text: 'Review 12 assignments', completed: false }
   ]);
-  const [showCreateAssignment, setShowCreateAssignment] = useState(false);
-  const [newAssignment, setNewAssignment] = useState({ title: '', subject: 'Data Structures', deadline: '', totalAssigned: 42 });
+  const [newGoalText, setNewGoalText] = useState('');
 
-  // Dashboard Modal Action States
+  // Dashboard Modals
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [showCreateSession, setShowCreateSession] = useState(false);
+  const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [showAnnouncement, setShowAnnouncement] = useState(false);
   const [showAssignChallenge, setShowAssignChallenge] = useState(false);
-  const [showCallModal, setShowCallModal] = useState(false);
-  const [showMessageModal, setShowMessageModal] = useState(false);
-  const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
-
+  
   // Form Inputs
   const [newRoom, setNewRoom] = useState({ name: '', description: '', subject: '', isPublic: true });
   const [newSession, setNewSession] = useState({ groupId: '', title: '', description: '', scheduledAt: '', durationMinutes: 60, meetingLink: '' });
+  const [newAssignment, setNewAssignment] = useState({ title: '', subject: 'Data Structures', deadline: '', totalAssigned: 42 });
   const [announcementText, setAnnouncementText] = useState('');
   const [challengeData, setChallengeData] = useState({ text: '', xpReward: 50, coinReward: 20 });
-  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   
-  // Custom Global Search state (Searches Students, Rooms, Sessions)
+  // Selected student for quick actions
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+
+  // Global Search state (Searches Students, Rooms, Sessions)
   const [globalSearch, setGlobalSearch] = useState('');
 
-  // AI Suggestions and Insights
-  const [aiInsight, setAiInsight] = useState<string>('');
-  const [generatingAi, setGeneratingAi] = useState(false);
-
-  // Profile Roster Options & Availability settings
+  // Profile Settings
   const [mentorAvailability, setMentorAvailability] = useState<'online' | 'busy' | 'away' | 'vacation'>('online');
-  const [mentorSubjects, setMentorSubjects] = useState<string[]>(['Data Structures', 'DBMS', 'OS']);
+  const [mentorSubjects, setMentorSubjects] = useState<string[]>(['Data Structures', 'DBMS']);
   const [teachingSchedule, setTeachingSchedule] = useState({
     monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: false, sunday: false
   });
   const [alertPreferences, setAlertPreferences] = useState({
     email: true, app: true, sms: false
   });
-
-  // Rich Notification Feed
-  const [mentorAlerts, setMentorAlerts] = useState([
-    { id: 1, text: 'Vijay Kumar raised a new doubt in placement coding', type: 'doubt', time: '5m ago' },
-    { id: 2, text: 'System check: "Trees & DFS Practice Set" has 14 submissions', type: 'task', time: '12m ago' },
-    { id: 3, text: 'Live Session "DSA Trees & Graphs Masterclass" starts in 20 mins', type: 'session', time: '20m ago' },
-    { id: 4, text: 'Student Swathi Hani completed her focus goal', type: 'goal', time: '1h ago' }
-  ]);
 
   // Authentication check
   useEffect(() => {
@@ -133,22 +119,18 @@ export default function MentorDashboard() {
     setLoadingStudents(true);
     try {
       const data = await apiRequest('/auth/students');
-      if (data && data.students) {
-        // Enforce detailed roster schema
+      if (data && data.students && data.students.length > 0) {
         setStudents(data.students.map((s: any) => ({
           ...s,
-          learningPath: s.id === 'st-2' ? 'Advanced' : 'Beginner',
-          lastActive: s.id === 'st-1' ? '1 hour ago' : '4 days ago',
-          completionRate: s.id === 'st-2' ? 72 : 24,
-          attendanceRate: s.id === 'st-2' ? 90 : 38,
-          weakTopics: s.id === 'st-2' ? 'Graphs, Recursion' : 'Trees, DBMS Joins'
+          learningPath: s.learningPath || 'Beginner',
+          lastActive: s.lastActive || '4 hours ago',
+          completionRate: s.completionRate || 0,
+          attendanceRate: s.attendanceRate || 0,
+          weakTopics: s.weakTopics || 'None listed'
         })));
       } else {
-        setStudents([
-          { id: 'st-1', fullName: 'Vijay Kumar', username: 'vijay_cse', email: 'vijay@gmail.com', phone: '9848022338', streakCount: 12, totalStudyHours: 42.5, xp: 1240, focusCoins: 310, level: 4, department: 'CSE', college: 'VRSEC Vijayawada', weakTopics: 'Trees, Recursion', learningPath: 'Beginner', lastActive: '1 hour ago', completionRate: 58, attendanceRate: 85 },
-          { id: 'st-2', fullName: 'Swathi Hanumanthu', username: 'swathi_dev', email: 'swathi@gmail.com', phone: '9848011223', streakCount: 0, totalStudyHours: 78.2, xp: 2450, focusCoins: 620, level: 7, department: 'IT', college: 'KL University Guntur', weakTopics: 'Trees, Recursion, DBMS Joins', learningPath: 'Intermediate', lastActive: '4 days ago', completionRate: 72, attendanceRate: 38 },
-          { id: 'st-3', fullName: 'Charan Teja', username: 'charan_admin', email: 'charan@gmail.com', phone: '9848099887', streakCount: 5, totalStudyHours: 15.4, xp: 480, focusCoins: 90, level: 2, department: 'CSE', college: 'SRKR Bhimavaram', weakTopics: 'DBMS Joins', learningPath: 'Beginner', lastActive: '2 hours ago', completionRate: 24, attendanceRate: 74 }
-        ]);
+        // Stated as zero for new users
+        setStudents([]);
       }
     } catch (err) {
       console.error('Error fetching students:', err);
@@ -161,20 +143,17 @@ export default function MentorDashboard() {
     setLoadingRooms(true);
     try {
       const data = await apiRequest('/progress/global-leaderboards');
-      if (data && data.rooms) {
+      if (data && data.rooms && data.rooms.length > 0) {
         setStudyRooms(data.rooms.map((r: any) => ({
           ...r,
-          activeStudents: r.memberCount || 12,
-          mentorAssigned: r.id === 'gr-1' ? 'Charan' : 'Prof. Srinivasa Rao',
-          pendingDoubts: r.id === 'gr-3' ? 3 : 0,
-          focusTopic: r.id === 'gr-2' ? 'Binary Trees' : 'Normalization'
+          activeStudents: r.memberCount || 0,
+          mentorAssigned: r.mentorAssigned || user?.fullName || 'Mentor',
+          pendingDoubts: r.pendingDoubts || 0,
+          focusTopic: r.focusTopic || 'Introduction'
         })));
       } else {
-        setStudyRooms([
-          { id: 'gr-1', name: 'Database Masterclass', description: 'Group for standard SQL and Schema design discussions', subject: 'DBMS', inviteCode: 'SQL101', memberCount: 15, isLocked: false, activeStudents: 15, mentorAssigned: 'Prof. Srinivasa Rao', pendingDoubts: 0, focusTopic: 'Normalization' },
-          { id: 'gr-2', name: 'Placement Coding Hub', description: 'Daily DSA practice and problem solving', subject: 'Data Structures', inviteCode: 'DSA202', memberCount: 42, isLocked: false, activeStudents: 24, mentorAssigned: 'Charan', pendingDoubts: 3, focusTopic: 'Binary Trees' },
-          { id: 'gr-3', name: 'OS & Architecture Circle', description: 'Discussions on Operating Systems principles', subject: 'OS', inviteCode: 'OS303', memberCount: 8, isLocked: true, activeStudents: 8, mentorAssigned: 'Anjali Sharma', pendingDoubts: 0, focusTopic: 'Semaphores' }
-        ]);
+        // Stated as zero for new users
+        setStudyRooms([]);
       }
     } catch (err) {
       console.error('Error fetching study rooms:', err);
@@ -186,10 +165,8 @@ export default function MentorDashboard() {
   const fetchSessions = async () => {
     setLoadingSessions(true);
     try {
-      setSessions([
-        { id: 'se-1', title: 'DSA Trees & Graphs Masterclass', description: 'Live coding on Tree Traversals and BFS/DFS traversal schemas', scheduledAt: new Date(Date.now() + 900000).toISOString(), durationMinutes: 90, meetingLink: 'https://meet.google.com/abc-defg-hij', groupName: 'Placement Coding Hub', registered: 52, joined: 38, attendanceRate: 73 },
-        { id: 'se-2', title: 'DBMS Normalization doubt clearing', description: 'Understanding 1NF, 2NF, 3NF and BCNF with real exam questions', scheduledAt: new Date(Date.now() + 86400000 * 2).toISOString(), durationMinutes: 60, meetingLink: 'https://meet.google.com/xyz-qprs-tuv', groupName: 'Database Masterclass', registered: 35, joined: 22, attendanceRate: 62 }
-      ]);
+      // Stated as zero for new users
+      setSessions([]);
     } catch (err) {
       console.error('Error fetching sessions:', err);
     } finally {
@@ -200,7 +177,7 @@ export default function MentorDashboard() {
   const fetchDoubts = async () => {
     setLoadingDoubts(true);
     try {
-      // Empty mock doubts queue to show correct empty state verification
+      // Stated as zero for new users
       setDoubts([]);
     } catch (err) {
       console.error('Error fetching doubts:', err);
@@ -209,8 +186,56 @@ export default function MentorDashboard() {
     }
   };
 
+  // Seeder to load mock cohort for demonstration
+  const handleLoadDemoData = () => {
+    setStudents([
+      { id: 'st-1', fullName: 'Vijay Kumar', username: 'vijay_cse', email: 'vijay@gmail.com', phone: '9848022338', streakCount: 12, totalStudyHours: 42.5, xp: 1240, focusCoins: 310, level: 4, department: 'CSE', college: 'VRSEC Vijayawada', weakTopics: 'Trees, Recursion', learningPath: 'Beginner', lastActive: '1 hour ago', completionRate: 58, attendanceRate: 85 },
+      { id: 'st-2', fullName: 'Swathi Hanumanthu', username: 'swathi_dev', email: 'swathi@gmail.com', phone: '9848011223', streakCount: 0, totalStudyHours: 78.2, xp: 2450, focusCoins: 620, level: 7, department: 'IT', college: 'KL University Guntur', weakTopics: 'Trees, Recursion, DBMS Joins', learningPath: 'Intermediate', lastActive: '4 days ago', completionRate: 72, attendanceRate: 38 },
+      { id: 'st-3', fullName: 'Charan Teja', username: 'charan_admin', email: 'charan@gmail.com', phone: '9848099887', streakCount: 5, totalStudyHours: 15.4, xp: 480, focusCoins: 90, level: 2, department: 'CSE', college: 'SRKR Bhimavaram', weakTopics: 'DBMS Joins', learningPath: 'Beginner', lastActive: '2 hours ago', completionRate: 24, attendanceRate: 74 }
+    ]);
+    setStudyRooms([
+      { id: 'gr-1', name: 'Database Masterclass', description: 'Group for standard SQL and Schema design discussions', subject: 'DBMS', inviteCode: 'SQL101', memberCount: 15, isLocked: false, activeStudents: 15, mentorAssigned: 'Prof. Srinivasa Rao', pendingDoubts: 0, focusTopic: 'Normalization' },
+      { id: 'gr-2', name: 'Placement Coding Hub', description: 'Daily DSA practice and problem solving', subject: 'Data Structures', inviteCode: 'DSA202', memberCount: 42, isLocked: false, activeStudents: 24, mentorAssigned: 'Charan', pendingDoubts: 3, focusTopic: 'Binary Trees' }
+    ]);
+    setSessions([
+      { id: 'se-1', title: 'DSA Trees & Graphs Masterclass', description: 'Live coding on Tree Traversals and BFS/DFS traversal schemas', scheduledAt: new Date(Date.now() + 1800000).toISOString(), durationMinutes: 90, meetingLink: 'https://meet.google.com/abc', groupName: 'Placement Coding Hub', registered: 52, joined: 38, attendanceRate: 73 },
+      { id: 'se-2', title: 'DBMS Normalization doubt clearing', description: 'Understanding 1NF, 2NF, 3NF and BCNF with real exam questions', scheduledAt: new Date(Date.now() + 86400000 * 2).toISOString(), durationMinutes: 60, meetingLink: 'https://meet.google.com/xyz', groupName: 'Database Masterclass', registered: 35, joined: 22, attendanceRate: 62 }
+    ]);
+    setDoubts([
+      { id: 'db-1', title: 'Struggling with recursive DFS tree traversal space complexity', upvotes: 24, isSolved: false, studentName: 'Vijay Kumar', topic: 'DFS Traversals', waitingTime: '2 hours ago' }
+    ]);
+    setAssignments([
+      { id: 'asg-1', title: 'Trees & DFS Practice Set', subject: 'Data Structures', deadline: '2026-07-05', submissionsCount: 14, totalAssigned: 42, status: 'Active' },
+      { id: 'asg-2', title: 'DBMS Joins & Normalization Exam Prep', subject: 'DBMS', deadline: '2026-07-08', submissionsCount: 8, totalAssigned: 42, status: 'Active' }
+    ]);
+    addToast('Demo Cohort data seeded successfully!', 'success');
+  };
+
+  // Goals Widget Handlers
+  const handleAddGoal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGoalText.trim()) return;
+    const newGoal: Goal = {
+      id: `g-${Date.now()}`,
+      text: newGoalText.trim(),
+      completed: false
+    };
+    setGoals(prev => [...prev, newGoal]);
+    setNewGoalText('');
+    addToast('Goal added successfully!', 'success');
+  };
+
+  const handleToggleGoal = (id: string) => {
+    setGoals(prev => prev.map(g => g.id === id ? { ...g, completed: !g.completed } : g));
+  };
+
+  const handleDeleteGoal = (id: string) => {
+    setGoals(prev => prev.filter(g => g.id !== id));
+    addToast('Goal removed', 'info');
+  };
+
   // Actions
-  const handleCreateRoom = async (e: React.FormEvent) => {
+  const handleCreateRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRoom.name || !newRoom.subject) {
       addToast('Room Name and Subject are required', 'error');
@@ -221,7 +246,7 @@ export default function MentorDashboard() {
       name: newRoom.name,
       description: newRoom.description,
       subject: newRoom.subject,
-      inviteCode: 'MOCK' + Math.floor(100 + Math.random() * 900),
+      inviteCode: 'CODE' + Math.floor(100 + Math.random() * 900),
       memberCount: 1,
       isLocked: false,
       activeStudents: 1,
@@ -235,7 +260,7 @@ export default function MentorDashboard() {
     setShowCreateRoom(false);
   };
 
-  const handleScheduleSession = async (e: React.FormEvent) => {
+  const handleScheduleSession = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSession.title || !newSession.scheduledAt || !newSession.groupId) {
       addToast('Session Title, Date, and Target Group are required', 'error');
@@ -276,48 +301,34 @@ export default function MentorDashboard() {
       status: 'Active'
     };
     setAssignments(prev => [created, ...prev]);
-    addToast(`New assignment "${newAssignment.title}" published!`, 'success');
+    addToast(`Assignment published!`, 'success');
     setNewAssignment({ title: '', subject: 'Data Structures', deadline: '', totalAssigned: 42 });
     setShowCreateAssignment(false);
   };
 
-  const handleAssignChallenge = async (e: React.FormEvent) => {
+  const handleAssignChallenge = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudent || !challengeData.text) return;
-    addToast(`Assigned target challenge to ${selectedStudent.fullName}`, 'success');
+    addToast(`Assigned task challenge to ${selectedStudent.fullName}`, 'success');
     setShowAssignChallenge(false);
     setChallengeData({ text: '', xpReward: 50, coinReward: 20 });
-  };
-
-  const handleGenerateAiInsights = async () => {
-    setGeneratingAi(true);
-    setAiInsight('');
-    setTimeout(() => {
-      setAiInsight("• DBMS doubts increased by 28% this week regarding Joins and Normalization algorithms.\n• Students studying after 10PM perform 15% better in overall practice set scores.\n• Trees & DFS topic has the lowest completion percentage (only 34%) across all cohorts.\n• Recommend conducting one live revision session on Recursion and Tree traversals.");
-      setGeneratingAi(false);
-    }, 1200);
   };
 
   const toggleRoomLock = (roomId: string) => {
     setStudyRooms(prev => prev.map(room => {
       if (room.id === roomId) {
         const nextState = !room.isLocked;
-        addToast(`Room "${room.name}" is now ${nextState ? 'LOCKED' : 'UNLOCKED'}`, 'info');
+        addToast(`Room is now ${nextState ? 'LOCKED' : 'UNLOCKED'}`, 'info');
         return { ...room, isLocked: nextState };
       }
       return room;
     }));
   };
 
-  // Global Search & filters
+  // Global Search filters
   const filteredStudents = students.filter(s => {
     const term = globalSearch.toLowerCase();
-    const matchesSearch = s.fullName.toLowerCase().includes(term) ||
-                          s.username.toLowerCase().includes(term) ||
-                          s.college.toLowerCase().includes(term) ||
-                          s.weakTopics.toLowerCase().includes(term) ||
-                          s.learningPath.toLowerCase().includes(term);
-    return matchesSearch;
+    return s.fullName.toLowerCase().includes(term) || s.weakTopics.toLowerCase().includes(term);
   });
 
   const filteredRooms = studyRooms.filter(r => {
@@ -327,11 +338,11 @@ export default function MentorDashboard() {
 
   const filteredSessions = sessions.filter(s => {
     const term = globalSearch.toLowerCase();
-    return s.title.toLowerCase().includes(term) || s.groupName.toLowerCase().includes(term);
+    return s.title.toLowerCase().includes(term);
   });
 
-  // Calculate semantic "Students At Risk" count
-  const atRiskStudents = students.filter(s => s.attendanceRate < 45 || s.streakCount === 0);
+  // Calculate struggling students
+  const strugglingStudents = students.filter(s => s.attendanceRate < 45 || s.streakCount === 0).slice(0, 5);
 
   if (loading || !user) {
     return (
@@ -344,60 +355,39 @@ export default function MentorDashboard() {
   return (
     <div className="min-h-screen bg-[#070913] text-zinc-100 flex flex-col font-sans select-none">
       
-      {/* Top Banner Control Bar */}
-      <header className="h-16 border-b border-white/5 bg-[#0B0F19]/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40">
+      {/* Top Banner Control Bar (Header) */}
+      <header className="h-16 border-b border-white/5 bg-[#0B0F19]/80 backdrop-blur-md px-8 flex items-center justify-between sticky top-0 z-40">
         
-        {/* Global search bar */}
+        {/* Minimal Global Search bar */}
         <div className="relative w-96">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
           <input
             type="text"
-            placeholder="Search students, rooms, sessions, topics..."
+            placeholder="Search students, rooms, topics..."
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
-            className="w-full bg-[#060813] border border-white/5 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:border-indigo-500/50 outline-none transition-all font-sans"
+            className="w-full bg-[#060813] border border-white/5 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:border-indigo-500/50 outline-none transition-all"
           />
         </div>
 
         {/* Header Right Actions */}
         <div className="flex items-center gap-4">
           
-          {/* Notification Bell Dropdown */}
-          <div className="relative">
-            <button 
-              onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
-              className="p-2 hover:bg-white/5 rounded-xl transition-all border-none bg-transparent cursor-pointer relative"
+          {/* Demo Data Seeder Button */}
+          {students.length === 0 && (
+            <button
+              onClick={handleLoadDemoData}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold rounded-xl border-none cursor-pointer flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/10"
             >
-              <Bell className="h-5 w-5 text-zinc-400 hover:text-white" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-indigo-500 rounded-full" />
+              <Sparkles className="h-3.5 w-3.5" /> Seed Demo Cohort
             </button>
-            
-            {showNotificationsDropdown && (
-              <div className="absolute right-0 mt-2 w-72 bg-[#0B0F19] border border-white/5 rounded-2xl p-4 shadow-xl z-50 space-y-3">
-                <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Alert Feed</h4>
-                  <span className="text-[9px] text-zinc-500 font-bold font-mono">4 Alerts</span>
-                </div>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {mentorAlerts.map(alert => (
-                    <div key={alert.id} className="text-xs p-2 bg-white/[0.01] rounded-lg border border-white/5 flex flex-col">
-                      <span className="text-zinc-300 font-medium">{alert.text}</span>
-                      <span className="text-[9px] text-indigo-400 font-bold font-mono mt-1">{alert.time}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* User Profile Widget */}
           <div className="flex items-center gap-3 pl-4 border-l border-white/5">
             <div className="text-right">
               <p className="text-xs font-bold text-white">{user.fullName}</p>
-              <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold">{user.role}</span>
-              </div>
+              <p className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold">{user.role}</p>
             </div>
             <div className="h-9 w-9 rounded-full bg-indigo-900/60 border border-indigo-500/20 flex items-center justify-center font-bold text-white uppercase text-xs">
               {user.fullName.substring(0, 2)}
@@ -419,22 +409,20 @@ export default function MentorDashboard() {
         <aside className="w-64 border-r border-white/5 bg-[#0B0F19]/40 flex flex-col justify-between py-6">
           <div className="space-y-6">
             
-            {/* Redesigned Sidebar Top Logo */}
+            {/* Sidebar Logo */}
             <div className="px-6 flex items-center gap-2.5">
-              <div className="h-8.5 w-8.5 rounded-xl bg-gradient-to-tr from-indigo-650 to-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-650/15">
-                <Sparkles className="h-4.5 w-4.5 text-white animate-pulse" />
+              <div className="h-8.5 w-8.5 rounded-xl bg-indigo-650 flex items-center justify-center">
+                <Sparkles className="h-4.5 w-4.5 text-white" />
               </div>
               <div>
                 <h1 className="text-sm font-bold tracking-tight text-white">StudyCircle</h1>
-                <p className="text-[9px] uppercase tracking-widest text-indigo-400 font-black">Mentor Hub</p>
+                <p className="text-[9px] uppercase tracking-widest text-indigo-450 font-black">Mentor Hub</p>
               </div>
             </div>
 
             <hr className="border-white/5 mx-6" />
 
             <div className="space-y-1 px-4">
-              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-3 mb-3">Operations</p>
-              
               <button
                 onClick={() => setActiveTab('dashboard')}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
@@ -443,8 +431,8 @@ export default function MentorDashboard() {
                     : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <Activity className="h-4 w-4" />
-                <span>Operations Command</span>
+                <Sliders className="h-4 w-4" />
+                <span>Dashboard</span>
               </button>
 
               <button
@@ -456,7 +444,7 @@ export default function MentorDashboard() {
                 }`}
               >
                 <Users className="h-4 w-4" />
-                <span>Student Roster</span>
+                <span>Students</span>
               </button>
 
               <button
@@ -468,7 +456,7 @@ export default function MentorDashboard() {
                 }`}
               >
                 <BookOpen className="h-4 w-4" />
-                <span>Study Rooms Hub</span>
+                <span>Study Rooms</span>
               </button>
 
               <button
@@ -480,7 +468,7 @@ export default function MentorDashboard() {
                 }`}
               >
                 <Calendar className="h-4 w-4" />
-                <span>Mentoring Sessions</span>
+                <span>Sessions</span>
               </button>
 
               <button
@@ -492,10 +480,8 @@ export default function MentorDashboard() {
                 }`}
               >
                 <FileText className="h-4 w-4" />
-                <span>Assignments Module</span>
+                <span>Assignments</span>
               </button>
-
-              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-3 pt-6 mb-3">Insights & Info</p>
 
               <button
                 onClick={() => setActiveTab('analytics')}
@@ -506,7 +492,7 @@ export default function MentorDashboard() {
                 }`}
               >
                 <BarChart2 className="h-4 w-4" />
-                <span>Cohort Analytics</span>
+                <span>Analytics</span>
               </button>
 
               <button
@@ -518,319 +504,338 @@ export default function MentorDashboard() {
                 }`}
               >
                 <Settings className="h-4 w-4" />
-                <span>Profile Settings</span>
+                <span>Profile</span>
               </button>
             </div>
           </div>
 
-          {/* Sidebar Bottom Status */}
-          <div className="px-6 text-[10px] text-zinc-500 space-y-1">
-            <div className="flex items-center gap-1.5 py-1">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              <span className="capitalize font-bold text-zinc-300">Availability: {mentorAvailability}</span>
-            </div>
-            <p>Admin Core v2.0</p>
-            <p>© StudyCircle Platform</p>
+          <div className="px-6 text-[10px] text-zinc-650 space-y-1">
+            <p>Logged in as: {user.username}</p>
+            <p>© StudyCircle</p>
           </div>
         </aside>
 
-        {/* Core Main Panel */}
-        <main className="flex-1 overflow-y-auto p-8">
+        {/* Core Workspace Panel */}
+        <main className="flex-1 overflow-y-auto p-8 bg-[#070913]">
           
-          {/* TAB 1: OPERATIONS COMMAND (Dashboard Home) */}
+          {/* TAB 1: OPERATIONS COMMAND (Linear-style layout) */}
           {activeTab === 'dashboard' && (
-            <div className="space-y-8">
+            <div className="space-y-8 max-w-7xl mx-auto">
               
-              {/* Header Greeting with Daily Goals */}
-              <div className="p-6 bg-gradient-to-r from-[#111827] to-[#0b0f19] border border-white/5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+              {/* Section 1 — Welcome */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-2 border-b border-white/5">
                 <div>
-                  <h2 className="text-xl font-bold text-white">Good Morning, Swathi! 👋</h2>
-                  <p className="text-zinc-400 text-xs mt-0.5">Here is what is happening in your learning ecosystem today.</p>
-                </div>
-                <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-xl space-y-1.5 min-w-[200px]">
-                  <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Today's Goals</p>
-                  <ul className="text-[10px] text-zinc-300 space-y-1 font-medium">
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-indigo-400" /> Solve 18 doubts</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-indigo-400" /> Conduct 2 sessions</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-indigo-400" /> Review 12 assignments</li>
-                  </ul>
+                  <h2 className="text-xl font-bold text-white tracking-tight">Good Morning, Mentor 👋</h2>
+                  <p className="text-zinc-550 text-xs mt-0.5">Today's overview.</p>
                 </div>
               </div>
 
-              {/* Status Stats Grid (Colors Limited to Semantic Palette) */}
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-zinc-500">Total Students</p>
-                    <p className="text-2xl font-bold text-white mt-1 font-mono">{students.length}</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-                    <Users className="h-5 w-5" />
-                  </div>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-zinc-500">Active Rooms</p>
-                    <p className="text-2xl font-bold text-white mt-1 font-mono">{studyRooms.length}</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                    <BookOpen className="h-5 w-5" />
-                  </div>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-zinc-500">Pending Doubts</p>
-                    <p className="text-2xl font-bold text-amber-400 mt-1 font-mono">{doubts.filter(d => !d.isSolved).length}</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
-                    <MessageSquare className="h-5 w-5" />
-                  </div>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-zinc-500">Today's Sessions</p>
-                    <p className="text-2xl font-bold text-emerald-400 mt-1 font-mono">{sessions.length}</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                    <Calendar className="h-5 w-5" />
-                  </div>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-[#991B1B]/5 border border-[#991B1B]/15 flex items-center justify-between col-span-2 lg:col-span-1">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-red-400">Students At Risk</p>
-                    <p className="text-2xl font-bold text-red-500 mt-1 font-mono">{atRiskStudents.length}</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center">
-                    <AlertTriangle className="h-5 w-5" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Grid split */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* 2-Column Split: Left (70%) vs Right (30%) */}
+              <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 items-start">
                 
-                {/* Left Columns */}
-                <div className="lg:col-span-2 space-y-6">
+                {/* Left Side (70%) */}
+                <div className="lg:col-span-7 space-y-7">
                   
-                  {/* Alert Panel: Students Needing Attention */}
-                  <div className="p-6 rounded-2xl bg-red-500/5 border border-red-500/10 space-y-4">
-                    <div className="flex items-center gap-2 text-red-400">
-                      <AlertTriangle className="h-5 w-5" />
-                      <h3 className="text-xs font-bold uppercase tracking-wider">Students Needing Attention</h3>
+                  {/* Section 2 — Quick Stats (Clean KPI Cards) */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 rounded-xl bg-white/[0.01] border border-white/5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total Students</p>
+                      <p className="text-xl font-bold text-white mt-1 font-mono">{students.length}</p>
                     </div>
-                    
-                    <div className="space-y-4">
-                      {students.filter(s => s.attendanceRate < 45 || s.streakCount === 0).map(stud => (
-                        <div key={stud.id} className="bg-white/[0.01] p-4 rounded-xl border border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="space-y-1">
-                            <h4 className="text-xs font-bold text-white">{stud.fullName} ({stud.learningPath})</h4>
-                            <p className="text-[10px] text-zinc-500 font-medium">College: {stud.college}</p>
-                            
-                            <div className="pt-2 text-[10px] font-medium space-y-1">
-                              <p className="text-red-400">Reason: <span className="font-bold">No study activity for {stud.streakCount === 0 ? '4 days' : '3+ days'} • Attendance: {stud.attendanceRate}%</span></p>
-                              <p className="text-zinc-400">Weak Topics: <span className="text-amber-400 font-bold">{stud.weakTopics}</span></p>
+                    <div className="p-4 rounded-xl bg-white/[0.01] border border-white/5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Active Study Rooms</p>
+                      <p className="text-xl font-bold text-white mt-1 font-mono">{studyRooms.length}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-white/[0.01] border border-white/5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Pending Doubts</p>
+                      <p className="text-xl font-bold text-white mt-1 font-mono">{doubts.length}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-white/[0.01] border border-white/5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Today's Sessions</p>
+                      <p className="text-xl font-bold text-white mt-1 font-mono">{sessions.length}</p>
+                    </div>
+                  </div>
+
+                  {/* Section 3 — Students Needing Attention */}
+                  <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-red-500" />
+                      <span>Students Needing Attention</span>
+                    </h3>
+
+                    {strugglingStudents.length === 0 ? (
+                      <p className="text-xs text-zinc-550 italic py-2">No students needing attention today.</p>
+                    ) : (
+                      <div className="divide-y divide-white/5">
+                        {strugglingStudents.map(s => (
+                          <div key={s.id} className="py-3 flex flex-col md:flex-row md:items-center justify-between gap-4 first:pt-0 last:pb-0">
+                            <div className="space-y-1">
+                              <p className="text-xs font-bold text-white">{s.fullName}</p>
+                              <p className="text-[10px] text-zinc-550">
+                                Weak Topic: <span className="text-amber-500 font-bold">{s.weakTopics}</span> • Attendance: <span className="font-bold">{s.attendanceRate}%</span>
+                              </p>
+                              <p className="text-[10px] text-red-400 font-medium">Reason: No study activity for 4 days</p>
+                            </div>
+                            <div className="flex gap-2 shrink-0">
+                              <button 
+                                onClick={() => { setSelectedStudent(s); setShowAssignChallenge(true); }}
+                                className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold transition-all border-none cursor-pointer"
+                              >
+                                Assign
+                              </button>
+                              <button 
+                                onClick={() => addToast(`Direct messaging @${s.username}`, 'info')}
+                                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-[10px] font-bold transition-all border-none cursor-pointer"
+                              >
+                                Message
+                              </button>
+                              <button 
+                                onClick={() => setShowCreateSession(true)}
+                                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-[10px] font-bold transition-all border-none cursor-pointer"
+                              >
+                                Schedule Session
+                              </button>
                             </div>
                           </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-                          <div className="flex gap-2 shrink-0">
-                            <button 
-                              onClick={() => { setSelectedStudent(stud); setShowAssignChallenge(true); }}
-                              className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] font-bold transition-all border-none cursor-pointer"
+                  {/* Section 6 — Pending Doubts */}
+                  <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">Pending Doubts</h3>
+                    {doubts.length === 0 ? (
+                      <div className="py-2 flex items-center gap-2 text-emerald-450 text-xs font-medium">
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>✓ All doubts resolved today.</span>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-white/5">
+                        {doubts.slice(0, 5).map(d => (
+                          <div key={d.id} className="py-3 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
+                            <div>
+                              <p className="text-xs font-bold text-white">{d.title}</p>
+                              <p className="text-[10px] text-zinc-550">Student: {d.studentName} • Topic: {d.topic} • Waiting: {d.waitingTime}</p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setDoubts(prev => prev.filter(db => db.id !== d.id));
+                                addToast('Doubt marked resolved!', 'success');
+                              }}
+                              className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold transition-all border-none cursor-pointer"
                             >
-                              Assign Task
-                            </button>
-                            <button 
-                              onClick={() => { setSelectedStudent(stud); setShowMessageModal(true); }}
-                              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded text-[10px] font-bold transition-all border-none cursor-pointer"
-                            >
-                              Message
-                            </button>
-                            <button 
-                              onClick={() => { setSelectedStudent(stud); setShowCallModal(true); }}
-                              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-350 rounded text-[10px] font-bold transition-all border-none cursor-pointer"
-                            >
-                              Schedule Call
+                              Resolve
                             </button>
                           </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section 7 — Analytics (Moved Below) */}
+                  <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">Analytics overview</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-bold uppercase text-zinc-500">Weekly Study Hours</p>
+                        <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2">
+                          <svg viewBox="0 0 100 40" className="w-full h-full overflow-visible">
+                            <path d="M 0 35 Q 20 15 40 25 T 80 10 T 100 5" fill="none" stroke="#6366F1" strokeWidth="2" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-bold uppercase text-zinc-500">Subject Performance</p>
+                        <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2 flex items-end justify-around gap-2">
+                          <div className="w-4 bg-indigo-600 rounded-t h-4/5" />
+                          <div className="w-4 bg-emerald-600 rounded-t h-3/5" />
+                          <div className="w-4 bg-amber-500 rounded-t h-2/5" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-bold uppercase text-zinc-500">Attendance Ratios</p>
+                        <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2 flex items-center justify-center">
+                          <div className="h-16 w-16 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 flex items-center justify-center text-[10px] font-bold text-white font-mono">
+                            84%
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Right Side (30%) */}
+                <div className="lg:col-span-3 space-y-7">
+                  
+                  {/* Goals Widget Card */}
+                  <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
+                    <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-white">Today's Goals</h3>
+                      <span className="text-[9px] text-zinc-550 font-bold font-mono">
+                        {goals.filter(g => g.completed).length}/{goals.length}
+                      </span>
+                    </div>
+
+                    <form onSubmit={handleAddGoal} className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Add new goal..."
+                        value={newGoalText}
+                        onChange={(e) => setNewGoalText(e.target.value)}
+                        className="flex-1 bg-[#060813] border border-white/5 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-zinc-650 outline-none focus:border-indigo-500"
+                      />
+                      <button
+                        type="submit"
+                        className="px-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold border-none cursor-pointer transition-all"
+                      >
+                        +
+                      </button>
+                    </form>
+
+                    <div className="space-y-2">
+                      {goals.map(g => (
+                        <div key={g.id} className="flex items-center justify-between bg-white/[0.005] p-2 rounded-lg border border-white/5 gap-2">
+                          <label className="flex items-center gap-2 cursor-pointer flex-1">
+                            <input
+                              type="checkbox"
+                              checked={g.completed}
+                              onChange={() => handleToggleGoal(g.id)}
+                              className="h-3.5 w-3.5 bg-transparent border-white/10 rounded text-indigo-500 focus:ring-0"
+                            />
+                            <span className={`text-xs ${g.completed ? 'line-through text-zinc-500' : 'text-zinc-300'}`}>
+                              {g.text}
+                            </span>
+                          </label>
+                          <button
+                            onClick={() => handleDeleteGoal(g.id)}
+                            className="p-1 hover:bg-red-950/20 text-zinc-500 hover:text-red-400 rounded transition-all border-none bg-transparent cursor-pointer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Doubt Resolution Queue (Verified Empty State layout) */}
-                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">Pending Doubt Resolution Queue</h3>
-                    {doubts.length === 0 ? (
-                      <div className="p-6 bg-emerald-500/5 border border-emerald-500/10 rounded-xl text-center space-y-1.5">
-                        <div className="h-10 w-10 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
-                          <CheckCircle2 className="h-5 w-5" />
-                        </div>
-                        <p className="text-xs font-bold text-emerald-400">🎉 Great! No pending doubts.</p>
-                        <p className="text-[10px] text-zinc-500 font-medium">All doubts have been resolved. Last doubt solved: 2 hours ago.</p>
-                      </div>
+                  {/* Section 5 — Quick Actions (Compact Buttons) */}
+                  <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">Quick Actions</h3>
+                    <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                      <button
+                        onClick={() => setShowCreateRoom(true)}
+                        className="p-2.5 bg-[#0B0F19] hover:bg-white/5 border border-white/5 rounded-xl text-zinc-300 font-bold transition-all cursor-pointer"
+                      >
+                        Create Room
+                      </button>
+                      <button
+                        onClick={() => setShowCreateSession(true)}
+                        className="p-2.5 bg-[#0B0F19] hover:bg-white/5 border border-white/5 rounded-xl text-zinc-300 font-bold transition-all cursor-pointer"
+                      >
+                        Schedule Session
+                      </button>
+                      <button
+                        onClick={() => setShowCreateAssignment(true)}
+                        className="p-2.5 bg-[#0B0F19] hover:bg-white/5 border border-white/5 rounded-xl text-zinc-300 font-bold transition-all cursor-pointer"
+                      >
+                        Assignment
+                      </button>
+                      <button
+                        onClick={() => setShowAnnouncement(true)}
+                        className="p-2.5 bg-[#0B0F19] hover:bg-white/5 border border-white/5 rounded-xl text-zinc-300 font-bold transition-all cursor-pointer"
+                      >
+                        Broadcast
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Section 4 — Upcoming Sessions (Timeline layout) */}
+                  <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">Upcoming Sessions</h3>
+                    
+                    {sessions.length === 0 ? (
+                      <p className="text-xs text-zinc-550 italic">No sessions scheduled today.</p>
                     ) : (
-                      <div className="space-y-3">
-                        {doubts.map(d => (
-                          <div key={d.id} className="p-3 bg-white/[0.01] rounded-xl border border-white/5 flex justify-between items-center">
-                            <p className="text-xs font-bold text-white">{d.title}</p>
-                            <button className="px-3 py-1 bg-indigo-600 text-white rounded text-[10px] font-bold">Resolve</button>
+                      <div className="relative border-l border-white/5 pl-4 ml-2 space-y-4">
+                        {sessions.map((sess, idx) => (
+                          <div key={sess.id} className="relative text-xs">
+                            <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-indigo-500 ring-4 ring-[#070913]" />
+                            <p className="text-[10px] text-zinc-500 font-bold uppercase">{idx === 0 ? 'Today' : idx === 1 ? 'Tomorrow' : 'Friday'}</p>
+                            <p className="text-[10px] text-zinc-500 font-bold mt-0.5">{new Date(sess.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="text-zinc-300 font-medium mt-0.5">{sess.title}</p>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
+
                 </div>
 
-                {/* Right Columns */}
-                <div className="space-y-6">
-                  
-                  {/* Quick Operations Hub (Includes Assign Task) */}
-                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
-                      <Sliders className="h-4 w-4 text-indigo-400" />
-                      <span>Quick Operations Hub</span>
-                    </h3>
-                    
-                    <div className="space-y-2">
-                      <button 
-                        onClick={() => setShowCreateRoom(true)}
-                        className="w-full text-left bg-white/[0.01] hover:bg-white/5 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-zinc-350 font-medium flex justify-between items-center cursor-pointer transition-all"
-                      >
-                        <span>Create Study Room</span>
-                        <Plus className="h-3.5 w-3.5 text-zinc-500" />
-                      </button>
-                      <button 
-                        onClick={() => setShowCreateSession(true)}
-                        className="w-full text-left bg-white/[0.01] hover:bg-white/5 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-zinc-350 font-medium flex justify-between items-center cursor-pointer transition-all"
-                      >
-                        <span>Schedule Live Session</span>
-                        <Plus className="h-3.5 w-3.5 text-zinc-500" />
-                      </button>
-                      <button 
-                        onClick={() => setShowCreateAssignment(true)}
-                        className="w-full text-left bg-white/[0.01] hover:bg-white/5 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-zinc-350 font-medium flex justify-between items-center cursor-pointer transition-all"
-                      >
-                        <span>Create Assignment</span>
-                        <Plus className="h-3.5 w-3.5 text-zinc-500" />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          if (students.length === 0) return;
-                          setSelectedStudent(students[0]);
-                          setShowAssignChallenge(true);
-                        }}
-                        className="w-full text-left bg-white/[0.01] hover:bg-white/5 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-zinc-350 font-medium flex justify-between items-center cursor-pointer transition-all"
-                      >
-                        <span>Assign Task to Student</span>
-                        <Plus className="h-3.5 w-3.5 text-zinc-500" />
-                      </button>
-                      <button 
-                        onClick={() => setShowAnnouncement(true)}
-                        className="w-full text-left bg-white/[0.01] hover:bg-white/5 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-zinc-350 font-medium flex justify-between items-center cursor-pointer transition-all"
-                      >
-                        <span>Broadcast Announcement</span>
-                        <Plus className="h-3.5 w-3.5 text-zinc-500" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* AI insights & suggestions card */}
-                  <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-950/30 to-[#12001A]/30 border border-indigo-500/15 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <Sparkles className="h-4 w-4 text-indigo-400" />
-                        <span>AI Suggestion & Guidance</span>
-                      </h4>
-                      <button 
-                        onClick={handleGenerateAiInsights}
-                        disabled={generatingAi}
-                        className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] font-bold border-none cursor-pointer transition-all disabled:opacity-50 font-mono"
-                      >
-                        {generatingAi ? 'Generating...' : 'Refresh Insights'}
-                      </button>
-                    </div>
-
-                    {aiInsight ? (
-                      <ul className="text-xs text-zinc-400 space-y-2 list-disc pl-4 leading-relaxed font-medium">
-                        {aiInsight.split('\n').map((line, idx) => (
-                          <li key={idx}>{line.replace(/^•\s*/, '')}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-xs text-zinc-500 italic">No generated cohort insights. Click generate button.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
+
             </div>
           )}
 
-          {/* TAB 2: STUDENT ROSTER */}
+          {/* TAB 2: STUDENTS ROSTER */}
           {activeTab === 'students' && (
-            <div className="space-y-6">
+            <div className="space-y-6 max-w-7xl mx-auto">
               <div>
-                <h2 className="text-xl font-bold text-white">Student Roster</h2>
-                <p className="text-zinc-400 text-xs mt-0.5">Comprehensive view of student metrics, goals, and learning progress.</p>
+                <h2 className="text-xl font-bold text-white tracking-tight">Student Roster</h2>
+                <p className="text-zinc-550 text-xs mt-0.5 font-medium">Comprehensive cohort list.</p>
               </div>
 
               {loadingStudents ? (
                 <div className="flex justify-center py-12">
                   <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
                 </div>
+              ) : students.length === 0 ? (
+                <p className="text-xs text-zinc-500 italic py-4">No students registered yet.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {filteredStudents.map(student => (
-                    <div key={student.id} className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4 hover:border-indigo-500/20 transition-all flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-start gap-4">
+                    <div key={student.id} className="p-5 rounded-xl bg-white/[0.01] border border-white/5 flex flex-col justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="text-xs font-bold text-white flex items-center gap-2">
-                              {student.fullName}
-                              <span className="text-[8px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-bold uppercase tracking-wider">
-                                {student.learningPath}
-                              </span>
-                            </h3>
-                            <p className="text-[10px] text-zinc-500 font-mono">@{student.username} • {student.college}</p>
+                            <h3 className="text-xs font-bold text-white">{student.fullName}</h3>
+                            <p className="text-[10px] text-zinc-550 font-mono">@{student.username} • {student.college}</p>
                           </div>
-                          <span className="text-[9px] font-bold text-zinc-500 font-mono">Last Active: {student.lastActive}</span>
+                          <span className="text-[9px] px-2 py-0.5 bg-indigo-500/10 text-indigo-400 font-bold uppercase rounded">
+                            {student.learningPath}
+                          </span>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-3 text-center py-2 bg-white/[0.01] rounded-xl border border-white/5">
+                        <div className="grid grid-cols-3 gap-2 py-2 text-center bg-white/[0.005] border border-white/5 rounded-lg text-[10px] font-medium text-zinc-500 font-mono">
                           <div>
-                            <p className="text-[9px] uppercase font-bold text-zinc-500">Study Hours</p>
-                            <p className="text-xs font-bold text-white font-mono mt-0.5">{student.totalStudyHours} hrs</p>
+                            <p className="font-sans">Study Hours</p>
+                            <p className="text-white font-bold mt-0.5">{student.totalStudyHours} hrs</p>
                           </div>
                           <div>
-                            <p className="text-[9px] uppercase font-bold text-zinc-500">Progress</p>
-                            <p className="text-xs font-bold text-emerald-450 font-mono mt-0.5">{student.completionRate}%</p>
+                            <p className="font-sans">Progress</p>
+                            <p className="text-white font-bold mt-0.5">{student.completionRate}%</p>
                           </div>
                           <div>
-                            <p className="text-[9px] uppercase font-bold text-zinc-500">Attendance</p>
-                            <p className="text-xs font-bold text-indigo-400 font-mono mt-0.5">{student.attendanceRate}%</p>
+                            <p className="font-sans">Attendance</p>
+                            <p className="text-white font-bold mt-0.5">{student.attendanceRate}%</p>
                           </div>
                         </div>
 
-                        <div className="text-[10px] font-medium pt-1">
-                          <p className="text-zinc-400">Weak Topics: <span className="text-amber-400 font-bold">{student.weakTopics}</span></p>
-                        </div>
+                        <p className="text-[10px] text-zinc-500 font-medium pt-1">
+                          Weak Topic: <span className="text-amber-500 font-bold">{student.weakTopics}</span> • Last Active: <span className="text-white font-bold">{student.lastActive}</span>
+                        </p>
                       </div>
 
-                      <div className="flex gap-2 pt-3 border-t border-white/5">
+                      <div className="flex gap-2 pt-2 border-t border-white/5">
                         <button
                           onClick={() => { setSelectedStudent(student); setShowAssignChallenge(true); }}
-                          className="flex-1 py-1.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-bold transition-all border-none cursor-pointer"
+                          className="flex-1 py-1.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold cursor-pointer border-none transition-all"
                         >
                           Assign Task
                         </button>
                         <button
-                          onClick={() => { setSelectedStudent(student); setShowMessageModal(true); }}
-                          className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-350 rounded-xl text-[10px] font-bold transition-all border-none cursor-pointer"
+                          onClick={() => addToast(`Opening chat with @${student.username}`, 'info')}
+                          className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-[10px] font-bold cursor-pointer border-none transition-all"
                         >
                           Message
                         </button>
@@ -842,13 +847,13 @@ export default function MentorDashboard() {
             </div>
           )}
 
-          {/* TAB 3: STUDY ROOMS HUB */}
+          {/* TAB 3: STUDY ROOMS */}
           {activeTab === 'rooms' && (
-            <div className="space-y-6">
+            <div className="space-y-6 max-w-7xl mx-auto">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-bold text-white">Study Rooms Hub</h2>
-                  <p className="text-zinc-400 text-xs mt-0.5">Moderate learning groups, verify session lock states, and audit doubt status.</p>
+                  <h2 className="text-xl font-bold text-white tracking-tight">Study Rooms Hub</h2>
+                  <p className="text-zinc-550 text-xs mt-0.5 font-medium">Coordinate dynamic rooms.</p>
                 </div>
                 <button
                   onClick={() => setShowCreateRoom(true)}
@@ -862,16 +867,18 @@ export default function MentorDashboard() {
                 <div className="flex justify-center py-12">
                   <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
                 </div>
+              ) : studyRooms.length === 0 ? (
+                <p className="text-xs text-zinc-500 italic py-4">No study rooms created yet.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {filteredRooms.map(room => (
-                    <div key={room.id} className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-between hover:border-indigo-500/10 transition-all">
+                    <div key={room.id} className="p-5 rounded-xl bg-white/[0.01] border border-white/5 flex flex-col justify-between gap-4">
                       <div className="space-y-2">
                         <div className="flex justify-between items-start gap-4">
                           <div>
                             <h3 className="text-xs font-bold text-white flex items-center gap-2">
                               {room.name}
-                              {room.isLocked && <Lock className="h-3.5 w-3.5 text-red-400" />}
+                              {room.isLocked && <Lock className="h-3.5 w-3.5 text-red-500" />}
                             </h3>
                             <p className="text-[10px] text-zinc-500 font-medium">Subject: <span className="text-indigo-400 font-bold">{room.subject}</span> • Code: <span className="text-white font-mono">{room.inviteCode}</span></p>
                           </div>
@@ -882,29 +889,28 @@ export default function MentorDashboard() {
                         
                         <p className="text-xs text-zinc-400 leading-normal font-medium">{room.description}</p>
                         
-                        <div className="grid grid-cols-2 gap-4 pt-3 border-t border-white/5 text-[10px] font-medium text-zinc-500">
+                        <div className="grid grid-cols-2 gap-4 pt-3 border-t border-white/5 text-[10px] font-medium text-zinc-500 font-mono">
                           <div>
-                            <p>Active Students: <span className="text-white font-mono">{room.activeStudents}</span></p>
-                            <p>Assigned Mentor: <span className="text-white">{room.mentorAssigned}</span></p>
+                            <p className="font-sans">Active Students: <span className="text-white font-bold">{room.activeStudents}</span></p>
+                            <p className="font-sans">Mentor Assigned: <span className="text-white font-bold">{room.mentorAssigned}</span></p>
                           </div>
                           <div>
-                            <p>Pending Doubts: <span className="text-amber-400 font-mono font-bold">{room.pendingDoubts}</span></p>
-                            <p>Focus Topic: <span className="text-white">{room.focusTopic}</span></p>
+                            <p className="font-sans">Pending Doubts: <span className="text-amber-450 font-bold">{room.pendingDoubts}</span></p>
+                            <p className="font-sans">Focus Topic: <span className="text-white font-bold">{room.focusTopic}</span></p>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex gap-2 mt-5">
+                      <div className="flex gap-2">
                         <button
                           onClick={() => toggleRoomLock(room.id)}
-                          className={`flex-1 py-1.5 text-[10px] font-bold rounded-xl cursor-pointer transition-all border-none flex items-center justify-center gap-1.5 ${
+                          className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg cursor-pointer transition-all border-none flex items-center justify-center gap-1.5 ${
                             room.isLocked 
                               ? 'bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600/20' 
                               : 'bg-red-600/10 text-red-400 hover:bg-red-600/20'
                           }`}
                         >
-                          {room.isLocked ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
-                          <span>{room.isLocked ? 'Unlock Room' : 'Lock Room'}</span>
+                          {room.isLocked ? 'Unlock Room' : 'Lock Room'}
                         </button>
                       </div>
                     </div>
@@ -916,11 +922,11 @@ export default function MentorDashboard() {
 
           {/* TAB 4: MENTORING SESSIONS */}
           {activeTab === 'sessions' && (
-            <div className="space-y-6">
+            <div className="space-y-6 max-w-7xl mx-auto">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-bold text-white">Mentoring Sessions</h2>
-                  <p className="text-zinc-400 text-xs mt-0.5">Schedule webinars, interactive lectures, and resolve doubts live.</p>
+                  <h2 className="text-xl font-bold text-white tracking-tight">Mentoring Sessions</h2>
+                  <p className="text-zinc-550 text-xs mt-0.5 font-medium">Schedule and host lectures.</p>
                 </div>
                 <button
                   onClick={() => setShowCreateSession(true)}
@@ -934,70 +940,65 @@ export default function MentorDashboard() {
                 <div className="flex justify-center py-12">
                   <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
                 </div>
+              ) : sessions.length === 0 ? (
+                <p className="text-xs text-zinc-500 italic py-4">No sessions scheduled today.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {filteredSessions.map(session => {
-                    const timeLeft = Math.max(0, Math.floor((new Date(session.scheduledAt).getTime() - Date.now()) / 60000));
-                    return (
-                      <div key={session.id} className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4 hover:border-indigo-500/20 transition-all flex flex-col justify-between">
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-start gap-4">
-                            <div>
-                              <h3 className="text-xs font-bold text-white">{session.title}</h3>
-                              <p className="text-[10px] text-zinc-500 font-medium">Cohort Group: <span className="text-indigo-400 font-bold">{session.groupName}</span></p>
-                            </div>
-                            <span className="text-[10px] text-indigo-400 font-bold font-mono">
-                              {timeLeft <= 20 ? (
-                                <span className="text-red-400 animate-pulse font-black">Starts in {timeLeft} mins</span>
-                              ) : (
-                                <span>{new Date(session.scheduledAt).toLocaleDateString()}</span>
-                              )}
-                            </span>
+                  {filteredSessions.map(session => (
+                    <div key={session.id} className="p-5 rounded-xl bg-white/[0.01] border border-white/5 flex flex-col justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start gap-4">
+                          <div>
+                            <h3 className="text-xs font-bold text-white">{session.title}</h3>
+                            <p className="text-[10px] text-zinc-500 font-medium">Cohort Group: <span className="text-indigo-400 font-bold">{session.groupName}</span></p>
                           </div>
-
-                          <p className="text-xs text-zinc-400 leading-normal font-medium">{session.description}</p>
-                          
-                          <div className="grid grid-cols-3 gap-3 text-center py-2 bg-[#0C0F19] rounded-xl border border-white/5 font-mono text-xs">
-                            <div>
-                              <p className="text-[9px] uppercase font-bold text-zinc-500 font-sans">Registered</p>
-                              <p className="font-bold text-white mt-0.5">{session.registered}</p>
-                            </div>
-                            <div>
-                              <p className="text-[9px] uppercase font-bold text-zinc-500 font-sans">Joined</p>
-                              <p className="font-bold text-white mt-0.5">{session.joined}</p>
-                            </div>
-                            <div>
-                              <p className="text-[9px] uppercase font-bold text-zinc-500 font-sans">Attendance</p>
-                              <p className="font-bold text-emerald-450 mt-0.5">{session.attendanceRate}%</p>
-                            </div>
-                          </div>
+                          <span className="text-[10px] text-zinc-550 font-bold font-mono">
+                            {new Date(session.scheduledAt).toLocaleDateString()}
+                          </span>
                         </div>
 
-                        <div className="flex gap-2 pt-4">
-                          <a
-                            href={session.meetingLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 py-2 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-center text-xs font-bold decoration-none transition-all flex items-center justify-center gap-1.5 border-none cursor-pointer"
-                          >
-                            <Play className="h-4 w-4" /> Start Session
-                          </a>
+                        <p className="text-xs text-zinc-400 leading-normal font-medium">{session.description}</p>
+                        
+                        <div className="grid grid-cols-3 gap-3 text-center py-2 bg-[#0C0F19] rounded-lg border border-white/5 font-mono text-xs text-zinc-550">
+                          <div>
+                            <p className="font-sans">Registered</p>
+                            <p className="font-bold text-white mt-0.5">{session.registered}</p>
+                          </div>
+                          <div>
+                            <p className="font-sans">Joined</p>
+                            <p className="font-bold text-white mt-0.5">{session.joined}</p>
+                          </div>
+                          <div>
+                            <p className="font-sans">Attendance</p>
+                            <p className="font-bold text-emerald-450 mt-0.5">{session.attendanceRate}%</p>
+                          </div>
                         </div>
                       </div>
-                    );
-                  })}
+
+                      <div className="flex gap-2">
+                        <a
+                          href={session.meetingLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 py-2 bg-indigo-650 hover:bg-indigo-500 text-white rounded-lg text-center text-xs font-bold decoration-none transition-all flex items-center justify-center gap-1.5 border-none cursor-pointer"
+                        >
+                          <Play className="h-4 w-4" /> Start Session
+                        </a>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           )}
 
-          {/* TAB 5: ASSIGNMENTS MODULE (NEW) */}
+          {/* TAB 5: ASSIGNMENTS */}
           {activeTab === 'assignments' && (
-            <div className="space-y-6">
+            <div className="space-y-6 max-w-7xl mx-auto">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-bold text-white">Assignments Module</h2>
-                  <p className="text-zinc-400 text-xs mt-0.5">Publish weekly tasks, coordinate practice sets, and review submissions.</p>
+                  <h2 className="text-xl font-bold text-white tracking-tight">Assignments</h2>
+                  <p className="text-zinc-550 text-xs mt-0.5 font-medium">Review and assign tasks.</p>
                 </div>
                 <button
                   onClick={() => setShowCreateAssignment(true)}
@@ -1007,134 +1008,103 @@ export default function MentorDashboard() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {assignments.map(asg => (
-                  <div key={asg.id} className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4 hover:border-indigo-500/20 transition-all flex flex-col justify-between">
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-start gap-4">
-                        <div>
-                          <h3 className="text-xs font-bold text-white">{asg.title}</h3>
-                          <p className="text-[10px] text-indigo-400 font-bold">{asg.subject}</p>
+              {assignments.length === 0 ? (
+                <p className="text-xs text-zinc-500 italic py-4">No assignments created yet.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {assignments.map(asg => (
+                    <div key={asg.id} className="p-5 rounded-xl bg-white/[0.01] border border-white/5 flex flex-col justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start gap-4">
+                          <div>
+                            <h3 className="text-xs font-bold text-white">{asg.title}</h3>
+                            <p className="text-[10px] text-indigo-400 font-bold">{asg.subject}</p>
+                          </div>
+                          <span className="text-[8px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold uppercase">
+                            {asg.status}
+                          </span>
                         </div>
-                        <span className={`text-[8px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${asg.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-500/10 text-zinc-400'}`}>
-                          {asg.status}
-                        </span>
+
+                        <div className="pt-2 flex justify-between text-xs text-zinc-550 font-medium">
+                          <span>Deadline: <span className="text-white font-mono">{asg.deadline}</span></span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-center py-2 bg-white/[0.005] border border-white/5 rounded-lg font-mono text-xs text-zinc-550">
+                          <div>
+                            <p className="font-sans">Submissions</p>
+                            <p className="font-bold text-white mt-0.5">{asg.submissionsCount}</p>
+                          </div>
+                          <div>
+                            <p className="font-sans">Assigned</p>
+                            <p className="font-bold text-white mt-0.5">{asg.totalAssigned}</p>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="pt-2 flex justify-between text-xs text-zinc-400 font-medium">
-                        <span>Deadline: <span className="text-white font-mono">{asg.deadline}</span></span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3 text-center py-2 bg-white/[0.01] rounded-xl border border-white/5 font-mono text-xs">
-                        <div>
-                          <p className="text-[9px] uppercase font-bold text-zinc-500 font-sans">Submissions</p>
-                          <p className="font-bold text-white mt-0.5">{asg.submissionsCount}</p>
-                        </div>
-                        <div>
-                          <p className="text-[9px] uppercase font-bold text-zinc-500 font-sans">Total Assigned</p>
-                          <p className="font-bold text-white mt-0.5">{asg.totalAssigned}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-3">
                       <button 
-                        onClick={() => addToast(`Opening grading panel for: "${asg.title}"`, 'info')}
-                        className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-xl text-xs font-bold border-none cursor-pointer transition-all"
+                        onClick={() => addToast('Opening submission lists...', 'info')}
+                        className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-xs font-bold border-none cursor-pointer transition-all"
                       >
                         Review Submissions
                       </button>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* TAB 6: COHORT ANALYTICS */}
+          {/* TAB 6: ANALYTICS */}
           {activeTab === 'analytics' && (
-            <div className="space-y-8">
+            <div className="space-y-8 max-w-7xl mx-auto">
               <div>
-                <h2 className="text-xl font-bold text-white">Cohort Analytics</h2>
-                <p className="text-zinc-400 text-xs mt-0.5">Statistical distributions of study parameters and exam scores.</p>
+                <h2 className="text-xl font-bold text-white tracking-tight">Analytics Dashboard</h2>
+                <p className="text-zinc-550 text-xs mt-0.5 font-medium">Comprehensive statistical distribution of study parameters.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
-                {/* SVG 1: Study Hours Trend */}
-                <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">Study Hours Trend</h3>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">Average weekly focus hours logged by students.</p>
-                  </div>
-                  <div className="h-44 w-full pt-4">
+                <div className="p-6 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-white">Study Hours Trend</h3>
+                  <div className="h-44 bg-[#0C0F19] border border-white/5 rounded-xl p-4">
                     <svg viewBox="0 0 500 150" className="w-full h-full overflow-visible">
-                      <defs>
-                        <linearGradient id="hoursGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#4F46E5" stopOpacity="0.4" />
-                          <stop offset="100%" stopColor="#4F46E5" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
-                      <line x1="0" y1="25" x2="500" y2="25" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                      <line x1="0" y1="75" x2="500" y2="75" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                      <line x1="0" y1="125" x2="500" y2="125" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                      <path d="M 0 150 L 0 110 Q 80 80 160 95 T 320 40 T 480 30 L 500 30 L 500 150 Z" fill="url(#hoursGrad)" />
-                      <path d="M 0 110 Q 80 80 160 95 T 320 40 T 480 30 L 500 30" fill="none" stroke="#6366F1" strokeWidth="2.5" />
+                      <path d="M 0 110 Q 80 80 160 95 T 320 40 T 480 30 L 500 30" fill="none" stroke="#6366F1" strokeWidth="2" />
                     </svg>
                   </div>
                 </div>
 
-                {/* SVG 2: Quiz Accuracy & completion */}
-                <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">Quiz Performance</h3>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">Average accuracy scores across subject categories.</p>
-                  </div>
-                  <div className="h-44 w-full pt-4">
-                    <svg viewBox="0 0 500 150" className="w-full h-full overflow-visible">
-                      <line x1="0" y1="25" x2="500" y2="25" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                      <line x1="0" y1="75" x2="500" y2="75" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                      <line x1="0" y1="125" x2="500" y2="125" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                      {/* Bar 1 */}
-                      <rect x="50" y="30" width="30" height="120" rx="4" fill="#6366F1" />
-                      <text x="65" y="20" fill="white" fontSize="10" textAnchor="middle">80%</text>
-                      {/* Bar 2 */}
-                      <rect x="180" y="45" width="30" height="105" rx="4" fill="#10B981" />
-                      <text x="195" y="35" fill="white" fontSize="10" textAnchor="middle">70%</text>
-                      {/* Bar 3 */}
-                      <rect x="310" y="75" width="30" height="75" rx="4" fill="#F59E0B" />
-                      <text x="325" y="65" fill="white" fontSize="10" textAnchor="middle">50%</text>
-                      {/* Bar 4 */}
-                      <rect x="420" y="105" width="30" height="45" rx="4" fill="#EF4444" />
-                      <text x="435" y="95" fill="white" fontSize="10" textAnchor="middle">30%</text>
-                    </svg>
+                <div className="p-6 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-white">Subject Accuracy</h3>
+                  <div className="h-44 bg-[#0C0F19] border border-white/5 rounded-xl p-4 flex items-end justify-around gap-4">
+                    <div className="w-8 bg-indigo-650 rounded-t h-4/5 text-center text-[10px] text-white pt-2">80%</div>
+                    <div className="w-8 bg-emerald-650 rounded-t h-3/5 text-center text-[10px] text-white pt-2">60%</div>
+                    <div className="w-8 bg-amber-500 rounded-t h-2/5 text-center text-[10px] text-white pt-2">40%</div>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 7: PROFILE SETTINGS */}
+          {/* TAB 7: PROFILE */}
           {activeTab === 'profile' && (
-            <div className="max-w-2xl space-y-6">
+            <div className="max-w-2xl mx-auto space-y-6 bg-[#070913]">
               <div>
-                <h2 className="text-xl font-bold text-white">Profile Settings</h2>
-                <p className="text-zinc-400 text-xs mt-0.5">Manage availability states, subjects specs, and schedule options.</p>
+                <h2 className="text-xl font-bold text-white tracking-tight">Profile Settings</h2>
+                <p className="text-zinc-550 text-xs mt-0.5 font-medium">Manage availability status.</p>
               </div>
 
-              <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-6">
+              <div className="p-6 rounded-xl bg-white/[0.01] border border-white/5 space-y-6">
                 
-                {/* Availability status radio selectors */}
+                {/* Availability status options */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400">Current Availability Status</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {['online', 'busy', 'away', 'vacation'].map((status) => (
                       <label 
                         key={status} 
-                        className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-bold capitalize cursor-pointer transition-all ${
+                        className={`flex items-center justify-center gap-2 p-3 rounded-lg border text-xs font-bold capitalize cursor-pointer transition-all ${
                           mentorAvailability === status 
                             ? 'bg-indigo-650/10 border-indigo-500 text-white' 
-                            : 'bg-[#0B0F19] border-white/5 text-zinc-450 hover:bg-white/5'
+                            : 'bg-[#0B0F19] border-white/5 text-zinc-500 hover:bg-white/5'
                         }`}
                       >
                         <input
@@ -1147,7 +1117,7 @@ export default function MentorDashboard() {
                           }}
                           className="hidden"
                         />
-                        <span className={`h-2.5 w-2.5 rounded-full ${
+                        <span className={`h-2 w-2 rounded-full ${
                           status === 'online' ? 'bg-emerald-500' :
                           status === 'busy' ? 'bg-red-500' :
                           status === 'away' ? 'bg-amber-500' : 'bg-zinc-500'
@@ -1158,17 +1128,17 @@ export default function MentorDashboard() {
                   </div>
                 </div>
 
-                {/* Teaching Subjects specs */}
+                {/* Teaching Subjects checkbox list */}
                 <div className="space-y-3 pt-6 border-t border-white/5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400">Teaching Expertise</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    {['Data Structures', 'DBMS', 'OS', 'Computer Networks', 'Java Programming', 'Theory of Computation'].map((subject) => {
+                    {['Data Structures', 'DBMS', 'OS', 'Computer Networks'].map((subject) => {
                       const checked = mentorSubjects.includes(subject);
                       return (
                         <label 
                           key={subject}
-                          className={`flex items-center gap-3 p-3 rounded-xl border text-xs font-medium cursor-pointer transition-all ${
-                            checked ? 'bg-indigo-650/5 border-indigo-500/30 text-white' : 'bg-[#0B0F19] border-white/5 text-zinc-450 hover:bg-white/5'
+                          className={`flex items-center gap-3 p-3 rounded-lg border text-xs font-medium cursor-pointer transition-all ${
+                            checked ? 'bg-indigo-650/5 border-indigo-500/30 text-white' : 'bg-[#0B0F19] border-white/5 text-zinc-550 hover:bg-white/5'
                           }`}
                         >
                           <input
@@ -1178,7 +1148,7 @@ export default function MentorDashboard() {
                               if (checked) setMentorSubjects(prev => prev.filter(s => s !== subject));
                               else setMentorSubjects(prev => [...prev, subject]);
                             }}
-                            className="h-4 w-4 bg-[#0B0F19] border-white/5 rounded text-indigo-500 focus:ring-0 focus:ring-offset-0"
+                            className="h-4 w-4 bg-[#0B0F19] border-white/5 rounded text-indigo-500 focus:ring-0"
                           />
                           <span>{subject}</span>
                         </label>
@@ -1187,7 +1157,7 @@ export default function MentorDashboard() {
                   </div>
                 </div>
 
-                {/* Weekly availability days */}
+                {/* Weekly availability days checklist */}
                 <div className="space-y-3 pt-6 border-t border-white/5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400">Weekly Schedule</h3>
                   <div className="flex flex-wrap gap-2">
@@ -1198,7 +1168,7 @@ export default function MentorDashboard() {
                           key={day}
                           type="button"
                           onClick={() => setTeachingSchedule(prev => ({ ...prev, [day]: !isActive }))}
-                          className={`px-3 py-2 rounded-xl text-xs font-bold border cursor-pointer capitalize transition-all ${
+                          className={`px-3 py-2 rounded-lg text-xs font-bold border cursor-pointer capitalize transition-all ${
                             isActive ? 'bg-indigo-650/10 border-indigo-500 text-white' : 'bg-[#0B0F19] border-white/5 text-zinc-550'
                           }`}
                         >
@@ -1209,7 +1179,7 @@ export default function MentorDashboard() {
                   </div>
                 </div>
 
-                {/* Notification preferences */}
+                {/* Notification preferences checklist */}
                 <div className="space-y-3 pt-6 border-t border-white/5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400">Notification Alerts</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1231,22 +1201,13 @@ export default function MentorDashboard() {
                       />
                       <span className="text-xs text-zinc-300">App Push Alerts</span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={alertPreferences.sms}
-                        onChange={(e) => setAlertPreferences(prev => ({ ...prev, sms: e.target.checked }))}
-                        className="h-4 w-4 bg-[#0B0F19] border-white/5 rounded text-indigo-500 focus:ring-0"
-                      />
-                      <span className="text-xs text-zinc-300">SMS Critical Alerts</span>
-                    </label>
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-white/5 flex justify-end">
                   <button
-                    onClick={() => addToast('Profile configurations updated successfully!', 'success')}
-                    className="px-6 py-2 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold border-none cursor-pointer transition-all"
+                    onClick={() => addToast('Profile updated!', 'success')}
+                    className="px-6 py-2 bg-indigo-650 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold border-none cursor-pointer transition-all"
                   >
                     Save Options
                   </button>
@@ -1312,7 +1273,7 @@ export default function MentorDashboard() {
         </div>
       )}
 
-      {/* MODAL 2: SCHEDULE MENTORING SESSION */}
+      {/* MODAL 2: SCHEDULE SESSIONS */}
       {showCreateSession && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4">
@@ -1342,7 +1303,7 @@ export default function MentorDashboard() {
                   <select
                     value={newSession.groupId}
                     onChange={(e) => setNewSession(prev => ({ ...prev, groupId: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-sans cursor-pointer"
                   >
                     <option value="">Select Room</option>
                     {studyRooms.map(r => (
@@ -1361,23 +1322,23 @@ export default function MentorDashboard() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-zinc-400">Scheduled At</label>
+                <div className="space-y-1 font-mono">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400 font-sans">Scheduled At</label>
                   <input
                     type="datetime-local"
                     value={newSession.scheduledAt}
                     onChange={(e) => setNewSession(prev => ({ ...prev, scheduledAt: e.target.value }))}
-                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-mono"
+                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-zinc-400">Meeting Link</label>
+                <div className="space-y-1 font-mono">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400 font-sans">Meeting Link</label>
                   <input
                     type="url"
                     placeholder="https://meet.google.com/abc"
                     value={newSession.meetingLink}
                     onChange={(e) => setNewSession(prev => ({ ...prev, meetingLink: e.target.value }))}
-                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-mono"
+                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
@@ -1408,27 +1369,27 @@ export default function MentorDashboard() {
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
-                addToast('Announcement posted successfully!', 'success');
+                addToast('Announcement broadcasted successfully!', 'success');
                 setAnnouncementText('');
                 setShowAnnouncement(false);
               }} 
               className="space-y-3"
             >
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-400">Announcement Text</label>
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Announcement Message</label>
                 <textarea
-                  placeholder="Write announcement text..."
+                  placeholder="Write message here..."
                   value={announcementText}
                   onChange={(e) => setAnnouncementText(e.target.value)}
                   rows={4}
-                  className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 resize-none font-medium leading-relaxed"
+                  className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 resize-none font-medium leading-relaxed font-sans"
                 />
               </div>
               <button
                 type="submit"
                 className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all border-none mt-2"
               >
-                Broadcast Alert
+                Broadcast Announcement
               </button>
             </form>
           </div>
@@ -1449,7 +1410,7 @@ export default function MentorDashboard() {
               </button>
             </div>
             <form onSubmit={handleAssignChallenge} className="space-y-3">
-              <p className="text-xs text-zinc-400">Assigning target practice task to <span className="text-white font-bold">{selectedStudent.fullName}</span>.</p>
+              <p className="text-xs text-zinc-400">Assigning challenge task to <span className="text-white font-bold">{selectedStudent.fullName}</span>.</p>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase text-zinc-400">Task Instruction</label>
                 <input
@@ -1471,7 +1432,7 @@ export default function MentorDashboard() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-zinc-400 font-sans">Focus Coins Reward</label>
+                  <label className="text-[10px] font-bold uppercase text-zinc-400 font-sans">Focus Coins</label>
                   <input
                     type="number"
                     value={challengeData.coinReward}
@@ -1516,12 +1477,12 @@ export default function MentorDashboard() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
+                <div className="space-y-1 font-sans">
                   <label className="text-[10px] font-bold uppercase text-zinc-400">Subject Area</label>
                   <select
                     value={newAssignment.subject}
                     onChange={(e) => setNewAssignment(prev => ({ ...prev, subject: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 cursor-pointer"
                   >
                     <option value="Data Structures">Data Structures</option>
                     <option value="DBMS">DBMS</option>
@@ -1543,88 +1504,6 @@ export default function MentorDashboard() {
                 className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all border-none mt-2"
               >
                 Publish Assignment
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 6: MESSAGE MODAL */}
-      {showMessageModal && selectedStudent && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Direct Message</h3>
-              <button 
-                onClick={() => setShowMessageModal(false)}
-                className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                addToast(`Message dispatched to @${selectedStudent.username}!`, 'success');
-                setShowMessageModal(false);
-              }}
-              className="space-y-3"
-            >
-              <p className="text-xs text-zinc-450">Send message to <span className="text-white font-bold">{selectedStudent.fullName}</span>.</p>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-400">Message Content</label>
-                <textarea
-                  placeholder="Type message text..."
-                  rows={4}
-                  className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 resize-none font-medium leading-relaxed font-sans"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all border-none"
-              >
-                Send Message
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 7: SCHEDULE CALL */}
-      {showCallModal && selectedStudent && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Schedule 1-on-1 Call</h3>
-              <button 
-                onClick={() => setShowCallModal(false)}
-                className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                addToast(`1-on-1 mentoring call scheduled with ${selectedStudent.fullName}! Link sent.`, 'success');
-                setShowCallModal(false);
-              }}
-              className="space-y-3"
-            >
-              <div className="space-y-1 font-mono">
-                <label className="text-[10px] font-bold uppercase text-zinc-400 font-sans">Pick Time & Date</label>
-                <input
-                  type="datetime-local"
-                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all border-none"
-              >
-                Confirm Call
               </button>
             </form>
           </div>
