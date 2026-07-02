@@ -8,8 +8,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Times New Roman"', 'Times', 'serif'],
-        serif: ['"Times New Roman"', 'Times', 'serif'],
+        sans: ['Roboto', 'sans-serif'],
+        serif: ['Roboto', 'sans-serif'],
       },
     },
   },

@@ -86,6 +86,26 @@ export default function RegisterPage() {
   const [mentorRole, setMentorRole] = useState<'mentor' | 'admin'>('mentor');
   const [mentorAgree, setMentorAgree] = useState(false);
 
+  // OTP Countdown Timers
+  const [studentOtpTimeLeft, setStudentOtpTimeLeft] = useState(0);
+  const [mentorOtpTimeLeft, setMentorOtpTimeLeft] = useState(0);
+
+  useEffect(() => {
+    if (studentOtpTimeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setStudentOtpTimeLeft(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [studentOtpTimeLeft]);
+
+  useEffect(() => {
+    if (mentorOtpTimeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setMentorOtpTimeLeft(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [mentorOtpTimeLeft]);
+
   // Password visibility
   const [showStudentPass, setShowStudentPass] = useState(false);
   const [showMentorPass, setShowMentorPass] = useState(false);
@@ -287,10 +307,12 @@ export default function RegisterPage() {
         setStudentOtpSent(true);
         setStudentOtpEmail(emailVal);
         setStudentOtp('');
+        setStudentOtpTimeLeft(60);
       } else {
         setMentorOtpSent(true);
         setMentorOtpEmail(emailVal);
         setMentorOtp('');
+        setMentorOtpTimeLeft(60);
       }
       showToast(data.message || 'Verification code sent!', 'success');
       if (data.isMocked) {
@@ -545,7 +567,7 @@ export default function RegisterPage() {
                         placeholder="Enter your email"
                         value={studentContact}
                         onChange={(e) => setStudentContact(e.target.value)}
-                        disabled={studentOtpSent}
+                        disabled={studentOtpSent && studentOtpTimeLeft > 0}
                         className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all disabled:opacity-50"
                         required
                       />
@@ -553,10 +575,16 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={() => sendRegOtp('student')}
-                      disabled={studentOtpLoading || studentOtpSent}
+                      disabled={studentOtpLoading || (studentOtpSent && studentOtpTimeLeft > 0)}
                       className="px-4 py-2.5 bg-[#00b074]/10 hover:bg-[#00b074]/20 border border-[#00b074]/30 text-[#00b074] rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer disabled:opacity-50"
                     >
-                      {studentOtpLoading ? 'Sending...' : studentOtpSent ? 'Sent ✓' : 'Send OTP'}
+                      {studentOtpLoading 
+                        ? 'Sending...' 
+                        : studentOtpSent 
+                          ? studentOtpTimeLeft > 0 
+                            ? `Resend in ${studentOtpTimeLeft}s` 
+                            : 'Resend OTP' 
+                          : 'Send OTP'}
                     </button>
                   </div>
                 </div>
@@ -564,7 +592,14 @@ export default function RegisterPage() {
                 {/* OTP Input Field */}
                 {studentOtpSent && (
                   <div className="space-y-1 text-left animate-in fade-in duration-200">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Verification Code (OTP)</label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Verification Code (OTP)</label>
+                      {studentOtpTimeLeft > 0 ? (
+                        <span className="text-[9px] text-zinc-400 font-bold">Expires in {studentOtpTimeLeft}s</span>
+                      ) : (
+                        <span className="text-[9px] text-rose-450 font-bold animate-pulse">OTP Expired!</span>
+                      )}
+                    </div>
                     <div className="relative">
                       <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                       <input
@@ -834,7 +869,7 @@ export default function RegisterPage() {
                         placeholder="Enter your email"
                         value={mentorContact}
                         onChange={(e) => setMentorContact(e.target.value)}
-                        disabled={mentorOtpSent}
+                        disabled={mentorOtpSent && mentorOtpTimeLeft > 0}
                         className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all disabled:opacity-50"
                         required
                       />
@@ -842,10 +877,16 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={() => sendRegOtp('mentor')}
-                      disabled={mentorOtpLoading || mentorOtpSent}
+                      disabled={mentorOtpLoading || (mentorOtpSent && mentorOtpTimeLeft > 0)}
                       className="px-4 py-2.5 bg-[#5046E5]/10 hover:bg-[#5046E5]/20 border border-[#5046E5]/30 text-[#818CF8] rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer disabled:opacity-50"
                     >
-                      {mentorOtpLoading ? 'Sending...' : mentorOtpSent ? 'Sent ✓' : 'Send OTP'}
+                      {mentorOtpLoading 
+                        ? 'Sending...' 
+                        : mentorOtpSent 
+                          ? mentorOtpTimeLeft > 0 
+                            ? `Resend in ${mentorOtpTimeLeft}s` 
+                            : 'Resend OTP' 
+                          : 'Send OTP'}
                     </button>
                   </div>
                 </div>
@@ -853,7 +894,14 @@ export default function RegisterPage() {
                 {/* OTP Input Field */}
                 {mentorOtpSent && (
                   <div className="space-y-1 text-left animate-in fade-in duration-200">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Verification Code (OTP)</label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-455">Verification Code (OTP)</label>
+                      {mentorOtpTimeLeft > 0 ? (
+                        <span className="text-[9px] text-zinc-400 font-bold">Expires in {mentorOtpTimeLeft}s</span>
+                      ) : (
+                        <span className="text-[9px] text-rose-450 font-bold animate-pulse">OTP Expired!</span>
+                      )}
+                    </div>
                     <div className="relative">
                       <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                       <input

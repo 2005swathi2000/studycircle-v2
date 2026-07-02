@@ -2,9 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Apply Times New Roman globally */
+/* Import Roboto from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+
+/* Apply Roboto globally */
 html, body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, p, span, a, label {
-  font-family: "Times New Roman", Times, serif !important;
+  font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
 }
 
 /* Hide browser scrollbar on body */
