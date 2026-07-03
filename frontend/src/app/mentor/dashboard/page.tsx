@@ -439,12 +439,8 @@ export default function MentorDashboard() {
         }`}>
           <div className="space-y-6">
             
-            {/* Clickable Logo pointing back to landing page */}
-            <Link 
-              href="/" 
-              onClick={() => setShowSidebar(false)}
-              className="px-6 flex items-center gap-2.5 hover:opacity-90 transition-all cursor-pointer decoration-none"
-            >
+            {/* Non-clickable Brand Header */}
+            <div className="px-6 flex items-center gap-2.5 select-none">
               <div className="h-8.5 w-8.5 rounded-xl bg-indigo-650 flex items-center justify-center">
                 <Sparkles className="h-4.5 w-4.5 text-white" />
               </div>
@@ -452,7 +448,7 @@ export default function MentorDashboard() {
                 <h1 className="text-sm font-bold tracking-tight text-white">StudyCircle</h1>
                 <p className="text-[9px] uppercase tracking-widest text-indigo-400 font-black">Mentor Hub</p>
               </div>
-            </Link>
+            </div>
 
             <hr className="border-white/5 mx-6" />
 
