@@ -244,14 +244,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             <p className="text-xs text-slate-400 font-semibold leading-relaxed">Let's coordinate focus desking to keep your placement ready milestones accelerating.</p>
           </div>
 
-          {/* Streak Indicator */}
-          <div className="flex items-center gap-3 bg-orange-500/10 border border-orange-500/25 px-4.5 py-2.5 rounded-2xl shrink-0 self-start md:self-auto">
-            <Flame className="h-6 w-6 text-orange-500 fill-orange-500/10 animate-bounce" />
-            <div>
-              <span className="text-[10px] font-black uppercase text-orange-400 tracking-wider block leading-none">Consistency</span>
-              <span className="text-sm font-black text-white block mt-0.5">{streakDays} Day Streak</span>
-            </div>
-          </div>
+          {/* Streak Indicator Removed */}
         </div>
 
         {/* Continue Learning Widget */}
