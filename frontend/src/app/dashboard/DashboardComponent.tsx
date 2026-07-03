@@ -2391,7 +2391,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
     ].join(':');
   };
 
-  if (globalLoading || (loading && user)) {
+  if (globalLoading || (loading && user) || (!bypassRedirect && user?.role !== 'student')) {
     return (
       <div 
         className="min-h-screen flex items-center justify-center bg-[#D4D4FF]"

@@ -702,7 +702,7 @@ export default function Home() {
       }
       showToast(data.message || 'Student account created successfully!', 'success');
       setShowAuthModal(false);
-      router.push('/dashboard');
+      router.push('/student/dashboard');
     } catch (err: any) {
       showToast(err.message || 'Registration failed.', 'error');
     } finally {
@@ -745,7 +745,7 @@ export default function Home() {
         }
         showToast('Approved automatically. Redirecting...', 'success');
         setShowAuthModal(false);
-        router.push('/dashboard');
+        router.push('/mentor/dashboard');
       } else {
         if (typeof window !== 'undefined') {
           localStorage.setItem('saved_login_user', mentorUser.trim());
@@ -791,7 +791,7 @@ export default function Home() {
           localStorage.setItem('studycircle_register_payload', JSON.stringify(payload));
         }
         showToast('Approved automatically. Redirecting...', 'success');
-        router.push('/dashboard');
+        router.push('/admin/dashboard');
       } else {
         if (typeof window !== 'undefined') {
           localStorage.setItem('saved_login_user', adminUser.trim());
@@ -871,7 +871,7 @@ export default function Home() {
       }
       showToast('Welcome back, ' + data.user.fullName + '!', 'success');
       setShowAuthModal(false);
-      router.push('/dashboard');
+      router.push(`/${data.user.role}/dashboard`);
     } catch (err: any) {
       if (typeof window !== 'undefined') {
         const payloadStr = localStorage.getItem('studycircle_register_payload');
@@ -890,7 +890,7 @@ export default function Home() {
                 localStorage.setItem('saved_login_pass', loginPass);
                 showToast('Welcome back, ' + regData.user.fullName + ' (session auto-restored)!', 'success');
                 setShowAuthModal(false);
-                router.push('/dashboard');
+                router.push(`/${regData.user.role}/dashboard`);
                 return;
               }
             }
