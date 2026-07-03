@@ -101,8 +101,28 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
     } catch (err: any) {
-      // Only clear user session if the API explicitly reports 401 Unauthorized or 403 Forbidden
-      if (err.status === 401 || err.status === 403) {
+      if (err.status === 401 || err.status === 403 || err.status === 404) {
+        console.warn('[AppContext] User session invalid or database reset. Checking for local self-healing credentials...');
+        if (typeof window !== 'undefined') {
+          const payloadStr = localStorage.getItem('studycircle_register_payload');
+          if (payloadStr) {
+            try {
+              const payload = JSON.parse(payloadStr);
+              console.log('[AppContext] Auto-registering user in background to heal session...');
+              const regData = await apiRequest('/auth/register', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+              });
+              if (regData && regData.user) {
+                setUser(regData.user, regData.token);
+                console.log('[AppContext] Self-healing restoration successful!');
+                return regData.user;
+              }
+            } catch (regErr) {
+              console.error('[AppContext] Background auto-registration restore failed:', regErr);
+            }
+          }
+        }
         console.warn('[AppContext] User session invalid or expired. Clearing session.');
         setUser(null);
       } else {
@@ -116,6 +136,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('explicit_logout', 'true');
+        localStorage.removeItem('studycircle_user');
+        localStorage.removeItem('studycircle_token');
+        localStorage.removeItem('studycircle_register_payload');
+        localStorage.removeItem('saved_login_user');
+        localStorage.removeItem('saved_login_pass');
+        localStorage.setItem('auth_session_active', 'false');
       }
       googleLogout();
     } catch (googleErr) {

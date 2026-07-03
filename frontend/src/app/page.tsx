@@ -678,25 +678,27 @@ export default function Home() {
       return;
     }
     setFormLoading(true);
+    const payload = {
+      firstName: studentFirstName.trim(),
+      lastName: studentLastName.trim(),
+      username: studentUser.trim(),
+      password: studentPass,
+      role: 'student',
+      email: studentContact.includes('@') ? studentContact.trim().toLowerCase() : null,
+      phone: !studentContact.includes('@') ? studentContact.trim() : null,
+      gender: studentGender,
+      otp: studentOtp
+    };
     try {
       const data = await apiRequest('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({
-          firstName: studentFirstName.trim(),
-          lastName: studentLastName.trim(),
-          username: studentUser.trim(),
-          password: studentPass,
-          role: 'student',
-          email: studentContact.includes('@') ? studentContact.trim().toLowerCase() : null,
-          phone: !studentContact.includes('@') ? studentContact.trim() : null,
-          gender: studentGender,
-          otp: studentOtp
-        })
+        body: JSON.stringify(payload)
       });
       setCurrentUser(data.user, data.token);
       if (typeof window !== 'undefined') {
         localStorage.setItem('saved_login_user', studentUser.trim());
         localStorage.setItem('saved_login_pass', studentPass);
+        localStorage.setItem('studycircle_register_payload', JSON.stringify(payload));
       }
       showToast(data.message || 'Student account created successfully!', 'success');
       setShowAuthModal(false);
@@ -716,21 +718,22 @@ export default function Home() {
       return;
     }
     setFormLoading(true);
+    const payload = {
+      firstName: mentorFirstName.trim(),
+      lastName: mentorLastName.trim(),
+      username: mentorUser.trim(),
+      password: mentorPass,
+      role: 'mentor',
+      email: mentorContact.includes('@') ? mentorContact.trim().toLowerCase() : null,
+      phone: !mentorContact.includes('@') ? mentorContact.trim() : null,
+      gender: mentorGender,
+      otp: mentorOtp,
+      institution: mentorInstitution
+    };
     try {
       const data = await apiRequest('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({
-          firstName: mentorFirstName.trim(),
-          lastName: mentorLastName.trim(),
-          username: mentorUser.trim(),
-          password: mentorPass,
-          role: 'mentor',
-          email: mentorContact.includes('@') ? mentorContact.trim().toLowerCase() : null,
-          phone: !mentorContact.includes('@') ? mentorContact.trim() : null,
-          gender: mentorGender,
-          otp: mentorOtp,
-          institution: mentorInstitution
-        })
+        body: JSON.stringify(payload)
       });
       showToast(data.message || 'Mentor registered. Awaiting Admin Approval.', 'success');
       if (data.user && data.user.isApproved) {
@@ -738,6 +741,7 @@ export default function Home() {
         if (typeof window !== 'undefined') {
           localStorage.setItem('saved_login_user', mentorUser.trim());
           localStorage.setItem('saved_login_pass', mentorPass);
+          localStorage.setItem('studycircle_register_payload', JSON.stringify(payload));
         }
         showToast('Approved automatically. Redirecting...', 'success');
         setShowAuthModal(false);
@@ -746,6 +750,7 @@ export default function Home() {
         if (typeof window !== 'undefined') {
           localStorage.setItem('saved_login_user', mentorUser.trim());
           localStorage.setItem('saved_login_pass', mentorPass);
+          localStorage.setItem('studycircle_register_payload', JSON.stringify(payload));
         }
         setAuthMode('login');
       }
@@ -764,17 +769,18 @@ export default function Home() {
       return;
     }
     setFormLoading(true);
+    const payload = {
+      fullName: adminName,
+      username: adminUser,
+      password: adminPass,
+      role: 'admin',
+      phoneOrEmail: adminContact,
+      otp: adminOtp
+    };
     try {
       const data = await apiRequest('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({
-          fullName: adminName,
-          username: adminUser,
-          password: adminPass,
-          role: 'admin',
-          phoneOrEmail: adminContact,
-          otp: adminOtp
-        })
+        body: JSON.stringify(payload)
       });
       showToast(data.message || 'Admin registered. Awaiting Admin Approval.', 'success');
       if (data.user && data.user.isApproved) {
@@ -782,6 +788,7 @@ export default function Home() {
         if (typeof window !== 'undefined') {
           localStorage.setItem('saved_login_user', adminUser.trim());
           localStorage.setItem('saved_login_pass', adminPass);
+          localStorage.setItem('studycircle_register_payload', JSON.stringify(payload));
         }
         showToast('Approved automatically. Redirecting...', 'success');
         router.push('/dashboard');
@@ -789,6 +796,7 @@ export default function Home() {
         if (typeof window !== 'undefined') {
           localStorage.setItem('saved_login_user', adminUser.trim());
           localStorage.setItem('saved_login_pass', adminPass);
+          localStorage.setItem('studycircle_register_payload', JSON.stringify(payload));
         }
         setAuthMode('login');
         scrollToSection('auth-gates');
@@ -865,7 +873,33 @@ export default function Home() {
       setShowAuthModal(false);
       router.push('/dashboard');
     } catch (err: any) {
-      showToast(err.message || 'Login failed.', 'error');
+      if (typeof window !== 'undefined') {
+        const payloadStr = localStorage.getItem('studycircle_register_payload');
+        if (payloadStr) {
+          try {
+            const payload = JSON.parse(payloadStr);
+            if (payload.username && payload.username.trim().toLowerCase() === loginUser.trim().toLowerCase() && payload.password === loginPass) {
+              console.log('[Login] Database reset detected. Auto-registering from local payload...');
+              const regData = await apiRequest('/auth/register', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+              });
+              if (regData && regData.user) {
+                setCurrentUser(regData.user, regData.token);
+                localStorage.setItem('saved_login_user', loginUser);
+                localStorage.setItem('saved_login_pass', loginPass);
+                showToast('Welcome back, ' + regData.user.fullName + ' (session auto-restored)!', 'success');
+                setShowAuthModal(false);
+                router.push('/dashboard');
+                return;
+              }
+            }
+          } catch (restoreErr) {
+            console.error('Self-healing login restore failed:', restoreErr);
+          }
+        }
+      }
+      showToast(err.message || 'Login failed. Please verify credentials.', 'error');
     } finally {
       setFormLoading(false);
     }
