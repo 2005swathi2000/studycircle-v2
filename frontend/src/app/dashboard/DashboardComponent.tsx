@@ -397,6 +397,7 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   // Search Palette State
   const [showSearchPalette, setShowSearchPalette] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showResourcesModal, setShowResourcesModal] = useState(false);
 
   // Daily Goals State
   const [completedGoals, setCompletedGoals] = useState<string[]>([]);
@@ -3982,7 +3983,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     )}
 
                     <button 
-                      onClick={() => showToast('All resources are currently loaded!', 'info')}
+                      onClick={() => setShowResourcesModal(true)}
                       className="text-[10px] font-semibold text-[#7C4DFF] hover:text-[#6C3DFF] flex items-center gap-1 mt-3 bg-transparent border-none cursor-pointer self-start transition-colors"
                     >
                       View all resources &rarr;
@@ -9138,6 +9139,146 @@ Based on your desking logs and consistency, the AI tutor recommends:
         </div>
       )}
 
+      {/* 📂 Shared Resources Modal */}
+      {showResourcesModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowResourcesModal(false)}>
+          <div 
+            className="w-full max-w-2xl bg-[#131722] border border-[rgba(255,255,255,0.08)] rounded-[20px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-[rgba(255,255,255,0.08)] flex justify-between items-center bg-[#090B14]/40">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-[#7C4DFF]/10 flex items-center justify-center border border-[#7C4DFF]/20">
+                  <FileText className="h-5 w-5 text-[#7C4DFF]" />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Workspace Shared Resources</h3>
+                  <p className="text-[10px] text-slate-400 font-normal mt-0.5">Access syllabus cheat sheets, reference notes, and materials.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowResourcesModal(false)}
+                className="text-slate-400 hover:text-white p-1.5 hover:bg-white/5 rounded-lg transition-colors border-none bg-transparent cursor-pointer"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 max-h-[380px] overflow-y-auto pr-2 scrollbar-thin">
+              {myGroups.length === 0 ? (
+                <div className="flex flex-col items-center justify-center text-center py-10 space-y-3">
+                  <div className="h-14 w-14 rounded-full bg-slate-800/40 flex items-center justify-center text-2xl text-slate-500 border border-white/5">
+                    📂
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">No Resources Available</h4>
+                    <p className="text-[11px] text-slate-400 font-normal leading-relaxed max-w-sm">
+                      Your mentor hasn't shared any study materials yet. Resources will appear here once they are uploaded.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 text-left">
+                  
+                  {/* Item 1 */}
+                  <div className="p-4 bg-[#090B14] border border-[rgba(255,255,255,0.08)] rounded-xl flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/10">
+                        <span className="text-[9px] font-bold text-red-400">PDF</span>
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-white truncate max-w-[220px] sm:max-w-[280px]" title="DBMS Schema Design Cheat Sheet.pdf">
+                          DBMS Schema Design Cheat Sheet.pdf
+                        </h4>
+                        <div className="flex items-center gap-2 mt-0.5 text-[9px] text-slate-550 font-semibold">
+                          <span>1.2 MB</span>
+                          <span>•</span>
+                          <span>Uploaded by Swathi Hanumanthu (Mentor)</span>
+                          <span>•</span>
+                          <span>July 1, 2026</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        showToast('Downloading DBMS Schema cheat sheet.txt...', 'success'); 
+                        const content = `StudyCircle Placement Preparation: DBMS Schema Design Cheat Sheet\n----------------------------------------------------------------\n1. Keys:\n   - Primary Key: Unique, non-null identifier for a record.\n   - Foreign Key: Field referencing primary key of another table.\n2. Normalization Rules:\n   - 1NF: Atomic values, unique column names.\n   - 2NF: In 1NF and no partial dependencies.\n   - 3NF: In 2NF and no transitive dependencies.\n   - BCNF: For any dependency A -> B, A must be a super key.\n3. Joins:\n   - INNER JOIN: Returns matches in both tables.\n   - LEFT JOIN: Returns all records from left table and matches from right table.`;
+                        const blob = new Blob([content], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'dbms_schema_cheat_sheet.txt';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="px-3 py-1.5 bg-[#7C4DFF] hover:bg-[#6C3DFF] text-white text-[10px] font-bold rounded-lg transition-all border-none cursor-pointer"
+                    >
+                      Download &darr;
+                    </button>
+                  </div>
+
+                  {/* Item 2 */}
+                  <div className="p-4 bg-[#090B14] border border-[rgba(255,255,255,0.08)] rounded-xl flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/10">
+                        <span className="text-[9px] font-bold text-red-400">PDF</span>
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-white truncate max-w-[220px] sm:max-w-[280px]" title="Syllabus Reference Notes.pdf">
+                          Syllabus Reference Notes.pdf
+                        </h4>
+                        <div className="flex items-center gap-2 mt-0.5 text-[9px] text-slate-550 font-semibold">
+                          <span>2.4 MB</span>
+                          <span>•</span>
+                          <span>Uploaded by Charan Teja (Admin)</span>
+                          <span>•</span>
+                          <span>June 28, 2026</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        showToast('Downloading Syllabus Reference Notes.txt...', 'success'); 
+                        const content = `StudyCircle Placement Preparation: Syllabus Reference Notes\n----------------------------------------------------------\nRecommended placement preparation track subjects:\n1. Data Structures & Algorithms (Trees, Graphs, Recursion, DFS, BFS)\n2. Database Management Systems (SQL, Normalization, ACID Properties)\n3. Web Development (Next.js, TailwindCSS, State Management, APIs)\n\nStudy Circle Rules:\n- Schedule dynamic focus logs daily.\n- Participate in peer reviews during live audio study rooms.\n- Verify doubt statuses with allocated mentors.`;
+                        const blob = new Blob([content], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'syllabus_reference_notes.txt';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="px-3 py-1.5 bg-[#7C4DFF] hover:bg-[#6C3DFF] text-white text-[10px] font-bold rounded-lg transition-all border-none cursor-pointer"
+                    >
+                      Download &darr;
+                    </button>
+                  </div>
+
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-[#090B14]/40 border-t border-[rgba(255,255,255,0.08)] flex justify-end">
+              <button 
+                onClick={() => setShowResourcesModal(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white rounded-xl transition-all border-none cursor-pointer"
+              >
+                Close View
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* 🎖️ Gamification: Completed Mission Alert Popup */}
       {completedMissionAlert && (
         <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 z-[9999] max-w-sm w-full px-4 animate-in fade-in slide-in-from-bottom-5 duration-300">
