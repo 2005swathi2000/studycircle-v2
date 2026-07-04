@@ -3806,8 +3806,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
               <div className="flex flex-col lg:flex-row gap-6 w-full text-white items-stretch">
                 
-                {/* Left Column (65%) */}
-                <div className="w-full lg:w-[65%] flex flex-col gap-6">
+                {/* Left Column (70%) */}
+                <div className="w-full lg:w-[70%] flex flex-col gap-6">
                   
                   {/* Title and Subtitle */}
                   <div className="space-y-1 text-left">
@@ -3815,7 +3815,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                       <Users className="h-5.5 w-5.5 text-[#7C4DFF]" /> Study Circles Workspace
                     </h2>
                     <p className="text-xs text-slate-400 font-normal leading-relaxed">
-                      Collaborate, discuss, and grow together in your study circles.
+                      Collaborate, discuss and grow together in your study circles.
                     </p>
                   </div>
 
@@ -3828,20 +3828,11 @@ Based on your desking logs and consistency, the AI tutor recommends:
                           <Users className="h-10 w-10 text-[#7C4DFF]" />
                         </div>
                         <div className="space-y-1">
-                          <h3 className="text-base font-bold text-white tracking-tight">No workspaces joined</h3>
+                          <h3 className="text-base font-bold text-white tracking-tight">No Workspaces Joined</h3>
                           <p className="text-xs text-slate-405 font-normal leading-relaxed max-w-xs mx-auto">
-                            Join a study circle to collaborate, share resources and learn together.
+                            You haven't joined any study circle yet. Join one using an invite code from your mentor.
                           </p>
                         </div>
-                        <button 
-                          onClick={() => {
-                            const inputEl = document.getElementById('invite-code-input');
-                            if (inputEl) inputEl.focus();
-                          }}
-                          className="px-5 py-2.5 bg-[#7C4DFF] hover:bg-[#6C3DFF] text-white text-xs font-semibold rounded-xl transition-all cursor-pointer border-none shadow-sm flex items-center gap-1.5"
-                        >
-                          + Join a New Group
-                        </button>
                       </div>
                     ) : (
                       <div className="w-full h-full overflow-y-auto pr-1 grid sm:grid-cols-2 gap-4 text-left p-1 scrollbar-thin">
@@ -3870,17 +3861,17 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   </div>
                 </div>
 
-                {/* Right Column (35%) */}
-                <div className="w-full lg:w-[35%] flex flex-col gap-6 justify-between">
+                {/* Right Column (30%) */}
+                <div className="w-full lg:w-[30%] flex flex-col gap-6 justify-between">
                   
-                  {/* Card 1: Join a New Group */}
+                  {/* Card 1: Join Study Circle */}
                   <div className="p-6 bg-[#131722] border border-[rgba(255,255,255,0.08)] rounded-[20px] space-y-4 shadow-sm text-left">
                     <div className="space-y-1">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-white font-sans flex items-center gap-2">
-                        <PlusCircle className="h-4 w-4 text-[#7C4DFF]" /> Join a New Group
+                        <PlusCircle className="h-4 w-4 text-[#7C4DFF]" /> Join Study Circle
                       </h3>
                       <p className="text-[10px] text-slate-400 font-normal leading-relaxed">
-                        Enter an invite code provided by your mentor or classmate.
+                        Enter the invite code shared by your mentor or classmates.
                       </p>
                     </div>
                     <form onSubmit={handleJoinCircle} className="space-y-3">
@@ -3901,86 +3892,94 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     </form>
                   </div>
 
-                  {/* Card 2: Related Resources */}
+                  {/* Card 2: Shared Resources */}
                   <div className="p-6 bg-[#131722] border border-[rgba(255,255,255,0.08)] rounded-[20px] space-y-4 shadow-sm text-left flex flex-col justify-between flex-1">
                     <div className="space-y-1">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-white font-sans flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-[#7C4DFF]" /> Related Resources
+                        <FileText className="h-4 w-4 text-[#7C4DFF]" /> Shared Resources
                       </h3>
                       <p className="text-[10px] text-slate-400 font-normal leading-relaxed">
                         Download syllabus reference documents and study guide resources linked to this workspace.
                       </p>
                     </div>
                     
-                    <div className="space-y-3 pt-2 font-sans">
-                      {/* Attachment 1 */}
-                      <div className="p-3 bg-[#090B14] border border-[rgba(255,255,255,0.08)] rounded-xl flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/10">
-                            <span className="text-[9px] font-bold text-red-400">PDF</span>
-                          </div>
-                          <div className="min-w-0 text-left">
-                            <h4 className="text-[11px] font-bold text-white truncate max-w-[130px] sm:max-w-[170px]" title="DBMS Schema Design Cheat Sheet.pdf">
-                              DBMS Schema Design Cheat Sheet.pdf
-                            </h4>
-                            <span className="text-[9px] text-slate-500 font-semibold block mt-0.5">1.2 MB</span>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={(e) => { 
-                            e.preventDefault(); 
-                            showToast('Downloading DBMS Schema cheat sheet.txt...', 'success'); 
-                            const content = `StudyCircle Placement Preparation: DBMS Schema Design Cheat Sheet\n----------------------------------------------------------------\n1. Keys:\n   - Primary Key: Unique, non-null identifier for a record.\n   - Foreign Key: Field referencing primary key of another table.\n2. Normalization Rules:\n   - 1NF: Atomic values, unique column names.\n   - 2NF: In 1NF and no partial dependencies.\n   - 3NF: In 2NF and no transitive dependencies.\n   - BCNF: For any dependency A -> B, A must be a super key.\n3. Joins:\n   - INNER JOIN: Returns matches in both tables.\n   - LEFT JOIN: Returns all records from left table and matches from right table.`;
-                            const blob = new Blob([content], { type: 'text/plain' });
-                            const url = URL.createObjectURL(blob);
-                            const link = document.createElement('a');
-                            link.href = url;
-                            link.download = 'dbms_schema_cheat_sheet.txt';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            URL.revokeObjectURL(url);
-                          }}
-                          className="px-2.5 py-1.5 bg-[#7C4DFF]/10 hover:bg-[#7C4DFF] hover:text-white border border-[#7C4DFF]/30 text-[#7C4DFF] text-[9px] font-bold rounded-lg transition-all cursor-pointer"
-                        >
-                          Download &darr;
-                        </button>
+                    {myGroups.length === 0 ? (
+                      <div className="p-4 bg-[#090B14] border border-dashed border-white/10 rounded-xl text-center py-6">
+                        <p className="text-[10px] text-slate-400 font-normal leading-relaxed italic">
+                          No resources shared yet. Resources will appear after you join a study circle.
+                        </p>
                       </div>
+                    ) : (
+                      <div className="space-y-3 pt-2 font-sans">
+                        {/* Attachment 1 */}
+                        <div className="p-3 bg-[#090B14] border border-[rgba(255,255,255,0.08)] rounded-xl flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/10">
+                              <span className="text-[9px] font-bold text-red-400">PDF</span>
+                            </div>
+                            <div className="min-w-0 text-left">
+                              <h4 className="text-[11px] font-bold text-white truncate max-w-[110px] sm:max-w-[140px]" title="DBMS Schema Design Cheat Sheet.pdf">
+                                DBMS Schema Design Cheat Sheet.pdf
+                              </h4>
+                              <span className="text-[9px] text-slate-500 font-semibold block mt-0.5">1.2 MB</span>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={(e) => { 
+                              e.preventDefault(); 
+                              showToast('Downloading DBMS Schema cheat sheet.txt...', 'success'); 
+                              const content = `StudyCircle Placement Preparation: DBMS Schema Design Cheat Sheet\n----------------------------------------------------------------\n1. Keys:\n   - Primary Key: Unique, non-null identifier for a record.\n   - Foreign Key: Field referencing primary key of another table.\n2. Normalization Rules:\n   - 1NF: Atomic values, unique column names.\n   - 2NF: In 1NF and no partial dependencies.\n   - 3NF: In 2NF and no transitive dependencies.\n   - BCNF: For any dependency A -> B, A must be a super key.\n3. Joins:\n   - INNER JOIN: Returns matches in both tables.\n   - LEFT JOIN: Returns all records from left table and matches from right table.`;
+                              const blob = new Blob([content], { type: 'text/plain' });
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = 'dbms_schema_cheat_sheet.txt';
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="px-2 py-1 bg-[#7C4DFF]/10 hover:bg-[#7C4DFF] hover:text-white border border-[#7C4DFF]/30 text-[#7C4DFF] text-[9px] font-bold rounded-lg transition-all cursor-pointer"
+                          >
+                            Download &darr;
+                          </button>
+                        </div>
 
-                      {/* Attachment 2 */}
-                      <div className="p-3 bg-[#090B14] border border-[rgba(255,255,255,0.08)] rounded-xl flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/10">
-                            <span className="text-[9px] font-bold text-red-400">PDF</span>
+                        {/* Attachment 2 */}
+                        <div className="p-3 bg-[#090B14] border border-[rgba(255,255,255,0.08)] rounded-xl flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/10">
+                              <span className="text-[9px] font-bold text-red-400">PDF</span>
+                            </div>
+                            <div className="min-w-0 text-left">
+                              <h4 className="text-[11px] font-bold text-white truncate max-w-[110px] sm:max-w-[140px]" title="Syllabus Reference Notes.pdf">
+                                Syllabus Reference Notes.pdf
+                              </h4>
+                              <span className="text-[9px] text-slate-500 font-semibold block mt-0.5">2.4 MB</span>
+                            </div>
                           </div>
-                          <div className="min-w-0 text-left">
-                            <h4 className="text-[11px] font-bold text-white truncate max-w-[130px] sm:max-w-[170px]" title="Syllabus Reference Notes.pdf">
-                              Syllabus Reference Notes.pdf
-                            </h4>
-                            <span className="text-[9px] text-slate-500 font-semibold block mt-0.5">2.4 MB</span>
-                          </div>
+                          <button 
+                            onClick={(e) => { 
+                              e.preventDefault(); 
+                              showToast('Downloading Syllabus Reference Notes.txt...', 'success'); 
+                              const content = `StudyCircle Placement Preparation: Syllabus Reference Notes\n----------------------------------------------------------\nRecommended placement preparation track subjects:\n1. Data Structures & Algorithms (Trees, Graphs, Recursion, DFS, BFS)\n2. Database Management Systems (SQL, Normalization, ACID Properties)\n3. Web Development (Next.js, TailwindCSS, State Management, APIs)\n\nStudy Circle Rules:\n- Schedule dynamic focus logs daily.\n- Participate in peer reviews during live audio study rooms.\n- Verify doubt statuses with allocated mentors.`;
+                              const blob = new Blob([content], { type: 'text/plain' });
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = 'syllabus_reference_notes.txt';
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="px-2 py-1 bg-[#7C4DFF]/10 hover:bg-[#7C4DFF] hover:text-white border border-[#7C4DFF]/30 text-[#7C4DFF] text-[9px] font-bold rounded-lg transition-all cursor-pointer"
+                          >
+                            Download &darr;
+                          </button>
                         </div>
-                        <button 
-                          onClick={(e) => { 
-                            e.preventDefault(); 
-                            showToast('Downloading Syllabus Reference Notes.txt...', 'success'); 
-                            const content = `StudyCircle Placement Preparation: Syllabus Reference Notes\n----------------------------------------------------------\nRecommended placement preparation track subjects:\n1. Data Structures & Algorithms (Trees, Graphs, Recursion, DFS, BFS)\n2. Database Management Systems (SQL, Normalization, ACID Properties)\n3. Web Development (Next.js, TailwindCSS, State Management, APIs)\n\nStudy Circle Rules:\n- Schedule dynamic focus logs daily.\n- Participate in peer reviews during live audio study rooms.\n- Verify doubt statuses with allocated mentors.`;
-                            const blob = new Blob([content], { type: 'text/plain' });
-                            const url = URL.createObjectURL(blob);
-                            const link = document.createElement('a');
-                            link.href = url;
-                            link.download = 'syllabus_reference_notes.txt';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            URL.revokeObjectURL(url);
-                          }}
-                          className="px-2.5 py-1.5 bg-[#7C4DFF]/10 hover:bg-[#7C4DFF] hover:text-white border border-[#7C4DFF]/30 text-[#7C4DFF] text-[9px] font-bold rounded-lg transition-all cursor-pointer"
-                        >
-                          Download &darr;
-                        </button>
                       </div>
-                    </div>
+                    )}
 
                     <button 
                       onClick={() => showToast('All resources are currently loaded!', 'info')}
@@ -3997,7 +3996,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <div className="flex items-center gap-2.5 text-xs text-slate-350">
                   <span className="text-sm">💡</span>
                   <span className="font-normal text-slate-400">
-                    Need an invite code? <span className="font-semibold text-slate-200">Connect with your mentor or classmates</span> to get access.
+                    Need an invite code? <span className="font-semibold text-slate-200">Contact your mentor or classmates</span> to receive a valid study circle invite.
                   </span>
                 </div>
               </div>
