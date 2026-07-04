@@ -657,38 +657,77 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     reader.readAsDataURL(file);
   };
 
-  // Navigation tab state matching sidebar clicks
-  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const pathname = usePathname();
 
-  // Sync activeTab with pathname (on load or back/forward navigation)
-  useEffect(() => {
-    if (!pathname) return;
+  // Derive activeTab directly from the pathname
+  const activeTab = useMemo<TabType>(() => {
+    if (!pathname) return 'dashboard';
     const segments = pathname.split('/');
     const currentRole = segments[1]; // student, mentor, admin
     const currentTab = segments[2]; // dashboard, study, practice, etc.
 
     if (currentRole === 'student') {
-      if (currentTab === 'dashboard') setActiveTab('dashboard');
-      else if (currentTab === 'study') setActiveTab('study');
-      else if (currentTab === 'practice') setActiveTab('practice');
-      else if (currentTab === 'progress') setActiveTab('progress');
-      else if (currentTab === 'community') setActiveTab('community');
-      else if (currentTab === 'profile') setActiveTab('profile');
+      if (currentTab === 'study') return 'study';
+      if (currentTab === 'practice') return 'practice';
+      if (currentTab === 'progress') return 'progress';
+      if (currentTab === 'community') return 'community';
+      if (currentTab === 'profile') return 'profile';
+      return 'dashboard';
+    } else if (currentRole === 'mentor') {
+      const tabMapRev: Record<string, string> = {
+        'dashboard': 'dashboard',
+        'student-roster': 'students',
+        'study-rooms': 'groups',
+        'mentoring-sessions': 'sessions',
+        'cohort-analytics': 'analytics',
+        'profile': 'profile'
+      };
+      return (tabMapRev[currentTab] || 'dashboard') as TabType;
+    } else if (currentRole === 'admin') {
+      const tabMapRev: Record<string, string> = {
+        'dashboard': 'overview',
+        'users': 'users',
+        'mentors': 'mentors',
+        'study-rooms': 'rooms',
+        'analytics': 'overview',
+        'system-health': 'reports',
+        'settings': 'settings'
+      };
+      return (tabMapRev[currentTab] || 'overview') as TabType;
     }
+    return 'dashboard';
   }, [pathname]);
 
-  // Sync pathname with activeTab (on user tab click)
-  useEffect(() => {
-    if (!pathname) return;
-    const segments = pathname.split('/');
-    const currentRole = segments[1];
-    const currentTab = segments[2];
-
-    if (currentRole === 'student' && currentTab !== activeTab) {
-      router.push(`/student/${activeTab}`);
+  // Set active tab by updating the browser URL
+  const setActiveTab = (newTab: string) => {
+    const role = user?.role || 'student';
+    let path = `/${role}/dashboard`;
+    if (newTab !== 'dashboard') {
+      if (role === 'student') {
+        path = `/student/${newTab}`;
+      } else if (role === 'mentor') {
+        const mentorTabMap: Record<string, string> = {
+          'students': 'student-roster',
+          'groups': 'study-rooms',
+          'sessions': 'mentoring-sessions',
+          'analytics': 'cohort-analytics',
+          'profile': 'profile'
+        };
+        path = `/mentor/${mentorTabMap[newTab] || newTab}`;
+      } else if (role === 'admin') {
+        const adminTabMap: Record<string, string> = {
+          'overview': 'dashboard',
+          'users': 'users',
+          'mentors': 'mentors',
+          'rooms': 'study-rooms',
+          'reports': 'system-health',
+          'settings': 'settings'
+        };
+        path = `/admin/${adminTabMap[newTab] || newTab}`;
+      }
     }
-  }, [activeTab, pathname, router]);
+    router.push(path);
+  };
 
   // Global Leaderboard States
   const [leaderboardData, setLeaderboardData] = useState<any>(null);

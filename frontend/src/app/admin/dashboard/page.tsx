@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { apiRequest } from '../../utils/api';
@@ -44,13 +44,11 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { showToast: addToast } = useToast();
 
-  // Navigation tab state
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'mentors' | 'rooms' | 'reports' | 'settings'>('overview');
   const pathname = usePathname();
 
-  // Sync activeTab with pathname (on load or back/forward navigation)
-  useEffect(() => {
-    if (!pathname) return;
+  // Derive activeTab directly from the pathname
+  const activeTab = useMemo(() => {
+    if (!pathname) return 'overview';
     const segments = pathname.split('/');
     const currentRole = segments[1];
     const currentTab = segments[2];
@@ -65,34 +63,24 @@ export default function AdminDashboard() {
         'system-health': 'reports',
         'settings': 'settings'
       };
-      if (currentTab in tabMapRev) {
-        setActiveTab(tabMapRev[currentTab] as any);
-      }
+      return (tabMapRev[currentTab] || 'overview') as 'overview' | 'users' | 'mentors' | 'rooms' | 'reports' | 'settings';
     }
+    return 'overview';
   }, [pathname]);
 
-  // Sync pathname with activeTab (on user tab click)
-  useEffect(() => {
-    if (!pathname) return;
-    const segments = pathname.split('/');
-    const currentRole = segments[1];
-    const currentTab = segments[2];
-
-    if (currentRole === 'admin') {
-      const adminTabMap: Record<string, string> = {
-        'overview': 'dashboard',
-        'users': 'users',
-        'mentors': 'mentors',
-        'rooms': 'study-rooms',
-        'reports': 'system-health',
-        'settings': 'settings'
-      };
-      const expectedTab = adminTabMap[activeTab] || activeTab;
-      if (currentTab !== expectedTab) {
-        router.push(`/admin/${expectedTab}`);
-      }
-    }
-  }, [activeTab, pathname, router]);
+  // Set active tab by updating the browser URL
+  const setActiveTab = (newTab: string) => {
+    const adminTabMap: Record<string, string> = {
+      'overview': 'dashboard',
+      'users': 'users',
+      'mentors': 'mentors',
+      'rooms': 'study-rooms',
+      'reports': 'system-health',
+      'settings': 'settings'
+    };
+    const expectedRoute = adminTabMap[newTab] || newTab;
+    router.push(`/admin/${expectedRoute}`);
+  };
 
   // Core Data States
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);

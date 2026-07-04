@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useApp } from '../../context/AppContext';
 import { useRouter, usePathname } from 'next/navigation';
@@ -45,13 +45,11 @@ export default function MentorDashboard() {
   const router = useRouter();
   const { showToast: addToast } = useToast();
 
-  // Navigation tab state
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'rooms' | 'sessions' | 'assignments' | 'analytics' | 'profile'>('dashboard');
   const pathname = usePathname();
 
-  // Sync activeTab with pathname (on load or back/forward navigation)
-  useEffect(() => {
-    if (!pathname) return;
+  // Derive activeTab directly from the pathname
+  const activeTab = useMemo(() => {
+    if (!pathname) return 'dashboard';
     const segments = pathname.split('/');
     const currentRole = segments[1];
     const currentTab = segments[2];
@@ -65,34 +63,24 @@ export default function MentorDashboard() {
         'cohort-analytics': 'analytics',
         'profile': 'profile'
       };
-      if (currentTab in tabMapRev) {
-        setActiveTab(tabMapRev[currentTab] as any);
-      }
+      return (tabMapRev[currentTab] || 'dashboard') as 'dashboard' | 'students' | 'rooms' | 'sessions' | 'assignments' | 'analytics' | 'profile';
     }
+    return 'dashboard';
   }, [pathname]);
 
-  // Sync pathname with activeTab (on user tab click)
-  useEffect(() => {
-    if (!pathname) return;
-    const segments = pathname.split('/');
-    const currentRole = segments[1];
-    const currentTab = segments[2];
-
-    if (currentRole === 'mentor') {
-      const mentorTabMap: Record<string, string> = {
-        'dashboard': 'dashboard',
-        'students': 'student-roster',
-        'rooms': 'study-rooms',
-        'sessions': 'mentoring-sessions',
-        'analytics': 'cohort-analytics',
-        'profile': 'profile'
-      };
-      const expectedTab = mentorTabMap[activeTab] || activeTab;
-      if (currentTab !== expectedTab) {
-        router.push(`/mentor/${expectedTab}`);
-      }
-    }
-  }, [activeTab, pathname, router]);
+  // Set active tab by updating the browser URL
+  const setActiveTab = (newTab: string) => {
+    const mentorTabMap: Record<string, string> = {
+      'dashboard': 'dashboard',
+      'students': 'student-roster',
+      'rooms': 'study-rooms',
+      'sessions': 'mentoring-sessions',
+      'analytics': 'cohort-analytics',
+      'profile': 'profile'
+    };
+    const expectedRoute = mentorTabMap[newTab] || newTab;
+    router.push(`/mentor/${expectedRoute}`);
+  };
   const [showSidebar, setShowSidebar] = useState(false);
   const [showAddGoalInput, setShowAddGoalInput] = useState(false);
 
