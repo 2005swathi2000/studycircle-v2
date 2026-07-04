@@ -686,6 +686,8 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [practiceSessionCompleted, setPracticeSessionCompleted] = useState<boolean>(false);
   const [practiceSessionScore, setPracticeSessionScore] = useState<number>(0);
   const [practiceQuizErrorMessage, setPracticeQuizErrorMessage] = useState<string | null>(null);
+  const [practiceQuizAttempts, setPracticeQuizAttempts] = useState<number>(0);
+  const [showQuizHint, setShowQuizHint] = useState<boolean>(false);
 
   // --- COMMUNITY HUB STATES & MOCK DATA ---
   const [activeFeedType, setActiveFeedType] = useState<'all' | 'discussions' | 'doubts' | 'announcements' | 'resources' | 'polls'>('all');
@@ -1441,6 +1443,36 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     }
   };
 
+  const getQuestionHint = (q: any) => {
+    if (!q) return 'Think about the core concept and eliminate incorrect options.';
+    const title = (q.title || '').toLowerCase();
+    const text = (q.question || '').toLowerCase();
+    
+    if (title.includes('complexity') || text.includes('complexity') || text.includes('time complexity')) {
+      return 'Analyze how the number of operations scales with the size of the input (n).';
+    }
+    if (title.includes('stack') || text.includes('stack')) {
+      return 'Think about a stack of plates: the last plate placed is the first one removed.';
+    }
+    if (title.includes('queue') || text.includes('queue')) {
+      return 'Think about a standing queue line: the first person to enter is the first to leave.';
+    }
+    if (title.includes('binary search') || text.includes('binary search') || title.includes('bst')) {
+      return 'Consider how cutting the search space in half at each step affects the path.';
+    }
+    if (title.includes('http') || text.includes('http')) {
+      return 'Remember HTTP status categories: 1xx Info, 2xx Success, 3xx Redirect, 4xx Client Error, 5xx Server Error.';
+    }
+    if (title.includes('react') || text.includes('react') || text.includes('hook')) {
+      return 'Think about React functional components, state preservation, and rendering cycles.';
+    }
+    if (title.includes('closure') || text.includes('closure')) {
+      return 'Consider lexical scope and how inner functions retain access to outer variables.';
+    }
+    
+    return 'Review the core terminology and check how each option aligns with the scenario.';
+  };
+
   const handleVerifyQuizAnswer = async () => {
     if (practiceQuizAnswer === null) {
       setPracticeQuizErrorMessage('❌ Please select an option before verifying.');
@@ -1462,16 +1494,44 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
           streakCount: data.streakCount,
           level: data.level
         }));
+        
+        const successMsgs = ['✔ Excellent!', '🎉 Great job!', '🚀 Correct! Keep going.', '⭐ Well done!', "💯 That's the right answer."];
+        const randomSuccess = successMsgs[Math.floor(Math.random() * successMsgs.length)];
+        
         setPracticeQuizFeedback('correct');
-        setPracticeQuizErrorMessage(null);
+        setPracticeQuizErrorMessage(randomSuccess);
+        setPracticeQuizAttempts(0);
+        setShowQuizHint(false);
         setPracticeSessionScore(prev => prev + 1);
         completeMission('quiz');
       } catch (err: any) {
         setPracticeQuizErrorMessage('❌ Error saving practice progress: ' + (err.message || err));
       }
     } else {
-      setPracticeQuizFeedback('wrong');
-      setPracticeQuizErrorMessage('❌ Wrong answer! Re-check the logic and try again.');
+      const nextAttempts = practiceQuizAttempts + 1;
+      setPracticeQuizAttempts(nextAttempts);
+      
+      const encouragingMsgs = [
+        '🤔 Not quite. Take another look.',
+        '💡 Good attempt! Think once more.',
+        "🔍 You're very close. Read the question carefully.",
+        '🌟 Keep trying—you can solve this.',
+        '🧠 Recheck the options before choosing again.',
+        '🚀 Nice effort! Give it another shot.'
+      ];
+      const randomEncouraging = encouragingMsgs[Math.floor(Math.random() * encouragingMsgs.length)];
+      
+      if (nextAttempts >= 3) {
+        setPracticeQuizFeedback('wrong');
+        setPracticeQuizErrorMessage(`❌ Incorrect after 3 attempts. Correct option: ${String.fromCharCode(65 + q.correctOptionIndex)}`);
+        setShowQuizHint(false);
+      } else {
+        setPracticeQuizFeedback(null);
+        setPracticeQuizErrorMessage(randomEncouraging);
+        if (nextAttempts >= 2) {
+          setShowQuizHint(true);
+        }
+      }
     }
   };
 
@@ -1479,6 +1539,8 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     setPracticeQuizAnswer(null);
     setPracticeQuizFeedback(null);
     setPracticeQuizErrorMessage(null);
+    setPracticeQuizAttempts(0);
+    setShowQuizHint(false);
     
     if (activeQuestionIndex + 1 < practiceSessionQuestions.length) {
       setActiveQuestionIndex(prev => prev + 1);
@@ -1496,6 +1558,8 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     setPracticeQuizAnswer(null);
     setPracticeQuizFeedback(null);
     setPracticeQuizErrorMessage(null);
+    setPracticeQuizAttempts(0);
+    setShowQuizHint(false);
   };
 
   const handleRunCodeTests = () => {
@@ -2697,27 +2761,78 @@ Based on your desking logs and consistency, the AI tutor recommends:
             })}
 
             {practiceQuizErrorMessage && (
-              <div className="mt-2 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-semibold animate-in fade-in duration-200">
+              <div className={`mt-2 p-3 border rounded-xl text-xs font-semibold animate-in fade-in duration-200 ${
+                practiceQuizErrorMessage.startsWith('❌') ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'
+              }`}>
                 {practiceQuizErrorMessage}
               </div>
             )}
 
-            {practiceQuizFeedback === 'correct' && (
-              <div className="mt-3 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl space-y-2 text-xs font-semibold leading-relaxed animate-in slide-in-from-bottom-2 duration-300">
-                <p className="font-extrabold text-white">🎉 Correct Answer!</p>
-                <p className="font-extrabold text-slate-355">💡 Explanation:</p>
-                <p className="text-slate-300">{currentQuestion?.explanation}</p>
+            {showQuizHint && (
+              <div className="mt-3 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-2xl space-y-2 text-xs font-semibold leading-relaxed animate-in slide-in-from-bottom-2 duration-200">
+                <p className="font-extrabold text-white uppercase tracking-wider text-[10px] flex items-center gap-1">💡 Need a Hint?</p>
+                <p className="text-slate-300 font-medium">
+                  {getQuestionHint(currentQuestion)}
+                </p>
+              </div>
+            )}
+
+            {practiceQuizFeedback !== null && (
+              <div className={`mt-3 p-4 border rounded-2xl space-y-3.5 text-xs font-semibold leading-relaxed animate-in slide-in-from-bottom-2 duration-300 ${
+                practiceQuizFeedback === 'correct' 
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-450' 
+                  : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
+              }`}>
+                <p className="font-extrabold text-white flex items-center gap-1.5 text-sm">
+                  {practiceQuizFeedback === 'correct' ? '🎉 Correct Answer!' : '💡 Concept Revealed'}
+                </p>
+                
+                <div className="space-y-2.5 text-slate-300 font-medium text-left">
+                  <p>
+                    <strong className="text-white block mb-0.5 uppercase tracking-wide text-[9px] text-[#818CF8]">Why the Correct Option is Correct:</strong>
+                    {currentQuestion?.explanation}
+                  </p>
+                  
+                  <p>
+                    <strong className="text-white block mb-0.5 uppercase tracking-wide text-[9px] text-[#818CF8]">Why the Other Options are Incorrect:</strong>
+                    The other choices are either non-optimal complexities, violate structure guidelines, or lack appropriate context conditions described in the problem.
+                  </p>
+                  
+                  <p>
+                    <strong className="text-white block mb-0.5 uppercase tracking-wide text-[9px] text-[#818CF8]">Concept Explanation:</strong>
+                    Focusing on these foundational constructs is key for coding exams, technical screenings, and solving runtime constraints during interviews.
+                  </p>
+                  
+                  <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-slate-350 text-[11px] leading-normal">
+                    <strong className="text-[#818CF8] block mb-0.5 font-bold uppercase tracking-wider text-[8px]">💡 Quick Tip:</strong>
+                    Always run manual simulations on small arrays or single elements first to easily verify base cases and loops!
+                  </div>
+                </div>
               </div>
             )}
 
             <div className="pt-2 flex gap-3 justify-start">
               {practiceQuizFeedback === null ? (
-                <button
-                  onClick={handleVerifyQuizAnswer}
-                  className="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow-md shadow-indigo-650/10 active:scale-[0.98] transition-all"
-                >
-                  Verify Answer
-                </button>
+                <>
+                  <button
+                    onClick={handleVerifyQuizAnswer}
+                    className="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer shadow-md shadow-indigo-650/10 active:scale-[0.98] transition-all"
+                  >
+                    Verify Answer
+                  </button>
+                  {practiceQuizAttempts >= 1 && (
+                    <button
+                      onClick={() => {
+                        setPracticeQuizFeedback('wrong');
+                        setPracticeQuizErrorMessage(`💡 Explanation revealed. Correct option is: ${String.fromCharCode(65 + currentQuestion.correctOptionIndex)}`);
+                        setShowQuizHint(false);
+                      }}
+                      className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-black rounded-xl border border-white/5 uppercase tracking-widest cursor-pointer transition-all"
+                    >
+                      Show Answer
+                    </button>
+                  )}
+                </>
               ) : (
                 <button
                   onClick={handleNextQuestion}
