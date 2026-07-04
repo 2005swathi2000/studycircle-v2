@@ -581,17 +581,11 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 </p>
               </div>
 
-              <div className="p-4 bg-indigo-950/20 border border-indigo-500/10 rounded-2xl flex items-center justify-between gap-4">
-                <div className="text-left">
-                  <span className="text-[8px] text-slate-500 font-black block">WANT DETAILED HELP?</span>
-                  <span className="text-[11px] font-black text-white block mt-0.5">Talk to AI Coach</span>
-                </div>
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('open-ai-tutor'))}
-                  className="px-3.5 py-2 bg-indigo-600/30 hover:bg-[#5227EB] hover:text-white border border-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase rounded-lg transition-all cursor-pointer"
-                >
-                  Consult AI
-                </button>
+              <div className="p-4 bg-slate-955/40 border border-white/5 rounded-2xl space-y-1 flex flex-col justify-between min-h-[90px]">
+                <span className="text-[9px] text-[#38BDF8] font-black uppercase tracking-wider font-mono">📈 Next Goal</span>
+                <p className="text-[11px] font-semibold text-slate-200 leading-normal">
+                  "Complete **2 more DSA questions** today to earn **+20 XP**."
+                </p>
               </div>
             </div>
           </div>
