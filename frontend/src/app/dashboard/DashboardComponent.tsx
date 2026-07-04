@@ -2430,7 +2430,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
       setInviteCode('');
       completeMission('join_circle');
       loadDashboardData(user);
-      setActiveTab('groups');
+      setActiveTab('study');
+      setStudySubView('workspaces');
     } catch (err: any) {
       showToast(err.message || 'Failed to join group.', 'error');
     } finally {
@@ -2483,7 +2484,12 @@ Based on your desking logs and consistency, the AI tutor recommends:
       setGroupSubject('');
       setGroupIsPublic(true);
       loadDashboardData(user);
-      setActiveTab('groups');
+      if (user?.role === 'student') {
+        setActiveTab('study');
+        setStudySubView('workspaces');
+      } else {
+        setActiveTab('groups');
+      }
     } catch (err: any) {
       showToast(err.message || 'Failed to create study circle.', 'error');
     } finally {
@@ -6157,7 +6163,13 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <p className="text-xs text-zinc-400 leading-relaxed max-w-md mx-auto font-medium">
                   Post doubts, share coding tips, and discuss interview questions with peers in real-time. Discussions are managed inside study circle channels.
                 </p>
-                <button onClick={() => setActiveTab('groups')} className="px-4 py-2 bg-[#10B981] hover:bg-[#0d9488] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer">
+                <button 
+                  onClick={() => {
+                    setActiveTab('study');
+                    setStudySubView('workspaces');
+                  }} 
+                  className="px-4 py-2 bg-[#10B981] hover:bg-[#0d9488] text-white text-xs font-bold rounded-xl shadow-md cursor-pointer"
+                >
                   Browse Group Channels
                 </button>
               </div>
