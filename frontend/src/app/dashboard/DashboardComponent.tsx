@@ -3803,123 +3803,202 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Study &gt; My Workspace</span>
                 </div>
               )}
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                  <Users className="h-4.5 w-4.5 text-[#5227EB]" /> Study Circles Workspace
-                </h3>
-                {(user?.role === 'admin' || user?.role === 'mentor') && (
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="px-3.5 py-1.5 bg-indigo-500/10 border border-indigo-500/25 hover:bg-indigo-500/20 text-[#818CF8] rounded-xl text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Initialize Circle
-                  </button>
-                )}
-              </div>
 
-              <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-4">
-                  {myGroups.length === 0 ? (
-                    <div className="p-12 bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-[24px] text-center space-y-3 shadow-md">
-                      <Users className="h-8 w-8 text-slate-500 mx-auto" />
-                      <p className="text-xs text-slate-400 font-bold">No workspaces joined.</p>
-                    </div>
-                  ) : (
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      {myGroups.map((group) => (
-                        <div key={group.id} className="p-5 bg-[#0B0F19]/60 border border-white/5 hover:border-indigo-500/30 backdrop-blur-md rounded-[24px] transition-all duration-300 flex flex-col justify-between gap-4 shadow-lg group text-left">
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-start">
-                              <span className="text-[8px] font-extrabold uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 px-2 py-0.5 rounded">
-                                {group.subject || 'Engineering'}
-                              </span>
-                              <span className="text-[9px] font-mono text-slate-500 font-bold">Code: {group.inviteCode}</span>
-                            </div>
-                            <h4 className="text-sm font-black text-white group-hover:text-indigo-400 transition-colors">{group.name}</h4>
-                            <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">{group.description || 'No description provided.'}</p>
-                          </div>
-                          <Link
-                            href={`/workspace/${getSlugByGroup(group)}`}
-                            className="w-full py-2.5 bg-slate-900/60 border border-white/10 hover:border-[#5227EB] hover:bg-[#5227EB] hover:text-white text-slate-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-all text-center"
-                          >
-                            Enter Workspace <ChevronRight className="h-3.5 w-3.5" />
-                          </Link>
+              <div className="flex flex-col lg:flex-row gap-6 w-full text-white items-stretch">
+                
+                {/* Left Column (65%) */}
+                <div className="w-full lg:w-[65%] flex flex-col gap-6">
+                  
+                  {/* Title and Subtitle */}
+                  <div className="space-y-1 text-left">
+                    <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2.5">
+                      <Users className="h-5.5 w-5.5 text-[#7C4DFF]" /> Study Circles Workspace
+                    </h2>
+                    <p className="text-xs text-slate-400 font-normal leading-relaxed">
+                      Collaborate, discuss, and grow together in your study circles.
+                    </p>
+                  </div>
+
+                  {/* Main Workspace Card */}
+                  <div className="w-full h-[420px] bg-[#131722] border border-[rgba(255,255,255,0.08)] rounded-[20px] flex flex-col p-6 shadow-sm relative overflow-hidden">
+                    {myGroups.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center space-y-4 my-auto select-none">
+                        {/* Large glowing workspace icon */}
+                        <div className="relative h-20 w-20 rounded-full bg-[#7C4DFF]/10 flex items-center justify-center text-3xl shadow-[0_0_20px_rgba(124,77,255,0.15)] border border-[#7C4DFF]/20">
+                          <Users className="h-10 w-10 text-[#7C4DFF]" />
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <div className="space-y-1">
+                          <h3 className="text-base font-bold text-white tracking-tight">No workspaces joined</h3>
+                          <p className="text-xs text-slate-405 font-normal leading-relaxed max-w-xs mx-auto">
+                            Join a study circle to collaborate, share resources and learn together.
+                          </p>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            const inputEl = document.getElementById('invite-code-input');
+                            if (inputEl) inputEl.focus();
+                          }}
+                          className="px-5 py-2.5 bg-[#7C4DFF] hover:bg-[#6C3DFF] text-white text-xs font-semibold rounded-xl transition-all cursor-pointer border-none shadow-sm flex items-center gap-1.5"
+                        >
+                          + Join a New Group
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full overflow-y-auto pr-1 grid sm:grid-cols-2 gap-4 text-left p-1 scrollbar-thin">
+                        {myGroups.map((group) => (
+                          <div key={group.id} className="p-5 bg-slate-900/40 border border-white/5 hover:border-[#7C4DFF]/50 rounded-[20px] transition-all duration-300 flex flex-col justify-between gap-4 shadow-md group">
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-start">
+                                <span className="text-[8px] font-extrabold uppercase bg-[#7C4DFF]/15 text-[#7C4DFF] border border-[#7C4DFF]/30 px-2.5 py-0.5 rounded-md">
+                                  {group.subject || 'Engineering'}
+                                </span>
+                                <span className="text-[9px] font-mono text-slate-500 font-bold">Code: {group.inviteCode}</span>
+                              </div>
+                              <h4 className="text-xs font-bold text-white group-hover:text-[#7C4DFF] transition-colors">{group.name}</h4>
+                              <p className="text-[10px] text-slate-400 font-normal leading-relaxed line-clamp-3">{group.description || 'No description provided.'}</p>
+                            </div>
+                            <Link
+                              href={`/workspace/${getSlugByGroup(group)}`}
+                              className="w-full py-2.5 bg-[#131722] border border-white/10 hover:border-[#7C4DFF] hover:bg-[#7C4DFF] hover:text-white text-slate-350 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition-all text-center no-underline"
+                            >
+                              Enter Workspace <ChevronRight className="h-3.5 w-3.5" />
+                            </Link>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div>
-                  <div className="p-6 bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-[24px] space-y-4 shadow-lg text-left">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-white font-sans">Join a New Group</h3>
-                    <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">Enter an invite code provided by your mentor or classmate to join their group study circle.</p>
+                {/* Right Column (35%) */}
+                <div className="w-full lg:w-[35%] flex flex-col gap-6 justify-between">
+                  
+                  {/* Card 1: Join a New Group */}
+                  <div className="p-6 bg-[#131722] border border-[rgba(255,255,255,0.08)] rounded-[20px] space-y-4 shadow-sm text-left">
+                    <div className="space-y-1">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-white font-sans flex items-center gap-2">
+                        <PlusCircle className="h-4 w-4 text-[#7C4DFF]" /> Join a New Group
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-normal leading-relaxed">
+                        Enter an invite code provided by your mentor or classmate.
+                      </p>
+                    </div>
                     <form onSubmit={handleJoinCircle} className="space-y-3">
                       <input
                         type="text"
+                        id="invite-code-input"
                         value={inviteCode}
                         onChange={(e) => setInviteCode(e.target.value)}
-                        placeholder="Invite Code"
-                        className="w-full px-3 py-2.5 bg-slate-950/80 border border-white/10 focus:border-indigo-500 rounded-xl text-xs outline-none text-center font-mono tracking-widest text-white placeholder-slate-600"
+                        placeholder="Enter invite code"
+                        className="w-full px-4 py-3 bg-[#090B14] border border-[rgba(255,255,255,0.08)] focus:border-[#7C4DFF] rounded-xl text-xs outline-none text-center font-mono tracking-widest text-white placeholder-slate-600 transition-all font-semibold"
                       />
-                      <button type="submit" className="w-full py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-xs font-bold rounded-xl shadow-sm transition-colors cursor-pointer border-none uppercase tracking-wide">
-                        Submit Code
+                      <button 
+                        type="submit" 
+                        className="w-full py-3 bg-[#7C4DFF] hover:bg-[#6C3DFF] text-white text-xs font-semibold rounded-xl shadow-sm transition-all cursor-pointer border-none uppercase tracking-wider flex items-center justify-center gap-1.5"
+                      >
+                        Submit Code <ArrowRight className="h-4 w-4" />
                       </button>
                     </form>
                   </div>
 
-                  {/* Related Resources card in Workspaces */}
-                  <div className="p-6 bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-[24px] space-y-4 shadow-lg text-left mt-4">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-white font-sans flex items-center gap-1.5">
-                      <FileText className="h-4 w-4 text-indigo-400" /> Related Resources
-                    </h3>
-                    <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">Download syllabus reference documents and study guide resources linked to this workspace.</p>
-                    <div className="space-y-2 pt-1 font-sans">
-                      <a 
-                        href="#" 
-                        onClick={(e) => { 
-                          e.preventDefault(); 
-                          showToast('Downloading DBMS Schema cheat sheet.txt...', 'success'); 
-                          const content = `StudyCircle Placement Preparation: DBMS Schema Design Cheat Sheet\n----------------------------------------------------------------\n1. Keys:\n   - Primary Key: Unique, non-null identifier for a record.\n   - Foreign Key: Field referencing primary key of another table.\n2. Normalization Rules:\n   - 1NF: Atomic values, unique column names.\n   - 2NF: In 1NF and no partial dependencies.\n   - 3NF: In 2NF and no transitive dependencies.\n   - BCNF: For any dependency A -> B, A must be a super key.\n3. Joins:\n   - INNER JOIN: Returns matches in both tables.\n   - LEFT JOIN: Returns all records from left table and matches from right table.`;
-                          const blob = new Blob([content], { type: 'text/plain' });
-                          const url = URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.href = url;
-                          link.download = 'dbms_schema_cheat_sheet.txt';
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                          URL.revokeObjectURL(url);
-                        }} 
-                        className="p-2.5 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between text-[10px] font-bold text-slate-200 cursor-pointer"
-                      >
-                        <span>📄 DBMS Schema Design cheat sheet.txt</span>
-                        <span className="text-indigo-300 text-[9px] font-black uppercase">Download &darr;</span>
-                      </a>
-                      
-                      <a 
-                        href="#" 
-                        onClick={(e) => { 
-                          e.preventDefault(); 
-                          showToast('Downloading Syllabus Reference Notes.txt...', 'success'); 
-                          const content = `StudyCircle Placement Preparation: Syllabus Reference Notes\n----------------------------------------------------------\nRecommended placement preparation track subjects:\n1. Data Structures & Algorithms (Trees, Graphs, Recursion, DFS, BFS)\n2. Database Management Systems (SQL, Normalization, ACID Properties)\n3. Web Development (Next.js, TailwindCSS, State Management, APIs)\n\nStudy Circle Rules:\n- Schedule dynamic focus logs daily.\n- Participate in peer reviews during live audio study rooms.\n- Verify doubt statuses with allocated mentors.`;
-                          const blob = new Blob([content], { type: 'text/plain' });
-                          const url = URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.href = url;
-                          link.download = 'syllabus_reference_notes.txt';
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                          URL.revokeObjectURL(url);
-                        }} 
-                        className="p-2.5 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between text-[10px] font-bold text-slate-200 cursor-pointer"
-                      >
-                        <span>📄 Syllabus Reference Notes.txt</span>
-                        <span className="text-indigo-300 text-[9px] font-black uppercase">Download &darr;</span>
-                      </a>
+                  {/* Card 2: Related Resources */}
+                  <div className="p-6 bg-[#131722] border border-[rgba(255,255,255,0.08)] rounded-[20px] space-y-4 shadow-sm text-left flex flex-col justify-between flex-1">
+                    <div className="space-y-1">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-white font-sans flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-[#7C4DFF]" /> Related Resources
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-normal leading-relaxed">
+                        Download syllabus reference documents and study guide resources linked to this workspace.
+                      </p>
                     </div>
+                    
+                    <div className="space-y-3 pt-2 font-sans">
+                      {/* Attachment 1 */}
+                      <div className="p-3 bg-[#090B14] border border-[rgba(255,255,255,0.08)] rounded-xl flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/10">
+                            <span className="text-[9px] font-bold text-red-400">PDF</span>
+                          </div>
+                          <div className="min-w-0 text-left">
+                            <h4 className="text-[11px] font-bold text-white truncate max-w-[130px] sm:max-w-[170px]" title="DBMS Schema Design Cheat Sheet.pdf">
+                              DBMS Schema Design Cheat Sheet.pdf
+                            </h4>
+                            <span className="text-[9px] text-slate-500 font-semibold block mt-0.5">1.2 MB</span>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={(e) => { 
+                            e.preventDefault(); 
+                            showToast('Downloading DBMS Schema cheat sheet.txt...', 'success'); 
+                            const content = `StudyCircle Placement Preparation: DBMS Schema Design Cheat Sheet\n----------------------------------------------------------------\n1. Keys:\n   - Primary Key: Unique, non-null identifier for a record.\n   - Foreign Key: Field referencing primary key of another table.\n2. Normalization Rules:\n   - 1NF: Atomic values, unique column names.\n   - 2NF: In 1NF and no partial dependencies.\n   - 3NF: In 2NF and no transitive dependencies.\n   - BCNF: For any dependency A -> B, A must be a super key.\n3. Joins:\n   - INNER JOIN: Returns matches in both tables.\n   - LEFT JOIN: Returns all records from left table and matches from right table.`;
+                            const blob = new Blob([content], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = 'dbms_schema_cheat_sheet.txt';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="px-2.5 py-1.5 bg-[#7C4DFF]/10 hover:bg-[#7C4DFF] hover:text-white border border-[#7C4DFF]/30 text-[#7C4DFF] text-[9px] font-bold rounded-lg transition-all cursor-pointer"
+                        >
+                          Download &darr;
+                        </button>
+                      </div>
+
+                      {/* Attachment 2 */}
+                      <div className="p-3 bg-[#090B14] border border-[rgba(255,255,255,0.08)] rounded-xl flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/10">
+                            <span className="text-[9px] font-bold text-red-400">PDF</span>
+                          </div>
+                          <div className="min-w-0 text-left">
+                            <h4 className="text-[11px] font-bold text-white truncate max-w-[130px] sm:max-w-[170px]" title="Syllabus Reference Notes.pdf">
+                              Syllabus Reference Notes.pdf
+                            </h4>
+                            <span className="text-[9px] text-slate-500 font-semibold block mt-0.5">2.4 MB</span>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={(e) => { 
+                            e.preventDefault(); 
+                            showToast('Downloading Syllabus Reference Notes.txt...', 'success'); 
+                            const content = `StudyCircle Placement Preparation: Syllabus Reference Notes\n----------------------------------------------------------\nRecommended placement preparation track subjects:\n1. Data Structures & Algorithms (Trees, Graphs, Recursion, DFS, BFS)\n2. Database Management Systems (SQL, Normalization, ACID Properties)\n3. Web Development (Next.js, TailwindCSS, State Management, APIs)\n\nStudy Circle Rules:\n- Schedule dynamic focus logs daily.\n- Participate in peer reviews during live audio study rooms.\n- Verify doubt statuses with allocated mentors.`;
+                            const blob = new Blob([content], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = 'syllabus_reference_notes.txt';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="px-2.5 py-1.5 bg-[#7C4DFF]/10 hover:bg-[#7C4DFF] hover:text-white border border-[#7C4DFF]/30 text-[#7C4DFF] text-[9px] font-bold rounded-lg transition-all cursor-pointer"
+                        >
+                          Download &darr;
+                        </button>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => showToast('All resources are currently loaded!', 'info')}
+                      className="text-[10px] font-semibold text-[#7C4DFF] hover:text-[#6C3DFF] flex items-center gap-1 mt-3 bg-transparent border-none cursor-pointer self-start transition-colors"
+                    >
+                      View all resources &rarr;
+                    </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Bottom Info Banner */}
+              <div className="w-full h-[60px] bg-[#131722] border border-[rgba(255,255,255,0.08)] rounded-[20px] flex items-center px-6 gap-3 shadow-sm select-none">
+                <div className="flex items-center gap-2.5 text-xs text-slate-350">
+                  <span className="text-sm">💡</span>
+                  <span className="font-normal text-slate-400">
+                    Need an invite code? <span className="font-semibold text-slate-200">Connect with your mentor or classmates</span> to get access.
+                  </span>
                 </div>
               </div>
             </div>
