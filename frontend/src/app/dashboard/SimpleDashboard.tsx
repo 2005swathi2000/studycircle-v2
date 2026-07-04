@@ -591,96 +591,124 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
         </div>
 
-        {/* Widget 2: XP Snapshot */}
+        {/* Widget 2: Today's Focus Goals */}
         <div className="bg-[#0B0F19] border border-white/5 rounded-[28px] p-5 shadow-lg flex flex-col justify-between text-left">
-          <div className="space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-350">Academic Progress</h3>
+          <div className="space-y-4 w-full">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-350 flex items-center gap-1.5">
+                🎯 Today's Goals
+              </h3>
+              <span className="text-[10px] font-black uppercase text-indigo-400 tracking-wider font-mono">
+                {(() => {
+                  const completedCount = focusGoals.filter(g => completedGoals.includes(g.id)).length;
+                  return `${completedCount}/${focusGoals.length} Done`;
+                })()}
+              </span>
+            </div>
+
+            {/* Notion-style Sleek Progress Bar */}
+            <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden border border-white/5">
+              {(() => {
+                const completedCount = focusGoals.filter(g => completedGoals.includes(g.id)).length;
+                const percent = focusGoals.length > 0 ? Math.round((completedCount / focusGoals.length) * 100) : 0;
+                return <div className="h-full bg-indigo-500 rounded-full transition-all duration-300" style={{ width: `${percent}%` }} />;
+              })()}
+            </div>
             
-            {(() => {
-              const currentXp = stats.xp || 0;
-              const currentLevel = stats.level || 1;
-
-              if (currentXp === 0) {
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {focusGoals.map((goal) => {
+                const isCompleted = completedGoals.includes(goal.id);
                 return (
-                  <div className="space-y-4 pt-1">
+                  <div key={goal.id} className="group p-2.5 bg-slate-950/40 border border-white/5 rounded-xl flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
-                        <Award className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <span className="text-[8px] text-slate-500 font-black block leading-none">CURRENT LEVEL</span>
-                        <span className="text-sm font-black text-white block mt-0.5">Level 1</span>
-                      </div>
-                    </div>
-
-                    <div className="p-3.5 bg-slate-950/40 border border-white/5 rounded-2xl space-y-2">
-                      <div className="flex justify-between items-center text-[10px] font-black font-mono tracking-wide text-slate-400">
-                        <span>Level progress</span>
-                        <span>0 / 120 XP</span>
-                      </div>
-                      <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-white/5">
-                        <div className="h-full bg-indigo-500 rounded-full" style={{ width: '0%' }} />
-                      </div>
-                      <p className="text-[9px] text-slate-400 font-semibold leading-relaxed">
-                        Complete your first practice question or join a study room to start earning XP.
-                      </p>
-                      
-                      <button 
+                      <button
                         onClick={() => {
-                          setActiveTab('practice');
-                          setPracticeSubView('questions');
+                          if (isCompleted) {
+                            setCompletedGoals(prev => prev.filter(id => id !== goal.id));
+                            showToast('Goal marked as incomplete.', 'info');
+                          } else {
+                            setCompletedGoals(prev => [...prev, goal.id]);
+                            showToast('Goal completed! +10 XP', 'success');
+                          }
                         }}
-                        className="w-full mt-2 py-2 bg-indigo-650 hover:bg-indigo-550 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition border-none cursor-pointer text-center"
+                        className={`h-4.5 w-4.5 rounded-md border flex items-center justify-center transition-all cursor-pointer ${
+                          isCompleted
+                            ? 'bg-indigo-655 border-indigo-500 text-white'
+                            : 'border-slate-700 bg-transparent hover:border-slate-500'
+                        }`}
                       >
-                        Start Practicing
+                        {isCompleted && <span className="text-[9px] font-black">✓</span>}
                       </button>
+                      <span className={`text-[11px] font-semibold transition-all ${
+                        isCompleted ? 'text-slate-500 line-through' : 'text-slate-200'
+                      }`}>
+                        {goal.label}
+                      </span>
                     </div>
+                    
+                    <button
+                      onClick={() => {
+                        setFocusGoals(prev => prev.filter(g => g.id !== goal.id));
+                        setCompletedGoals(prev => prev.filter(id => id !== goal.id));
+                        showToast('Goal removed.', 'info');
+                      }}
+                      className="opacity-0 group-hover:opacity-100 hover:text-red-405 text-slate-550 transition-all border-none bg-transparent cursor-pointer p-0.5"
+                      title="Delete Goal"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 );
-              }
+              })}
+            </div>
 
-              // Dynamic real values if XP > 0
-              const getLevelMaxXp = (lvl: number) => {
-                if (lvl === 1) return 120;
-                return lvl * 150;
-              };
-              const maxLevelXp = getLevelMaxXp(currentLevel);
-              const progressPercent = Math.min(100, Math.round((currentXp / maxLevelXp) * 100));
-              const remainingXp = Math.max(0, maxLevelXp - currentXp);
-
-              return (
-                <div className="space-y-4 pt-1">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
-                      <Award className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <span className="text-[8px] text-slate-500 font-black block leading-none">CURRENT LEVEL</span>
-                      <span className="text-sm font-black text-white block mt-0.5">Level {currentLevel}</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 bg-slate-950/40 border border-white/5 rounded-2xl space-y-2">
-                    <div className="flex justify-between items-center text-[10px] font-black font-mono tracking-wide text-slate-400">
-                      <span>Level progress</span>
-                      <span>{currentXp} / {maxLevelXp} XP</span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-white/5">
-                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${progressPercent}%` }} />
-                    </div>
-                    {remainingXp > 0 ? (
-                      <p className="text-[9px] text-slate-400 font-semibold leading-relaxed">
-                        Solve practice queries or log study sessions to earn another {remainingXp} XP to rank up.
-                      </p>
-                    ) : (
-                      <p className="text-[9px] text-emerald-450 font-semibold leading-relaxed">
-                        Ready to level up! Keep going to unlock the next checkpoint.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
+            {/* Add Goal Section */}
+            {showAddGoalInput ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!newGoalText.trim()) return;
+                  const newId = `g-${Date.now()}`;
+                  setFocusGoals(prev => [...prev, { id: newId, label: newGoalText.trim() }]);
+                  setNewGoalText('');
+                  setShowAddGoalInput(false);
+                  showToast('New goal added!', 'success');
+                }}
+                className="flex gap-2 items-center pt-1"
+              >
+                <input
+                  type="text"
+                  value={newGoalText}
+                  onChange={(e) => setNewGoalText(e.target.value)}
+                  placeholder="Enter a new goal..."
+                  className="flex-1 px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-[10px] text-white font-bold outline-none focus:border-indigo-500/50"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase rounded-xl border-none cursor-pointer transition-all"
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddGoalInput(false);
+                    setNewGoalText('');
+                  }}
+                  className="p-2 bg-slate-950 border border-white/10 rounded-xl text-slate-500 hover:text-white cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </form>
+            ) : (
+              <button
+                onClick={() => setShowAddGoalInput(true)}
+                className="w-full py-2 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 text-[10px] font-black uppercase tracking-wider rounded-xl transition border border-dashed border-white/10 cursor-pointer text-center"
+              >
+                + Add Custom Goal
+              </button>
+            )}
           </div>
         </div>
 
