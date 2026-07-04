@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useRef } from 'react';
 import { AlertCircle, CheckCircle2, Info, AlertTriangle, X } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -27,18 +27,77 @@ export const useToast = () => {
 
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const activeMessagesRef = useRef<Set<string>>(new Set());
 
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
+    // Intercept and prevent noisy/navigation/view toasts
+    const lowerMsg = message.toLowerCase();
+    const isForbidden = [
+      /switching to/i,
+      /loading /i,
+      /viewing /i,
+      /opening /i,
+      /closing /i,
+      /navigating /i,
+      /selected /i,
+      /details fetched/i,
+      /details loaded/i,
+      /refreshing /i,
+      /profile opened/i,
+      /tab activated/i,
+      /showing /i,
+      /expanded /i,
+      /collapsed /i,
+      /fetching /i,
+      /clicked /i,
+      /shortcut /i,
+      /welcome /i,
+      /entered /i,
+      /entering /i,
+      /page loaded/i,
+      /analytics /i,
+      /stats /i,
+      /downloading dbms /i,
+      /downloading syllabus /i,
+      /note selected/i,
+      /checking database/i,
+      /checking server/i,
+      /getting details/i,
+      /retrieved /i,
+      /retrieving /i,
+      /loaded /i,
+      /fetched /i,
+      /checked /i,
+      /inspecting /i,
+    ].some(regex => regex.test(lowerMsg));
+
+    if (isForbidden && type !== 'error' && type !== 'warning') {
+      return; // Do not show noisy info/success toasts
+    }
+
+    // Prevent duplicate toasts
+    if (activeMessagesRef.current.has(message)) {
+      return;
+    }
+
     const id = Math.random().toString(36).substring(2, 9);
+    activeMessagesRef.current.add(message);
     setToasts((prev) => [...prev, { id, message, type }]);
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+      activeMessagesRef.current.delete(message);
+    }, 2500); // 2.5 seconds duration
   }, []);
 
   const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToasts((prev) => {
+      const toastToRemove = prev.find((t) => t.id === id);
+      if (toastToRemove) {
+        activeMessagesRef.current.delete(toastToRemove.message);
+      }
+      return prev.filter((t) => t.id !== id);
+    });
   };
 
   return (
