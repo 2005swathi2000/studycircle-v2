@@ -3875,12 +3875,47 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     </h3>
                     <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">Download syllabus reference documents and study guide resources linked to this workspace.</p>
                     <div className="space-y-2 pt-1 font-sans">
-                      <a href="#" onClick={(e) => { e.preventDefault(); showToast('Downloading DBMS Schema cheat sheet.pdf...', 'success'); }} className="p-2.5 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between text-[10px] font-bold text-slate-200 cursor-pointer">
-                        <span>📄 DBMS Schema Design cheat sheet.pdf</span>
+                      <a 
+                        href="#" 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          showToast('Downloading DBMS Schema cheat sheet.txt...', 'success'); 
+                          const content = `StudyCircle Placement Preparation: DBMS Schema Design Cheat Sheet\n----------------------------------------------------------------\n1. Keys:\n   - Primary Key: Unique, non-null identifier for a record.\n   - Foreign Key: Field referencing primary key of another table.\n2. Normalization Rules:\n   - 1NF: Atomic values, unique column names.\n   - 2NF: In 1NF and no partial dependencies.\n   - 3NF: In 2NF and no transitive dependencies.\n   - BCNF: For any dependency A -> B, A must be a super key.\n3. Joins:\n   - INNER JOIN: Returns matches in both tables.\n   - LEFT JOIN: Returns all records from left table and matches from right table.`;
+                          const blob = new Blob([content], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = 'dbms_schema_cheat_sheet.txt';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          URL.revokeObjectURL(url);
+                        }} 
+                        className="p-2.5 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between text-[10px] font-bold text-slate-200 cursor-pointer"
+                      >
+                        <span>📄 DBMS Schema Design cheat sheet.txt</span>
                         <span className="text-indigo-300 text-[9px] font-black uppercase">Download &darr;</span>
                       </a>
-                      <a href="#" onClick={(e) => { e.preventDefault(); showToast('Downloading Syllabus Reference Notes.pdf...', 'success'); }} className="p-2.5 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between text-[10px] font-bold text-slate-200 cursor-pointer">
-                        <span>📄 Syllabus Reference Notes.pdf</span>
+                      
+                      <a 
+                        href="#" 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          showToast('Downloading Syllabus Reference Notes.txt...', 'success'); 
+                          const content = `StudyCircle Placement Preparation: Syllabus Reference Notes\n----------------------------------------------------------\nRecommended placement preparation track subjects:\n1. Data Structures & Algorithms (Trees, Graphs, Recursion, DFS, BFS)\n2. Database Management Systems (SQL, Normalization, ACID Properties)\n3. Web Development (Next.js, TailwindCSS, State Management, APIs)\n\nStudy Circle Rules:\n- Schedule dynamic focus logs daily.\n- Participate in peer reviews during live audio study rooms.\n- Verify doubt statuses with allocated mentors.`;
+                          const blob = new Blob([content], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = 'syllabus_reference_notes.txt';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          URL.revokeObjectURL(url);
+                        }} 
+                        className="p-2.5 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between text-[10px] font-bold text-slate-200 cursor-pointer"
+                      >
+                        <span>📄 Syllabus Reference Notes.txt</span>
                         <span className="text-indigo-300 text-[9px] font-black uppercase">Download &darr;</span>
                       </a>
                     </div>
