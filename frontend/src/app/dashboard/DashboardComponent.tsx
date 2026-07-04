@@ -3932,33 +3932,15 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   )}
                 </div>
               ) : practiceSubView === 'mock' ? (
-                /* Mock Tests sub-view */
-                <div className="grid md:grid-cols-2 gap-6 pt-2 animate-in fade-in duration-300">
-                  <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[24px] shadow-lg space-y-4 text-left">
-                    <div className="flex justify-between items-start">
-                      <span className="text-[9px] font-extrabold uppercase bg-rose-500/15 text-rose-350 border border-rose-500/20 px-2 py-0.5 rounded">Mock Test 1</span>
-                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Unattempted</span>
-                    </div>
-                    <h3 className="text-sm font-black text-white">Full-Stack Web Engineering Challenge</h3>
-                    <p className="text-xs text-slate-450 font-semibold leading-relaxed">Assess your knowledge in React rendering, database queries, and architectural designs under a 45-minute countdown timer.</p>
-                    <div className="pt-2 flex justify-between items-center text-[10px] text-slate-500 font-bold border-t border-white/5 mt-4">
-                      <span>45 Mins | 25 Questions</span>
-                      <button className="px-4 py-2 bg-indigo-600/20 hover:bg-[#5227EB] border border-indigo-500/30 hover:border-[#5227EB] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer">Start Exam</button>
-                    </div>
+                /* Mock Tests coming soon placeholder */
+                <div className="max-w-md mx-auto p-8 bg-[#0B0F19]/60 border border-white/5 rounded-[28px] text-center space-y-4 shadow-xl text-white animate-in fade-in duration-300 mt-4">
+                  <div className="h-14 w-14 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto shadow-inner text-xl">
+                    📝
                   </div>
-
-                  <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[24px] shadow-lg space-y-4 text-left">
-                    <div className="flex justify-between items-start">
-                      <span className="text-[9px] font-extrabold uppercase bg-rose-500/15 text-rose-350 border border-rose-500/20 px-2 py-0.5 rounded">Mock Test 2</span>
-                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Unattempted</span>
-                    </div>
-                    <h3 className="text-sm font-black text-white">Algorithms & Data Structures Pro Checkpoint</h3>
-                    <p className="text-xs text-slate-455 font-semibold leading-relaxed">Practice advanced algorithmic patterns, Dynamic Programming constraints, and graphs traversal questions.</p>
-                    <div className="pt-2 flex justify-between items-center text-[10px] text-slate-500 font-bold border-t border-white/5 mt-4">
-                      <span>60 Mins | 30 Questions</span>
-                      <button className="px-4 py-2 bg-indigo-600/20 hover:bg-[#5227EB] border border-indigo-500/30 hover:border-[#5227EB] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer">Start Exam</button>
-                    </div>
-                  </div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">Timed Mock Exams</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                    Simulated timed mock tests and checkpoints for company-specific placement patterns are coming soon in a future update!
+                  </p>
                 </div>
               ) : (
                 /* Directory cards */
