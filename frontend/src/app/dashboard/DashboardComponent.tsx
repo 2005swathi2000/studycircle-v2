@@ -552,35 +552,10 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
 
   // Student Dashboard Consolidated Sub-views
   const [studySubView, setStudySubView] = useState<null | 'workspaces' | 'rooms' | 'resources'>(null);
-  const [practiceSubView, setPracticeSubView] = useState<null | 'challenge' | 'questions' | 'mock'>(null);
+  const [practiceSubView, setPracticeSubView] = useState<null | 'roadmap' | 'questions' | 'mock'>(null);
   const [progressSubView, setProgressSubView] = useState<null | 'analytics' | 'xp' | 'certificates'>(null);
   const [communitySubView, setCommunitySubView] = useState<null | 'forum' | 'leaderboard' | 'chat'>(null);
   const [profileSubView, setProfileSubView] = useState<null | 'details' | 'settings'>(null);
-
-  // Today's Challenge Daily States
-  const [todayChallengeAnswer, setTodayChallengeAnswer] = useState<number | null>(null);
-  const [todayChallengeSolved, setTodayChallengeSolved] = useState<boolean>(false);
-  const [todayChallengeFeedback, setTodayChallengeFeedback] = useState<'correct' | 'wrong' | null>(null);
-
-  const handleClaimTodayChallenge = async () => {
-    if (todayChallengeAnswer === null || todayChallengeSolved) return;
-    const challenge = todayChallenges['general'];
-    if (todayChallengeAnswer === challenge.correctIndex) {
-      try {
-        await apiRequest('/progress/complete-practice', {
-          method: 'POST',
-          body: JSON.stringify({ interest: 'General', challengeId: 'daily_challenge_main_' + Date.now() })
-        });
-        setTodayChallengeSolved(true);
-        setTodayChallengeFeedback('correct');
-        loadDashboardData(null);
-      } catch (err: any) {
-        showToast('Error claiming challenge rewards: ' + (err.message || err), 'error');
-      }
-    } else {
-      setTodayChallengeFeedback('wrong');
-    }
-  };
 
   // Login states for dashboard Auth Guard Overlay
   const [loginUser, setLoginUser] = useState('');
@@ -2154,7 +2129,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
         else if (studySubView === 'resources') context = 'Study Resources Vault';
         else context = 'Study Directory';
       } else if (activeTab === 'practice') {
-        if (practiceSubView === 'challenge') context = 'Daily Concept Challenge Quiz';
+        if (practiceSubView === 'roadmap') context = 'Interactive Placement Preparation Roadmap';
         else if (practiceSubView === 'questions') context = 'DSA & Practice Questions (solving Arrays)';
         else if (practiceSubView === 'mock') context = 'Mock Timed Test Exams';
         else context = 'Practice Playground';
@@ -3715,7 +3690,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     &larr; Back to Practice
                   </button>
                   <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider">
-                    Practice &gt; {practiceSubView === 'challenge' ? 'Daily Challenge' : practiceSubView === 'questions' ? 'Practice Questions' : 'Mock Tests'}
+                    Practice &gt; {practiceSubView === 'roadmap' ? 'Placement Roadmap' : practiceSubView === 'questions' ? 'Practice Questions' : 'Mock Tests'}
                   </span>
                 </div>
               ) : (
@@ -3728,102 +3703,166 @@ Based on your desking logs and consistency, the AI tutor recommends:
               )}
 
               {/* Sub-view Rendering */}
-              {practiceSubView === 'challenge' ? (
-                /* Daily Challenge sub-view */
-                <div className="max-w-2xl mx-auto space-y-6">
-                  <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left animate-in slide-in-from-bottom-3 duration-300">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-2xl pointer-events-none" />
-                    
-                    <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
-                      <div className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
-                        <span className="text-xs font-black uppercase tracking-wider text-white">Today's Challenge</span>
-                      </div>
-                      <span className="text-[9px] font-black bg-white/5 border border-white/10 text-indigo-400 px-2.5 py-1 rounded">
-                        +20 XP | +10 ¢
-                      </span>
-                    </div>
+              {practiceSubView === 'roadmap' ? (
+                /* Placement Roadmap sub-view */
+                <div className="space-y-6 text-left animate-in fade-in duration-300">
+                  <div className="flex items-center gap-2 mb-2">
+                    <button 
+                      onClick={() => setPracticeSubView(null)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-350 hover:text-white text-[10px] font-black rounded-lg transition-all uppercase tracking-widest cursor-pointer border-none"
+                    >
+                      &larr; Back to Practice
+                    </button>
+                    <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider">Practice &gt; Placement Roadmap</span>
+                  </div>
 
-                    {(() => {
-                      const challenge = todayChallenges['general'];
+                  <div className="border-b border-white/5 pb-4">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                      🗺️ Placement Preparation Roadmap
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">Track your syllabus milestones across foundational coding, core Computer Science, advanced concepts, and final HR interview readiness.</p>
+                  </div>
+
+                  <div className="relative border-l-2 border-indigo-500/20 ml-4 pl-6 space-y-8 py-4">
+                    {[
+                      {
+                        phase: "Phase 1",
+                        title: "Foundation & Programming Basics",
+                        duration: "Weeks 1-4",
+                        status: "Completed",
+                        color: "emerald",
+                        interest: "Programming & DSA",
+                        topics: [
+                          "Language Fundamentals (Java/C++)",
+                          "Object Oriented Programming (OOPs)",
+                          "Time & Space Complexity Analysis",
+                          "Basic Data Structures (Arrays, Linked Lists, Stacks, Queues)"
+                        ]
+                      },
+                      {
+                        phase: "Phase 2",
+                        title: "Core Computer Science Concepts",
+                        duration: "Weeks 5-8",
+                        status: "In Progress",
+                        color: "indigo",
+                        interest: "Programming & DSA",
+                        topics: [
+                          "Database Management Systems & SQL Joins",
+                          "Operating Systems (Process, Threads & Deadlocks)",
+                          "Computer Networks (OSI Model & TCP/IP handshake)"
+                        ]
+                      },
+                      {
+                        phase: "Phase 3",
+                        title: "Advanced Data Structures & Algorithms",
+                        duration: "Weeks 9-12",
+                        status: "Locked",
+                        color: "violet",
+                        interest: "Programming & DSA",
+                        topics: [
+                          "Trees & Binary Search Trees (BST)",
+                          "Graph Algorithms (BFS, DFS, Dijkstra)",
+                          "Dynamic Programming (DP) Optimization"
+                        ]
+                      },
+                      {
+                        phase: "Phase 4",
+                        title: "Aptitude & Quantitative Reasoning",
+                        duration: "Weeks 13-14",
+                        status: "Locked",
+                        color: "cyan",
+                        interest: "Aptitude",
+                        topics: [
+                          "Permutations, Combinations & Probability",
+                          "Time, Speed, Distance & Work Equations",
+                          "Logical Puzzles & Pattern Matching"
+                        ]
+                      },
+                      {
+                        phase: "Phase 5",
+                        title: "Interview Mastery & System Design",
+                        duration: "Weeks 15-16",
+                        status: "Locked",
+                        color: "rose",
+                        interest: "Interview Preparation",
+                        topics: [
+                          "Low-Level (LLD) & High-Level (HLD) System Design",
+                          "Resume Project Architectures & Showcase",
+                          "HR Behavioral Questions & STAR Method Response"
+                        ]
+                      }
+                    ].map((p, idx) => {
+                      const isCompleted = p.status === "Completed";
+                      const isInProgress = p.status === "In Progress";
+                      const isLocked = p.status === "Locked";
+                      
                       return (
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <p className="text-xs font-bold text-slate-200 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-white/5">
-                              {challenge.question}
-                            </p>
-                            
-                            <div className="grid gap-2">
-                              {challenge.options.map((option, idx) => {
-                                const isSelected = todayChallengeAnswer === idx;
-                                const isSolved = todayChallengeSolved;
-                                const isCorrect = idx === challenge.correctIndex;
-                                
-                                return (
+                        <div key={idx} className="relative group">
+                          {/* Timeline dot */}
+                          <div className={`absolute -left-[31px] top-1.5 h-4 w-4 rounded-full border-2 bg-[#0B0F19] transition-all ${
+                            isCompleted ? 'border-emerald-500 bg-emerald-500/20' :
+                            isInProgress ? 'border-indigo-500 bg-indigo-500/20 animate-pulse' :
+                            'border-slate-800 bg-slate-900'
+                          }`} />
+
+                          <div className="p-5 bg-[#0B0F19]/60 border border-white/5 hover:border-white/10 rounded-2xl space-y-4 shadow-md transition-all">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className="space-y-1">
+                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${
+                                  isCompleted ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                  isInProgress ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' :
+                                  'bg-slate-800/50 text-slate-500 border border-white/5'
+                                }`}>
+                                  {p.phase} &bull; {p.duration}
+                                </span>
+                                <h4 className="text-sm font-black text-white group-hover:text-indigo-300 transition-colors mt-1">{p.title}</h4>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
+                                  isCompleted ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
+                                  isInProgress ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/20' :
+                                  'bg-slate-900 text-slate-600 border border-white/5'
+                                }`}>
+                                  {p.status}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="grid sm:grid-cols-2 gap-3 pt-2">
+                              <div className="space-y-2">
+                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider block">Key Syllabus Topics</span>
+                                <ul className="space-y-1.5">
+                                  {p.topics.map((t, tIdx) => (
+                                    <li key={tIdx} className="text-xs text-slate-355 flex items-start gap-2 font-semibold">
+                                      <span className={isCompleted ? 'text-emerald-400' : isInProgress ? 'text-indigo-400' : 'text-slate-600'}>
+                                        {isCompleted ? '✓' : isInProgress ? '•' : '🔒'}
+                                      </span>
+                                      <span>{t}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+
+                              <div className="flex flex-col justify-end items-end gap-2">
+                                {!isLocked && (
                                   <button
-                                    key={idx}
-                                    disabled={isSolved}
                                     onClick={() => {
-                                      setTodayChallengeAnswer(idx);
-                                      setTodayChallengeFeedback(null);
+                                      setSelectedInterest(p.interest);
+                                      setPracticeSubView('questions');
+                                      updateLastActivity(p.interest, 'Solve Practice Questions', 'practice', 'questions');
                                     }}
-                                    className={`p-3 rounded-xl border text-left text-xs font-bold transition-all ${
-                                      isSolved
-                                        ? isCorrect
-                                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                                          : 'bg-[#0B0F19]/45 border-white/5 text-slate-550'
-                                        : isSelected
-                                          ? 'bg-indigo-500/10 border-indigo-500/50 text-white'
-                                          : 'bg-slate-950 border-white/5 text-slate-400 hover:bg-slate-900/40 hover:text-white'
-                                    }`}
+                                    className="px-4 py-2 bg-indigo-600 hover:bg-[#5227EB] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer border-none"
                                   >
-                                    <span className="mr-1.5 font-black uppercase text-indigo-400">{String.fromCharCode(65 + idx)}.</span> {option}
+                                    Start Practicing &rarr;
                                   </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          {todayChallengeFeedback === 'wrong' && !todayChallengeSolved && (
-                            <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-bold animate-in fade-in duration-200">
-                              ❌ Wrong answer! Re-check and try again.
-                            </div>
-                          )}
-
-                          {todayChallengeSolved && (
-                            <div className="space-y-3 animate-in slide-in-from-bottom-2 duration-300">
-                              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold">
-                                🎉 Correct! +20 XP and +10 Coins claimed successfully!
-                              </div>
-                              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-455 rounded-xl text-xs leading-relaxed">
-                                <strong className="text-white block mb-0.5 uppercase tracking-wide text-[10px]">Explanation:</strong>
-                                {challenge.explanation}
+                                )}
                               </div>
                             </div>
-                          )}
-
-                          <div className="pt-2 flex items-center justify-between gap-4">
-                            <div className="flex-1 h-1.5 rounded-full bg-slate-900 border border-white/5 overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full transition-all duration-500 ${todayChallengeSolved ? 'w-full bg-emerald-500' : 'w-1/3 bg-indigo-500'}`} 
-                              />
-                            </div>
-                            {!todayChallengeSolved ? (
-                              <button
-                                onClick={handleClaimTodayChallenge}
-                                className="px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-[10px] font-black rounded-xl border-none uppercase tracking-wider cursor-pointer shadow-md transition-all shrink-0"
-                              >
-                                Verify Answer
-                              </button>
-                            ) : (
-                              <div className="px-5 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-455 text-[10px] font-black uppercase rounded-xl shrink-0">
-                                ✓ Claimed
-                              </div>
-                            )}
                           </div>
                         </div>
                       );
-                    })()}
+                    })}
                   </div>
                 </div>
               ) : practiceSubView === 'questions' ? (
@@ -3932,19 +3971,19 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 /* Directory cards */
                 <div className="grid md:grid-cols-3 gap-6 pt-4">
                   
-                  {/* Card 1: Daily Challenge */}
+                  {/* Card 1: Placement Roadmap */}
                   <div 
-                    onClick={() => setPracticeSubView('challenge')}
+                    onClick={() => setPracticeSubView('roadmap')}
                     className="p-6 bg-gradient-to-br from-[#1E293B]/60 via-[#0F172A]/70 to-[#1e1b4b]/30 border border-white/5 hover:border-indigo-500/40 rounded-[28px] shadow-xl hover:scale-[1.02] cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[200px] text-left group"
                   >
                     <div className="space-y-3">
                       <div className="h-10 w-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 text-xl font-bold group-hover:scale-105 transition duration-200">
-                        🎯
+                        🗺️
                       </div>
-                      <h3 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors">Daily Challenge</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed font-semibold">Solve the daily concept quiz to keep your learning streak hot and gain +20 XP.</p>
+                      <h3 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors">Placement Roadmap</h3>
+                      <p className="text-xs text-slate-400 leading-relaxed font-semibold">Follow a structured placement roadmap covering DSA, DBMS, OS, CN, Aptitude, and Interview Preparation.</p>
                     </div>
-                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-4 block">Solve Challenge &rarr;</span>
+                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-4 block">View Roadmap &rarr;</span>
                   </div>
 
                   {/* Card 2: Practice Questions */}
@@ -5322,58 +5361,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
               </div>
 
-              {/* Bottom Row - Contributors and community impact */}
-              <div className="grid md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
-                {/* Top Contributors */}
-                <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-5 space-y-4 text-left">
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Top Contributors</h4>
-                    <button 
-                      onClick={() => setActiveTab('leaderboard')}
-                      className="text-[9px] font-extrabold text-[#818CF8] hover:text-indigo-300 transition-colors uppercase tracking-wider bg-transparent border-none cursor-pointer"
-                    >
-                      View Leaderboard
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {[
-                      { rank: 1, name: 'Rohan', coins: 12450, avatar: '/avatar-rohan.png' },
-                      { rank: 2, name: 'Ananya', coins: 9870, avatar: '/avatar-ananya.png' },
-                      { rank: 3, name: 'Vikram', coins: 8230, avatar: '/avatar-vikram.png' }
-                    ].map((leader) => (
-                      <div key={leader.rank} className="flex items-center justify-between p-2.5 bg-[#0B0F19]/60 border border-white/5 rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <span className={`text-[10px] font-black h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${
-                            leader.rank === 1 ? 'bg-amber-500/25 text-amber-400 border border-amber-500/20' :
-                            leader.rank === 2 ? 'bg-slate-400/25 text-slate-300 border border-slate-400/20' :
-                            'bg-amber-800/25 text-amber-600 border border-amber-800/20'
-                          }`}>{leader.rank}</span>
-                          <span className="text-xs font-black text-slate-200">{leader.name}</span>
-                        </div>
-                        <span className="text-[10px] font-extrabold text-slate-300 flex items-center gap-1">
-                          🪙 {leader.coins.toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
-                {/* Community impact card */}
-                <div className="bg-[#1E293B]/40 border border-white/5 rounded-[24px] p-5 space-y-4 text-left flex flex-col justify-between">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Community Impact</h4>
-                  <div className="p-6 bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-2xl flex items-center gap-5 my-auto">
-                    <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 border border-[#5227EB]/20 flex items-center justify-center text-[#818CF8] shrink-0 text-xl font-bold">
-                      👥
-                    </div>
-                    <div>
-                      <p className="text-lg font-black text-slate-100">1,24,560</p>
-                      <p className="text-[10px] text-slate-455 font-bold uppercase tracking-wider mt-0.5">Minutes Studied Together</p>
-                      <span className="text-[9px] text-emerald-400 font-extrabold bg-emerald-500/10 border border-emerald-500/10 rounded px-1.5 py-0.5 inline-block mt-1.5">+12% this week</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
             
                 </>

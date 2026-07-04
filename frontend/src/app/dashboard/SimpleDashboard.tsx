@@ -70,7 +70,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
   // Today's Focus Goals State
   const [focusGoals, setFocusGoals] = useState<any[]>([
-    { id: 'challenge', label: 'Complete Daily Challenge' },
+    { id: 'roadmap', label: 'Review Placement Roadmap' },
     { id: 'pomodoro', label: 'Run 2 Pomodoro Sessions' },
     { id: 'dsa', label: 'Solve 5 DSA Problems' }
   ]);
@@ -480,22 +480,22 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         <div className="bg-[#0B0F19] border border-white/5 rounded-[28px] p-5 shadow-lg flex flex-col justify-between text-left">
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xs font-black uppercase tracking-wider text-white">Daily Concept Challenge</h3>
-              <span className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-350 border border-rose-500/20 text-[8px] font-black uppercase shrink-0 tracking-wider">Quiz</span>
+              <h3 className="text-xs font-black uppercase tracking-wider text-white">Placement Roadmap</h3>
+              <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-350 border border-indigo-500/20 text-[8px] font-black uppercase shrink-0 tracking-wider">Syllabus</span>
             </div>
             
             <div className="p-4 bg-white/[0.01] border border-white/5 rounded-2xl text-left space-y-3">
               <p className="text-[11px] font-extrabold text-slate-200 leading-relaxed">
-                Test your skills today: "Estimate the runtime complexity of Binary Search on a sorted array of N."
+                Follow a structured placement roadmap covering DSA, DBMS, OS, CN, Aptitude, and Interview Prep.
               </p>
               <button 
                 onClick={() => {
                   setActiveTab('practice');
-                  setPracticeSubView('challenge');
+                  setPracticeSubView('roadmap');
                 }}
                 className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer transition-all shadow-md active:scale-[0.98]"
               >
-                Solve Challenge &rarr;
+                View Roadmap &rarr;
               </button>
             </div>
           </div>
