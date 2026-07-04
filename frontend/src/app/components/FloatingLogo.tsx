@@ -3,9 +3,24 @@
 import React, { useState } from 'react';
 import { BookOpen } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export const FloatingLogo = () => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const pathname = usePathname() || '';
+
+  // Hide the floating dev-node logo on all sidebar dashboards and workspaces
+  const isDashboardOrWorkspace = 
+    pathname.includes('/dashboard') || 
+    pathname.includes('/workspace') || 
+    pathname.includes('/mentor') || 
+    pathname.includes('/student') || 
+    pathname.includes('/admin') || 
+    pathname.includes('/profile');
+
+  if (isDashboardOrWorkspace) {
+    return null;
+  }
 
   return (
     <div 
