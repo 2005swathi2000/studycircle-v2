@@ -3683,62 +3683,11 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
           {/* Consolidated Tab: Study Directory */}
           {activeTab === 'study' && studySubView === null && (
-            <div className="space-y-6 text-left text-white animate-in fade-in duration-300">
-              <div>
-                <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5 text-indigo-400" /> Study Directory
-                </h1>
-                <p className="text-xs text-slate-400 mt-1">Select an environment below to continue your learning journey.</p>
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-6 pt-4">
-                
-                {/* Card 1: My Workspace */}
-                <div 
-                  onClick={() => setStudySubView('workspaces')}
-                  className="p-6 bg-gradient-to-br from-[#1E293B]/60 via-[#0F172A]/70 to-[#1e1b4b]/30 border border-white/5 hover:border-indigo-500/40 rounded-[28px] shadow-xl hover:scale-[1.02] cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[200px] text-left group"
-                >
-                  <div className="space-y-3">
-                    <div className="h-10 w-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 text-xl font-bold group-hover:scale-105 transition duration-200">
-                      📚
-                    </div>
-                    <h3 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors">My Workspace</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed font-semibold">Join or initialize collaborative peer study circles, share documents, and track goals.</p>
-                  </div>
-                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-4 block">Open Workspace &rarr;</span>
-                </div>
-
-                {/* Card 2: Study Rooms */}
-                <div 
-                  onClick={() => setStudySubView('rooms')}
-                  className="p-6 bg-gradient-to-br from-[#1E293B]/60 via-[#0F172A]/70 to-[#1e1b4b]/30 border border-white/5 hover:border-indigo-500/40 rounded-[28px] shadow-xl hover:scale-[1.02] cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[200px] text-left group"
-                >
-                  <div className="space-y-3">
-                    <div className="h-10 w-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 text-xl font-bold group-hover:scale-105 transition duration-200">
-                      ⏱
-                    </div>
-                    <h3 className="text-base font-black text-white group-hover:text-emerald-400 transition-colors">Study Rooms</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed font-semibold">Join virtual co-study desks with live video connections, Pomodoro focus timers, and logs.</p>
-                  </div>
-                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mt-4 block">Enter Study Rooms &rarr;</span>
-                </div>
-
-                {/* Card 3: Resources */}
-                <div 
-                  onClick={() => setStudySubView('resources')}
-                  className="p-6 bg-gradient-to-br from-[#1E293B]/60 via-[#0F172A]/70 to-[#1e1b4b]/30 border border-white/5 hover:border-indigo-500/40 rounded-[28px] shadow-xl hover:scale-[1.02] cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[200px] text-left group"
-                >
-                  <div className="space-y-3">
-                    <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center shrink-0 text-xl font-bold group-hover:scale-105 transition duration-200">
-                      📂
-                    </div>
-                    <h3 className="text-base font-black text-white group-hover:text-cyan-400 transition-colors">Resources</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed font-semibold">Access curated subject learning materials, reference sheets, and document guides.</p>
-                  </div>
-                  <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mt-4 block">Browse Resources &rarr;</span>
-                </div>
-
-              </div>
+            <div className="text-left text-white">
+              {(() => {
+                setTimeout(() => setStudySubView('rooms'), 0);
+                return null;
+              })()}
             </div>
           )}
 
@@ -3746,33 +3695,29 @@ Based on your desking logs and consistency, the AI tutor recommends:
           {activeTab === 'practice' && (
             <div className="space-y-6 text-left text-white animate-in fade-in duration-300">
               
-              {/* Back to Practice directory breadcrumb */}
-              {practiceSubView ? (
-                <div className="flex items-center gap-2 mb-4">
-                  <button 
-                    onClick={() => setPracticeSubView(null)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-350 hover:text-white text-[10px] font-black rounded-lg transition-all uppercase tracking-widest cursor-pointer border-none"
-                  >
-                    &larr; Back to Practice
-                  </button>
-                  <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider">
-                    Practice &gt; {practiceSubView === 'roadmap' ? 'Placement Roadmap' : practiceSubView === 'questions' ? 'Practice Questions' : 'Weak Areas & Revision'}
-                  </span>
-                </div>
-              ) : null}
 
               {/* Sub-view Rendering */}
               {practiceSubView === 'roadmap' ? (
                 /* Placement Roadmap sub-view */
                 <div className="space-y-6 text-left animate-in fade-in duration-300">
-                  <div className="flex items-center gap-2 mb-2">
-                    <button 
-                      onClick={() => setPracticeSubView(null)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-350 hover:text-white text-[10px] font-black rounded-lg transition-all uppercase tracking-widest cursor-pointer border-none"
-                    >
-                      &larr; Back to Practice
-                    </button>
-                    <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider">Practice &gt; Placement Roadmap</span>
+                  <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap">
+                    {[
+                      { id: 'questions', name: '💻 Practice Questions', active: (practiceSubView as any) === 'questions' },
+                      { id: 'mock', name: '🔍 Weak Areas & Smart Revision', active: (practiceSubView as any) === 'mock' },
+                      { id: 'roadmap', name: '🗺️ Placement Roadmap', active: (practiceSubView as any) === 'roadmap' }
+                    ].map((subTab) => (
+                      <button
+                        key={subTab.id}
+                        onClick={() => setPracticeSubView(subTab.id as any)}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none ${
+                          subTab.active
+                            ? 'bg-indigo-600 text-white font-bold'
+                            : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {subTab.name}
+                      </button>
+                    ))}
                   </div>
 
                   <div className="border-b border-white/5 pb-4">
@@ -3927,6 +3872,25 @@ Based on your desking logs and consistency, the AI tutor recommends:
               ) : practiceSubView === 'questions' ? (
                 /* Practice Questions sub-view */
                 <div className="space-y-6 animate-in fade-in duration-300">
+                  <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap">
+                    {[
+                      { id: 'questions', name: '💻 Practice Questions', active: (practiceSubView as any) === 'questions' },
+                      { id: 'mock', name: '🔍 Weak Areas & Smart Revision', active: (practiceSubView as any) === 'mock' },
+                      { id: 'roadmap', name: '🗺️ Placement Roadmap', active: (practiceSubView as any) === 'roadmap' }
+                    ].map((subTab) => (
+                      <button
+                        key={subTab.id}
+                        onClick={() => setPracticeSubView(subTab.id as any)}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none ${
+                          subTab.active
+                            ? 'bg-indigo-600 text-white font-bold'
+                            : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {subTab.name}
+                      </button>
+                    ))}
+                  </div>
                   {/* Select Interest */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {[
@@ -4013,6 +3977,25 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
                   return (
                     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
+                      <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap text-left">
+                        {[
+                          { id: 'questions', name: '💻 Practice Questions', active: (practiceSubView as any) === 'questions' },
+                          { id: 'mock', name: '🔍 Weak Areas & Smart Revision', active: (practiceSubView as any) === 'mock' },
+                          { id: 'roadmap', name: '🗺️ Placement Roadmap', active: (practiceSubView as any) === 'roadmap' }
+                        ].map((subTab) => (
+                          <button
+                            key={subTab.id}
+                            onClick={() => setPracticeSubView(subTab.id as any)}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none ${
+                              subTab.active
+                                ? 'bg-indigo-600 text-white font-bold'
+                                : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {subTab.name}
+                          </button>
+                        ))}
+                      </div>
                       
                       {/* Section Title & Description */}
                       <div className="border-b border-white/5 pb-4 text-left">
@@ -4096,39 +4079,12 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   );
                 })()
               ) : (
-                /* Directory cards */
-                <div className="grid md:grid-cols-2 gap-6 pt-4">
-                  
-                  {/* Card 2: Practice Questions */}
-                  <div 
-                    onClick={() => setPracticeSubView('questions')}
-                    className="p-6 bg-gradient-to-br from-[#1E293B]/60 via-[#0F172A]/70 to-[#1e1b4b]/30 border border-white/5 hover:border-indigo-500/40 rounded-[28px] shadow-xl hover:scale-[1.02] cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[200px] text-left group"
-                  >
-                    <div className="space-y-3">
-                      <div className="h-10 w-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 text-xl font-bold group-hover:scale-105 transition duration-200">
-                        💻
-                      </div>
-                      <h3 className="text-base font-black text-white group-hover:text-emerald-400 transition-colors">Practice Questions</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed font-semibold">Access an interactive sandbox environment to write code, execute test cases, and solve DSA problems.</p>
-                    </div>
-                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mt-4 block">Start Practicing &rarr;</span>
-                  </div>
-
-                  {/* Card 3: Weak Areas & Smart Revision */}
-                  <div 
-                    onClick={() => setPracticeSubView('mock')}
-                    className="p-6 bg-gradient-to-br from-[#1E293B]/60 via-[#0F172A]/70 to-[#1e1b4b]/30 border border-white/5 hover:border-indigo-500/40 rounded-[28px] shadow-xl hover:scale-[1.02] cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[200px] text-left group"
-                  >
-                    <div className="space-y-3">
-                      <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center shrink-0 text-xl font-bold group-hover:scale-105 transition duration-200">
-                        🔍
-                      </div>
-                      <h3 className="text-base font-black text-white group-hover:text-cyan-400 transition-colors">Weak Areas & Smart Revision</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed font-semibold">Identify topics you struggle with, review incorrect questions, and clear them from your list by solving them correctly.</p>
-                    </div>
-                    <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mt-4 block">Review Mistakes &rarr;</span>
-                  </div>
-
+                /* Fallback to show practice questions directly */
+                <div className="text-left text-white">
+                  {(() => {
+                    setTimeout(() => setPracticeSubView('questions'), 0);
+                    return null;
+                  })()}
                 </div>
               )}
             </div>
@@ -4138,14 +4094,24 @@ Based on your desking logs and consistency, the AI tutor recommends:
           {(activeTab === 'groups' || (activeTab === 'study' && studySubView === 'workspaces')) && (
             <div className="space-y-6 text-left text-white animate-in fade-in duration-300">
               {activeTab === 'study' && (
-                <div className="flex items-center gap-2 mb-2">
-                  <button 
-                    onClick={() => setStudySubView(null)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-350 hover:text-white text-[10px] font-black rounded-lg transition-all uppercase tracking-widest cursor-pointer border-none"
-                  >
-                    &larr; Back to Study
-                  </button>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Study &gt; My Workspace</span>
+                <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap">
+                  {[
+                    { id: 'rooms', name: '⏱ Study Rooms', active: studySubView === 'rooms' },
+                    { id: 'resources', name: '📂 Resources Vault', active: studySubView === 'resources' },
+                    { id: 'workspaces', name: '📚 My Workspace', active: studySubView === 'workspaces' }
+                  ].map((subTab) => (
+                    <button
+                      key={subTab.id}
+                      onClick={() => setStudySubView(subTab.id as any)}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none ${
+                        subTab.active
+                          ? 'bg-indigo-600 text-white font-bold'
+                          : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {subTab.name}
+                    </button>
+                  ))}
                 </div>
               )}
 
@@ -4352,16 +4318,26 @@ Based on your desking logs and consistency, the AI tutor recommends:
           {(activeTab === 'rooms' || (activeTab === 'study' && studySubView === 'rooms')) && (
             <div className="space-y-6 text-left animate-in fade-in duration-350 text-white">
               
-              {/* Back breadcrumb */}
+              {/* Horizontal Sub-tabs */}
               {activeTab === 'study' && (
-                <div className="flex items-center gap-2 mb-2">
-                  <button 
-                    onClick={() => setStudySubView(null)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-350 hover:text-white text-[10px] font-black rounded-lg transition-all uppercase tracking-widest cursor-pointer border-none"
-                  >
-                    &larr; Back to Study
-                  </button>
-                  <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider">Study &gt; Study Rooms</span>
+                <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap">
+                  {[
+                    { id: 'rooms', name: '⏱ Study Rooms', active: studySubView === 'rooms' },
+                    { id: 'resources', name: '📂 Resources Vault', active: studySubView === 'resources' },
+                    { id: 'workspaces', name: '📚 My Workspace', active: studySubView === 'workspaces' }
+                  ].map((subTab) => (
+                    <button
+                      key={subTab.id}
+                      onClick={() => setStudySubView(subTab.id as any)}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none ${
+                        subTab.active
+                          ? 'bg-indigo-600 text-white font-bold'
+                          : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {subTab.name}
+                    </button>
+                  ))}
                 </div>
               )}
 
@@ -4995,14 +4971,24 @@ Based on your desking logs and consistency, the AI tutor recommends:
           {(activeTab === 'resources' || (activeTab === 'study' && studySubView === 'resources')) && (
             <div className="space-y-6 text-left animate-in fade-in duration-350 text-white">
               {activeTab === 'study' && (
-                <div className="flex items-center gap-2 mb-2">
-                  <button 
-                    onClick={() => setStudySubView(null)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-350 hover:text-white text-[10px] font-black rounded-lg transition-all uppercase tracking-widest cursor-pointer border-none"
-                  >
-                    &larr; Back to Study
-                  </button>
-                  <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider">Study &gt; Resources</span>
+                <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap">
+                  {[
+                    { id: 'rooms', name: '⏱ Study Rooms', active: studySubView === 'rooms' },
+                    { id: 'resources', name: '📂 Resources Vault', active: studySubView === 'resources' },
+                    { id: 'workspaces', name: '📚 My Workspace', active: studySubView === 'workspaces' }
+                  ].map((subTab) => (
+                    <button
+                      key={subTab.id}
+                      onClick={() => setStudySubView(subTab.id as any)}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none ${
+                        subTab.active
+                          ? 'bg-indigo-600 text-white font-bold'
+                          : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {subTab.name}
+                    </button>
+                  ))}
                 </div>
               )}
               {/* Header Banner */}

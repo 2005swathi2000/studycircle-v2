@@ -252,31 +252,15 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           {lastActivity ? (
             <div className="space-y-3">
               <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400 font-mono">CONTINUE LEARNING</span>
-              <div className="p-4 bg-slate-950/40 border border-white/5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 rounded-xl flex items-center justify-center text-lg shrink-0">
-                    💻
-                  </div>
-                  <div className="text-left">
-                    <span className="text-[9px] text-slate-450 font-black uppercase tracking-wider block">Resume Last Session</span>
-                    <h4 className="text-xs font-black text-white mt-0.5">{lastActivity.courseName}</h4>
-                    <span className="text-[10px] text-slate-400 font-semibold mt-0.5 block">{lastActivity.lessonName}</span>
-                  </div>
+              <div className="p-4 bg-slate-950/40 border border-white/5 rounded-2xl flex items-center gap-3">
+                <div className="h-10 w-10 bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 rounded-xl flex items-center justify-center text-lg shrink-0">
+                  💻
                 </div>
-                <button
-                  onClick={() => {
-                    setActiveTab(lastActivity.tab);
-                    if (lastActivity.subView === 'questions') {
-                      setSelectedInterest(lastActivity.courseName);
-                      setPracticeSubView('questions');
-                    } else if (lastActivity.subView === 'rooms') {
-                      setStudySubView('rooms');
-                    }
-                  }}
-                  className="px-5 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition cursor-pointer border-none flex items-center gap-1.5 shadow-md active:scale-[0.98]"
-                >
-                  <Play className="h-3 w-3 fill-white" /> Resume &rarr;
-                </button>
+                <div className="text-left">
+                  <span className="text-[9px] text-[#10B981] font-black uppercase tracking-wider block">Last Active Session</span>
+                  <h4 className="text-xs font-black text-white mt-0.5">{lastActivity.courseName}</h4>
+                  <span className="text-[10px] text-slate-450 font-semibold mt-0.5 block">{lastActivity.lessonName}</span>
+                </div>
               </div>
             </div>
           ) : (
@@ -488,15 +472,14 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               <p className="text-[11px] font-extrabold text-slate-200 leading-relaxed">
                 Follow a structured placement roadmap covering DSA, DBMS, OS, CN, Aptitude, and Interview Prep.
               </p>
-              <button 
-                onClick={() => {
-                  setActiveTab('practice');
-                  setPracticeSubView('roadmap');
-                }}
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-widest cursor-pointer transition-all shadow-md active:scale-[0.98]"
-              >
-                View Roadmap &rarr;
-              </button>
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-[9px] font-black uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">
+                  Active Stage: Foundation
+                </span>
+                <span className="text-[9px] text-slate-550 font-bold uppercase">
+                  Weeks 1-4
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -729,39 +712,11 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               </span>
             </div>
 
-            {/* Actions Toolbar */}
-            <div className="flex items-center gap-2 flex-wrap pt-1">
-              <button 
-                onClick={() => {
-                  setActiveTab('study');
-                  setStudySubView('rooms');
-                }}
-                className="px-3.5 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition border-none cursor-pointer"
-              >
-                Join Live Room
-              </button>
-              <button 
-                onClick={() => {
-                  setActiveTab('study');
-                  setStudySubView('rooms');
-                  setTimeout(() => {
-                    const btn = document.getElementById('create-circle-btn-trigger');
-                    if (btn) btn.click();
-                  }, 100);
-                }}
-                className="px-3.5 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-black uppercase tracking-wider rounded-xl transition border border-white/5 cursor-pointer"
-              >
-                + Create Room
-              </button>
-              <button 
-                onClick={() => {
-                  setActiveTab('community');
-                  setCommunitySubView('chat');
-                }}
-                className="px-3.5 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-black uppercase tracking-wider rounded-xl transition border border-white/5 cursor-pointer"
-              >
-                Invite Friends
-              </button>
+            {/* Live Presence Statistics */}
+            <div className="flex items-center gap-4 text-[10px] text-slate-400 font-bold bg-white/[0.01] border border-white/5 rounded-xl px-4 py-2 mt-1 self-start">
+              <span>🟢 {availableGroups.length} rooms active</span>
+              <span className="text-white/10">|</span>
+              <span>👥 12 students desk-sharing</span>
             </div>
 
             {availableGroups.length === 0 ? (
@@ -812,16 +767,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 <span className="text-base font-black text-white block mt-0.5">Top 10% of Batch</span>
                 <p className="text-[9px] text-emerald-500 font-semibold leading-relaxed mt-1">Consistency rating improved by 20% compared to last week.</p>
               </div>
-              
-              <button
-                onClick={() => {
-                  setActiveTab('community');
-                  setCommunitySubView('leaderboard');
-                }}
-                className="w-full py-2 bg-indigo-650/20 hover:bg-[#5227EB] hover:text-white text-indigo-300 border border-indigo-500/20 text-[9px] font-black uppercase tracking-widest rounded-xl transition cursor-pointer text-center"
-              >
-                Open Leaderboard &rarr;
-              </button>
+
             </div>
           </div>
         </div>
