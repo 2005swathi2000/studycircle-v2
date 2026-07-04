@@ -557,6 +557,7 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [communitySubView, setCommunitySubView] = useState<null | 'forum' | 'leaderboard' | 'chat'>(null);
   const [profileSubView, setProfileSubView] = useState<null | 'details' | 'settings'>(null);
 
+
   // Login states for dashboard Auth Guard Overlay
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
@@ -730,6 +731,26 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [practiceQuizErrorMessage, setPracticeQuizErrorMessage] = useState<string | null>(null);
   const [practiceQuizAttempts, setPracticeQuizAttempts] = useState<number>(0);
   const [showQuizHint, setShowQuizHint] = useState<boolean>(false);
+
+  const [incorrectQuestions, setIncorrectQuestions] = useState<any[]>([]);
+  const [totalMistakesCount, setTotalMistakesCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('studycircle_incorrect_questions');
+      const list = stored ? JSON.parse(stored) : [];
+      setIncorrectQuestions(list);
+      
+      const storedTotal = localStorage.getItem('studycircle_total_mistakes_count');
+      const total = storedTotal ? parseInt(storedTotal, 10) : list.length;
+      if (total < list.length) {
+        localStorage.setItem('studycircle_total_mistakes_count', list.length.toString());
+        setTotalMistakesCount(list.length);
+      } else {
+        setTotalMistakesCount(total);
+      }
+    }
+  }, [practiceSubView, activeTab]);
 
   // --- COMMUNITY HUB STATES & MOCK DATA ---
   const [activeFeedType, setActiveFeedType] = useState<'all' | 'discussions' | 'doubts' | 'announcements' | 'resources' | 'polls'>('all');
@@ -1515,6 +1536,47 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     return 'Review the core terminology and check how each option aligns with the scenario.';
   };
 
+  const recordQuestionMistake = (q: any, topic: string) => {
+    try {
+      const stored = localStorage.getItem('studycircle_incorrect_questions');
+      const list = stored ? JSON.parse(stored) : [];
+      const exists = list.some((item: any) => item.question === q.question && item.topic === topic);
+      if (!exists) {
+        list.push({
+          id: q.id || `${topic}_${Date.now()}`,
+          topic: topic,
+          title: q.title || 'Practice Question',
+          type: 'quiz',
+          question: q.question,
+          options: q.options,
+          correctOptionIndex: q.correctOptionIndex,
+          explanation: q.explanation || 'No explanation available.'
+        });
+        localStorage.setItem('studycircle_incorrect_questions', JSON.stringify(list));
+        
+        // Update total mistakes count
+        const storedTotal = localStorage.getItem('studycircle_total_mistakes_count');
+        const total = storedTotal ? parseInt(storedTotal, 10) : 0;
+        localStorage.setItem('studycircle_total_mistakes_count', Math.max(total + 1, list.length).toString());
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const removeQuestionMistake = (q: any, topic: string) => {
+    try {
+      const stored = localStorage.getItem('studycircle_incorrect_questions');
+      if (stored) {
+        const list = JSON.parse(stored);
+        const filtered = list.filter((item: any) => !(item.question === q.question && item.topic === topic));
+        localStorage.setItem('studycircle_incorrect_questions', JSON.stringify(filtered));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleVerifyQuizAnswer = async () => {
     if (practiceQuizAnswer === null) {
       setPracticeQuizErrorMessage('❌ Please select an option before verifying.');
@@ -1546,6 +1608,8 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
         setShowQuizHint(false);
         setPracticeSessionScore(prev => prev + 1);
         completeMission('quiz');
+        
+        removeQuestionMistake(q, selectedInterest);
       } catch (err: any) {
         setPracticeQuizErrorMessage('❌ Error saving practice progress: ' + (err.message || err));
       }
@@ -1567,6 +1631,8 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
         setPracticeQuizFeedback('wrong');
         setPracticeQuizErrorMessage(`❌ Incorrect after 3 attempts. Correct option: ${String.fromCharCode(65 + q.correctOptionIndex)}`);
         setShowQuizHint(false);
+        
+        recordQuestionMistake(q, selectedInterest);
       } else {
         setPracticeQuizFeedback(null);
         setPracticeQuizErrorMessage(randomEncouraging);
@@ -2131,7 +2197,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
       } else if (activeTab === 'practice') {
         if (practiceSubView === 'roadmap') context = 'Interactive Placement Preparation Roadmap';
         else if (practiceSubView === 'questions') context = 'DSA & Practice Questions (solving Arrays)';
-        else if (practiceSubView === 'mock') context = 'Mock Timed Test Exams';
+        else if (practiceSubView === 'mock') context = 'Weak Areas & Revision';
         else context = 'Practice Playground';
       } else if (activeTab === 'progress') {
         if (progressSubView === 'analytics') context = 'Study Duration Analytics & Consistency Streaks';
@@ -3690,7 +3756,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     &larr; Back to Practice
                   </button>
                   <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider">
-                    Practice &gt; {practiceSubView === 'roadmap' ? 'Placement Roadmap' : practiceSubView === 'questions' ? 'Practice Questions' : 'Mock Tests'}
+                    Practice &gt; {practiceSubView === 'roadmap' ? 'Placement Roadmap' : practiceSubView === 'questions' ? 'Practice Questions' : 'Weak Areas & Revision'}
                   </span>
                 </div>
               ) : null}
@@ -3932,16 +3998,103 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   )}
                 </div>
               ) : practiceSubView === 'mock' ? (
-                /* Mock Tests coming soon placeholder */
-                <div className="max-w-md mx-auto p-8 bg-[#0B0F19]/60 border border-white/5 rounded-[28px] text-center space-y-4 shadow-xl text-white animate-in fade-in duration-300 mt-4">
-                  <div className="h-14 w-14 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto shadow-inner text-xl">
-                    📝
-                  </div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-wider">Timed Mock Exams</h3>
-                  <p className="text-xs text-slate-400 leading-relaxed font-semibold">
-                    Simulated timed mock tests and checkpoints for company-specific placement patterns are coming soon in a future update!
-                  </p>
-                </div>
+                /* Weak Areas & Smart Revision View */
+                (() => {
+                  const groups: Record<string, any[]> = {};
+                  incorrectQuestions.forEach(item => {
+                    const topic = item.topic || 'General';
+                    if (!groups[topic]) groups[topic] = [];
+                    groups[topic].push(item);
+                  });
+                  const groupedTopics = Object.keys(groups);
+
+                  const resolvedCount = Math.max(0, totalMistakesCount - incorrectQuestions.length);
+                  const improvementPercent = totalMistakesCount > 0 ? Math.round((resolvedCount / totalMistakesCount) * 100) : 100;
+
+                  return (
+                    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
+                      
+                      {/* Section Title & Description */}
+                      <div className="border-b border-white/5 pb-4 text-left">
+                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                          🔍 Weak Areas & Smart Revision
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">Review and resolve concepts where you previously made errors during practice questions.</p>
+                      </div>
+
+                      {/* Progress Panel */}
+                      {incorrectQuestions.length > 0 && (
+                        <div className="p-6 bg-gradient-to-br from-[#0B0F19] to-[#0A0E1A] border border-white/5 rounded-[24px] flex flex-col sm:flex-row items-center justify-between gap-6 text-left shadow-lg">
+                          <div className="space-y-1">
+                            <h4 className="text-xs font-black text-white uppercase tracking-wider">Revision Progress</h4>
+                            <p className="text-[11px] text-slate-400 font-semibold leading-relaxed">
+                              You have resolved <span className="text-emerald-400 font-black">{resolvedCount}</span> out of <span className="text-indigo-400 font-black">{totalMistakesCount}</span> total recorded mistakes.
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
+                            <div className="w-32 bg-slate-900 border border-white/5 h-2.5 rounded-full overflow-hidden relative">
+                              <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${improvementPercent}%` }} />
+                            </div>
+                            <span className="text-xs font-black text-indigo-400 font-mono shrink-0">{improvementPercent}% Solved</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mistake Listing / Empty State */}
+                      {incorrectQuestions.length === 0 ? (
+                        <div className="p-10 bg-[#0B0F19]/60 border border-white/5 rounded-[28px] text-center space-y-4 shadow-xl text-white">
+                          <div className="h-16 w-16 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/15 flex items-center justify-center mx-auto shadow-inner text-2xl animate-bounce" style={{ animationDuration: '4s' }}>
+                            🎉
+                          </div>
+                          <div className="space-y-1">
+                            <h3 className="text-sm font-black text-white uppercase tracking-wider">Great Job!</h3>
+                            <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                              You haven't made any mistakes yet. Keep practicing to maintain your progress.
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {groupedTopics.map((topic, index) => {
+                            const mistakes = groups[topic];
+                            return (
+                              <div key={index} className="p-5 bg-[#0B0F19]/60 border border-white/5 hover:border-indigo-500/30 rounded-2xl space-y-4 shadow-md text-left flex flex-col justify-between transition-all group">
+                                <div className="space-y-1">
+                                  <span className="text-[9px] font-black uppercase text-indigo-400 tracking-wider bg-indigo-500/10 border border-indigo-500/10 px-2 py-0.5 rounded">
+                                    {topic}
+                                  </span>
+                                  <h4 className="text-sm font-black text-white group-hover:text-indigo-300 transition-colors mt-2">{mistakes.length} Pending Mistakes</h4>
+                                  <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                                    Revise concepts in {topic} and answer previously incorrect questions to clear them from your weak list.
+                                  </p>
+                                </div>
+
+                                <button
+                                  onClick={() => {
+                                    setPracticeSessionQuestions(mistakes);
+                                    setSelectedInterest(topic);
+                                    setQuestionsCountLimit(mistakes.length);
+                                    setActiveQuestionIndex(0);
+                                    setPracticeSessionCompleted(false);
+                                    setPracticeSessionScore(0);
+                                    setPracticeQuizAnswer(null);
+                                    setPracticeQuizFeedback(null);
+                                    setPracticeQuizErrorMessage(null);
+                                    setPracticeSubView('questions');
+                                  }}
+                                  className="w-full py-2 bg-[#5227EB] hover:bg-[#431fd0] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer text-center border-none mt-2"
+                                >
+                                  Review Mistakes &rarr;
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
               ) : (
                 /* Directory cards */
                 <div className="grid md:grid-cols-2 gap-6 pt-4">
@@ -3961,19 +4114,19 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mt-4 block">Start Practicing &rarr;</span>
                   </div>
 
-                  {/* Card 3: Mock Tests */}
+                  {/* Card 3: Weak Areas & Smart Revision */}
                   <div 
                     onClick={() => setPracticeSubView('mock')}
                     className="p-6 bg-gradient-to-br from-[#1E293B]/60 via-[#0F172A]/70 to-[#1e1b4b]/30 border border-white/5 hover:border-indigo-500/40 rounded-[28px] shadow-xl hover:scale-[1.02] cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[200px] text-left group"
                   >
                     <div className="space-y-3">
                       <div className="h-10 w-10 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center shrink-0 text-xl font-bold group-hover:scale-105 transition duration-200">
-                        📝
+                        🔍
                       </div>
-                      <h3 className="text-base font-black text-white group-hover:text-cyan-400 transition-colors">Mock Tests</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed font-semibold">Simulate actual company assessment conditions with timed practice exams and milestones.</p>
+                      <h3 className="text-base font-black text-white group-hover:text-cyan-400 transition-colors">Weak Areas & Smart Revision</h3>
+                      <p className="text-xs text-slate-400 leading-relaxed font-semibold">Identify topics you struggle with, review incorrect questions, and clear them from your list by solving them correctly.</p>
                     </div>
-                    <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mt-4 block">Take Test &rarr;</span>
+                    <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mt-4 block">Review Mistakes &rarr;</span>
                   </div>
 
                 </div>
