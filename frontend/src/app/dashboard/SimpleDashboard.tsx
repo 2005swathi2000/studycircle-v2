@@ -622,7 +622,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                         <div className="h-full bg-indigo-500 rounded-full" style={{ width: '0%' }} />
                       </div>
                       <p className="text-[9px] text-slate-400 font-semibold leading-relaxed">
-                        Complete practice questions, quizzes, and study sessions to earn XP and level up.
+                        Complete your first practice question or join a study room to start earning XP.
                       </p>
                       
                       <button 
