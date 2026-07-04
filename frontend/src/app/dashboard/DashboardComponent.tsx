@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { apiRequest } from '../utils/api';
 import { useApp } from '../context/AppContext';
@@ -659,6 +659,36 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
 
   // Navigation tab state matching sidebar clicks
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const pathname = usePathname();
+
+  // Sync activeTab with pathname (on load or back/forward navigation)
+  useEffect(() => {
+    if (!pathname) return;
+    const segments = pathname.split('/');
+    const currentRole = segments[1]; // student, mentor, admin
+    const currentTab = segments[2]; // dashboard, study, practice, etc.
+
+    if (currentRole === 'student') {
+      if (currentTab === 'dashboard') setActiveTab('dashboard');
+      else if (currentTab === 'study') setActiveTab('study');
+      else if (currentTab === 'practice') setActiveTab('practice');
+      else if (currentTab === 'progress') setActiveTab('progress');
+      else if (currentTab === 'community') setActiveTab('community');
+      else if (currentTab === 'profile') setActiveTab('profile');
+    }
+  }, [pathname]);
+
+  // Sync pathname with activeTab (on user tab click)
+  useEffect(() => {
+    if (!pathname) return;
+    const segments = pathname.split('/');
+    const currentRole = segments[1];
+    const currentTab = segments[2];
+
+    if (currentRole === 'student' && currentTab !== activeTab) {
+      router.push(`/student/${activeTab}`);
+    }
+  }, [activeTab, pathname, router]);
 
   // Global Leaderboard States
   const [leaderboardData, setLeaderboardData] = useState<any>(null);
@@ -2537,7 +2567,6 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     key={t.id}
                     onClick={() => {
                       setTheme(t.id);
-                      showToast(`Theme changed to ${t.label}!`, 'success');
                       setShowThemeSelector(false);
                     }}
                     className={`w-full px-2.5 py-1.5 text-left rounded-xl text-[10px] font-bold transition-all border-none flex items-center justify-between cursor-pointer ${

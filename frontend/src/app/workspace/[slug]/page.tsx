@@ -2516,7 +2516,6 @@ export default function WorkspacePage() {
                   key={t.id}
                   onClick={() => {
                     setTheme(t.id);
-                    showToast(`Theme changed to ${t.label}!`, 'success');
                     setShowThemeSelector(false);
                   }}
                   className={`w-full px-2.5 py-1.5 text-left rounded-xl text-[10px] font-bold transition-all border-none flex items-center justify-between cursor-pointer ${

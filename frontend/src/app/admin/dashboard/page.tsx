@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { apiRequest } from '../../utils/api';
 import { useToast } from '../../components/ToastProvider';
 import { 
@@ -46,6 +46,53 @@ export default function AdminDashboard() {
 
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'mentors' | 'rooms' | 'reports' | 'settings'>('overview');
+  const pathname = usePathname();
+
+  // Sync activeTab with pathname (on load or back/forward navigation)
+  useEffect(() => {
+    if (!pathname) return;
+    const segments = pathname.split('/');
+    const currentRole = segments[1];
+    const currentTab = segments[2];
+
+    if (currentRole === 'admin') {
+      const tabMapRev: Record<string, string> = {
+        'dashboard': 'overview',
+        'users': 'users',
+        'mentors': 'mentors',
+        'study-rooms': 'rooms',
+        'analytics': 'overview',
+        'system-health': 'reports',
+        'settings': 'settings'
+      };
+      if (currentTab in tabMapRev) {
+        setActiveTab(tabMapRev[currentTab] as any);
+      }
+    }
+  }, [pathname]);
+
+  // Sync pathname with activeTab (on user tab click)
+  useEffect(() => {
+    if (!pathname) return;
+    const segments = pathname.split('/');
+    const currentRole = segments[1];
+    const currentTab = segments[2];
+
+    if (currentRole === 'admin') {
+      const adminTabMap: Record<string, string> = {
+        'overview': 'dashboard',
+        'users': 'users',
+        'mentors': 'mentors',
+        'rooms': 'study-rooms',
+        'reports': 'system-health',
+        'settings': 'settings'
+      };
+      const expectedTab = adminTabMap[activeTab] || activeTab;
+      if (currentTab !== expectedTab) {
+        router.push(`/admin/${expectedTab}`);
+      }
+    }
+  }, [activeTab, pathname, router]);
 
   // Core Data States
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useApp } from '../../context/AppContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { apiRequest } from '../../utils/api';
 import { useToast } from '../../components/ToastProvider';
 import { 
@@ -47,6 +47,52 @@ export default function MentorDashboard() {
 
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'rooms' | 'sessions' | 'assignments' | 'analytics' | 'profile'>('dashboard');
+  const pathname = usePathname();
+
+  // Sync activeTab with pathname (on load or back/forward navigation)
+  useEffect(() => {
+    if (!pathname) return;
+    const segments = pathname.split('/');
+    const currentRole = segments[1];
+    const currentTab = segments[2];
+
+    if (currentRole === 'mentor') {
+      const tabMapRev: Record<string, string> = {
+        'dashboard': 'dashboard',
+        'student-roster': 'students',
+        'study-rooms': 'rooms',
+        'mentoring-sessions': 'sessions',
+        'cohort-analytics': 'analytics',
+        'profile': 'profile'
+      };
+      if (currentTab in tabMapRev) {
+        setActiveTab(tabMapRev[currentTab] as any);
+      }
+    }
+  }, [pathname]);
+
+  // Sync pathname with activeTab (on user tab click)
+  useEffect(() => {
+    if (!pathname) return;
+    const segments = pathname.split('/');
+    const currentRole = segments[1];
+    const currentTab = segments[2];
+
+    if (currentRole === 'mentor') {
+      const mentorTabMap: Record<string, string> = {
+        'dashboard': 'dashboard',
+        'students': 'student-roster',
+        'rooms': 'study-rooms',
+        'sessions': 'mentoring-sessions',
+        'analytics': 'cohort-analytics',
+        'profile': 'profile'
+      };
+      const expectedTab = mentorTabMap[activeTab] || activeTab;
+      if (currentTab !== expectedTab) {
+        router.push(`/mentor/${expectedTab}`);
+      }
+    }
+  }, [activeTab, pathname, router]);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showAddGoalInput, setShowAddGoalInput] = useState(false);
 
