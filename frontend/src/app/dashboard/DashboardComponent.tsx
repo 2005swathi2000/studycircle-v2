@@ -3693,14 +3693,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     Practice &gt; {practiceSubView === 'roadmap' ? 'Placement Roadmap' : practiceSubView === 'questions' ? 'Practice Questions' : 'Mock Tests'}
                   </span>
                 </div>
-              ) : (
-                <div>
-                  <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-indigo-400" /> Skill Practice Playground
-                  </h1>
-                  <p className="text-xs text-slate-400 mt-1">Refine your coding, system design, and algorithmic reasoning skills.</p>
-                </div>
-              )}
+              ) : null}
 
               {/* Sub-view Rendering */}
               {practiceSubView === 'roadmap' ? (
@@ -3969,23 +3962,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 </div>
               ) : (
                 /* Directory cards */
-                <div className="grid md:grid-cols-3 gap-6 pt-4">
+                <div className="grid md:grid-cols-2 gap-6 pt-4">
                   
-                  {/* Card 1: Placement Roadmap */}
-                  <div 
-                    onClick={() => setPracticeSubView('roadmap')}
-                    className="p-6 bg-gradient-to-br from-[#1E293B]/60 via-[#0F172A]/70 to-[#1e1b4b]/30 border border-white/5 hover:border-indigo-500/40 rounded-[28px] shadow-xl hover:scale-[1.02] cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[200px] text-left group"
-                  >
-                    <div className="space-y-3">
-                      <div className="h-10 w-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 text-xl font-bold group-hover:scale-105 transition duration-200">
-                        🗺️
-                      </div>
-                      <h3 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors">Placement Roadmap</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed font-semibold">Follow a structured placement roadmap covering DSA, DBMS, OS, CN, Aptitude, and Interview Preparation.</p>
-                    </div>
-                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-4 block">View Roadmap &rarr;</span>
-                  </div>
-
                   {/* Card 2: Practice Questions */}
                   <div 
                     onClick={() => setPracticeSubView('questions')}
