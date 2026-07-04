@@ -596,28 +596,91 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           <div className="space-y-4">
             <h3 className="text-xs font-black uppercase tracking-wider text-slate-350">Academic Progress</h3>
             
-            <div className="space-y-4 pt-1">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
-                  <Award className="h-5 w-5" />
-                </div>
-                <div>
-                  <span className="text-[8px] text-slate-500 font-black block leading-none">CURRENT LEVEL</span>
-                  <span className="text-sm font-black text-white block mt-0.5">Level {stats.level || 5}</span>
-                </div>
-              </div>
+            {(() => {
+              const currentXp = stats.xp || 0;
+              const currentLevel = stats.level || 1;
 
-              <div className="p-3.5 bg-slate-950/40 border border-white/5 rounded-2xl space-y-2">
-                <div className="flex justify-between items-center text-[10px] font-black font-mono tracking-wide text-slate-400">
-                  <span>Level progress</span>
-                  <span>{stats.xp || 480} XP</span>
+              if (currentXp === 0) {
+                return (
+                  <div className="space-y-4 pt-1">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+                        <Award className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <span className="text-[8px] text-slate-500 font-black block leading-none">CURRENT LEVEL</span>
+                        <span className="text-sm font-black text-white block mt-0.5">Level 1</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 bg-slate-950/40 border border-white/5 rounded-2xl space-y-2">
+                      <div className="flex justify-between items-center text-[10px] font-black font-mono tracking-wide text-slate-400">
+                        <span>Level progress</span>
+                        <span>0 / 120 XP</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-white/5">
+                        <div className="h-full bg-indigo-500 rounded-full" style={{ width: '0%' }} />
+                      </div>
+                      <p className="text-[9px] text-slate-400 font-semibold leading-relaxed">
+                        Complete practice questions, quizzes, and study sessions to earn XP and level up.
+                      </p>
+                      
+                      <button 
+                        onClick={() => {
+                          setActiveTab('practice');
+                          setPracticeSubView('questions');
+                        }}
+                        className="w-full mt-2 py-2 bg-indigo-650 hover:bg-indigo-550 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition border-none cursor-pointer text-center"
+                      >
+                        Start Practicing
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Dynamic real values if XP > 0
+              const getLevelMaxXp = (lvl: number) => {
+                if (lvl === 1) return 120;
+                return lvl * 150;
+              };
+              const maxLevelXp = getLevelMaxXp(currentLevel);
+              const progressPercent = Math.min(100, Math.round((currentXp / maxLevelXp) * 100));
+              const remainingXp = Math.max(0, maxLevelXp - currentXp);
+
+              return (
+                <div className="space-y-4 pt-1">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+                      <Award className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <span className="text-[8px] text-slate-500 font-black block leading-none">CURRENT LEVEL</span>
+                      <span className="text-sm font-black text-white block mt-0.5">Level {currentLevel}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-950/40 border border-white/5 rounded-2xl space-y-2">
+                    <div className="flex justify-between items-center text-[10px] font-black font-mono tracking-wide text-slate-400">
+                      <span>Level progress</span>
+                      <span>{currentXp} / {maxLevelXp} XP</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-white/5">
+                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${progressPercent}%` }} />
+                    </div>
+                    {remainingXp > 0 ? (
+                      <p className="text-[9px] text-slate-400 font-semibold leading-relaxed">
+                        Solve practice queries or log study sessions to earn another {remainingXp} XP to rank up.
+                      </p>
+                    ) : (
+                      <p className="text-[9px] text-emerald-450 font-semibold leading-relaxed">
+                        Ready to level up! Keep going to unlock the next checkpoint.
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-white/5">
-                  <div className="h-full bg-indigo-500 rounded-full" style={{ width: '65%' }} />
-                </div>
-                <p className="text-[9px] text-slate-500 font-semibold leading-relaxed">Solve practice queries to earn another 120 XP to rank up.</p>
-              </div>
-            </div>
+              );
+            })()}
           </div>
         </div>
 
