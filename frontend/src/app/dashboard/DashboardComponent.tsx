@@ -573,14 +573,12 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
         });
         setTodayChallengeSolved(true);
         setTodayChallengeFeedback('correct');
-        showToast('Correct! +20 XP and +10 Coins claimed successfully!', 'success');
         loadDashboardData(null);
       } catch (err: any) {
         showToast('Error claiming challenge rewards: ' + (err.message || err), 'error');
       }
     } else {
       setTodayChallengeFeedback('wrong');
-      showToast('Incorrect answer. Review explanation or try again!', 'error');
     }
   };
 
@@ -3793,9 +3791,14 @@ Based on your desking logs and consistency, the AI tutor recommends:
                           )}
 
                           {todayChallengeSolved && (
-                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 rounded-xl text-xs leading-relaxed animate-in slide-in-from-bottom-2 duration-300">
-                              <strong className="text-white block mb-0.5 uppercase tracking-wide text-[10px]">Explanation:</strong>
-                              {challenge.explanation}
+                            <div className="space-y-3 animate-in slide-in-from-bottom-2 duration-300">
+                              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold">
+                                🎉 Correct! +20 XP and +10 Coins claimed successfully!
+                              </div>
+                              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-455 rounded-xl text-xs leading-relaxed">
+                                <strong className="text-white block mb-0.5 uppercase tracking-wide text-[10px]">Explanation:</strong>
+                                {challenge.explanation}
+                              </div>
                             </div>
                           )}
 
@@ -3883,11 +3886,11 @@ Based on your desking logs and consistency, the AI tutor recommends:
                         </h3>
                         <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">Download references, cheat sheets, and blueprints directly linked to your practice questions.</p>
                         <div className="grid md:grid-cols-2 gap-4 pt-1 font-sans">
-                          <a href="#" onClick={(e) => { e.preventDefault(); showToast('Downloading Java Arrays & DSA Cheat Sheet.pdf...', 'success'); }} className="p-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between text-[10px] font-bold text-slate-200 cursor-pointer">
+                          <a href="/Java Arrays & DSA Cheat Sheet.pdf" download="Java Arrays & DSA Cheat Sheet.pdf" className="p-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between text-[10px] font-bold text-slate-200 cursor-pointer">
                             <span>📄 Java Arrays & DSA Cheat Sheet.pdf</span>
                             <span className="text-indigo-300 text-[9px] font-black uppercase">Download &darr;</span>
                           </a>
-                          <a href="#" onClick={(e) => { e.preventDefault(); showToast('Downloading Complexity Quick Reference Card.pdf...', 'success'); }} className="p-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between text-[10px] font-bold text-slate-200 cursor-pointer">
+                          <a href="/Complexity Quick Reference Card.pdf" download="Complexity Quick Reference Card.pdf" className="p-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between text-[10px] font-bold text-slate-200 cursor-pointer">
                             <span>📄 Complexity Quick Reference Card.pdf</span>
                             <span className="text-indigo-300 text-[9px] font-black uppercase">Download &darr;</span>
                           </a>
@@ -6028,50 +6031,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     </div>
                   </div>
 
-                  {/* AI Recommendations Card (Exactly matching mockup layout & assets) */}
-                  <div className="p-6 bg-gradient-to-r from-[#0B0F19]/90 to-[#0A0E1A]/80 border border-slate-800 rounded-[28px] shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden text-left">
-                    <div className="flex-1 space-y-2 text-center md:text-left">
-                      <h4 className="text-xs font-black uppercase text-[#8B5CF6] flex items-center justify-center md:justify-start gap-1 font-mono tracking-wider">
-                        ✨ AI TUTOR INSIGHTS
-                      </h4>
-                      <p className="text-xs text-zinc-350 leading-relaxed font-semibold max-w-xl">
-                        Your AI academic assistant is ready to help you with learning, study tips, concept explanations and much more.
-                      </p>
-                    </div>
 
-                    {/* Cute blue robot head illustration */}
-                    <div className="flex justify-center items-center shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="h-20 w-20 select-none animate-bounce" style={{ animationDuration: '6s' }}>
-                        <defs>
-                          <radialGradient id="robotGlow" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.4" />
-                            <stop offset="100%" stopColor="#818CF8" stopOpacity="0" />
-                          </radialGradient>
-                        </defs>
-                        <circle cx="50" cy="50" r="45" fill="url(#robotGlow)" />
-                        <rect x="47" y="12" width="6" height="12" fill="#818CF8" rx="3" />
-                        <circle cx="50" cy="10" r="6" fill="#A78BFA" />
-                        <rect x="12" y="42" width="10" height="16" fill="#4F46E5" rx="5" />
-                        <rect x="78" y="42" width="10" height="16" fill="#4F46E5" rx="5" />
-                        <rect x="18" y="24" width="64" height="52" fill="#1E1B4B" rx="22" stroke="#818CF8" strokeWidth="2.5" />
-                        <rect x="25" y="32" width="50" height="34" fill="#0B0F19" rx="14" stroke="#4F46E5" strokeWidth="1.5" />
-                        <circle cx="38" cy="46" r="4.5" fill="#38BDF8" className="animate-pulse" />
-                        <circle cx="38" cy="46" r="1.5" fill="#FFFFFF" />
-                        <circle cx="62" cy="46" r="4.5" fill="#38BDF8" className="animate-pulse" />
-                        <circle cx="62" cy="46" r="1.5" fill="#FFFFFF" />
-                        <path d="M42 54 Q50 59 58 54" stroke="#A78BFA" strokeWidth="2.5" strokeLinecap="round" fill="transparent" />
-                      </svg>
-                    </div>
-
-                    <div className="shrink-0">
-                      <button
-                        onClick={() => window.dispatchEvent(new CustomEvent('open-ai-tutor'))}
-                        className="px-6 py-3.5 bg-[#5227EB] hover:bg-[#431fd0] text-white text-xs font-black rounded-2xl shadow-lg border border-indigo-500/20 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer shadow-indigo-950/30 font-mono tracking-wide"
-                      >
-                        <Sparkles className="h-4 w-4 fill-white/20" /> Ask AI Tutor
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
