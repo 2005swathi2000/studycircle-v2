@@ -1,25 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Clock, 
-  Activity, 
-  CheckSquare, 
   Flame, 
-  FileText, 
-  Users, 
-  Sparkles, 
-  ArrowRight, 
-  Play, 
-  Plus, 
-  UserPlus, 
-  Award,
-  Upload,
-  X,
-  Edit3,
-  HelpCircle,
-  Trash2
+  BookOpen, 
+  Award, 
+  TrendingUp, 
+  CheckCircle2, 
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
-import { apiRequest } from '../utils/api';
-import { useToast } from '../components/ToastProvider';
 
 interface SimpleDashboardProps {
   user: any;
@@ -30,6 +18,9 @@ interface SimpleDashboardProps {
     focusCoins?: number;
     xp?: number;
     level?: number;
+    coursesEnrolled?: number;
+    completedCourses?: number;
+    certificatesEarned?: number;
   };
   loading?: boolean;
   myGroups: any[];
@@ -54,1030 +45,244 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   loading = false,
   myGroups,
   availableGroups,
-  dailyMissions,
   getGreeting,
   router,
   setActiveTab,
-  setStudySubView,
-  setPracticeSubView,
-  setProgressSubView,
-  setCommunitySubView,
-  setProfileSubView,
-  setSelectedInterest,
-  completedGoals,
-  setCompletedGoals
+  setStudySubView
 }) => {
-  const { showToast } = useToast();
   const [lastActivity, setLastActivity] = useState<any>(null);
 
-  // Today's Focus Goals State
-  const [focusGoals, setFocusGoals] = useState<any[]>([
-    { id: 'concept', label: 'Revise Weak Concepts' },
-    { id: 'pomodoro', label: 'Run 2 Pomodoro Sessions' },
-    { id: 'dsa', label: 'Solve 5 DSA Problems' }
-  ]);
-  const [newGoalText, setNewGoalText] = useState('');
-  const [showAddGoalInput, setShowAddGoalInput] = useState(false);
+  // Today's goals interactive states
+  const [lessonGoalCompleted, setLessonGoalCompleted] = useState(false);
+  const [quizGoalCompleted, setQuizGoalCompleted] = useState(true); // default to 1/2 completed for mockup consistency
 
-  // Quick Action Modal States
-  const [showCreateNoteModal, setShowCreateNoteModal] = useState(false);
-  const [showJoinRoomModal, setShowJoinRoomModal] = useState(false);
-  const [showUploadNotesModal, setShowUploadNotesModal] = useState(false);
-
-  // create note fields
-  const [noteTitle, setNoteTitle] = useState('');
-  const [noteContent, setNoteContent] = useState('');
-  const [noteGroupId, setNoteGroupId] = useState('');
-  const [savingNote, setSavingNote] = useState(false);
-
-  // upload notes fields
-  const [uploadGroupId, setUploadGroupId] = useState('');
-  const [uploadDesc, setUploadDesc] = useState('');
-  const [selectedFile, setSelectedFile] = useState<any>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-
-  const handleSaveNote = async () => {
-    if (!noteTitle.trim() || !noteContent.trim() || !noteGroupId) {
-      showToast("All fields are required.", "error");
-      return;
-    }
-    setSavingNote(true);
-    try {
-      await apiRequest('/notes', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: noteTitle,
-          content: noteContent,
-          groupId: noteGroupId
-        })
-      });
-      showToast('Note created successfully! +20 XP earned.', 'success');
-      setShowCreateNoteModal(false);
-      setNoteTitle('');
-      setNoteContent('');
-      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('studycircle-data-refresh'));
-    } catch (e: any) {
-      showToast(e.message || 'Failed to create note.', 'error');
-    } finally {
-      setSavingNote(false);
-    }
-  };
-
-  const handleSimulatedUpload = async () => {
-    if (!uploadGroupId || !uploadDesc || !selectedFile) {
-      showToast("Please fill all fields and select a file.", "error");
-      return;
-    }
-    setIsUploading(true);
-    setUploadProgress(0);
-    
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 25;
-      });
-    }, 250);
-
-    setTimeout(async () => {
-      try {
-        await apiRequest('/notes', {
-          method: 'POST',
-          body: JSON.stringify({
-            title: selectedFile.name || 'document.pdf',
-            content: `[Uploaded Note Reference: ${uploadDesc}]`,
-            groupId: uploadGroupId
-          })
-        });
-        showToast('Notes file uploaded successfully! +20 XP earned.', 'success');
-        setShowUploadNotesModal(false);
-        setUploadDesc('');
-        setSelectedFile(null);
-        setUploadProgress(0);
-        setIsUploading(false);
-        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('studycircle-data-refresh'));
-      } catch (e: any) {
-        showToast(e.message || 'Upload failed.', 'error');
-        setIsUploading(false);
-      }
-    }, 1200);
-  };
-
-  const handleJoinPublicCircle = async (groupId: string) => {
-    try {
-      const data = await apiRequest(`/groups/${groupId}/join-public`, {
-        method: 'POST'
-      });
-      showToast(data.message || 'Successfully joined study circle! +10 XP earned.', 'success');
-      setShowJoinRoomModal(false);
-      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('studycircle-data-refresh'));
-    } catch (err: any) {
-      showToast(err.message || 'Failed to join study circle.', 'error');
-    }
-  };
-
-  // Read dynamic Continue Learning last activity from localStorage on mount
+  // Read last activity session from localStorage on mount
   useEffect(() => {
-    const checkActivity = () => {
-      if (typeof window !== 'undefined') {
-        const item = localStorage.getItem('studycircle_last_activity');
-        if (item) {
-          try {
-            setLastActivity(JSON.parse(item));
-          } catch (e) {
-            console.error(e);
-          }
+    if (typeof window !== 'undefined') {
+      const item = localStorage.getItem('studycircle_last_activity');
+      if (item) {
+        try {
+          setLastActivity(JSON.parse(item));
+        } catch (e) {
+          console.error("Error reading last activity: ", e);
         }
       }
-    };
-    checkActivity();
-    window.addEventListener('studycircle-activity-update', checkActivity);
-    return () => {
-      window.removeEventListener('studycircle-activity-update', checkActivity);
-    };
+    }
   }, []);
 
-  const studyHours = stats.totalStudyHours || 0.0;
-  const hoursInt = Math.floor(studyHours);
-  const minsInt = Math.round((studyHours % 1) * 60);
-  const studyHoursFormatted = `${hoursInt}h ${String(minsInt).padStart(2, '0')}m`;
-  const streakDays = stats.streakCount || 12; // CEO defaults to 12
-
-  // Toggle Daily Goal checklists
-  const toggleGoal = (goalId: string) => {
-    if (completedGoals.includes(goalId)) {
-      setCompletedGoals(prev => prev.filter(g => g !== goalId));
-    } else {
-      setCompletedGoals(prev => [...prev, goalId]);
-    }
+  const handleContinueLearning = () => {
+    setActiveTab('study');
+    setStudySubView('workspaces');
   };
 
-  const handleAddGoal = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newGoalText.trim()) return;
-    const newId = `g-${Date.now()}`;
-    setFocusGoals(prev => [...prev, { id: newId, label: newGoalText.trim() }]);
-    setNewGoalText('');
-    setShowAddGoalInput(false);
-    showToast('Focus goal added!', 'success');
+  const handleStartRecommended = () => {
+    setActiveTab('study');
+    setStudySubView('workspaces');
   };
 
-  const handleDeleteGoal = (id: string) => {
-    setFocusGoals(prev => prev.filter(g => g.id !== id));
-    setCompletedGoals(prev => prev.filter(g => g !== id));
-    showToast('Focus goal deleted', 'info');
-  };
+  // Dynamic values binding
+  const currentCourseName = lastActivity?.courseName || 'Advanced DSA';
+  const currentLessonName = lastActivity?.lessonName || 'Lesson 8 of 20';
+  const currentProgress = lastActivity?.progress !== undefined ? lastActivity.progress : 40;
 
-  if (loading) {
-    return (
-      <div className="space-y-8 text-white text-left font-sans animate-pulse">
-        {/* Hero Area Skeleton */}
-        <div className="h-48 bg-white/5 border border-white/5 rounded-[32px] flex flex-col justify-between p-8">
-          <div className="space-y-3">
-            <div className="h-6 w-48 bg-white/10 rounded-lg" />
-            <div className="h-4 w-96 bg-white/5 rounded-lg" />
-          </div>
-          <div className="h-10 w-32 bg-white/10 rounded-xl" />
-        </div>
+  const coursesEnrolled = myGroups?.length || 4;
+  const completedCourses = stats?.completedCourses !== undefined ? stats.completedCourses : 1;
+  const certificatesEarned = stats?.certificatesEarned !== undefined ? stats.certificatesEarned : 1;
+  const currentStreak = stats?.streakCount !== undefined ? stats.streakCount : 5;
 
-        {/* Quick Actions Skeleton */}
-        <div className="bg-[#0B0F19]/45 border border-white/5 p-6 rounded-[28px] space-y-4">
-          <div className="h-4 w-32 bg-white/10 rounded-lg" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-28 bg-[#1E293B]/40 border border-white/5 rounded-2xl p-5 flex flex-col justify-between">
-                <div className="h-8 w-8 bg-white/10 rounded-xl" />
-                <div className="space-y-1.5">
-                  <div className="h-3 w-16 bg-white/10 rounded-lg" />
-                  <div className="h-2.5 w-24 bg-white/5 rounded-lg" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Focus Goals & Milestone Skeletons */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-64 bg-[#0B0F19] border border-white/5 rounded-[28px] p-5 flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <div className="h-4 w-28 bg-white/10 rounded-lg" />
-                  <div className="h-4 w-12 bg-white/5 rounded-lg" />
-                </div>
-                <div className="space-y-2">
-                  <div className="h-10 bg-white/5 rounded-xl" />
-                  <div className="h-10 bg-white/5 rounded-xl" />
-                </div>
-              </div>
-              <div className="h-8 bg-white/5 rounded-xl" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const completedGoalsCount = (lessonGoalCompleted ? 1 : 0) + (quizGoalCompleted ? 1 : 0);
 
   return (
-    <div className="space-y-8 text-white text-left font-sans animate-in fade-in duration-300">
+    <div className="space-y-8 text-white text-left font-sans animate-in fade-in duration-300 max-w-5xl mx-auto">
       
-      {/* ================= HERO AREA ================= */}
-      <div className="relative overflow-hidden p-8 bg-gradient-to-r from-[#1E293B]/70 via-[#0F172A]/80 to-[#1e1b4b]/30 border border-white/5 rounded-[32px] shadow-2xl backdrop-blur-md">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/5">
-          <div className="text-left space-y-1">
-            <h1 className="text-2xl font-black text-white tracking-tight">
-              {getGreeting()}! 👋
-            </h1>
-            <p className="text-xs text-slate-400 font-semibold leading-relaxed">Let's coordinate focus desking to keep your placement ready milestones accelerating.</p>
-          </div>
-
-          {/* Streak Indicator Removed */}
-        </div>
-
-        {/* Continue Learning Widget */}
-        <div className="pt-6">
-          {lastActivity ? (
-            <div className="space-y-3">
-              <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400 font-mono">CONTINUE LEARNING</span>
-              <div className="p-4 bg-slate-950/40 border border-white/5 rounded-2xl flex items-center gap-3">
-                <div className="h-10 w-10 bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 rounded-xl flex items-center justify-center text-lg shrink-0">
-                  💻
-                </div>
-                <div className="text-left">
-                  <span className="text-[9px] text-[#10B981] font-black uppercase tracking-wider block">Last Active Session</span>
-                  <h4 className="text-xs font-black text-white mt-0.5">{lastActivity.courseName}</h4>
-                  <span className="text-[10px] text-slate-450 font-semibold mt-0.5 block">{lastActivity.lessonName}</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* New User Onboarding On-Journey State */
-            <div className="space-y-3">
-              <span className="text-[9px] font-black uppercase tracking-widest text-[#10B981] font-mono">START YOUR LEARNING JOURNEY</span>
-              <div className="p-4 bg-emerald-950/15 border border-emerald-500/10 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="text-left space-y-1">
-                  <h4 className="text-xs font-black text-white">Unlock Placement Preparedness</h4>
-                  <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
-                    Set up your primary study interest to unlock guided DSA questions, group revision sessions, and mock assessment metrics.
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setActiveTab('practice');
-                    setPracticeSubView('questions');
-                  }}
-                  className="px-5 py-2.5 bg-[#10B981] hover:bg-[#059669] text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition cursor-pointer border-none shrink-0"
-                >
-                  Choose Interest &rarr;
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+      {/* 1. Welcome Header */}
+      <div className="pb-4">
+        <h1 className="text-3xl font-black text-white tracking-tight">
+          Hi, {user?.firstName || user?.fullName?.split(' ')[0] || 'Swathi'} 👋
+        </h1>
+        <p className="text-sm text-zinc-400 font-bold mt-1">
+          Ready to continue your learning today?
+        </p>
       </div>
 
-      {/* ================= QUICK ACTIONS ================= */}
-      <div className="bg-[#0B0F19]/45 border border-white/5 p-6 rounded-[28px] backdrop-blur-md shadow-xl text-left space-y-4">
-        <h3 className="text-xs font-black uppercase tracking-wider text-slate-350">⚡ Quick Actions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Main Layout Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Left Column - 70% width */}
+        <div className="lg:col-span-7 space-y-8">
           
-          {/* Action 1: Create Note */}
-          <button 
-            onClick={() => {
-              if (myGroups.length > 0) setNoteGroupId(myGroups[0].id);
-              setShowCreateNoteModal(true);
-            }}
-            className="p-5 bg-[#1E293B]/40 hover:bg-white/[0.03] border border-white/5 hover:border-indigo-500/30 rounded-2xl text-left flex flex-col justify-between h-28 group transition-all duration-300 active:scale-[0.98] cursor-pointer"
-          >
-            <div className="h-8 w-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm group-hover:scale-110 transition duration-200">
-              <Edit3 className="h-4 w-4" />
-            </div>
-            <div>
-              <h4 className="text-xs font-black text-white">Create Note</h4>
-              <p className="text-[9px] text-slate-400 mt-0.5 font-semibold">Jot down instant notes</p>
-            </div>
-          </button>
-
-          {/* Action 2: Ask Doubt */}
-          <button 
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('open-ai-tutor', { 
-                detail: { prefill: 'I need help with...' } 
-              }));
-            }}
-            className="p-5 bg-[#1E293B]/40 hover:bg-white/[0.03] border border-white/5 hover:border-rose-500/30 rounded-2xl text-left flex flex-col justify-between h-28 group transition-all duration-300 active:scale-[0.98] cursor-pointer"
-          >
-            <div className="h-8 w-8 rounded-xl bg-rose-500/10 text-rose-455 flex items-center justify-center text-sm group-hover:scale-110 transition duration-200">
-              <HelpCircle className="h-4 w-4 text-rose-400" />
-            </div>
-            <div>
-              <h4 className="text-xs font-black text-white">Ask Doubt</h4>
-              <p className="text-[9px] text-slate-400 mt-0.5 font-semibold">Query AI tutor instantly</p>
-            </div>
-          </button>
-
-          {/* Action 3: Join Room */}
-          <button 
-            onClick={() => setShowJoinRoomModal(true)}
-            className="p-5 bg-[#1E293B]/40 hover:bg-white/[0.03] border border-white/5 hover:border-emerald-500/30 rounded-2xl text-left flex flex-col justify-between h-28 group transition-all duration-300 active:scale-[0.98] cursor-pointer"
-          >
-            <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-455 flex items-center justify-center text-sm group-hover:scale-110 transition duration-200">
-              <Users className="h-4 w-4 text-emerald-400" />
-            </div>
-            <div>
-              <h4 className="text-xs font-black text-white">Join Room</h4>
-              <p className="text-[9px] text-slate-400 mt-0.5 font-semibold">Enter a learning circle</p>
-            </div>
-          </button>
-
-          {/* Action 4: Upload Notes */}
-          <button 
-            onClick={() => {
-              if (myGroups.length > 0) setUploadGroupId(myGroups[0].id);
-              setShowUploadNotesModal(true);
-            }}
-            className="p-5 bg-[#1E293B]/40 hover:bg-white/[0.03] border border-white/5 hover:border-cyan-500/30 rounded-2xl text-left flex flex-col justify-between h-28 group transition-all duration-300 active:scale-[0.98] cursor-pointer"
-          >
-            <div className="h-8 w-8 rounded-xl bg-cyan-500/10 text-cyan-455 flex items-center justify-center text-sm group-hover:scale-110 transition duration-200">
-              <Upload className="h-4 w-4 text-cyan-400" />
-            </div>
-            <div>
-              <h4 className="text-xs font-black text-white">Upload Notes</h4>
-              <p className="text-[9px] text-slate-400 mt-0.5 font-semibold">Share files with peers</p>
-            </div>
-          </button>
-
-        </div>
-      </div>
-
-      {/* ================= TODAY'S FOCUS ================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Widget 1: Daily Goals Checklist */}
-        <div className="bg-[#0B0F19] border border-white/5 rounded-[28px] p-5 shadow-lg flex flex-col justify-between text-left">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-350 flex items-center gap-1.5">
-                <CheckSquare className="h-4 w-4 text-indigo-400" /> Today's Focus Goals
-              </h3>
-              <span className="text-[10px] font-extrabold text-indigo-400 font-mono uppercase bg-indigo-500/10 px-2 py-0.5 rounded">
-                {completedGoals.filter(g => focusGoals.some(fg => fg.id === g)).length} / {focusGoals.length} Done
-              </span>
-            </div>
+          {/* 2. Continue Learning Card */}
+          <div className="relative overflow-hidden p-6 bg-gradient-to-br from-[#1E293B] to-[#0F172A] border border-white/10 rounded-[24px] shadow-xl hover:scale-[1.01] transition-all duration-300">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
             
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {focusGoals.length === 0 ? (
-                <p className="text-[10px] text-zinc-500 italic py-2 text-center">No focus tasks listed.</p>
-              ) : (
-                focusGoals.map(goal => {
-                  const isChecked = completedGoals.includes(goal.id);
-                  return (
-                    <div 
-                      key={goal.id}
-                      className="p-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between gap-3 transition-colors"
-                    >
-                      <label className="flex items-center gap-3 cursor-pointer flex-1 select-none">
-                        <input 
-                          type="checkbox" 
-                          checked={isChecked}
-                          onChange={() => toggleGoal(goal.id)}
-                          className="rounded border-white/10 text-indigo-650 focus:ring-indigo-500/40 bg-slate-950 h-3.5 w-3.5 cursor-pointer"
-                        />
-                        <span className={`text-[11px] font-semibold transition-all ${isChecked ? 'line-through text-slate-500' : 'text-slate-200'}`}>
-                          {goal.label}
-                        </span>
-                      </label>
-                      <button
-                        onClick={() => handleDeleteGoal(goal.id)}
-                        className="p-1 hover:bg-red-950/20 text-zinc-500 hover:text-red-400 rounded transition-all border-none bg-transparent cursor-pointer"
-                        title="Delete Goal"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">Resume Last Course</span>
+                <span className="text-[10px] font-extrabold text-[#10B981] bg-[#10B981]/10 px-2.5 py-0.5 rounded-full">Active</span>
+              </div>
+              
+              <div className="space-y-1">
+                <h2 className="text-xl font-black text-white leading-tight">{currentCourseName}</h2>
+                <p className="text-xs text-zinc-400 font-bold">{currentLessonName}</p>
+              </div>
 
-            {/* Add Goal Input Area */}
-            {!showAddGoalInput ? (
+              {/* Progress Bar */}
+              <div className="space-y-1.5 pt-2">
+                <div className="flex justify-between text-[10px] font-extrabold text-zinc-300">
+                  <span>Progress</span>
+                  <span>{currentProgress}% Complete</span>
+                </div>
+                <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/5">
+                  <div 
+                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500" 
+                    style={{ width: `${currentProgress}%` }}
+                  />
+                </div>
+              </div>
+
               <button
-                onClick={() => setShowAddGoalInput(true)}
-                className="w-full py-2.5 bg-white/[0.01] hover:bg-white/5 border border-white/5 rounded-xl text-[10px] text-zinc-300 font-bold transition-all cursor-pointer mt-2"
+                onClick={handleContinueLearning}
+                className="mt-2 w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center justify-center gap-2"
               >
-                + Add Custom Goal
+                Continue Learning <ArrowRight className="h-3.5 w-3.5" />
               </button>
-            ) : (
-              <form onSubmit={handleAddGoal} className="flex gap-2 mt-2">
-                <input
-                  type="text"
-                  placeholder="Enter focus task..."
-                  value={newGoalText}
-                  onChange={(e) => setNewGoalText(e.target.value)}
-                  className="flex-1 bg-[#060813] border border-white/5 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-500 placeholder-zinc-600"
-                  autoFocus
-                />
-                <div className="flex gap-1">
-                  <button
-                    type="submit"
-                    className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold border-none cursor-pointer transition-all"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setShowAddGoalInput(false); setNewGoalText(''); }}
-                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-xs font-bold border-none cursor-pointer transition-all"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-          
-          <div className="pt-4 mt-4 border-t border-white/5">
-            <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-white/5">
-              <div 
-                className="h-full bg-indigo-500 rounded-full transition-all duration-300"
-                style={{ width: `${Math.round((completedGoals.filter(g => focusGoals.some(fg => fg.id === g)).length / Math.max(1, focusGoals.length)) * 100)}%` }}
-              />
             </div>
           </div>
-        </div>
 
-        {/* Widget 2: Peer Learning Hub Teaser */}
-        <div className="bg-[#0B0F19] border border-white/5 rounded-[28px] p-5 shadow-lg flex flex-col justify-between text-left">
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xs font-black uppercase tracking-wider text-white">Peer Learning Hub</h3>
-              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-350 border border-emerald-500/20 text-[8px] font-black uppercase shrink-0 tracking-wider">Collaborative</span>
-            </div>
-            
-            <div className="p-4 bg-white/[0.01] border border-white/5 rounded-2xl text-left space-y-3">
-              <p className="text-[11px] font-extrabold text-slate-200 leading-relaxed">
-                Join study circles, share curated notes, and participate in peer doubt-solving to accelerate your progress.
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                <span className="text-[9px] font-black uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded">
-                  Status: Active
-                </span>
-                <span className="text-[9px] text-slate-550 font-bold uppercase">
-                  Ready
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Widget 3: Upcoming Deadlines & Tasks (Segmented by date) */}
-        <div className="bg-[#0B0F19] border border-white/5 rounded-[28px] p-5 shadow-lg flex flex-col justify-between text-left">
-          <div className="space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-350">Upcoming Milestones</h3>
-            
-            <div className="space-y-3 text-[10px] font-semibold leading-snug max-h-48 overflow-y-auto scrollbar-none pr-1">
+          {/* 5. Recommended Course */}
+          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[24px] shadow-lg hover:scale-[1.01] transition-all duration-300">
+            <div className="space-y-4">
+              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">Recommended for You</span>
               
-              {/* Today list */}
-              <div className="space-y-1.5 text-left">
-                <span className="text-[8px] font-extrabold text-indigo-400 uppercase tracking-widest block font-mono">📅 TODAY</span>
-                <div className="p-2 bg-white/[0.01] border border-white/5 rounded-xl flex items-center justify-between">
-                  <span className="text-slate-200">OS Cluster Live revision session</span>
-                  <span className="text-indigo-400 font-bold shrink-0">05:00 PM</span>
-                </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-white">System Design Basics</h3>
+                <p className="text-[10px] text-zinc-500 font-semibold">Master high-availability architectures and microservices.</p>
               </div>
 
-              {/* This Week list */}
-              <div className="space-y-1.5 text-left pt-1">
-                <span className="text-[8px] font-extrabold text-amber-500 uppercase tracking-widest block font-mono">⏳ THIS WEEK</span>
-                <div className="space-y-1">
-                  <div className="p-2 bg-white/[0.01] border border-white/5 rounded-xl flex items-center justify-between">
-                    <span className="text-slate-200">Submit DBMS Schema homework</span>
-                    <span className="text-slate-500 font-bold shrink-0">Wed</span>
-                  </div>
-                  <div className="p-2 bg-white/[0.01] border border-white/5 rounded-xl flex items-center justify-between">
-                    <span className="text-slate-200">Mock Assessment 1: Full-Stack</span>
-                    <span className="text-slate-500 font-bold shrink-0">Sat</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Completed Recently list */}
-              <div className="space-y-1.5 text-left pt-1">
-                <span className="text-[8px] font-extrabold text-[#10B981] uppercase tracking-widest block font-mono">✅ COMPLETED RECENTLY</span>
-                <div className="p-2 bg-white/[0.01] border border-white/5 rounded-xl flex items-center justify-between opacity-60">
-                  <span className="text-slate-450 line-through">Complete profile details</span>
-                  <span className="text-[#10B981] font-bold shrink-0 font-mono">100%</span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* ================= PROGRESS SNAPSHOT & INSIGHTS ================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Widget 1: Weekly Insights AI Coach (Conversational Insights) */}
-        <div className="lg:col-span-2 bg-[#0B0F19] border border-white/5 rounded-[28px] p-5 shadow-lg flex flex-col justify-between text-left relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
-          
-          <div className="space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-350 flex items-center gap-1.5">
-              <Sparkles className="h-4 w-4 text-indigo-400" /> Weekly Insights AI Coach
-            </h3>
-            
-            <div className="grid md:grid-cols-2 gap-4 pt-1">
-              <div className="p-4 bg-slate-950/40 border border-white/5 rounded-2xl space-y-1 flex flex-col justify-between min-h-[90px]">
-                <span className="text-[9px] text-[#A78BFA] font-black uppercase tracking-wider font-mono">Focus Summary</span>
-                <p className="text-[11px] font-semibold text-slate-200 leading-normal">
-                  "Great work! You studied **5.2 focus hours** more this week than last week."
-                </p>
-              </div>
-              
-              <div className="p-4 bg-slate-950/40 border border-white/5 rounded-2xl space-y-1 flex flex-col justify-between min-h-[90px]">
-                <span className="text-[9px] text-[#10B981] font-black uppercase tracking-wider font-mono">Concept Path</span>
-                <p className="text-[11px] font-semibold text-slate-200 leading-normal">
-                  "You are consistently improving in DSA. We recommend learning **Graphs** next!"
-                </p>
-              </div>
-              
-              <div className="p-4 bg-slate-950/40 border border-white/5 rounded-2xl space-y-1 flex flex-col justify-between min-h-[90px]">
-                <span className="text-[9px] text-amber-500 font-black uppercase tracking-wider font-mono">Streak Insight</span>
-                <p className="text-[11px] font-semibold text-slate-200 leading-normal">
-                  "You keep maintaining your consistency. You are just **1 challenge away** from reaching Level 6."
-                </p>
-              </div>
-
-              <div className="p-4 bg-slate-955/40 border border-white/5 rounded-2xl space-y-1 flex flex-col justify-between min-h-[90px]">
-                <span className="text-[9px] text-[#38BDF8] font-black uppercase tracking-wider font-mono">📈 Next Goal</span>
-                <p className="text-[11px] font-semibold text-slate-200 leading-normal">
-                  "Complete **2 more DSA questions** today to earn **+20 XP**."
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Widget 2: Today's Focus Goals */}
-        <div className="bg-[#0B0F19] border border-white/5 rounded-[28px] p-5 shadow-lg flex flex-col justify-between text-left">
-          <div className="space-y-4 w-full">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-350 flex items-center gap-1.5">
-                🎯 Today's Goals
-              </h3>
-              <span className="text-[10px] font-black uppercase text-indigo-400 tracking-wider font-mono">
-                {(() => {
-                  const completedCount = focusGoals.filter(g => completedGoals.includes(g.id)).length;
-                  return `${completedCount}/${focusGoals.length} Done`;
-                })()}
-              </span>
-            </div>
-
-            {/* Notion-style Sleek Progress Bar */}
-            <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden border border-white/5">
-              {(() => {
-                const completedCount = focusGoals.filter(g => completedGoals.includes(g.id)).length;
-                const percent = focusGoals.length > 0 ? Math.round((completedCount / focusGoals.length) * 100) : 0;
-                return <div className="h-full bg-indigo-500 rounded-full transition-all duration-300" style={{ width: `${percent}%` }} />;
-              })()}
-            </div>
-            
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {focusGoals.map((goal) => {
-                const isCompleted = completedGoals.includes(goal.id);
-                return (
-                  <div key={goal.id} className="group p-2.5 bg-slate-950/40 border border-white/5 rounded-xl flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => {
-                          if (isCompleted) {
-                            setCompletedGoals(prev => prev.filter(id => id !== goal.id));
-                            showToast('Goal marked as incomplete.', 'info');
-                          } else {
-                            setCompletedGoals(prev => [...prev, goal.id]);
-                            showToast('Goal completed! +10 XP', 'success');
-                          }
-                        }}
-                        className={`h-4.5 w-4.5 rounded-md border flex items-center justify-center transition-all cursor-pointer ${
-                          isCompleted
-                            ? 'bg-indigo-655 border-indigo-500 text-white'
-                            : 'border-slate-700 bg-transparent hover:border-slate-500'
-                        }`}
-                      >
-                        {isCompleted && <span className="text-[9px] font-black">✓</span>}
-                      </button>
-                      <span className={`text-[11px] font-semibold transition-all ${
-                        isCompleted ? 'text-slate-500 line-through' : 'text-slate-200'
-                      }`}>
-                        {goal.label}
-                      </span>
-                    </div>
-                    
-                    <button
-                      onClick={() => {
-                        setFocusGoals(prev => prev.filter(g => g.id !== goal.id));
-                        setCompletedGoals(prev => prev.filter(id => id !== goal.id));
-                        showToast('Goal removed.', 'info');
-                      }}
-                      className="opacity-0 group-hover:opacity-100 hover:text-red-405 text-slate-550 transition-all border-none bg-transparent cursor-pointer p-0.5"
-                      title="Delete Goal"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Add Goal Section */}
-            {showAddGoalInput ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!newGoalText.trim()) return;
-                  const newId = `g-${Date.now()}`;
-                  setFocusGoals(prev => [...prev, { id: newId, label: newGoalText.trim() }]);
-                  setNewGoalText('');
-                  setShowAddGoalInput(false);
-                  showToast('New goal added!', 'success');
-                }}
-                className="flex gap-2 items-center pt-1"
-              >
-                <input
-                  type="text"
-                  value={newGoalText}
-                  onChange={(e) => setNewGoalText(e.target.value)}
-                  placeholder="Enter a new goal..."
-                  className="flex-1 px-3 py-2 bg-slate-950 border border-white/10 rounded-xl text-[10px] text-white font-bold outline-none focus:border-indigo-500/50"
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  className="px-3 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase rounded-xl border-none cursor-pointer transition-all"
-                >
-                  Add
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddGoalInput(false);
-                    setNewGoalText('');
-                  }}
-                  className="p-2 bg-slate-950 border border-white/10 rounded-xl text-slate-500 hover:text-white cursor-pointer"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </form>
-            ) : (
               <button
-                onClick={() => setShowAddGoalInput(true)}
-                className="w-full py-2 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 text-[10px] font-black uppercase tracking-wider rounded-xl transition border border-dashed border-white/10 cursor-pointer text-center"
+                onClick={handleStartRecommended}
+                className="px-5 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border border-white/5"
               >
-                + Add Custom Goal
+                Start Learning
               </button>
-            )}
+            </div>
           </div>
-        </div>
 
-      </div>
-
-      {/* ================= SOCIAL & COMMUNITY ================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Widget 1: Action-Oriented Study Rooms */}
-        <div className="lg:col-span-2 bg-[#0B0F19] border border-white/5 rounded-[28px] p-5 shadow-lg flex flex-col justify-between text-left">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-350 flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-indigo-400" /> Active Study Rooms
-              </h3>
-              <span className="text-[10px] font-black uppercase text-indigo-400 tracking-wider font-mono">
-                {availableGroups.length > 0 ? `${availableGroups.length} Rooms Active` : '0 Rooms Active'}
-              </span>
-            </div>
-
-            {/* Live Presence Statistics */}
-            <div className="flex items-center gap-4 text-[10px] text-slate-400 font-bold bg-white/[0.01] border border-white/5 rounded-xl px-4 py-2 mt-1 self-start">
-              <span>🟢 {availableGroups.length} rooms active</span>
-              <span className="text-white/10">|</span>
-              <span>👥 12 students desk-sharing</span>
-            </div>
-
-            {availableGroups.length === 0 ? (
-              /* CEO Friendly Empty State */
-              <div className="p-6 bg-slate-950/20 border border-dashed border-white/5 rounded-2xl text-center space-y-2">
-                <span className="text-xl block">🏫</span>
-                <p className="text-xs font-black text-slate-400">No active study rooms right now.</p>
-                <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">Be the first to start a room and invite your batchmates to desk together!</p>
-              </div>
-            ) : (
-              /* Live Presence Updates */
-              <div className="grid md:grid-cols-2 gap-4">
-                {availableGroups.slice(0, 2).map((room, idx) => (
-                  <div key={idx} className="p-4 bg-slate-950/40 border border-white/5 rounded-2xl flex flex-col justify-between min-h-[110px]">
-                    <div className="text-left space-y-1">
-                      <span className="text-[8px] text-emerald-450 font-black uppercase tracking-wider block font-mono">
-                        🔥 Live Presence
-                      </span>
-                      <h4 className="text-xs font-black text-white leading-tight">{room.name}</h4>
-                      <p className="text-[9px] text-slate-450 leading-relaxed font-semibold">
-                        {idx === 0 ? "Rahul is solving Arrays, Rahul joined 2m ago." : "3 students discussing DBMS normalization."}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        const slug = room.id === 'ai-room' ? 'ai-ml' : 'programming-dsa';
-                        router.push(`/workspace/${slug}`);
-                      }}
-                      className="px-3 py-1.5 bg-[#5227EB]/20 hover:bg-[#5227EB] text-indigo-300 hover:text-white border border-[#5227EB]/30 text-[9px] font-black uppercase tracking-widest rounded-xl transition cursor-pointer mt-3 self-start"
-                    >
-                      Join Circle &rarr;
-                    </button>
+          {/* 6. Recent Activity */}
+          <div className="p-6 bg-[#0B0F19]/40 border border-white/5 rounded-[24px] shadow-sm text-left">
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Recent Activity</h3>
+              
+              <div className="space-y-2.5">
+                {[
+                  'Completed Java Quiz',
+                  'Earned Java Certificate',
+                  'Finished Lesson 10'
+                ].map((act, i) => (
+                  <div key={i} className="flex items-center gap-2.5 text-xs text-zinc-300 font-semibold py-0.5">
+                    <CheckCircle2 className="h-4 w-4 text-[#10B981] shrink-0" />
+                    <span>{act}</span>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Widget 2: Social Leaderboard Teaser */}
-        <div className="bg-[#0B0F19] border border-white/5 rounded-[28px] p-5 shadow-lg flex flex-col justify-between text-left">
-          <div className="space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-350">Academic Standings</h3>
-            
-            <div className="p-4 bg-slate-950/40 border border-white/5 rounded-2xl space-y-3">
-              <div className="text-left">
-                <span className="text-[8px] text-slate-500 font-black block">YOUR CURRENT STANDING</span>
-                <span className="text-base font-black text-white block mt-0.5">Top 10% of Batch</span>
-                <p className="text-[9px] text-emerald-500 font-semibold leading-relaxed mt-1">Consistency rating improved by 20% compared to last week.</p>
-              </div>
-
             </div>
           </div>
+
         </div>
 
-      </div>
-
-      {/* ================= ACADEMIC JOURNEY OVERVIEW ================= */}
-      <div className="bg-[#0B0F19]/40 border border-white/5 p-6 rounded-[28px] backdrop-blur-md shadow-xl text-left">
-        <h3 className="text-xs font-black uppercase tracking-wider text-slate-350 mb-5 flex items-center gap-1.5">
-          <span>🛡️ Your Academic Placement Journey</span>
-        </h3>
-        
-        {/* Linear Progress Road Map */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          {[
-            { step: 1, name: "Beginner", desc: "Syllabus onboarding", active: true, done: true },
-            { step: 2, name: "Learning", desc: "Notes & resources", active: true, done: true },
-            { step: 3, name: "Practicing", desc: "Daily challenges", active: true, done: false },
-            { step: 4, name: "Consistency", desc: "Keep streaks hot", active: false, done: false },
-            { step: 5, name: "Achievements", desc: "Badges & certificates", active: false, done: false },
-            { step: 6, name: "Placement Ready", desc: "Mock test benchmark", active: false, done: false }
-          ].map((item, idx) => (
-            <div 
-              key={idx}
-              className={`p-4 rounded-2xl border text-left flex flex-col justify-between min-h-[90px] transition-all ${
-                item.done 
-                  ? 'bg-emerald-500/5 border-emerald-500/20 text-white' 
-                  : item.active 
-                    ? 'bg-indigo-500/5 border-indigo-500/25 text-white shadow-md shadow-indigo-500/5' 
-                    : 'bg-[#0B0F19]/60 border-white/5 text-slate-500'
-              }`}
-            >
+        {/* Right Column - 30% width */}
+        <div className="lg:col-span-5 space-y-8">
+          
+          {/* 3. Today's Goal */}
+          <div className="p-6 bg-[#0B0F19] border border-white/10 rounded-[24px] shadow-lg text-left">
+            <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black font-mono">STEP {item.step}</span>
-                {item.done && <span className="text-emerald-450 text-xs font-black">✓</span>}
-                {!item.done && item.active && <span className="h-1.5 w-1.5 bg-indigo-500 rounded-full animate-ping" />}
+                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Today's Goal</h3>
+                <span className="text-[10px] font-extrabold text-indigo-400 font-mono uppercase bg-indigo-500/10 px-2 py-0.5 rounded">
+                  {completedGoalsCount} / 2 Completed
+                </span>
               </div>
-              <div className="space-y-0.5 mt-2">
-                <h4 className="text-xs font-black leading-tight">{item.name}</h4>
-                <p className={`text-[8px] font-semibold leading-normal ${item.done ? 'text-slate-400' : item.active ? 'text-slate-350' : 'text-slate-600'}`}>{item.desc}</p>
+
+              {/* Interactive checklist */}
+              <div className="space-y-3 pt-1">
+                {/* Checkbox 1: Complete 1 Lesson */}
+                <div 
+                  onClick={() => setLessonGoalCompleted(!lessonGoalCompleted)}
+                  className="p-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center gap-3 transition-colors cursor-pointer select-none"
+                >
+                  <div className={`h-4.5 w-4.5 rounded-md border flex items-center justify-center transition-all ${
+                    lessonGoalCompleted 
+                      ? 'bg-[#10B981] border-[#10B981] text-white' 
+                      : 'border-slate-700 bg-transparent'
+                  }`}>
+                    {lessonGoalCompleted && <span className="text-[9px] font-black">✓</span>}
+                  </div>
+                  <span className={`text-xs font-bold transition-all ${lessonGoalCompleted ? 'line-through text-slate-500' : 'text-slate-200'}`}>
+                    Complete 1 Lesson
+                  </span>
+                </div>
+
+                {/* Checkbox 2: Attempt 1 Quiz */}
+                <div 
+                  onClick={() => setQuizGoalCompleted(!quizGoalCompleted)}
+                  className="p-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center gap-3 transition-colors cursor-pointer select-none"
+                >
+                  <div className={`h-4.5 w-4.5 rounded-md border flex items-center justify-center transition-all ${
+                    quizGoalCompleted 
+                      ? 'bg-[#10B981] border-[#10B981] text-white' 
+                      : 'border-slate-700 bg-transparent'
+                  }`}>
+                    {quizGoalCompleted && <span className="text-[9px] font-black">✓</span>}
+                  </div>
+                  <span className={`text-xs font-bold transition-all ${quizGoalCompleted ? 'line-through text-slate-500' : 'text-slate-200'}`}>
+                    Attempt 1 Quiz
+                  </span>
+                </div>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* 4. My Progress */}
+          <div className="p-6 bg-[#0B0F19] border border-white/10 rounded-[24px] shadow-lg text-left">
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">My Progress</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                
+                {/* Courses Enrolled */}
+                <div className="p-3.5 bg-slate-900/50 border border-white/5 rounded-2xl text-left">
+                  <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Courses Enrolled</span>
+                  <span className="text-xl font-black text-white block mt-1">{coursesEnrolled}</span>
+                </div>
+
+                {/* Completed Courses */}
+                <div className="p-3.5 bg-slate-900/50 border border-white/5 rounded-2xl text-left">
+                  <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Completed Courses</span>
+                  <span className="text-xl font-black text-white block mt-1">{completedCourses}</span>
+                </div>
+
+                {/* Certificates Earned */}
+                <div className="p-3.5 bg-slate-900/50 border border-white/5 rounded-2xl text-left">
+                  <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Certificates</span>
+                  <span className="text-xl font-black text-white block mt-1">{certificatesEarned}</span>
+                </div>
+
+                {/* Current Streak */}
+                <div className="p-3.5 bg-slate-900/50 border border-white/5 rounded-2xl text-left flex flex-col justify-between">
+                  <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Current Streak</span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Flame className="h-5 w-5 text-orange-500 shrink-0 fill-orange-500/10" />
+                    <span className="text-xl font-black text-white">{currentStreak} Days</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
         </div>
+
       </div>
-
-      {/* ================= MODALS & DRAWERS FOR QUICK ACTIONS ================= */}
-      
-      {/* 1. Create Note Modal */}
-      {showCreateNoteModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-[#0b0f19] border border-white/10 rounded-[32px] w-full max-w-lg p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 text-left">
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <h3 className="text-sm font-black uppercase tracking-wider text-white">Create Note</h3>
-              <button 
-                onClick={() => setShowCreateNoteModal(false)}
-                className="text-slate-400 hover:text-white transition cursor-pointer p-1 rounded-lg hover:bg-white/5 border-none bg-transparent"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Select Study Circle / Room</label>
-                <select 
-                  value={noteGroupId}
-                  onChange={(e) => setNoteGroupId(e.target.value)}
-                  className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                >
-                  {myGroups.map(g => (
-                    <option key={g.id} value={g.id}>{g.name} ({g.subject})</option>
-                  ))}
-                  {myGroups.length === 0 && <option value="">No rooms joined yet</option>}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Note Title</label>
-                <input 
-                  type="text" 
-                  value={noteTitle}
-                  onChange={(e) => setNoteTitle(e.target.value)}
-                  placeholder="Enter note title..."
-                  className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Notes content</label>
-                <textarea 
-                  value={noteContent}
-                  onChange={(e) => setNoteContent(e.target.value)}
-                  placeholder="Type your notes here..."
-                  rows={6}
-                  className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none resize-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 justify-end pt-2">
-              <button 
-                onClick={() => setShowCreateNoteModal(false)}
-                className="px-4 py-2 bg-transparent hover:bg-white/5 border border-white/5 text-slate-400 hover:text-white text-[10px] font-black uppercase rounded-xl transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleSaveNote}
-                disabled={savingNote || myGroups.length === 0}
-                className="px-4 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase rounded-xl transition cursor-pointer border-none"
-              >
-                {savingNote ? 'Saving...' : 'Save Note'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 2. Join Room Popup Modal */}
-      {showJoinRoomModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-[#0b0f19] border border-white/10 rounded-[32px] w-full max-w-md p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 text-left">
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <h3 className="text-sm font-black uppercase tracking-wider text-white">Join Recommended Rooms</h3>
-              <button 
-                onClick={() => setShowJoinRoomModal(false)}
-                className="text-slate-400 hover:text-white transition cursor-pointer p-1 rounded-lg hover:bg-white/5 border-none bg-transparent"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3.5 max-h-80 overflow-y-auto pr-1">
-              {availableGroups.map((room) => (
-                <div key={room.id} className="p-3.5 bg-slate-900 border border-white/5 rounded-2xl flex justify-between items-center gap-3">
-                  <div className="text-left">
-                    <span className="text-[8px] text-indigo-400 font-mono font-black uppercase">{room.subject}</span>
-                    <h4 className="text-xs font-black text-white mt-0.5">{room.name}</h4>
-                    <p className="text-[9px] text-slate-400 line-clamp-1 mt-0.5">{room.description || 'Database study group.'}</p>
-                  </div>
-                  <button
-                    onClick={() => handleJoinPublicCircle(room.id)}
-                    className="px-3.5 py-1.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[9px] font-black uppercase rounded-xl transition border-none cursor-pointer shrink-0"
-                  >
-                    Join
-                  </button>
-                </div>
-              ))}
-              {availableGroups.length === 0 && (
-                <p className="text-xs text-slate-450 text-center py-4">No available public rooms found.</p>
-              )}
-            </div>
-
-            <div className="pt-2 border-t border-white/5 flex justify-end">
-              <button 
-                onClick={() => setShowJoinRoomModal(false)}
-                className="px-4 py-2 bg-transparent hover:bg-white/5 border border-white/5 text-slate-400 hover:text-white text-[10px] font-black uppercase rounded-xl transition cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3. Upload Notes Modal */}
-      {showUploadNotesModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-[#0b0f19] border border-white/10 rounded-[32px] w-full max-w-lg p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 text-left">
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <h3 className="text-sm font-black uppercase tracking-wider text-white">Upload Notes File</h3>
-              <button 
-                onClick={() => setShowUploadNotesModal(false)}
-                className="text-slate-400 hover:text-white transition cursor-pointer p-1 rounded-lg hover:bg-white/5 border-none bg-transparent"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3.5">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Select Target Room</label>
-                <select 
-                  value={uploadGroupId}
-                  onChange={(e) => setUploadGroupId(e.target.value)}
-                  className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                >
-                  {myGroups.map(g => (
-                    <option key={g.id} value={g.id}>{g.name} ({g.subject})</option>
-                  ))}
-                  {myGroups.length === 0 && <option value="">No rooms joined yet</option>}
-                </select>
-              </div>
-
-              {/* Drag and Drop Zone */}
-              <div 
-                onClick={() => document.getElementById('notes-file-picker')?.click()}
-                className="border-2 border-dashed border-white/10 hover:border-indigo-500/50 rounded-2xl p-6 text-center hover:bg-white/[0.01] transition-all cursor-pointer space-y-2"
-              >
-                <input 
-                  id="notes-file-picker"
-                  type="file" 
-                  className="hidden" 
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) setSelectedFile(file);
-                  }}
-                />
-                <span className="text-2xl block">📂</span>
-                <p className="text-xs font-black text-slate-200">
-                  {selectedFile ? `Selected: ${selectedFile.name}` : 'Drag & Drop your file or click to browse'}
-                </p>
-                <p className="text-[9px] text-slate-500">Supports PDF, DOCX, TXT, PPTX (Max 15MB)</p>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">File Description</label>
-                <input 
-                  type="text" 
-                  value={uploadDesc}
-                  onChange={(e) => setUploadDesc(e.target.value)}
-                  placeholder="Add file description (e.g. Chapter 3 Normalization study guide)..."
-                  className="w-full bg-slate-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                />
-              </div>
-
-              {isUploading && (
-                <div className="space-y-1.5 pt-1.5">
-                  <div className="flex justify-between text-[9px] font-black text-slate-400">
-                    <span>Uploading...</span>
-                    <span>{uploadProgress}%</span>
-                  </div>
-                  <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-white/5">
-                    <div className="h-full bg-indigo-500 rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }} />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-3 justify-end pt-2">
-              <button 
-                onClick={() => setShowUploadNotesModal(false)}
-                className="px-4 py-2 bg-transparent hover:bg-white/5 border border-white/5 text-slate-400 hover:text-white text-[10px] font-black uppercase rounded-xl transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleSimulatedUpload}
-                disabled={isUploading || myGroups.length === 0 || !selectedFile}
-                className="px-4 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase rounded-xl transition cursor-pointer border-none"
-              >
-                {isUploading ? 'Uploading...' : 'Upload notes'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );
