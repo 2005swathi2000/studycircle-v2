@@ -3963,6 +3963,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
         className={`flex-1 flex flex-col min-w-0 h-screen overflow-y-auto transition-colors duration-500 ${
         equippedTheme === 'cyberpunk' ? 'bg-[#0e021a]' :
         equippedTheme === 'zengarden' ? 'bg-[#03140a]' :
+        equippedTheme === 'theme_solar_glow' ? 'bg-[#130b05]' :
+        equippedTheme === 'theme_dark_nebula' ? 'bg-[#0a0512]' :
         'bg-[#060913]'
       }`}>
         
@@ -3970,6 +3972,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
         <header className={`w-full h-16 border-b backdrop-blur-md flex items-center justify-between px-8 shrink-0 sticky top-0 z-20 transition-colors duration-500 ${
           equippedTheme === 'cyberpunk' ? 'bg-[#0e021a]/80 border-fuchsia-500/10' :
           equippedTheme === 'zengarden' ? 'bg-[#03140a]/80 border-emerald-500/10' :
+          equippedTheme === 'theme_solar_glow' ? 'bg-[#130b05]/80 border-amber-500/10' :
+          equippedTheme === 'theme_dark_nebula' ? 'bg-[#0a0512]/80 border-purple-500/10' :
           'bg-[#060913]/80 border-white/5'
         }`}>
           
@@ -4108,8 +4112,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
               {[
                 { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
                 { id: 'study', label: 'Study Circles', icon: GraduationCap },
-                { id: 'practice', label: 'Practice', icon: Sparkles },
-                { id: 'progress', label: 'Achievements', icon: TrendingUp }
+                { id: 'practice', label: 'Practice', icon: Sparkles }
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;

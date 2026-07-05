@@ -13,6 +13,7 @@ const Otp = require('./Otp');
 const Notification = require('./Notification');
 const Challenge = require('./Challenge');
 const MentorRating = require('./MentorRating');
+const Assignment = require('./Assignment');
 
 // M-M relations
 User.belongsToMany(Group, { through: GroupMember, foreignKey: 'userId' });
@@ -69,6 +70,10 @@ Challenge.belongsTo(Group, { foreignKey: 'groupId' });
 User.hasMany(Challenge, { foreignKey: 'createdBy', as: 'CreatedChallenges' });
 Challenge.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
 
+// Assignments
+User.hasMany(Assignment, { foreignKey: 'createdBy', as: 'CreatedAssignments' });
+Assignment.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
+
 // Mentor Ratings
 User.hasMany(MentorRating, { as: 'MentorRatings', foreignKey: 'mentorId', onDelete: 'CASCADE' });
 MentorRating.belongsTo(User, { as: 'Mentor', foreignKey: 'mentorId' });
@@ -90,7 +95,8 @@ module.exports = {
   Otp,
   Notification,
   Challenge,
-  MentorRating
+  MentorRating,
+  Assignment
 };
 
 

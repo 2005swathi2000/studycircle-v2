@@ -4,6 +4,33 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Get all doubts (Mentor/Admin only)
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'mentor' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Mentors or Administrators privileges required.' });
+    }
+    const doubts = await Doubt.findAll({
+      order: [['createdAt', 'DESC']],
+      include: [
+        {
+          model: User,
+          as: 'Author',
+          attributes: ['fullName', 'username', 'role']
+        },
+        {
+          model: Group,
+          attributes: ['name']
+        }
+      ]
+    });
+    return res.json({ doubts });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error retrieving doubts.' });
+  }
+});
+
 // Get doubts in a group
 router.get('/group/:groupId', authMiddleware, async (req, res) => {
   try {

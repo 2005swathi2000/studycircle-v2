@@ -800,7 +800,7 @@ router.get('/students', authMiddleware, async (req, res) => {
     const { Op } = require('sequelize');
     const students = await User.findAll({
       where: { role: 'student' },
-      attributes: ['id', 'fullName', 'username', 'email', 'phone', 'gender', 'streakCount', 'totalStudyHours', 'xp', 'focusCoins', 'level', 'department', 'badges', 'createdAt']
+      attributes: ['id', 'fullName', 'username', 'email', 'phone', 'gender', 'streakCount', 'totalStudyHours', 'xp', 'focusCoins', 'level', 'department', 'badges', 'learningGoal', 'learningLevel', 'lastStudyDate', 'createdAt']
     });
     return res.json({ students });
   } catch (err) {

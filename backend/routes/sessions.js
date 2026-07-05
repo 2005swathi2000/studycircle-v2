@@ -4,6 +4,30 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Get all academic sessions
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const sessions = await Session.findAll({
+      order: [['scheduledAt', 'ASC']],
+      include: [
+        {
+          model: User,
+          as: 'Creator',
+          attributes: ['fullName', 'username']
+        },
+        {
+          model: Group,
+          attributes: ['name']
+        }
+      ]
+    });
+    return res.json({ sessions });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error retrieving sessions.' });
+  }
+});
+
 // Get upcoming sessions for a group
 router.get('/group/:groupId', authMiddleware, async (req, res) => {
   try {

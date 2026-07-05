@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Flame, 
-  BookOpen, 
-  Award, 
-  TrendingUp, 
   CheckCircle2, 
   ArrowRight,
+  BookOpen,
+  Award,
+  Trophy,
+  Clock,
+  Check,
+  MoreVertical,
+  Calendar,
   Sparkles
 } from 'lucide-react';
 
@@ -43,319 +47,456 @@ interface SimpleDashboardProps {
 export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   user,
   stats,
-  loading = false,
   myGroups,
-  availableGroups,
-  getGreeting,
-  router,
   setActiveTab,
   setStudySubView,
+  setPracticeSubView,
+  setCommunitySubView,
   equippedTheme
 }) => {
-  const [lastActivity, setLastActivity] = useState<any>(null);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
+  
+  // Local storage values for quizzes/practice questions
+  const [practiceAttempts, setPracticeAttempts] = useState(0);
+  const [practiceCorrect, setPracticeCorrect] = useState(0);
+  const [practiceXP, setPracticeXP] = useState(0);
 
-  // Today's goals interactive states
-  const [lessonGoalCompleted, setLessonGoalCompleted] = useState(false);
-  const [quizGoalCompleted, setQuizGoalCompleted] = useState(true); // default to 1/2 completed for mockup consistency
-
-  // Read last activity session from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const item = localStorage.getItem('studycircle_last_activity');
-      if (item) {
-        try {
-          setLastActivity(JSON.parse(item));
-        } catch (e) {
-          console.error("Error reading last activity: ", e);
-        }
-      }
+      const atts = parseInt(localStorage.getItem('studycircle_practice_attempts') || '0', 10);
+      const corrects = parseInt(localStorage.getItem('studycircle_practice_correct') || '0', 10);
+      const pxp = parseInt(localStorage.getItem('studycircle_practice_xp') || '0', 10);
+      setPracticeAttempts(atts);
+      setPracticeCorrect(corrects);
+      setPracticeXP(pxp);
     }
   }, []);
 
-  const getThemeConfig = (themeId?: string) => {
-    switch (themeId) {
-      case 'zengarden': // Emerald
-        return {
-          primary: 'text-[#10B981]',
-          bgPrimary: 'bg-[#10B981]',
-          bgPrimaryHover: 'hover:bg-[#0d9488]',
-          bgPrimaryLight: 'bg-[#10B981]/10',
-          borderPrimary: 'border-[#10B981]',
-          borderPrimaryLight: 'border-[#10B981]/20',
-          accentColor: '#10B981',
-          progressGradient: 'from-emerald-500 to-teal-500',
-          resumeBg: 'bg-emerald-400',
-          labelColor: 'text-[#10B981]',
-          labelBg: 'bg-[#10B981]/10',
-        };
-      case 'cyberpunk': // Violet
-        return {
-          primary: 'text-fuchsia-500',
-          bgPrimary: 'bg-fuchsia-600',
-          bgPrimaryHover: 'hover:bg-fuchsia-700',
-          bgPrimaryLight: 'bg-fuchsia-500/10',
-          borderPrimary: 'border-fuchsia-500',
-          borderPrimaryLight: 'border-fuchsia-500/20',
-          accentColor: '#D946EF',
-          progressGradient: 'from-fuchsia-500 to-purple-500',
-          resumeBg: 'bg-fuchsia-400',
-          labelColor: 'text-fuchsia-400',
-          labelBg: 'bg-fuchsia-500/10',
-        };
-      case 'theme_solar_glow': // Sunset
-        return {
-          primary: 'text-amber-500',
-          bgPrimary: 'bg-amber-600',
-          bgPrimaryHover: 'hover:bg-amber-700',
-          bgPrimaryLight: 'bg-amber-500/10',
-          borderPrimary: 'border-amber-500',
-          borderPrimaryLight: 'border-amber-500/20',
-          accentColor: '#F59E0B',
-          progressGradient: 'from-amber-500 to-orange-500',
-          resumeBg: 'bg-amber-400',
-          labelColor: 'text-amber-400',
-          labelBg: 'bg-amber-500/10',
-        };
-      case 'theme_dark_nebula': // Midnight
-        return {
-          primary: 'text-indigo-400',
-          bgPrimary: 'bg-indigo-600',
-          bgPrimaryHover: 'hover:bg-indigo-700',
-          bgPrimaryLight: 'bg-indigo-500/10',
-          borderPrimary: 'border-indigo-500',
-          borderPrimaryLight: 'border-indigo-500/20',
-          accentColor: '#6366F1',
-          progressGradient: 'from-indigo-500 to-purple-500',
-          resumeBg: 'bg-indigo-400',
-          labelColor: 'text-indigo-400',
-          labelBg: 'bg-indigo-500/10',
-        };
-      case 'default':
-      default: // Ocean (Default)
-        return {
-          primary: 'text-blue-500',
-          bgPrimary: 'bg-blue-600',
-          bgPrimaryHover: 'hover:bg-blue-700',
-          bgPrimaryLight: 'bg-blue-500/10',
-          borderPrimary: 'border-blue-500',
-          borderPrimaryLight: 'border-blue-500/20',
-          accentColor: '#3B82F6',
-          progressGradient: 'from-blue-500 to-indigo-500',
-          resumeBg: 'bg-blue-400',
-          labelColor: 'text-blue-400',
-          labelBg: 'bg-blue-500/10',
-        };
+  // Determine if it's a completely new user with zero state
+  const isZeroState = 
+    (myGroups?.length || 0) === 0 && 
+    (stats?.xp || 0) === 0 && 
+    (stats?.totalStudyHours || 0) === 0 && 
+    (stats?.streakCount || 0) === 0 && 
+    practiceAttempts === 0;
+
+  // 1. Calculate active course & completion percentage
+  const activeCourse = myGroups && myGroups.length > 0 ? myGroups[0] : null;
+  
+  let currentCourseName = 'Start your learning journey.';
+  let currentLessonName = 'Choose an interest to begin learning.';
+  let currentProgress = 0;
+  let remainingLessons = 0;
+  let lastAccessedDate = 'Never accessed';
+
+  if (activeCourse) {
+    const slug = activeCourse.subject ? activeCourse.subject.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'programming-dsa';
+    
+    // Check completed lessons in local storage
+    let completedLessonIds: string[] = [];
+    let lastLessonId = '';
+    
+    if (typeof window !== 'undefined') {
+      try {
+        completedLessonIds = JSON.parse(localStorage.getItem('sc_completed_' + slug) || '[]');
+        lastLessonId = localStorage.getItem('sc_lesson_' + slug) || '';
+      } catch (e) {
+        completedLessonIds = [];
+      }
+    }
+    
+    // Total lessons mapped per course category
+    let totalLessons = 10;
+    if (slug.includes('dsa') || slug.includes('programming')) {
+      totalLessons = 20;
+    } else if (slug.includes('ai') || slug.includes('machine')) {
+      totalLessons = 15;
+    }
+
+    currentCourseName = activeCourse.name || 'Programming & DSA';
+    currentLessonName = lastLessonId ? `Resuming: Lesson ID ${lastLessonId}` : 'Solve Practice Questions';
+    currentProgress = totalLessons > 0 ? Math.min(100, Math.round((completedLessonIds.length / totalLessons) * 100)) : 0;
+    remainingLessons = Math.max(0, totalLessons - completedLessonIds.length);
+    lastAccessedDate = completedLessonIds.length > 0 ? 'Today' : 'Just joined';
+  }
+
+  // 2. Today's Goals generation based on current progress
+  useEffect(() => {
+    const generatedGoals = [];
+    if (isZeroState) {
+      generatedGoals.push({ id: 'g-1', text: "Choose an interest to begin", completed: false });
+      generatedGoals.push({ id: 'g-2', text: "Join a Study Circle", completed: false });
+      generatedGoals.push({ id: 'g-3', text: "Complete Lesson 1", completed: false });
+    } else {
+      // Dynamic goals based on active study
+      const completedLesson = activeCourse && currentProgress > 0;
+      generatedGoals.push({ 
+        id: 'g-1', 
+        text: `Complete Lesson ${activeCourse ? Math.min(20, Math.round((currentProgress / 100) * 20) + 1) : 1}`, 
+        completed: completedLesson 
+      });
+      generatedGoals.push({ 
+        id: 'g-2', 
+        text: "Attempt 1 Quiz", 
+        completed: practiceAttempts > 0 
+      });
+      generatedGoals.push({ 
+        id: 'g-3', 
+        text: "Solve 5 Practice Questions", 
+        completed: practiceCorrect >= 5,
+        progress: `${Math.min(5, practiceCorrect)}/5`
+      });
+    }
+    setGoals(generatedGoals);
+  }, [isZeroState, activeCourse, currentProgress, practiceAttempts, practiceCorrect]);
+
+  // 3. Dynamic Recent Activity list
+  useEffect(() => {
+    const actList = [];
+    if (isZeroState) {
+      // Zero state activity
+    } else {
+      if (practiceAttempts > 0) {
+        actList.push({
+          type: 'quiz',
+          title: `Completed practice quiz session`,
+          subtext: `Solved ${practiceCorrect} correctly`,
+          time: 'Just now'
+        });
+      }
+      if (stats?.totalStudyHours > 0) {
+        actList.push({
+          type: 'study',
+          title: `Studied in Circle Voice Room`,
+          subtext: `Logged ${stats.totalStudyHours} hours`,
+          time: '1h ago'
+        });
+      }
+      if (activeCourse && currentProgress > 0) {
+        actList.push({
+          type: 'lesson',
+          title: `Finished Lesson in ${activeCourse.name}`,
+          subtext: `${currentProgress}% Complete`,
+          time: '2h ago'
+        });
+      }
+    }
+    setActivities(actList);
+  }, [isZeroState, activeCourse, currentProgress, stats, practiceAttempts, practiceCorrect]);
+
+  // 4. Progress calculations
+  const enrolledCount = isZeroState ? 0 : (myGroups?.length || 0);
+  const completedCount = isZeroState ? 0 : (activeCourse && currentProgress >= 100 ? 1 : 0);
+  const certificatesCount = isZeroState ? 0 : (activeCourse && currentProgress >= 100 && practiceAttempts > 0 ? 1 : 0);
+  const averageQuizScore = isZeroState ? 0 : (practiceAttempts > 0 ? Math.round((practiceCorrect / practiceAttempts) * 100) : 0);
+  const overallProgressPercent = isZeroState ? 0 : (activeCourse ? currentProgress : 0);
+
+  // Recommendations static but zeroed progress for new users
+  const recommendations = [
+    { id: 'rec-1', title: 'System Design Basics', desc: 'Master high-availability architectures.', progress: isZeroState ? 0 : 35, iconBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+    { id: 'rec-2', title: 'Database Management System', desc: 'Strengthen your DBMS concepts.', progress: isZeroState ? 0 : 20, iconBg: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+    { id: 'rec-3', title: 'Graph Algorithms', desc: 'Learn BFS, DFS, Dijkstra and more.', progress: isZeroState ? 0 : 15, iconBg: 'bg-purple-500/10 text-purple-400 border-purple-500/20' }
+  ];
+
+  // Theme helper
+  const getThemeColor = () => {
+    switch (equippedTheme) {
+      case 'zengarden': return 'from-emerald-500 to-teal-500';
+      case 'cyberpunk': return 'from-fuchsia-500 to-purple-500';
+      case 'theme_solar_glow': return 'from-amber-500 to-orange-500';
+      case 'theme_dark_nebula': return 'from-indigo-500 to-purple-600';
+      default: return 'from-indigo-500 to-blue-600';
     }
   };
 
-  const themeConfig = getThemeConfig(equippedTheme);
-
-  const handleContinueLearning = () => {
-    setActiveTab('study');
-    setStudySubView('workspaces');
-  };
-
-  const handleStartRecommended = () => {
-    setActiveTab('study');
-    setStudySubView('workspaces');
-  };
-
-  // Dynamic values binding
-  const currentCourseName = lastActivity?.courseName || 'Advanced DSA';
-  const currentLessonName = lastActivity?.lessonName || 'Lesson 8 of 20';
-  const currentProgress = lastActivity?.progress !== undefined ? lastActivity.progress : 40;
-
-  const coursesEnrolled = myGroups?.length || 4;
-  const completedCourses = stats?.completedCourses !== undefined ? stats.completedCourses : 1;
-  const certificatesEarned = stats?.certificatesEarned !== undefined ? stats.certificatesEarned : 1;
-  const currentStreak = stats?.streakCount !== undefined ? stats.streakCount : 5;
-
-  const completedGoalsCount = (lessonGoalCompleted ? 1 : 0) + (quizGoalCompleted ? 1 : 0);
+  const themeGradient = getThemeColor();
 
   return (
-    <div className="space-y-8 text-white text-left font-sans animate-in fade-in duration-300 max-w-5xl mx-auto">
+    <div className="space-y-6 text-white text-left font-sans animate-in fade-in duration-300 max-w-7xl mx-auto px-4 md:px-0">
       
-      {/* 1. Welcome Header */}
-      <div className="pb-4">
-        <h1 className="text-3xl font-black text-white tracking-tight">
-          Hi, {user?.firstName || user?.fullName?.split(' ')[0] || 'Swathi'} 👋
-        </h1>
-        <p className="text-sm text-zinc-400 font-bold mt-1">
-          Ready to continue your learning today?
-        </p>
+      {/* Welcome Greeting */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-white/5 gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+            Hi, {user?.firstName || user?.fullName?.split(' ')[0] || 'Student'} 👋
+          </h1>
+          <p className="text-xs text-zinc-400 font-semibold mt-0.5">
+            {isZeroState ? "Start your learning journey." : "Track your daily study consistency and progress."}
+          </p>
+        </div>
       </div>
 
-      {/* Main Layout Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Responsive Two-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
         
-        {/* Left Column - 70% width */}
-        <div className="lg:col-span-7 space-y-8">
+        {/* LEFT COLUMN (60% width on Desktop) */}
+        <div className="lg:col-span-3 space-y-6">
           
-          {/* 2. Continue Learning Card */}
-          <div className="relative overflow-hidden p-6 bg-gradient-to-br from-[#1E293B] to-[#0F172A] border border-white/10 rounded-[24px] shadow-xl hover:scale-[1.01] transition-all duration-300">
+          {/* CONTINUE LEARNING */}
+          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[20px] shadow-2xl relative overflow-hidden group min-h-[220px] flex flex-col justify-between">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
             
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className={`text-[10px] font-black uppercase tracking-wider ${themeConfig.primary}`}>Resume Last Course</span>
-                <span className={`text-[10px] font-extrabold ${themeConfig.labelColor} ${themeConfig.labelBg} px-2.5 py-0.5 rounded-full`}>Active</span>
-              </div>
-              
-              <div className="space-y-1">
-                <h2 className="text-xl font-black text-white leading-tight">{currentCourseName}</h2>
-                <p className="text-xs text-zinc-400 font-bold">{currentLessonName}</p>
-              </div>
+            <div className="flex justify-between items-center pb-3 border-b border-white/5">
+              <span className="text-[10px] font-black uppercase text-indigo-400 tracking-wider">Continue Learning</span>
+              <MoreVertical className="h-4 w-4 text-zinc-500 cursor-pointer" />
+            </div>
 
-              {/* Progress Bar */}
-              <div className="space-y-1.5 pt-2">
-                <div className="flex justify-between text-[10px] font-extrabold text-zinc-300">
-                  <span>Progress</span>
-                  <span>{currentProgress}% Complete</span>
-                </div>
-                <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/5">
-                  <div 
-                    className={`h-full bg-gradient-to-r ${themeConfig.progressGradient} rounded-full transition-all duration-500`} 
-                    style={{ width: `${currentProgress}%` }}
-                  />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-center py-4">
+              {/* Left Side: Tech Image representation */}
+              <div className="sm:col-span-1 h-28 bg-gradient-to-br from-indigo-950/40 to-slate-900 border border-white/5 rounded-xl flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+                <BookOpen className="h-10 w-10 text-indigo-500/80" />
+                <div className="absolute bottom-2 left-2 right-2 h-1 bg-white/10 rounded-full overflow-hidden">
+                  <div className={`h-full bg-gradient-to-r ${themeGradient}`} style={{ width: `${currentProgress}%` }} />
                 </div>
               </div>
 
-              <button
-                onClick={handleContinueLearning}
-                className={`mt-2 w-full sm:w-auto px-6 py-2.5 ${themeConfig.bgPrimary} ${themeConfig.bgPrimaryHover} text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center justify-center gap-2`}
-              >
-                Continue Learning <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
+              {/* Right Side: Info & Actions */}
+              <div className="sm:col-span-2 space-y-3">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-black text-white tracking-tight">
+                      {currentCourseName}
+                    </h3>
+                    {activeCourse && (
+                      <span className="text-[8px] bg-indigo-500/10 text-indigo-400 font-black px-1.5 py-0.5 rounded uppercase">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-zinc-400 font-semibold mt-1">
+                    {currentLessonName}
+                  </p>
+                </div>
 
-          {/* 5. Recommended Course */}
-          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[24px] shadow-lg hover:scale-[1.01] transition-all duration-300">
-            <div className="space-y-4">
-              <span className={`text-[10px] font-black uppercase tracking-wider ${themeConfig.primary}`}>Recommended for You</span>
-              
-              <div className="space-y-1">
-                <h3 className="text-base font-black text-white">System Design Basics</h3>
-                <p className="text-[10px] text-zinc-500 font-semibold">Master high-availability architectures and microservices.</p>
+                {activeCourse && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[9px] font-bold text-zinc-400">
+                      <span>{currentProgress}% Complete</span>
+                      <span>{remainingLessons} lessons remaining</span>
+                    </div>
+                    <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-white/5">
+                      <div className={`h-full bg-gradient-to-r ${themeGradient} rounded-full transition-all duration-500`} style={{ width: `${currentProgress}%` }} />
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    setActiveTab('study');
+                    setStudySubView('workspaces');
+                  }}
+                  className={`px-4 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center gap-1.5`}
+                >
+                  Continue Learning <ArrowRight className="h-3.5 w-3.5" />
+                </button>
               </div>
-
-              <button
-                onClick={handleStartRecommended}
-                className="px-5 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border border-white/5"
-              >
-                Start Learning
-              </button>
             </div>
           </div>
 
-          {/* 6. Recent Activity */}
-          <div className="p-6 bg-[#0B0F19]/40 border border-white/5 rounded-[24px] shadow-sm text-left">
-            <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Recent Activity</h3>
-              
-              <div className="space-y-2.5">
-                {[
-                  'Completed Java Quiz',
-                  'Earned Java Certificate',
-                  'Finished Lesson 10'
-                ].map((act, i) => (
-                  <div key={i} className="flex items-center gap-2.5 text-xs text-zinc-300 font-semibold py-0.5">
-                    <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: themeConfig.accentColor }} />
-                    <span>{act}</span>
+          {/* RECOMMENDED FOR YOU */}
+          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[20px] shadow-lg space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Recommended For You</span>
+              <span className="text-[10px] text-indigo-400 font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('study')}>View all</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {recommendations.map((rec) => (
+                <div key={rec.id} className="p-4 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex flex-col justify-between h-36 transition-all duration-200">
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[10px] font-black text-white line-clamp-1">{rec.title}</span>
+                    </div>
+                    <p className="text-[9px] text-zinc-500 font-semibold line-clamp-2 leading-relaxed mt-1">
+                      {rec.desc}
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[8px] font-bold text-zinc-400">
+                      <span>Course Progress</span>
+                      <span>{rec.progress}%</span>
+                    </div>
+                    <div className="w-full bg-slate-950 h-1 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${rec.progress}%` }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* RECENT ACTIVITY */}
+          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[20px] shadow-lg space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Recent Activity</span>
+              <span className="text-[10px] text-indigo-400 font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('progress')}>View all</span>
+            </div>
+
+            {activities.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 text-zinc-500 gap-2">
+                <Calendar className="h-6 w-6 text-zinc-600" />
+                <span className="text-xs italic font-medium">No activity yet.</span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {activities.map((act, i) => (
+                  <div key={i} className="p-3 bg-white/[0.01] border border-white/5 rounded-xl flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                        {act.type === 'quiz' ? <Trophy className="h-4 w-4" /> : act.type === 'study' ? <Clock className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs font-black text-white">{act.title}</p>
+                        <p className="text-[10px] text-zinc-500 font-semibold">{act.subtext}</p>
+                      </div>
+                    </div>
+                    <span className="text-[9px] text-zinc-500 font-mono shrink-0">{act.time}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
           </div>
 
         </div>
 
-        {/* Right Column - 30% width */}
-        <div className="lg:col-span-5 space-y-8">
+        {/* RIGHT COLUMN (40% width on Desktop) */}
+        <div className="lg:col-span-2 space-y-6">
           
-          {/* 3. Today's Goal */}
-          <div className="p-6 bg-[#0B0F19] border border-white/10 rounded-[24px] shadow-lg text-left">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Today's Goal</h3>
-                <span className={`text-[10px] font-extrabold ${themeConfig.primary} font-mono uppercase ${themeConfig.labelBg} px-2 py-0.5 rounded`}>
-                  {completedGoalsCount} / 2 Completed
-                </span>
+          {/* TODAY'S GOALS */}
+          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[20px] shadow-lg space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Today's Goals</span>
+              <span className="text-[10px] bg-indigo-500/15 text-indigo-400 font-mono px-2 py-0.5 rounded font-black">
+                {goals.filter(g => g.completed).length} / {goals.length} Completed
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {goals.map((goal) => (
+                <div 
+                  key={goal.id}
+                  className="p-3 bg-white/[0.01] hover:bg-white/[0.02] border border-white/5 rounded-xl flex items-center justify-between gap-3 cursor-pointer select-none transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`h-5 w-5 rounded-md border flex items-center justify-center transition-all ${
+                      goal.completed 
+                        ? 'bg-indigo-600 border-indigo-500 text-white' 
+                        : 'border-zinc-700 bg-transparent'
+                    }`}>
+                      {goal.completed && <Check className="h-3 w-3 stroke-[3]" />}
+                    </div>
+                    <span className={`text-xs font-bold ${goal.completed ? 'line-through text-zinc-500' : 'text-zinc-200'}`}>
+                      {goal.text}
+                    </span>
+                  </div>
+                  {goal.progress && (
+                    <span className="text-[9px] text-zinc-500 font-mono font-bold">{goal.progress}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* MY PROGRESS */}
+          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[20px] shadow-lg space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">My Progress</span>
+              <span className="text-[10px] text-indigo-400 font-bold hover:underline cursor-pointer" onClick={() => setPracticeSubView('mock')}>View Details</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+              {/* Radial Progress Chart */}
+              <div className="flex flex-col items-center justify-center relative py-2">
+                <svg className="w-24 h-24 transform -rotate-90">
+                  <circle cx="48" cy="48" r="38" stroke="rgba(255,255,255,0.03)" strokeWidth="6" fill="transparent" />
+                  <circle 
+                    cx="48" 
+                    cy="48" 
+                    r="38" 
+                    stroke="url(#progressGradient)" 
+                    strokeWidth="6" 
+                    fill="transparent" 
+                    strokeDasharray={238.76} 
+                    strokeDashoffset={238.76 - (238.76 * overallProgressPercent) / 100} 
+                    strokeLinecap="round" 
+                    className="transition-all duration-500" 
+                  />
+                  <defs>
+                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#818CF8" />
+                      <stop offset="100%" stopColor="#4F46E5" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute flex flex-col items-center justify-center">
+                  <span className="text-xl font-black text-white font-mono">{overallProgressPercent}%</span>
+                  <span className="text-[8px] text-zinc-500 font-black uppercase tracking-wider">Overall</span>
+                </div>
               </div>
 
-              {/* Interactive checklist */}
-              <div className="space-y-3 pt-1">
-                {/* Checkbox 1: Complete 1 Lesson */}
-                <div 
-                  onClick={() => setLessonGoalCompleted(!lessonGoalCompleted)}
-                  className="p-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center gap-3 transition-colors cursor-pointer select-none"
-                >
-                  <div className={`h-4.5 w-4.5 rounded-md border flex items-center justify-center transition-all ${
-                    lessonGoalCompleted 
-                      ? `${themeConfig.bgPrimary} ${themeConfig.borderPrimary} text-white` 
-                      : 'border-slate-700 bg-transparent'
-                  }`}>
-                    {lessonGoalCompleted && <span className="text-[9px] font-black">✓</span>}
-                  </div>
-                  <span className={`text-xs font-bold transition-all ${lessonGoalCompleted ? 'line-through text-slate-500' : 'text-slate-200'}`}>
-                    Complete 1 Lesson
-                  </span>
+              {/* Stats List */}
+              <div className="space-y-2 text-xs font-semibold text-zinc-400">
+                <div className="flex justify-between py-1 border-b border-white/[0.02]">
+                  <span>Courses Enrolled</span>
+                  <span className="text-white font-mono">{enrolledCount}</span>
                 </div>
-
-                {/* Checkbox 2: Attempt 1 Quiz */}
-                <div 
-                  onClick={() => setQuizGoalCompleted(!quizGoalCompleted)}
-                  className="p-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex items-center gap-3 transition-colors cursor-pointer select-none"
-                >
-                  <div className={`h-4.5 w-4.5 rounded-md border flex items-center justify-center transition-all ${
-                    quizGoalCompleted 
-                      ? `${themeConfig.bgPrimary} ${themeConfig.borderPrimary} text-white` 
-                      : 'border-slate-700 bg-transparent'
-                  }`}>
-                    {quizGoalCompleted && <span className="text-[9px] font-black">✓</span>}
-                  </div>
-                  <span className={`text-xs font-bold transition-all ${quizGoalCompleted ? 'line-through text-slate-500' : 'text-slate-200'}`}>
-                    Attempt 1 Quiz
-                  </span>
+                <div className="flex justify-between py-1 border-b border-white/[0.02]">
+                  <span>Completed Courses</span>
+                  <span className="text-white font-mono">{completedCount}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-white/[0.02]">
+                  <span>Certificates Earned</span>
+                  <span className="text-white font-mono">{certificatesCount}</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span>Average Score</span>
+                  <span className="text-white font-mono">{averageQuizScore}%</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* 4. My Progress */}
-          <div className="p-6 bg-[#0B0F19] border border-white/10 rounded-[24px] shadow-lg text-left">
-            <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">My Progress</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                
-                {/* Courses Enrolled */}
-                <div className="p-3.5 bg-slate-900/50 border border-white/5 rounded-2xl text-left">
-                  <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Courses Enrolled</span>
-                  <span className="text-xl font-black text-white block mt-1">{coursesEnrolled}</span>
-                </div>
+          {/* STUDY STREAK */}
+          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[20px] shadow-lg space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Study Streak</span>
+              <span className="text-[10px] text-zinc-500 font-bold font-sans uppercase">This Week</span>
+            </div>
 
-                {/* Completed Courses */}
-                <div className="p-3.5 bg-slate-900/50 border border-white/5 rounded-2xl text-left">
-                  <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Completed Courses</span>
-                  <span className="text-xl font-black text-white block mt-1">{completedCourses}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+              {/* Grid representation */}
+              <div className="sm:col-span-2 flex flex-col gap-2">
+                <div className="flex justify-between text-[8px] font-black text-zinc-500 px-0.5">
+                  <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
                 </div>
-
-                {/* Certificates Earned */}
-                <div className="p-3.5 bg-slate-900/50 border border-white/5 rounded-2xl text-left">
-                  <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Certificates</span>
-                  <span className="text-xl font-black text-white block mt-1">{certificatesEarned}</span>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {Array.from({ length: 14 }).map((_, idx) => {
+                    // Highlight blocks representing streak count
+                    const hasStudied = !isZeroState && idx >= 14 - Math.max(1, stats?.streakCount || 0);
+                    return (
+                      <div 
+                        key={idx}
+                        className={`h-4.5 rounded-sm transition-all duration-300 ${
+                          hasStudied 
+                            ? 'bg-indigo-500/80 shadow-md shadow-indigo-500/10 border border-indigo-400/20' 
+                            : 'bg-white/[0.02] border border-white/5'
+                        }`}
+                      />
+                    );
+                  })}
                 </div>
+              </div>
 
-                {/* Current Streak */}
-                <div className="p-3.5 bg-slate-900/50 border border-white/5 rounded-2xl text-left flex flex-col justify-between">
-                  <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Current Streak</span>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <Flame className="h-5 w-5 text-orange-500 shrink-0 fill-orange-500/10" />
-                    <span className="text-xl font-black text-white">{currentStreak} Days</span>
-                  </div>
-                </div>
-
+              {/* Flame display */}
+              <div className="sm:col-span-1 flex flex-col items-center justify-center p-3 bg-white/[0.01] border border-white/5 rounded-xl shrink-0">
+                <Flame className={`h-8 w-8 transition-colors ${isZeroState ? 'text-zinc-600 shrink-0' : 'text-orange-500 fill-orange-500/10'}`} />
+                <span className="text-base font-black text-white font-mono mt-1.5">{isZeroState ? 0 : stats?.streakCount || 0} Days</span>
+                <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5 text-center">
+                  Best: {isZeroState ? 0 : Math.max(6, stats?.streakCount || 0)} Days
+                </span>
               </div>
             </div>
           </div>
