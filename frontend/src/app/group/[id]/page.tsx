@@ -508,7 +508,7 @@ export default function GroupPage() {
         }));
         
         setCheckedTopics(prev => [...prev, topic]);
-        showToast(`✅ Completed topic: ${topic}! +10 XP | +5 Focus Coins!`, 'success');
+        showToast(`✅ Completed topic: ${topic}! +10 XP earned!`, 'success');
         
         if (data.leveledUp) {
           showToast(`🎉 Level Up! You are now Level ${data.level}!`, 'success');
@@ -553,7 +553,7 @@ export default function GroupPage() {
         }));
         
         setQuizSubmitted(true);
-        showToast('🎉 Correct! +15 XP | +5 Focus Coins!', 'success');
+        showToast('🎉 Correct! +15 XP earned!', 'success');
         
         if (data.leveledUp) {
           showToast(`🎉 Level Up! You are now Level ${data.level}!`, 'success');
@@ -1150,7 +1150,7 @@ export default function GroupPage() {
         body: JSON.stringify({ interest: 'Programming & DSA', challengeId: 'coding_room_editor' })
       });
       setCodingCompleted(true);
-      showToast('Coding Room challenge submitted! Streaks maintained, +50 XP, +20 Coins!', 'success');
+      showToast('Coding Room challenge submitted! Streak maintained and +50 XP added!', 'success');
     } catch (err: any) {
       showToast('Submission error: ' + (err.message || err), 'error');
     }
@@ -1205,7 +1205,7 @@ export default function GroupPage() {
           body: JSON.stringify({ interest: 'Programming & DSA', challengeId: 'dsa_room_quiz' })
         });
         setDsaCompleted(true);
-        showToast('DSA Checkpoint correct! Streak maintained. +50 XP and +20 Coins added!', 'success');
+        showToast('DSA Checkpoint correct! Streak maintained and +50 XP added!', 'success');
       } catch (err: any) {
         showToast('Doubt submitting DSA quiz: ' + (err.message || err), 'error');
       }
@@ -1250,7 +1250,7 @@ export default function GroupPage() {
         body: JSON.stringify({ interest: 'AI & Machine Learning', challengeId: 'ai_room_train' })
       });
       setAiCompleted(true);
-      showToast('AI Room Training rewards claimed! Streak maintained, +50 XP, +20 Coins!', 'success');
+      showToast('AI Room Training rewards claimed! Streak maintained and +50 XP added!', 'success');
     } catch (err: any) {
       showToast('Claim rewards error: ' + (err.message || err), 'error');
     }
