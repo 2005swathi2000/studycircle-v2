@@ -2526,47 +2526,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
   // ==========================================
   const renderSidebar = () => {
     if (user?.role === 'student') {
-      const studentLinks = [
-        { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-        { id: 'study', label: 'Study Circles', icon: GraduationCap },
-        { id: 'practice', label: 'Practice', icon: Sparkles },
-        { id: 'progress', label: 'Achievements', icon: TrendingUp }
-      ];
-
       return (
         <div className="flex-1 p-4 flex flex-col justify-between text-left relative overflow-y-auto scrollbar-none">
-          <div className="space-y-6">
-            <div className="space-y-1">
-              {studentLinks.map((link) => {
-                const Icon = link.icon;
-                const isActive = activeTab === link.id;
-                const activeStyles = 'bg-[#10B981]/15 text-[#10B981] border-l-4 border-[#10B981] shadow-sm';
-                
-                return (
-                  <button
-                    key={link.id}
-                    onClick={() => {
-                      setActiveTab(link.id as TabType);
-                      setStudySubView(null);
-                      setPracticeSubView(null);
-                      setProgressSubView(null);
-                      setCommunitySubView(null);
-                      setProfileSubView(null);
-                    }}
-                    className={`w-full px-3 py-2 rounded-xl text-[11px] font-bold flex items-center gap-3 transition-all cursor-pointer text-left ${
-                      isActive 
-                        ? activeStyles 
-                        : 'text-slate-400 hover:bg-white/[0.02] hover:text-white'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" /> {link.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-4 border-t border-white/5 relative">
+          <div className="space-y-4 pt-4 relative">
             <span className="text-[9px] font-black text-slate-550 uppercase tracking-widest px-3 block">Appearance Panel</span>
             
             {/* Hanging Lamp theme switcher */}
@@ -2607,32 +2569,37 @@ Based on your desking logs and consistency, the AI tutor recommends:
               </div>
             </div>
 
-            {/* Floating theme selection dropdown/popup */}
+            {/* Floating theme selection dropdown/popup with colored preview dots */}
             {showThemeSelector && (
-              <div className="absolute bottom-24 left-4 right-4 bg-slate-950/95 border border-white/10 rounded-2xl p-2.5 shadow-2xl z-50 space-y-1 animate-in zoom-in-95 duration-150">
-                <div className="text-[8px] font-black uppercase text-slate-555 tracking-wider mb-1 px-2">Theme Selector</div>
+              <div className="absolute bottom-24 left-4 right-4 bg-slate-950/95 border border-white/10 rounded-2xl p-3 shadow-2xl z-50 space-y-1.5 animate-in zoom-in-95 duration-150 text-left">
+                <span className="text-[9px] font-black uppercase text-slate-450 tracking-widest px-2 block mb-1">🎨 Choose Theme</span>
                 {[
-                  { id: 'default', label: '🎨 Default' },
-                  { id: 'dark', label: '🌙 Charcoal Dark' },
-                  { id: 'light', label: '☀️ Clean Light' },
-                  { id: 'midnight', label: '🌌 Midnight Blue' },
-                  { id: 'emerald', label: '🌿 Cosmic Emerald' },
-                  { id: 'purple', label: '💜 Mystic Purple' }
+                  { id: 'zengarden', name: 'Emerald', color: 'bg-emerald-500' },
+                  { id: 'default', name: 'Ocean', color: 'bg-blue-500' },
+                  { id: 'cyberpunk', name: 'Violet', color: 'bg-fuchsia-500' },
+                  { id: 'theme_solar_glow', name: 'Sunset', color: 'bg-amber-500' },
+                  { id: 'theme_dark_nebula', name: 'Midnight', color: 'bg-indigo-950 border border-white/20' }
                 ].map(t => (
                   <button
                     key={t.id}
                     onClick={() => {
-                      setTheme(t.id);
+                      setEquippedTheme(t.id);
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('studycircle_equipped_theme', t.id);
+                      }
                       setShowThemeSelector(false);
                     }}
-                    className={`w-full px-2.5 py-1.5 text-left rounded-xl text-[10px] font-bold transition-all border-none flex items-center justify-between cursor-pointer ${
-                      theme === t.id 
-                        ? 'bg-indigo-650 text-white font-extrabold shadow-sm' 
+                    className={`w-full px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all border-none flex items-center justify-between cursor-pointer ${
+                      equippedTheme === t.id 
+                        ? 'bg-[#10B981]/15 text-white font-extrabold shadow-sm' 
                         : 'text-slate-400 hover:bg-white/5 hover:text-white bg-transparent'
                     }`}
                   >
-                    <span>{t.label}</span>
-                    {theme === t.id && <span className="text-[9px] text-emerald-455">✓</span>}
+                    <div className="flex items-center gap-2.5">
+                      <span className={`w-2.5 h-2.5 rounded-full ${t.color} shrink-0`} />
+                      <span>{t.name}</span>
+                    </div>
+                    {equippedTheme === t.id && <span className="text-[9px] text-[#10B981] font-mono font-bold">✓</span>}
                   </button>
                 ))}
               </div>
