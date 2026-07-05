@@ -275,7 +275,6 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     }
     return 'midnight';
   });
-  const [resourcesSubTab, setResourcesSubTab] = useState<'vault' | 'shop'>('vault');
 
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -748,8 +747,6 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [leaderboardSubTab, setLeaderboardSubTab] = useState<'learners' | 'mentors' | 'notes' | 'rooms'>('learners');
 
   // Resources States
-  const [resourcesSearch, setResourcesSearch] = useState('');
-  const [resourcesFilter, setResourcesFilter] = useState('All');
 
   // Study Rooms View States
   const [roomViewMode, setRoomViewMode] = useState<'first-time' | 'returning'>(() => {
@@ -1161,13 +1158,6 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   };
   // --- END COMMUNITY HUB STATES & MOCK DATA ---
 
-  const [unlockedResources, setUnlockedResources] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('studycircle_unlocked_resources');
-      return saved ? JSON.parse(saved) : ['dsa-notes'];
-    }
-    return ['dsa-notes'];
-  });
 
   const [claimedTodayReward, setClaimedTodayReward] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -1176,161 +1166,21 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     return false;
   });
 
-  const resourcesList = [
-    {
-      id: 'dsa-notes',
-      title: 'DSA Complete Notes',
-      category: 'Notes',
-      description: 'Comprehensive Data Structures and Algorithms lecture reference notes.',
-      coinsReq: 150,
-      streakReq: 7,
-      hoursReq: 0,
-      levelReq: 1
-    },
-    {
-      id: 'dsa-cheatsheet',
-      title: 'DSA Cheat Sheet',
-      category: 'Cheatsheets',
-      description: 'Quick reference cheat sheet for standard algorithms and complexities.',
-      coinsReq: 50,
-      streakReq: 0,
-      hoursReq: 0,
-      levelReq: 1
-    },
-    {
-      id: 'interview-quest-bank',
-      title: 'Interview Question Bank',
-      category: 'Practice',
-      description: 'Frequently asked interview coding questions, logic tests, and solutions.',
-      coinsReq: 350,
-      streakReq: 0,
-      hoursReq: 0,
-      levelReq: 1
-    },
-    {
-      id: 'system-design',
-      title: 'System Design Basics',
-      category: 'Videos',
-      description: 'Beginner to advanced system design video lectures and architectures.',
-      coinsReq: 200,
-      streakReq: 0,
-      hoursReq: 5,
-      levelReq: 3
-    },
-    {
-      id: 'leetcode-patterns',
-      title: 'LeetCode Patterns',
-      category: 'Practice',
-      description: 'Top coding patterns with curated problems, explanations and solutions.',
-      coinsReq: 250,
-      streakReq: 0,
-      hoursReq: 10,
-      levelReq: 5
-    },
-    {
-      id: 'clean-code',
-      title: 'Clean Code (PDF)',
-      category: 'Books',
-      description: 'A handbook of agile software craftsmanship, code styling and readability.',
-      coinsReq: 300,
-      streakReq: 5,
-      hoursReq: 12,
-      levelReq: 5
-    },
-    {
-      id: 'aptitude-guide',
-      title: 'Aptitude Master Guide',
-      category: 'Practice',
-      description: 'Complete quantitative and logical aptitude preparation with tips.',
-      coinsReq: 500,
-      streakReq: 0,
-      hoursReq: 20,
-      levelReq: 6
-    },
-    {
-      id: 'interview-kit',
-      title: 'Interview Preparation Kit',
-      category: 'Practice',
-      description: 'Comprehensive HR, technical, coding interview guide with answers.',
-      coinsReq: 700,
-      streakReq: 15,
-      hoursReq: 25,
-      levelReq: 8
-    },
-    {
-      id: 'cs-fundamentals',
-      title: 'CS Fundamentals',
-      category: 'Notes',
-      description: 'Crucial Operating Systems, DBMS and Computer Networks concepts.',
-      coinsReq: 800,
-      streakReq: 0,
-      hoursReq: 30,
-      levelReq: 10
-    },
-    {
-      id: 'faang-pack',
-      title: 'FAANG Resource Pack',
-      category: 'Courses',
-      description: 'Mock interviews, resume templates and coding sheets from FAANG engineers.',
-      coinsReq: 1000,
-      streakReq: 30,
-      hoursReq: 50,
-      levelReq: 12
-    }
-  ];
+  
 
-  const handleUnlockResource = (id: string, coinsReq: number) => {
-    if (typeof window !== 'undefined') {
-      const updated = [...unlockedResources, id];
-      setUnlockedResources(updated);
-      localStorage.setItem('studycircle_unlocked_resources', JSON.stringify(updated));
-      showToast('Resource unlocked successfully!', 'success');
-    }
-  };
+  
 
   const handleClaimTodayReward = () => {
     setClaimedTodayReward(true);
     if (typeof window !== 'undefined') {
       localStorage.setItem('studycircle_claimed_today_reward', 'true');
     }
-    if (!unlockedResources.includes('dsa-cheatsheet')) {
-      const updated = [...unlockedResources, 'dsa-cheatsheet'];
-      setUnlockedResources(updated);
-      localStorage.setItem('studycircle_unlocked_resources', JSON.stringify(updated));
-    }
-    showToast('Success! DSA Cheat Sheet has been added to your unlocked resources.', 'success');
+    showToast('Daily login reward claimed successfully!', 'success');
   };
 
-  const getNextUnlockProgress = (res: any) => {
-    const reqs = [];
-    if (res.coinsReq > 0) reqs.push(Math.min(100, (stats.focusCoins / res.coinsReq) * 100));
-    if (res.streakReq > 0) reqs.push(Math.min(100, (stats.streakCount / res.streakReq) * 100));
-    if (res.hoursReq > 0) reqs.push(Math.min(100, (stats.totalStudyHours / res.hoursReq) * 100));
-    if (res.levelReq > 1) reqs.push(Math.min(100, (stats.level / res.levelReq) * 100));
-    
-    if (reqs.length === 0) return 100;
-    const sum = reqs.reduce((a, b) => a + b, 0);
-    return Math.round(sum / reqs.length);
-  };
+  
 
-  const getNextUnlockNudge = (res: any) => {
-    const missing = [];
-    if (stats.focusCoins < res.coinsReq) {
-      missing.push(`${res.coinsReq - stats.focusCoins} more coins`);
-    }
-    if (res.streakReq > 0 && stats.streakCount < res.streakReq) {
-      missing.push(`${res.streakReq - stats.streakCount} more streak days`);
-    }
-    if (res.hoursReq > 0 && stats.totalStudyHours < res.hoursReq) {
-      missing.push(`${(res.hoursReq - stats.totalStudyHours).toFixed(1)} more study hours`);
-    }
-    if (res.levelReq > 1 && stats.level < res.levelReq) {
-      missing.push(`Level ${res.levelReq} (currently Level ${stats.level})`);
-    }
-    
-    if (missing.length === 0) return "Ready to unlock!";
-    return `Need: ${missing.join(', ')}`;
-  };
+  
 
   // Join Circle States
   const [inviteCode, setInviteCode] = useState('');
@@ -2252,7 +2102,6 @@ Based on your desking logs and consistency, the AI tutor recommends:
       if (activeTab === 'study') {
         if (studySubView === 'workspaces') context = 'My Workspace (Collaborative Peer Groups)';
         else if (studySubView === 'rooms') context = 'Study Rooms (Live Co-Study Desks studying DBMS)';
-        else if (studySubView === 'resources') context = 'Study Resources Vault';
         else context = 'Study Directory';
       } else if (activeTab === 'practice') {
         if (practiceSubView === 'questions') context = 'DSA & Practice Questions (solving Arrays)';
@@ -4491,9 +4340,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
               {activeTab === 'study' && (
                 <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap">
                   {[
-                    { id: 'workspaces', name: '📚 Joined Circles', active: studySubView === 'workspaces' },
-                    { id: 'rooms', name: '⏱ Virtual Study Rooms', active: studySubView === 'rooms' },
-                    { id: 'resources', name: '📂 Resources Vault', active: studySubView === 'resources' }
+                    { id: 'workspaces', name: '📚 Joined Circles', active: studySubView === 'workspaces' }, { id: 'rooms', name: '⏱ Virtual Study Rooms', active: studySubView === 'rooms' }
                   ].map((subTab) => (
                     <button
                       key={subTab.id}
@@ -4717,9 +4564,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
               {activeTab === 'study' && (
                 <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap">
                   {[
-                    { id: 'workspaces', name: '📚 Joined Circles', active: studySubView === 'workspaces' },
-                    { id: 'rooms', name: '⏱ Virtual Study Rooms', active: studySubView === 'rooms' },
-                    { id: 'resources', name: '📂 Resources Vault', active: studySubView === 'resources' }
+                    { id: 'workspaces', name: '📚 Joined Circles', active: studySubView === 'workspaces' }, { id: 'rooms', name: '⏱ Virtual Study Rooms', active: studySubView === 'rooms' }
                   ].map((subTab) => (
                     <button
                       key={subTab.id}
@@ -5362,159 +5207,6 @@ Based on your desking logs and consistency, the AI tutor recommends:
             </div>
           )}
 
-          {/* Tab: Resources (Gamified progression vault) */}
-          {(activeTab === 'resources' || (activeTab === 'study' && studySubView === 'resources')) && (
-            <div className="space-y-6 text-left animate-in fade-in duration-350 text-white">
-              {activeTab === 'study' && (
-                <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap">
-                  {[
-                    { id: 'workspaces', name: '📚 Joined Circles', active: studySubView === 'workspaces' },
-                    { id: 'rooms', name: '⏱ Virtual Study Rooms', active: studySubView === 'rooms' },
-                    { id: 'resources', name: '📂 Resources Vault', active: studySubView === 'resources' }
-                  ].map((subTab) => (
-                    <button
-                      key={subTab.id}
-                      onClick={() => setStudySubView(subTab.id as any)}
-                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none ${
-                        subTab.active
-                          ? 'bg-indigo-600 text-white font-bold'
-                          : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {subTab.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {/* Header Banner */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-r from-[#1E293B] via-[#0F172A] to-[#1F3A35] border border-white/10 rounded-[24px] shadow-lg p-6 relative overflow-hidden">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-indigo-400" />
-                    <h2 className="text-xl font-black text-white">Resources Vault</h2>
-                  </div>
-                  <p className="text-xs text-slate-355 text-zinc-400">Unlock your potential with academic reference files. ✨</p>
-                </div>
-                
-                {/* Stats Panel */}
-                <div className="flex flex-wrap items-center gap-4">
-                  {/* Streak */}
-                  <div className="flex items-center gap-2 bg-[#0B0F19] border border-white/5 rounded-2xl px-4 py-2.5 shadow-sm">
-                    <Flame className="h-4.5 w-4.5 text-orange-500" />
-                    <div>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Streak</p>
-                      <p className="text-xs font-black text-slate-200">{stats.streakCount} Day Streak</p>
-                    </div>
-                  </div>
-                  {/* Level */}
-                  <div className="flex items-center gap-2 bg-[#0B0F19] border border-white/5 rounded-2xl px-4 py-2.5 shadow-sm">
-                    <img 
-                      src={user?.avatarUrl || getAvatarByName(user?.fullName, user?.gender)}
-                      className={`h-8 w-8 rounded-full ${headerAvatarRingClass}`}
-                      alt="Avatar"
-                    />
-                    <div>
-                      <p className="text-[9px] text-slate-455 font-bold uppercase tracking-wider">{user?.fullName?.split(' ')[0] || 'User'}</p>
-                      <p className="text-xs font-black text-slate-200">Level {stats.level}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Main Content Area */}
-              <div className="space-y-6">
-                
-                {/* Filters and Search Bar */}
-                <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
-                  {/* Category Filter Chips */}
-                  <div className="flex flex-wrap gap-2">
-                    {['All', 'Notes', 'Courses', 'Videos', 'Practice', 'Books', 'Cheatsheets'].map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => setResourcesFilter(cat)}
-                        className={`px-3.5 py-1.5 rounded-full text-[10px] font-extrabold border transition-all cursor-pointer ${
-                          resourcesFilter === cat
-                            ? 'bg-[#5227EB] border-[#5227EB] text-white shadow-md shadow-[#5227EB]/20'
-                            : 'bg-[#1E293B]/40 border-white/5 text-slate-455 hover:bg-[#1E293B]/80 hover:text-white'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                  {/* Search */}
-                  <div className="relative flex-1 sm:max-w-xs">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Search resources..."
-                      value={resourcesSearch}
-                      onChange={(e) => setResourcesSearch(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 bg-[#1E293B]/40 border border-white/5 rounded-xl text-xs font-bold text-white placeholder-slate-400 focus:outline-none focus:border-[#5227EB]/40 transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Explore Grid */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                    <Sparkles className="h-4.5 w-4.5 text-indigo-400" /> Explore Resources
-                  </h3>
-                  
-                  <div className="grid sm:grid-cols-3 gap-4">
-                    {resourcesList
-                      .filter(res => {
-                        const matchesFilter = resourcesFilter === 'All' || res.category === resourcesFilter;
-                        const matchesSearch = res.title.toLowerCase().includes(resourcesSearch.toLowerCase()) ||
-                                              res.description.toLowerCase().includes(resourcesSearch.toLowerCase());
-                        return matchesFilter && matchesSearch;
-                      })
-                      .map((resource) => {
-                        const isUnlocked = true;
-                        
-                        return (
-                          <div 
-                            key={resource.id} 
-                            className="bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] border rounded-[24px] shadow-lg p-5 flex flex-col justify-between gap-4 transition-all duration-300 hover:shadow-xl border-emerald-500/35 hover:border-emerald-500/50"
-                          >
-                            <div className="space-y-3">
-                              <div className="flex justify-between items-start">
-                                <span className={`text-[8px] font-black uppercase px-2.5 py-1 rounded-full border ${
-                                  resource.category === 'Notes' ? 'bg-indigo-500/15 border-indigo-400/20 text-indigo-400' :
-                                  resource.category === 'Videos' ? 'bg-emerald-500/15 border-emerald-400/20 text-emerald-400' :
-                                  resource.category === 'Practice' ? 'bg-amber-500/15 border-amber-400/20 text-amber-500' :
-                                  'bg-sky-500/15 border-sky-400/20 text-sky-400'
-                                }`}>
-                                  {resource.category}
-                                </span>
-                                
-                                <span className="text-[8px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/15">
-                                  Unlocked
-                                </span>
-                              </div>
-                              
-                              <div className="space-y-1">
-                                <h4 className="text-xs font-black text-white">{resource.title}</h4>
-                                <p className="text-[10px] text-slate-400 font-bold leading-normal">{resource.description}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="pt-2 border-t border-white/5">
-                              <button
-                                onClick={() => showToast(`Accessing ${resource.title}...`, 'success')}
-                                className="w-full py-1.5 bg-[#10B981] hover:bg-emerald-700 text-white text-[10px] font-black rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-700/10 border-none"
-                              >
-                                <Download className="h-3 w-3" /> Access Resource
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
           {activeTab === 'notes' && (
             <div className="space-y-6 text-left">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
@@ -9131,9 +8823,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   ].filter(r => r.title.toLowerCase().includes(query));
 
                   const filteredResources = [
-                    { title: "DBMS Normalization Cheat Sheet", type: "PDF Guide", tab: "study", subView: "resources" },
-                    { title: "Operating Systems Processes Overview", type: "Reference Doc", tab: "study", subView: "resources" },
-                    { title: "Java Binary Search Trees Guide", type: "Syllabus Notes", tab: "study", subView: "resources" }
+                    { title: "DBMS Normalization Cheat Sheet", type: "PDF Guide", tab: "study", subView: "workspaces" },
+                    { title: "Operating Systems Processes Overview", type: "Reference Doc", tab: "study", subView: "workspaces" },
+                    { title: "Java Binary Search Trees Guide", type: "Syllabus Notes", tab: "study", subView: "workspaces" }
                   ].filter(r => r.title.toLowerCase().includes(query));
 
                   const totalResults = filteredQuestions.length + filteredRooms.length + filteredResources.length;
