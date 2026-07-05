@@ -2823,6 +2823,123 @@ Based on your desking logs and consistency, the AI tutor recommends:
     );
   };
 
+  const generateCertificatePDF = async () => {
+    try {
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [640, 480]
+      });
+
+      const fullName = user?.fullName || 'Swathi Hanumanthu';
+      const completionDate = new Date().toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      const certId = `SC-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+      // Colors: Dark Navy theme matching StudyCircle style
+      // Background `#060913`
+      doc.setFillColor(6, 9, 19);
+      doc.rect(0, 0, 640, 480, 'F');
+
+      // Gold border
+      doc.setDrawColor(212, 175, 55); // gold
+      doc.setLineWidth(4);
+      doc.rect(15, 15, 610, 450, 'D');
+
+      // Thin inner gold border
+      doc.setDrawColor(212, 175, 55);
+      doc.setLineWidth(1);
+      doc.rect(20, 20, 600, 440, 'D');
+
+      // Header Text
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(28);
+      doc.text('STUDYCIRCLE', 320, 70, { align: 'center' });
+
+      doc.setTextColor(150, 150, 150);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('V E R I F I E D   C E R T I F I C A T E', 320, 88, { align: 'center' });
+
+      // Gold line under header
+      doc.setDrawColor(212, 175, 55);
+      doc.setLineWidth(1.5);
+      doc.line(260, 95, 380, 95);
+
+      // Certificate content
+      doc.setTextColor(200, 200, 200);
+      doc.setFontSize(14);
+      doc.text('This is to certify that', 320, 140, { align: 'center' });
+
+      // Student Name in bold/gold
+      doc.setTextColor(212, 175, 55);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(26);
+      doc.text(fullName, 320, 180, { align: 'center' });
+
+      // Success description
+      doc.setTextColor(200, 200, 200);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      doc.text('has successfully met all academic requirements and cleared all milestones for the course', 320, 220, { align: 'center' });
+
+      // Course Name
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text('Advanced DSA & Complexity Mastery', 320, 255, { align: 'center' });
+
+      // Metadata block
+      doc.setDrawColor(255, 255, 255, 0.1);
+      doc.setLineWidth(1);
+      doc.line(100, 290, 540, 290);
+
+      // Signatures & Metadata titles
+      doc.setTextColor(130, 130, 130);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('DATE OF ISSUANCE', 160, 310, { align: 'center' });
+      doc.text('AUTHORIZED SIGNATURE', 480, 310, { align: 'center' });
+
+      doc.setTextColor(230, 230, 230);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(completionDate, 160, 335, { align: 'center' });
+
+      // Simulated Signature
+      doc.setTextColor(99, 102, 241); // indigo signature color
+      doc.setFont('courier', 'bolditalic');
+      doc.setFontSize(14);
+      doc.text('StudyCircle Core Team', 480, 333, { align: 'center' });
+      
+      // Horizontal lines for signature slots
+      doc.setDrawColor(212, 175, 55, 0.4);
+      doc.setLineWidth(1);
+      doc.line(100, 345, 220, 345);
+      doc.line(420, 345, 540, 345);
+
+      // Bottom verification branding
+      doc.setTextColor(110, 110, 110);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(`VERIFICATION ID: ${certId}`, 320, 390, { align: 'center' });
+      doc.text('To verify this certificate, visit studycircle.io/verify', 320, 402, { align: 'center' });
+
+      // Save PDF
+      const formattedName = fullName.replace(/\s+/g, '_');
+      doc.save(`${formattedName}_Advanced_DSA_Certificate.pdf`);
+      showToast('Certificate PDF downloaded successfully!', 'success');
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      showToast('Failed to generate PDF. Please try again.', 'error');
+    }
+  };
+
   const handleVerifyReviewAnswer = () => {
     if (reviewSelectedAnswer === null) {
       setReviewMessage('❌ Please select an option before verifying.');
@@ -6110,18 +6227,123 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 </div>
               ) : progressSubView === 'certificates' ? (
                 /* Certificates sub-view */
-                <div className="grid md:grid-cols-2 gap-6 pt-2 text-left">
-                  <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[24px] shadow-lg space-y-4 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none" />
-                    <span className="text-[9px] font-extrabold uppercase bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 px-2 py-0.5 rounded">Verified</span>
-                    <h3 className="text-sm font-black text-white">Advanced DSA & Complexity Mastery</h3>
-                    <p className="text-xs text-slate-450 font-semibold leading-relaxed">Issued upon scoring above 80% on mock recursion, graph traversal, and complexity analysis tests.</p>
-                    <div className="pt-2 flex justify-between items-center text-[10px] text-slate-500 font-bold mt-4 border-t border-white/5">
-                      <span>Completed 3 days ago</span>
-                      <button className="px-3.5 py-1.5 bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 hover:bg-[#5227EB] hover:text-white rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer">Download PDF</button>
+                (() => {
+                  const courseProgress = Math.min(100, Math.round(((stats.totalStudyHours || 0.0) / 20) * 100));
+                  const practiceProgress = Math.min(100, Math.round(((stats.xp || 0) / 800) * 100));
+                  const currentScore = Math.max(0, 95 - incorrectQuestions.length * 4);
+                  const isEligible = courseProgress >= 100 && practiceProgress >= 100 && currentScore >= 80 && incorrectQuestions.length === 0;
+                  const hasNoProgress = (stats.totalStudyHours || 0) === 0 && (stats.xp || 0) === 0;
+
+                  if (hasNoProgress) {
+                    return (
+                      <div className="max-w-xl mx-auto p-10 bg-[#0B0F19]/60 border border-white/5 rounded-[28px] text-center space-y-6 animate-in fade-in duration-300">
+                        <div className="text-4xl text-slate-500">🎓</div>
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-black text-white uppercase tracking-wider">No Certificates Yet</h3>
+                          <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                            Complete your learning roadmap to earn verified certificates that showcase your achievements.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (!isEligible) {
+                    return (
+                      <div className="max-w-md mx-auto p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[24px] shadow-lg space-y-4 text-left animate-in fade-in duration-300">
+                        <div className="flex items-center gap-2 text-amber-500">
+                          <span className="text-xl">🔒</span>
+                          <h3 className="text-xs font-black uppercase tracking-wider text-amber-500">Certificate Locked</h3>
+                        </div>
+                        
+                        <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                          Complete the required learning milestones to unlock your verified certificate.
+                        </p>
+                        
+                        <div className="pt-2 border-t border-white/5 space-y-4">
+                          <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider block font-sans">Requirements Tracker</span>
+                          
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-[10px] font-bold text-slate-350">
+                              <span>Course Completion (20h target)</span>
+                              <span className={courseProgress >= 100 ? "text-emerald-400 font-bold" : "text-indigo-400 font-bold"}>
+                                {stats.totalStudyHours || 0.0}h / 20h ({courseProgress}%)
+                              </span>
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">
+                              <div 
+                                className={`h-full rounded-full transition-all ${courseProgress >= 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`} 
+                                style={{ width: `${courseProgress}%` }} 
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-[10px] font-bold text-slate-350">
+                              <span>Practice Completed (800 XP target)</span>
+                              <span className={practiceProgress >= 100 ? "text-emerald-400 font-bold" : "text-indigo-400 font-bold"}>
+                                {stats.xp || 0} XP / 800 XP ({practiceProgress}%)
+                              </span>
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">
+                              <div 
+                                className={`h-full rounded-full transition-all ${practiceProgress >= 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`} 
+                                style={{ width: `${practiceProgress}%` }} 
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-[10px] font-bold text-slate-350">
+                              <span>Required Score (Min 80%)</span>
+                              <span className={currentScore >= 80 ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
+                                {currentScore}%
+                              </span>
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">
+                              <div 
+                                className={`h-full rounded-full transition-all ${currentScore >= 80 ? 'bg-emerald-500' : 'bg-rose-500'}`} 
+                                style={{ width: `${currentScore}%` }} 
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[10px] font-bold pt-1 border-t border-white/5 text-slate-400">
+                            <span>Resolve Pending Mistakes</span>
+                            {incorrectQuestions.length === 0 ? (
+                              <span className="text-emerald-400">✓ All Resolved</span>
+                            ) : (
+                              <span className="text-rose-455 font-black">❌ {incorrectQuestions.length} Pending Mistakes</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Unlocked State UI
+                  return (
+                    <div className="grid md:grid-cols-2 gap-6 pt-2 text-left animate-in fade-in duration-300">
+                      <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[24px] shadow-lg space-y-4 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none" />
+                        <span className="text-[9px] font-black uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">Verified</span>
+                        <h3 className="text-sm font-black text-white">Advanced DSA & Complexity Mastery</h3>
+                        <p className="text-xs text-slate-450 font-semibold leading-relaxed">
+                          Issued upon scoring above 80% on mock recursion, graph traversal, and complexity analysis tests.
+                        </p>
+                        <div className="pt-2 flex justify-between items-center text-[10px] text-slate-500 font-bold mt-4 border-t border-white/5">
+                          <span>Completed Today</span>
+                          <button 
+                            onClick={generateCertificatePDF}
+                            className="px-3.5 py-1.5 bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 hover:bg-[#5227EB] hover:text-white rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer"
+                          >
+                            Download PDF
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  );
+                })()
               ) : (
                 <div className="space-y-6 max-w-4xl text-white">
                   {/* Grid 1: Basic Stats (Exactly matching screenshot layout, colors, and content) */}
@@ -7940,7 +8162,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             value={editFirstName} 
                             onChange={(e) => setEditFirstName(e.target.value)}
                             required
-                            className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
+                            className="w-full bg-[#181A20] border border-[#2A2F3A] focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-200 font-semibold placeholder-slate-500" 
                           />
                         </div>
                         <div className="space-y-1">
@@ -7950,7 +8172,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             value={editLastName} 
                             onChange={(e) => setEditLastName(e.target.value)}
                             required
-                            className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
+                            className="w-full bg-[#181A20] border border-[#2A2F3A] focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-200 font-semibold placeholder-slate-500" 
                           />
                         </div>
                       </div>
@@ -7963,7 +8185,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             value={editEmail} 
                             onChange={(e) => setEditEmail(e.target.value)}
                             placeholder="e.g. email@domain.com"
-                            className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
+                            className="w-full bg-[#181A20] border border-[#2A2F3A] focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-200 font-semibold placeholder-slate-500" 
                           />
                         </div>
                         <div className="space-y-1">
@@ -7973,7 +8195,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             value={editPhone} 
                             onChange={(e) => setEditPhone(e.target.value)}
                             placeholder="e.g. 9876543210"
-                            className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-800 font-semibold" 
+                            className="w-full bg-[#181A20] border border-[#2A2F3A] focus:border-indigo-500 p-2.5 rounded-xl outline-none transition-all text-slate-200 font-semibold placeholder-slate-500" 
                           />
                         </div>
                       </div>
@@ -7984,7 +8206,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                           type="text" 
                           value={user?.username || ''} 
                           readOnly 
-                          className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl outline-none text-slate-450 cursor-not-allowed font-medium" 
+                          className="w-full bg-[#181A20]/45 border border-[#2A2F3A]/60 p-2.5 rounded-xl outline-none text-slate-500 cursor-not-allowed font-medium" 
                         />
                       </div>
                       
@@ -7995,7 +8217,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                           onChange={(e) => setEditBio(e.target.value)}
                           placeholder="Write a brief bio about your study goals, or interests..."
                           rows={3}
-                          className="w-full bg-white border border-slate-250 hover:border-slate-350 focus:border-indigo-500 p-2.5 rounded-xl outline-none resize-none transition-all text-slate-800 font-medium"
+                          className="w-full bg-[#181A20] border border-[#2A2F3A] focus:border-indigo-500 p-2.5 rounded-xl outline-none resize-none transition-all text-slate-200 font-medium placeholder-slate-500"
                         />
                       </div>
                     </div>
@@ -8023,16 +8245,16 @@ Based on your desking logs and consistency, the AI tutor recommends:
                   </form>
                 )}
 
-                <div className="border-t border-slate-100 pt-4">
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Security Settings</h4>
+                <div className="border-t border-white/5 pt-4">
+                  <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider">Security Settings</h4>
                   <p className="text-[10px] text-slate-400">Portal credentials and API sessions</p>
                   <div className="mt-3 text-xs">
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                    <div className="p-3 bg-[#181A20] border border-[#2A2F3A] rounded-xl flex items-center justify-between">
                       <div>
-                        <span className="font-extrabold text-slate-800">Session Status</span>
-                        <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-black uppercase tracking-wide ml-2">Active</span>
+                        <span className="font-extrabold text-slate-200">Session Status</span>
+                        <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-black uppercase tracking-wide ml-2">Active</span>
                       </div>
-                      <button onClick={handleLogout} className="px-3 py-1 bg-red-50 hover:bg-red-100 border border-red-200 text-red-650 rounded-lg font-bold">
+                      <button onClick={handleLogout} className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-lg font-bold transition-all cursor-pointer">
                         Logout
                       </button>
                     </div>
