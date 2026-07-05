@@ -6228,41 +6228,31 @@ Based on your desking logs and consistency, the AI tutor recommends:
               ) : progressSubView === 'certificates' ? (
                 /* Certificates sub-view */
                 (() => {
+                  const isFreshUser = (stats.totalStudyHours || 0) === 0 && (stats.xp || 0) === 0;
                   const courseProgress = Math.min(100, Math.round(((stats.totalStudyHours || 0.0) / 20) * 100));
                   const practiceProgress = Math.min(100, Math.round(((stats.xp || 0) / 800) * 100));
-                  const currentScore = Math.max(0, 95 - incorrectQuestions.length * 4);
-                  const isEligible = courseProgress >= 100 && practiceProgress >= 100 && currentScore >= 80 && incorrectQuestions.length === 0;
-                  const hasNoProgress = (stats.totalStudyHours || 0) === 0 && (stats.xp || 0) === 0;
-
-                  if (hasNoProgress) {
-                    return (
-                      <div className="max-w-xl mx-auto p-10 bg-[#0B0F19]/60 border border-white/5 rounded-[28px] text-center space-y-6 animate-in fade-in duration-300">
-                        <div className="text-4xl text-slate-500">🎓</div>
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-black text-white uppercase tracking-wider">No Certificates Yet</h3>
-                          <p className="text-xs text-slate-400 leading-relaxed font-semibold">
-                            Complete your learning roadmap to earn verified certificates that showcase your achievements.
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  }
+                  const currentScore = isFreshUser ? 0 : Math.max(0, 95 - incorrectQuestions.length * 4);
+                  const isEligible = !isFreshUser && courseProgress >= 100 && practiceProgress >= 100 && currentScore >= 80 && incorrectQuestions.length === 0;
 
                   if (!isEligible) {
                     return (
                       <div className="max-w-md mx-auto p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[24px] shadow-lg space-y-4 text-left animate-in fade-in duration-300">
                         <div className="flex items-center gap-2 text-amber-500">
                           <span className="text-xl">🔒</span>
-                          <h3 className="text-xs font-black uppercase tracking-wider text-amber-500">Certificate Locked</h3>
+                          <h3 className="text-xs font-black uppercase tracking-wider text-amber-550">Certificate Locked</h3>
                         </div>
                         
                         <p className="text-xs text-slate-400 leading-relaxed font-semibold">
-                          Complete the required learning milestones to unlock your verified certificate.
+                          {isFreshUser 
+                            ? "Start learning to unlock your first certificate."
+                            : "Complete the required learning milestones to unlock your verified certificate."
+                          }
                         </p>
                         
                         <div className="pt-2 border-t border-white/5 space-y-4">
-                          <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider block font-sans">Requirements Tracker</span>
+                          <span className="text-[9px] font-black uppercase text-slate-550 tracking-wider block font-sans">Requirements Tracker</span>
                           
+                          {/* Requirement 1: Course Completion */}
                           <div className="space-y-2">
                             <div className="flex justify-between text-[10px] font-bold text-slate-350">
                               <span>Course Completion (20h target)</span>
@@ -6278,6 +6268,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             </div>
                           </div>
 
+                          {/* Requirement 2: Practice Completed */}
                           <div className="space-y-2">
                             <div className="flex justify-between text-[10px] font-bold text-slate-350">
                               <span>Practice Completed (800 XP target)</span>
@@ -6293,25 +6284,29 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             </div>
                           </div>
 
+                          {/* Requirement 3: Required Score */}
                           <div className="space-y-2">
                             <div className="flex justify-between text-[10px] font-bold text-slate-350">
                               <span>Required Score (Min 80%)</span>
-                              <span className={currentScore >= 80 ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
-                                {currentScore}%
+                              <span className={isFreshUser ? "text-slate-500 font-bold" : currentScore >= 80 ? "text-emerald-400 font-bold" : "text-rose-455 font-bold"}>
+                                {isFreshUser ? "Not Attempted Yet" : `${currentScore}%`}
                               </span>
                             </div>
                             <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">
                               <div 
-                                className={`h-full rounded-full transition-all ${currentScore >= 80 ? 'bg-emerald-500' : 'bg-rose-500'}`} 
-                                style={{ width: `${currentScore}%` }} 
+                                className={`h-full rounded-full transition-all ${isFreshUser ? 'bg-slate-800' : currentScore >= 80 ? 'bg-emerald-500' : 'bg-rose-500'}`} 
+                                style={{ width: `${isFreshUser ? 0 : currentScore}%` }} 
                               />
                             </div>
                           </div>
 
+                          {/* Requirement 4: Pending Mistakes */}
                           <div className="flex items-center justify-between text-[10px] font-bold pt-1 border-t border-white/5 text-slate-400">
-                            <span>Resolve Pending Mistakes</span>
-                            {incorrectQuestions.length === 0 ? (
-                              <span className="text-emerald-400">✓ All Resolved</span>
+                            <span>Pending Mistakes</span>
+                            {isFreshUser ? (
+                              <span className="text-slate-500 font-bold">None</span>
+                            ) : incorrectQuestions.length === 0 ? (
+                              <span className="text-emerald-400 font-bold">None</span>
                             ) : (
                               <span className="text-rose-455 font-black">❌ {incorrectQuestions.length} Pending Mistakes</span>
                             )}
@@ -6326,12 +6321,29 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     <div className="grid md:grid-cols-2 gap-6 pt-2 text-left animate-in fade-in duration-300">
                       <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[24px] shadow-lg space-y-4 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none" />
-                        <span className="text-[9px] font-black uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">Verified</span>
-                        <h3 className="text-sm font-black text-white">Advanced DSA & Complexity Mastery</h3>
-                        <p className="text-xs text-slate-450 font-semibold leading-relaxed">
-                          Issued upon scoring above 80% on mock recursion, graph traversal, and complexity analysis tests.
-                        </p>
-                        <div className="pt-2 flex justify-between items-center text-[10px] text-slate-500 font-bold mt-4 border-t border-white/5">
+                        
+                        <div className="space-y-1">
+                          <span className="text-[9px] font-black uppercase bg-emerald-500/15 text-emerald-450 border border-emerald-500/20 px-2 py-0.5 rounded">Verified</span>
+                          <h3 className="text-sm font-black text-white mt-2">Advanced DSA & Complexity Mastery</h3>
+                          <p className="text-xs text-slate-455 font-semibold leading-relaxed">
+                            Issued upon scoring above 80% on mock recursion, graph traversal, and complexity analysis tests.
+                          </p>
+                        </div>
+
+                        <div className="p-4 bg-slate-950/40 border border-white/5 rounded-xl space-y-2">
+                          <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                            🎉 Congratulations!
+                          </h4>
+                          <p className="text-[11px] text-slate-400 font-bold leading-normal">All requirements completed successfully:</p>
+                          <ul className="space-y-1 text-[10px] text-slate-300 font-semibold">
+                            <li className="flex items-center gap-1.5"><span className="text-emerald-450 font-black">✓</span> {stats.totalStudyHours || 20} / 20 Study Hours</li>
+                            <li className="flex items-center gap-1.5"><span className="text-emerald-450 font-black">✓</span> {stats.xp || 800} XP Earned</li>
+                            <li className="flex items-center gap-1.5"><span className="text-emerald-450 font-black">✓</span> Average Score {currentScore}%</li>
+                            <li className="flex items-center gap-1.5"><span className="text-emerald-450 font-black">✓</span> No Pending Mistakes</li>
+                          </ul>
+                        </div>
+
+                        <div className="pt-2 flex justify-between items-center text-[10px] text-slate-550 font-bold mt-4 border-t border-white/5">
                           <span>Completed Today</span>
                           <button 
                             onClick={generateCertificatePDF}
