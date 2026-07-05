@@ -5,6 +5,7 @@ import { Socket } from 'socket.io-client';
 import { getSocket, disconnectSocket } from '../utils/socket';
 import { apiRequest } from '../utils/api';
 import { googleLogout } from '@react-oauth/google';
+import { useRouter } from 'next/navigation';
 
 export interface User {
   id: string;
@@ -52,6 +53,71 @@ export interface AppContextType {
   unreadCount: number;
   myGroups: any[];
   setMyGroups: (groups: any[]) => void;
+  stats: { 
+    streakCount: number; 
+    totalStudyHours: number; 
+    xp: number; 
+    focusCoins: number; 
+    level: number; 
+    department: string; 
+    badges: string; 
+  };
+  setStats: React.Dispatch<React.SetStateAction<{ 
+    streakCount: number; 
+    totalStudyHours: number; 
+    xp: number; 
+    focusCoins: number; 
+    level: number; 
+    department: string; 
+    badges: string; 
+  }>>;
+  availableGroups: any[];
+  setAvailableGroups: React.Dispatch<React.SetStateAction<any[]>>;
+  pendingApprovals: any[];
+  setPendingApprovals: React.Dispatch<React.SetStateAction<any[]>>;
+  studentsList: any[];
+  setStudentsList: React.Dispatch<React.SetStateAction<any[]>>;
+  notesList: any[];
+  setNotesList: React.Dispatch<React.SetStateAction<any[]>>;
+  dashboardDataLoaded: boolean;
+  setDashboardDataLoaded: (loaded: boolean) => void;
+  
+  // Tab/Sub-view states
+  studySubView: null | 'workspaces' | 'rooms' | 'resources';
+  setStudySubView: React.Dispatch<React.SetStateAction<null | 'workspaces' | 'rooms' | 'resources'>>;
+  practiceSubView: null | 'questions' | 'mock';
+  setPracticeSubView: React.Dispatch<React.SetStateAction<null | 'questions' | 'mock'>>;
+  progressSubView: null | 'analytics' | 'xp' | 'certificates';
+  setProgressSubView: React.Dispatch<React.SetStateAction<null | 'analytics' | 'xp' | 'certificates'>>;
+  communitySubView: null | 'forum' | 'leaderboard' | 'chat';
+  setCommunitySubView: React.Dispatch<React.SetStateAction<null | 'forum' | 'leaderboard' | 'chat'>>;
+  profileSubView: null | 'details' | 'settings';
+  setProfileSubView: React.Dispatch<React.SetStateAction<null | 'details' | 'settings'>>;
+
+  // Mentor caching states
+  mentorStudents: any[];
+  setMentorStudents: React.Dispatch<React.SetStateAction<any[]>>;
+  mentorRooms: any[];
+  setMentorRooms: React.Dispatch<React.SetStateAction<any[]>>;
+  mentorSessions: any[];
+  setMentorSessions: React.Dispatch<React.SetStateAction<any[]>>;
+  mentorDoubts: any[];
+  setMentorDoubts: React.Dispatch<React.SetStateAction<any[]>>;
+  mentorAssignments: any[];
+  setMentorAssignments: React.Dispatch<React.SetStateAction<any[]>>;
+  mentorDataLoaded: boolean;
+  setMentorDataLoaded: (loaded: boolean) => void;
+
+  // Admin caching states
+  adminUsers: any[];
+  setAdminUsers: React.Dispatch<React.SetStateAction<any[]>>;
+  adminRooms: any[];
+  setAdminRooms: React.Dispatch<React.SetStateAction<any[]>>;
+  adminApprovals: any[];
+  setAdminApprovals: React.Dispatch<React.SetStateAction<any[]>>;
+  adminDataLoaded: boolean;
+  setAdminDataLoaded: (loaded: boolean) => void;
+
   socket: Socket | null;
   loading: boolean;
   refreshUser: () => Promise<User | null>;
@@ -61,6 +127,7 @@ export interface AppContextType {
   markNotificationRead: (id: string) => Promise<void>;
 }
 
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -69,6 +136,93 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [myGroups, setMyGroups] = useState<any[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Stats, lists, loaded status
+  const [stats, setStats] = useState({ 
+    streakCount: 0, 
+    totalStudyHours: 0.0, 
+    xp: 0, 
+    focusCoins: 0, 
+    level: 1, 
+    department: 'CSE', 
+    badges: '[]' 
+  });
+  const [availableGroups, setAvailableGroups] = useState<any[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
+  const [studentsList, setStudentsList] = useState<any[]>([]);
+  const [notesList, setNotesList] = useState<any[]>([]);
+  const [dashboardDataLoaded, setDashboardDataLoaded] = useState(false);
+
+  // Tab subviews
+  const [studySubView, setStudySubView] = useState<null | 'workspaces' | 'rooms' | 'resources'>(null);
+  const [practiceSubView, setPracticeSubView] = useState<null | 'questions' | 'mock'>(null);
+  const [progressSubView, setProgressSubView] = useState<null | 'analytics' | 'xp' | 'certificates'>(null);
+  const [communitySubView, setCommunitySubView] = useState<null | 'forum' | 'leaderboard' | 'chat'>(null);
+  const [profileSubView, setProfileSubView] = useState<null | 'details' | 'settings'>(null);
+
+  // Mentor data states
+  const [mentorStudents, setMentorStudents] = useState<any[]>([]);
+  const [mentorRooms, setMentorRooms] = useState<any[]>([]);
+  const [mentorSessions, setMentorSessions] = useState<any[]>([]);
+  const [mentorDoubts, setMentorDoubts] = useState<any[]>([]);
+  const [mentorAssignments, setMentorAssignments] = useState<any[]>([]);
+  const [mentorDataLoaded, setMentorDataLoaded] = useState(false);
+
+  // Admin data states
+  const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [adminRooms, setAdminRooms] = useState<any[]>([]);
+  const [adminApprovals, setAdminApprovals] = useState<any[]>([]);
+  const [adminDataLoaded, setAdminDataLoaded] = useState(false);
+
+  const router = useRouter();
+
+  // Prefetch navigation routes immediately after login
+  useEffect(() => {
+    if (user) {
+      const role = user.role;
+      if (role === 'student') {
+        router.prefetch('/student/dashboard');
+        router.prefetch('/student/study');
+        router.prefetch('/student/practice');
+        router.prefetch('/student/progress');
+        router.prefetch('/student/community');
+        router.prefetch('/student/profile');
+      } else if (role === 'mentor') {
+        router.prefetch('/mentor/dashboard');
+        router.prefetch('/mentor/student-roster');
+        router.prefetch('/mentor/study-rooms');
+        router.prefetch('/mentor/mentoring-sessions');
+        router.prefetch('/mentor/cohort-analytics');
+        router.prefetch('/mentor/profile');
+      } else if (role === 'admin') {
+        router.prefetch('/admin/dashboard');
+        router.prefetch('/admin/users');
+        router.prefetch('/admin/mentors');
+        router.prefetch('/admin/study-rooms');
+        router.prefetch('/admin/system-health');
+        router.prefetch('/admin/settings');
+      }
+    }
+  }, [user, router]);
+
+  // Preload commonly used assets
+  useEffect(() => {
+    if (user && typeof window !== 'undefined') {
+      const assets = [
+        '/bhagya-avatar.png',
+        '/charan-avatar.png',
+        '/karthik-avatar.png',
+        '/rathna-avatar.png',
+        '/swathi-avatar.png',
+        '/students-studying.png',
+        '/welcome.png'
+      ];
+      assets.forEach(src => {
+        const img = new window.Image();
+        img.src = src;
+      });
+    }
+  }, [user]);
 
   const setUser = (newUser: User | null, token?: string | null) => {
     setUserState(newUser);
@@ -293,6 +447,48 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         unreadCount,
         myGroups,
         setMyGroups,
+        stats,
+        setStats,
+        availableGroups,
+        setAvailableGroups,
+        pendingApprovals,
+        setPendingApprovals,
+        studentsList,
+        setStudentsList,
+        notesList,
+        setNotesList,
+        dashboardDataLoaded,
+        setDashboardDataLoaded,
+        studySubView,
+        setStudySubView,
+        practiceSubView,
+        setPracticeSubView,
+        progressSubView,
+        setProgressSubView,
+        communitySubView,
+        setCommunitySubView,
+        profileSubView,
+        setProfileSubView,
+        mentorStudents,
+        setMentorStudents,
+        mentorRooms,
+        setMentorRooms,
+        mentorSessions,
+        setMentorSessions,
+        mentorDoubts,
+        setMentorDoubts,
+        mentorAssignments,
+        setMentorAssignments,
+        mentorDataLoaded,
+        setMentorDataLoaded,
+        adminUsers,
+        setAdminUsers,
+        adminRooms,
+        setAdminRooms,
+        adminApprovals,
+        setAdminApprovals,
+        adminDataLoaded,
+        setAdminDataLoaded,
         socket,
         loading,
         refreshUser,

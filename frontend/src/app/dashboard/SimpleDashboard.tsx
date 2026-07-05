@@ -31,6 +31,7 @@ interface SimpleDashboardProps {
     xp?: number;
     level?: number;
   };
+  loading?: boolean;
   myGroups: any[];
   availableGroups: any[];
   dailyMissions: any[];
@@ -50,6 +51,7 @@ interface SimpleDashboardProps {
 export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   user,
   stats,
+  loading = false,
   myGroups,
   availableGroups,
   dailyMissions,
@@ -70,7 +72,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
   // Today's Focus Goals State
   const [focusGoals, setFocusGoals] = useState<any[]>([
-    { id: 'roadmap', label: 'Review Placement Roadmap' },
+    { id: 'concept', label: 'Revise Weak Concepts' },
     { id: 'pomodoro', label: 'Run 2 Pomodoro Sessions' },
     { id: 'dsa', label: 'Solve 5 DSA Problems' }
   ]);
@@ -228,6 +230,56 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     setCompletedGoals(prev => prev.filter(g => g !== id));
     showToast('Focus goal deleted', 'info');
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-8 text-white text-left font-sans animate-pulse">
+        {/* Hero Area Skeleton */}
+        <div className="h-48 bg-white/5 border border-white/5 rounded-[32px] flex flex-col justify-between p-8">
+          <div className="space-y-3">
+            <div className="h-6 w-48 bg-white/10 rounded-lg" />
+            <div className="h-4 w-96 bg-white/5 rounded-lg" />
+          </div>
+          <div className="h-10 w-32 bg-white/10 rounded-xl" />
+        </div>
+
+        {/* Quick Actions Skeleton */}
+        <div className="bg-[#0B0F19]/45 border border-white/5 p-6 rounded-[28px] space-y-4">
+          <div className="h-4 w-32 bg-white/10 rounded-lg" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-28 bg-[#1E293B]/40 border border-white/5 rounded-2xl p-5 flex flex-col justify-between">
+                <div className="h-8 w-8 bg-white/10 rounded-xl" />
+                <div className="space-y-1.5">
+                  <div className="h-3 w-16 bg-white/10 rounded-lg" />
+                  <div className="h-2.5 w-24 bg-white/5 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Focus Goals & Milestone Skeletons */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-64 bg-[#0B0F19] border border-white/5 rounded-[28px] p-5 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <div className="h-4 w-28 bg-white/10 rounded-lg" />
+                  <div className="h-4 w-12 bg-white/5 rounded-lg" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-10 bg-white/5 rounded-xl" />
+                  <div className="h-10 bg-white/5 rounded-xl" />
+                </div>
+              </div>
+              <div className="h-8 bg-white/5 rounded-xl" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 text-white text-left font-sans animate-in fade-in duration-300">
@@ -460,24 +512,24 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
         </div>
 
-        {/* Widget 2: Today's Challenge Teaser */}
+        {/* Widget 2: Peer Learning Hub Teaser */}
         <div className="bg-[#0B0F19] border border-white/5 rounded-[28px] p-5 shadow-lg flex flex-col justify-between text-left">
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xs font-black uppercase tracking-wider text-white">Placement Roadmap</h3>
-              <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-350 border border-indigo-500/20 text-[8px] font-black uppercase shrink-0 tracking-wider">Syllabus</span>
+              <h3 className="text-xs font-black uppercase tracking-wider text-white">Peer Learning Hub</h3>
+              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-350 border border-emerald-500/20 text-[8px] font-black uppercase shrink-0 tracking-wider">Collaborative</span>
             </div>
             
             <div className="p-4 bg-white/[0.01] border border-white/5 rounded-2xl text-left space-y-3">
               <p className="text-[11px] font-extrabold text-slate-200 leading-relaxed">
-                Follow a structured placement roadmap covering DSA, DBMS, OS, CN, Aptitude, and Interview Prep.
+                Join study circles, share curated notes, and participate in peer doubt-solving to accelerate your progress.
               </p>
               <div className="flex items-center gap-2 pt-1">
-                <span className="text-[9px] font-black uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">
-                  Active Stage: Foundation
+                <span className="text-[9px] font-black uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded">
+                  Status: Active
                 </span>
                 <span className="text-[9px] text-slate-550 font-bold uppercase">
-                  Weeks 1-4
+                  Ready
                 </span>
               </div>
             </div>

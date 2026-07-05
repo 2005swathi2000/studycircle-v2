@@ -2,8 +2,8 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import './globals.css';
 import { ToastProvider } from './components/ToastProvider';
 import { FloatingLogo } from './components/FloatingLogo';
-import { FloatingAiTutor } from './components/FloatingAiTutor';
 import { AppProvider } from './context/AppContext';
+import AiTutorWrapper from './components/AiTutorWrapper';
 
 export const metadata = {
   title: 'StudyCircle - Collaborative Learning Workspace',
@@ -32,7 +32,7 @@ export default function RootLayout({
               <AppProvider>
                 <ToastProvider>
                   {children}
-                  <FloatingAiTutor />
+                  <AiTutorWrapper />
                 </ToastProvider>
               </AppProvider>
             );
@@ -43,7 +43,7 @@ export default function RootLayout({
               <AppProvider>
                 <ToastProvider>
                   {children}
-                  <FloatingAiTutor />
+                  <AiTutorWrapper />
                 </ToastProvider>
               </AppProvider>
             </GoogleOAuthProvider>

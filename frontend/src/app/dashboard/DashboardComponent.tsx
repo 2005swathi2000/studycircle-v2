@@ -191,6 +191,8 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const router = useRouter();
   const { showToast } = useToast();
   const dataLoadedRef = useRef(false);
+  const mainContentRef = useRef<HTMLDivElement | null>(null);
+  const scrollPositionsRef = useRef<Record<string, number>>({});
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -217,8 +219,31 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     logout, 
     loading: globalLoading,
     markAllNotificationsRead,
-    markNotificationRead 
+    markNotificationRead,
+    stats,
+    setStats,
+    availableGroups,
+    setAvailableGroups,
+    pendingApprovals,
+    setPendingApprovals,
+    studentsList,
+    setStudentsList,
+    notesList,
+    setNotesList,
+    dashboardDataLoaded,
+    setDashboardDataLoaded,
+    studySubView,
+    setStudySubView,
+    practiceSubView,
+    setPracticeSubView,
+    progressSubView,
+    setProgressSubView,
+    communitySubView,
+    setCommunitySubView,
+    profileSubView,
+    setProfileSubView
   } = useApp();
+
 
   useEffect(() => {
     if (!globalLoading && !bypassRedirect) {
@@ -235,16 +260,7 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     }
   }, [user, globalLoading, bypassRedirect, router]);
 
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ 
-    streakCount: 0, 
-    totalStudyHours: 0.0, 
-    xp: 0, 
-    focusCoins: 0, 
-    level: 1, 
-    department: 'CSE', 
-    badges: '[]' 
-  });
+  const [loading, setLoading] = useState(!dashboardDataLoaded);
 
   // Onboarding Wizard States
   const [showOnboardingWizard, setShowOnboardingWizard] = useState(false);
@@ -332,11 +348,7 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     return () => clearTimeout(timeoutId);
   }, [setUser]);
 
-  const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
-  const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
-
   // Roster Management States
-  const [studentsList, setStudentsList] = useState<any[]>([]);
   const [studentsSearch, setStudentsSearch] = useState('');
   const [selectedStudentForChallenge, setSelectedStudentForChallenge] = useState<any>(null);
   const [challengeText, setChallengeText] = useState('');
@@ -551,11 +563,6 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   ]);
 
   // Student Dashboard Consolidated Sub-views
-  const [studySubView, setStudySubView] = useState<null | 'workspaces' | 'rooms' | 'resources'>(null);
-  const [practiceSubView, setPracticeSubView] = useState<null | 'roadmap' | 'questions' | 'mock'>(null);
-  const [progressSubView, setProgressSubView] = useState<null | 'analytics' | 'xp' | 'certificates'>(null);
-  const [communitySubView, setCommunitySubView] = useState<null | 'forum' | 'leaderboard' | 'chat'>(null);
-  const [profileSubView, setProfileSubView] = useState<null | 'details' | 'settings'>(null);
 
 
   // Login states for dashboard Auth Guard Overlay
@@ -702,6 +709,38 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
     }
     router.push(path);
   };
+
+  // 1. Listen to scroll events on Main Content Wrapper to save positions
+  useEffect(() => {
+    const handleScroll = () => {
+      if (mainContentRef.current && activeTab) {
+        scrollPositionsRef.current[activeTab] = mainContentRef.current.scrollTop;
+      }
+    };
+    
+    const container = mainContentRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [activeTab]);
+
+  // 2. Restore scroll position when activeTab changes
+  useEffect(() => {
+    if (mainContentRef.current && activeTab) {
+      const saved = scrollPositionsRef.current[activeTab] || 0;
+      const timeoutId = setTimeout(() => {
+        if (mainContentRef.current) {
+          mainContentRef.current.scrollTop = saved;
+        }
+      }, 50);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [activeTab]);
 
   // Global Leaderboard States
   const [leaderboardData, setLeaderboardData] = useState<any>(null);
@@ -1327,7 +1366,7 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [roomCamOff, setRoomCamOff] = useState(false);
   const [roomSeconds, setRoomSeconds] = useState(0);
 
-  const [notesList, setNotesList] = useState<any[]>([]);
+
 
   const [newNoteName, setNewNoteName] = useState('');
   const [newNoteSize, setNewNoteSize] = useState('1.5 MB');
@@ -2114,10 +2153,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
         setDailyMissions(fresh);
       }
       
-      if (!dataLoadedRef.current) {
-        dataLoadedRef.current = true;
-        loadDashboardData(user);
-      }
+      const isBackground = dashboardDataLoaded;
+      loadDashboardData(user, isBackground, activeTab);
 
       // Set current date on client side
       const dateStr = new Date().toLocaleDateString('en-US', {
@@ -2128,7 +2165,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
       });
       setFormattedDate(dateStr);
     }
-  }, [user, globalLoading]);
+  }, [user, globalLoading, activeTab]);
 
   const checkUserGoldenFrame = (userObj: any) => {
     if (!userObj || !userObj.badges) return false;
@@ -2195,8 +2232,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
         else if (studySubView === 'resources') context = 'Study Resources Vault';
         else context = 'Study Directory';
       } else if (activeTab === 'practice') {
-        if (practiceSubView === 'roadmap') context = 'Interactive Placement Preparation Roadmap';
-        else if (practiceSubView === 'questions') context = 'DSA & Practice Questions (solving Arrays)';
+        if (practiceSubView === 'questions') context = 'DSA & Practice Questions (solving Arrays)';
         else if (practiceSubView === 'mock') context = 'Weak Areas & Revision';
         else context = 'Practice Playground';
       } else if (activeTab === 'progress') {
@@ -2220,68 +2256,98 @@ Based on your desking logs and consistency, the AI tutor recommends:
     }
   }, [activeTab, studySubView, practiceSubView, progressSubView, communitySubView, profileSubView]);
 
-  const loadDashboardData = async (info: any) => {
-    setLoading(true);
+  const loadDashboardData = async (info: any, isBackground = false, tab: string = activeTab) => {
+    if (!isBackground) {
+      setLoading(true);
+    }
     try {
-      // 0. Fetch latest user details
-      try {
-        const meData = await apiRequest('/auth/me');
-        if (meData.user) {
-          setUser(meData.user, meData.token || (typeof window !== 'undefined' ? localStorage.getItem('studycircle_token') : null));
-          setEditFullName(meData.user.fullName || '');
-          setEditFirstName(meData.user.firstName || '');
-          setEditLastName(meData.user.lastName || '');
-          setEditEmail(meData.user.email || '');
-          setEditPhone(meData.user.phone || '');
-          setPreviewAvatar(meData.user.avatarUrl || '');
-          setEditBio(meData.user.bio || '');
-        }
-      } catch (meErr) {
-        console.error('Error fetching latest user details:', meErr);
+      const promises: Promise<any>[] = [];
+      const fetchKeys: string[] = [];
+
+      // 0. Fetch latest user details (required for dashboard or profile)
+      if (tab === 'dashboard' || tab === 'profile') {
+        promises.push(apiRequest('/auth/me').catch(err => { console.error('Failed to fetch user profile:', err); return null; }));
+        fetchKeys.push('me');
+      }
+      
+      // 1. Fetch user stats (required for dashboard, practice, progress)
+      if (tab === 'dashboard' || tab === 'practice' || tab === 'progress') {
+        promises.push(apiRequest('/progress/me').catch(err => { console.error('Failed to fetch user stats:', err); return null; }));
+        fetchKeys.push('stats');
       }
 
-      // 1. Fetch user stats
-      const statsData = await apiRequest('/progress/me');
-      setStats({
-        streakCount: statsData.streakCount || 0,
-        totalStudyHours: statsData.totalStudyHours || 0.0,
-        xp: statsData.xp || 0,
-        focusCoins: statsData.focusCoins || 0,
-        level: statsData.level || 1,
-        department: statsData.department || 'CSE',
-        badges: statsData.badges || '[]'
+      // 2. Fetch my groups (required for dashboard, study)
+      if (tab === 'dashboard' || tab === 'study') {
+        promises.push(apiRequest('/groups').catch(err => { console.error('Failed to fetch my groups:', err); return null; }));
+        fetchKeys.push('myGroups');
+      }
+
+      // 3. Fetch available public groups (required for study)
+      if (tab === 'study') {
+        promises.push(apiRequest('/groups/available').catch(err => { console.error('Failed to fetch available groups:', err); return null; }));
+        fetchKeys.push('availGroups');
+      }
+
+      // 4. Fetch Shared Notes (required for community)
+      if (tab === 'community') {
+        promises.push(apiRequest('/shared-notes').catch(err => { console.error('Failed to fetch shared notes:', err); return null; }));
+        fetchKeys.push('notes');
+      }
+
+      // Fetch students list if mentor or admin (required for dashboard/students)
+      if ((info.role === 'mentor' || info.role === 'admin') && (tab === 'dashboard' || tab === 'students')) {
+        promises.push(apiRequest('/auth/students').catch(err => { console.error('Failed to fetch students list:', err); return null; }));
+        fetchKeys.push('students');
+      }
+
+      if (promises.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const results = await Promise.all(promises);
+
+      // Process results
+      results.forEach((data, index) => {
+        const key = fetchKeys[index];
+        if (!data) return; // Skip failed queries gracefully while retaining last cached state
+
+        if (key === 'me' && data.user) {
+          setUser(data.user, data.token || (typeof window !== 'undefined' ? localStorage.getItem('studycircle_token') : null));
+          setEditFullName(data.user.fullName || '');
+          setEditFirstName(data.user.firstName || '');
+          setEditLastName(data.user.lastName || '');
+          setEditEmail(data.user.email || '');
+          setEditPhone(data.user.phone || '');
+          setPreviewAvatar(data.user.avatarUrl || '');
+          setEditBio(data.user.bio || '');
+        } else if (key === 'stats') {
+          setStats({
+            streakCount: data.streakCount || 0,
+            totalStudyHours: data.totalStudyHours || 0.0,
+            xp: data.xp || 0,
+            focusCoins: data.focusCoins || 0,
+            level: data.level || 1,
+            department: data.department || 'CSE',
+            badges: data.badges || '[]'
+          });
+        } else if (key === 'myGroups') {
+          setMyGroups(data.groups || []);
+        } else if (key === 'availGroups') {
+          setAvailableGroups(data.groups || []);
+        } else if (key === 'notes') {
+          setNotesList(data.notes || []);
+        } else if (key === 'students') {
+          setStudentsList(data.students || []);
+        }
       });
 
-      // 2. Fetch my groups
-      const myGroupsData = await apiRequest('/groups');
-      setMyGroups(myGroupsData.groups || []);
-
-      // 3. Fetch available public groups
-      const availData = await apiRequest('/groups/available');
-      setAvailableGroups(availData.groups || []);
-
-      // 4. Fetch pending approvals if Admin
-      if (info.role === 'admin') {
-        const pendingData = await apiRequest('/auth/pending-approvals');
-        setPendingApprovals(pendingData.pendingUsers || []);
-      }
-
-      // Fetch students list if mentor or admin
-      if (info.role === 'mentor' || info.role === 'admin') {
-        try {
-          const studentsData = await apiRequest('/auth/students');
-          setStudentsList(studentsData.students || []);
-        } catch (studErr) {
-          console.error('Error fetching students list:', studErr);
-        }
-      }
-
-      // 5. Fetch Shared Notes
-      const notesData = await apiRequest('/shared-notes');
-      setNotesList(notesData.notes || []);
+      setDashboardDataLoaded(true);
     } catch (e: any) {
       console.error('Error fetching dashboard data:', e);
-      showToast(e.message || 'Error loading dashboard data.', 'error');
+      if (!dashboardDataLoaded) {
+        showToast(e.message || 'Error loading dashboard data.', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -2570,7 +2636,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
     ].join(':');
   };
 
-  if (globalLoading || (loading && user) || (!bypassRedirect && user?.role !== 'student')) {
+  if (globalLoading || (!bypassRedirect && user?.role !== 'student')) {
     return (
       <div 
         className="min-h-screen flex items-center justify-center bg-[#D4D4FF]"
@@ -2970,6 +3036,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
       <SimpleDashboard 
         user={user}
         stats={stats}
+        loading={loading}
         myGroups={myGroups}
         availableGroups={availableGroups}
         dailyMissions={dailyMissions}
@@ -3495,8 +3562,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
         </div>
       </aside>
 
-      {/* 2. Main Content Wrapper */}
-      <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-y-auto transition-colors duration-500 ${
+      <div 
+        ref={mainContentRef}
+        className={`flex-1 flex flex-col min-w-0 h-screen overflow-y-auto transition-colors duration-500 ${
         equippedTheme === 'cyberpunk' ? 'bg-[#0e021a]' :
         equippedTheme === 'zengarden' ? 'bg-[#03140a]' :
         'bg-[#060913]'
@@ -3697,186 +3765,13 @@ Based on your desking logs and consistency, the AI tutor recommends:
               
 
               {/* Sub-view Rendering */}
-              {practiceSubView === 'roadmap' ? (
-                /* Placement Roadmap sub-view */
-                <div className="space-y-6 text-left animate-in fade-in duration-300">
-                  <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap">
-                    {[
-                      { id: 'questions', name: '💻 Practice Questions', active: (practiceSubView as any) === 'questions' },
-                      { id: 'mock', name: '🔍 Weak Areas & Smart Revision', active: (practiceSubView as any) === 'mock' },
-                      { id: 'roadmap', name: '🗺️ Placement Roadmap', active: (practiceSubView as any) === 'roadmap' }
-                    ].map((subTab) => (
-                      <button
-                        key={subTab.id}
-                        onClick={() => setPracticeSubView(subTab.id as any)}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none ${
-                          subTab.active
-                            ? 'bg-indigo-600 text-white font-bold'
-                            : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {subTab.name}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="border-b border-white/5 pb-4">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                      🗺️ Placement Preparation Roadmap
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1">Track your syllabus milestones across foundational coding, core Computer Science, advanced concepts, and final HR interview readiness.</p>
-                  </div>
-
-                  <div className="relative border-l-2 border-indigo-500/20 ml-4 pl-6 space-y-8 py-4">
-                    {[
-                      {
-                        phase: "Phase 1",
-                        title: "Foundation & Programming Basics",
-                        duration: "Weeks 1-4",
-                        status: "Completed",
-                        color: "emerald",
-                        interest: "Programming & DSA",
-                        topics: [
-                          "Language Fundamentals (Java/C++)",
-                          "Object Oriented Programming (OOPs)",
-                          "Time & Space Complexity Analysis",
-                          "Basic Data Structures (Arrays, Linked Lists, Stacks, Queues)"
-                        ]
-                      },
-                      {
-                        phase: "Phase 2",
-                        title: "Core Computer Science Concepts",
-                        duration: "Weeks 5-8",
-                        status: "In Progress",
-                        color: "indigo",
-                        interest: "Programming & DSA",
-                        topics: [
-                          "Database Management Systems & SQL Joins",
-                          "Operating Systems (Process, Threads & Deadlocks)",
-                          "Computer Networks (OSI Model & TCP/IP handshake)"
-                        ]
-                      },
-                      {
-                        phase: "Phase 3",
-                        title: "Advanced Data Structures & Algorithms",
-                        duration: "Weeks 9-12",
-                        status: "Locked",
-                        color: "violet",
-                        interest: "Programming & DSA",
-                        topics: [
-                          "Trees & Binary Search Trees (BST)",
-                          "Graph Algorithms (BFS, DFS, Dijkstra)",
-                          "Dynamic Programming (DP) Optimization"
-                        ]
-                      },
-                      {
-                        phase: "Phase 4",
-                        title: "Aptitude & Quantitative Reasoning",
-                        duration: "Weeks 13-14",
-                        status: "Locked",
-                        color: "cyan",
-                        interest: "Aptitude",
-                        topics: [
-                          "Permutations, Combinations & Probability",
-                          "Time, Speed, Distance & Work Equations",
-                          "Logical Puzzles & Pattern Matching"
-                        ]
-                      },
-                      {
-                        phase: "Phase 5",
-                        title: "Interview Mastery & System Design",
-                        duration: "Weeks 15-16",
-                        status: "Locked",
-                        color: "rose",
-                        interest: "Interview Preparation",
-                        topics: [
-                          "Low-Level (LLD) & High-Level (HLD) System Design",
-                          "Resume Project Architectures & Showcase",
-                          "HR Behavioral Questions & STAR Method Response"
-                        ]
-                      }
-                    ].map((p, idx) => {
-                      const isCompleted = p.status === "Completed";
-                      const isInProgress = p.status === "In Progress";
-                      const isLocked = p.status === "Locked";
-                      
-                      return (
-                        <div key={idx} className="relative group">
-                          {/* Timeline dot */}
-                          <div className={`absolute -left-[31px] top-1.5 h-4 w-4 rounded-full border-2 bg-[#0B0F19] transition-all ${
-                            isCompleted ? 'border-emerald-500 bg-emerald-500/20' :
-                            isInProgress ? 'border-indigo-500 bg-indigo-500/20 animate-pulse' :
-                            'border-slate-800 bg-slate-900'
-                          }`} />
-
-                          <div className="p-5 bg-[#0B0F19]/60 border border-white/5 hover:border-white/10 rounded-2xl space-y-4 shadow-md transition-all">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                              <div className="space-y-1">
-                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${
-                                  isCompleted ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                                  isInProgress ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' :
-                                  'bg-slate-800/50 text-slate-500 border border-white/5'
-                                }`}>
-                                  {p.phase} &bull; {p.duration}
-                                </span>
-                                <h4 className="text-sm font-black text-white group-hover:text-indigo-300 transition-colors mt-1">{p.title}</h4>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
-                                  isCompleted ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
-                                  isInProgress ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/20' :
-                                  'bg-slate-900 text-slate-600 border border-white/5'
-                                }`}>
-                                  {p.status}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="grid sm:grid-cols-2 gap-3 pt-2">
-                              <div className="space-y-2">
-                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider block">Key Syllabus Topics</span>
-                                <ul className="space-y-1.5">
-                                  {p.topics.map((t, tIdx) => (
-                                    <li key={tIdx} className="text-xs text-slate-355 flex items-start gap-2 font-semibold">
-                                      <span className={isCompleted ? 'text-emerald-400' : isInProgress ? 'text-indigo-400' : 'text-slate-600'}>
-                                        {isCompleted ? '✓' : isInProgress ? '•' : '🔒'}
-                                      </span>
-                                      <span>{t}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-
-                              <div className="flex flex-col justify-end items-end gap-2">
-                                {!isLocked && (
-                                  <button
-                                    onClick={() => {
-                                      setSelectedInterest(p.interest);
-                                      setPracticeSubView('questions');
-                                      updateLastActivity(p.interest, 'Solve Practice Questions', 'practice', 'questions');
-                                    }}
-                                    className="px-4 py-2 bg-indigo-600 hover:bg-[#5227EB] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer border-none"
-                                  >
-                                    Start Practicing &rarr;
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : practiceSubView === 'questions' ? (
+              {practiceSubView === 'questions' ? (
                 /* Practice Questions sub-view */
                 <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap">
                     {[
                       { id: 'questions', name: '💻 Practice Questions', active: (practiceSubView as any) === 'questions' },
-                      { id: 'mock', name: '🔍 Weak Areas & Smart Revision', active: (practiceSubView as any) === 'mock' },
-                      { id: 'roadmap', name: '🗺️ Placement Roadmap', active: (practiceSubView as any) === 'roadmap' }
+                      { id: 'mock', name: '🔍 Weak Areas & Smart Revision', active: (practiceSubView as any) === 'mock' }
                     ].map((subTab) => (
                       <button
                         key={subTab.id}
@@ -3980,8 +3875,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
                       <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap text-left">
                         {[
                           { id: 'questions', name: '💻 Practice Questions', active: (practiceSubView as any) === 'questions' },
-                          { id: 'mock', name: '🔍 Weak Areas & Smart Revision', active: (practiceSubView as any) === 'mock' },
-                          { id: 'roadmap', name: '🗺️ Placement Roadmap', active: (practiceSubView as any) === 'roadmap' }
+                          { id: 'mock', name: '🔍 Weak Areas & Smart Revision', active: (practiceSubView as any) === 'mock' }
                         ].map((subTab) => (
                           <button
                             key={subTab.id}
