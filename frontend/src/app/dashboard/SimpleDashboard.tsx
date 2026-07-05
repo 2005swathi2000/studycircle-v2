@@ -37,6 +37,7 @@ interface SimpleDashboardProps {
   setSelectedInterest: (interest: any) => void;
   completedGoals: string[];
   setCompletedGoals: React.Dispatch<React.SetStateAction<string[]>>;
+  equippedTheme?: string;
 }
 
 export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
@@ -48,7 +49,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   getGreeting,
   router,
   setActiveTab,
-  setStudySubView
+  setStudySubView,
+  equippedTheme
 }) => {
   const [lastActivity, setLastActivity] = useState<any>(null);
 
@@ -69,6 +71,84 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       }
     }
   }, []);
+
+  const getThemeConfig = (themeId?: string) => {
+    switch (themeId) {
+      case 'zengarden': // Emerald
+        return {
+          primary: 'text-[#10B981]',
+          bgPrimary: 'bg-[#10B981]',
+          bgPrimaryHover: 'hover:bg-[#0d9488]',
+          bgPrimaryLight: 'bg-[#10B981]/10',
+          borderPrimary: 'border-[#10B981]',
+          borderPrimaryLight: 'border-[#10B981]/20',
+          accentColor: '#10B981',
+          progressGradient: 'from-emerald-500 to-teal-500',
+          resumeBg: 'bg-emerald-400',
+          labelColor: 'text-[#10B981]',
+          labelBg: 'bg-[#10B981]/10',
+        };
+      case 'cyberpunk': // Violet
+        return {
+          primary: 'text-fuchsia-500',
+          bgPrimary: 'bg-fuchsia-600',
+          bgPrimaryHover: 'hover:bg-fuchsia-700',
+          bgPrimaryLight: 'bg-fuchsia-500/10',
+          borderPrimary: 'border-fuchsia-500',
+          borderPrimaryLight: 'border-fuchsia-500/20',
+          accentColor: '#D946EF',
+          progressGradient: 'from-fuchsia-500 to-purple-500',
+          resumeBg: 'bg-fuchsia-400',
+          labelColor: 'text-fuchsia-400',
+          labelBg: 'bg-fuchsia-500/10',
+        };
+      case 'theme_solar_glow': // Sunset
+        return {
+          primary: 'text-amber-500',
+          bgPrimary: 'bg-amber-600',
+          bgPrimaryHover: 'hover:bg-amber-700',
+          bgPrimaryLight: 'bg-amber-500/10',
+          borderPrimary: 'border-amber-500',
+          borderPrimaryLight: 'border-amber-500/20',
+          accentColor: '#F59E0B',
+          progressGradient: 'from-amber-500 to-orange-500',
+          resumeBg: 'bg-amber-400',
+          labelColor: 'text-amber-400',
+          labelBg: 'bg-amber-500/10',
+        };
+      case 'theme_dark_nebula': // Midnight
+        return {
+          primary: 'text-indigo-400',
+          bgPrimary: 'bg-indigo-600',
+          bgPrimaryHover: 'hover:bg-indigo-700',
+          bgPrimaryLight: 'bg-indigo-500/10',
+          borderPrimary: 'border-indigo-500',
+          borderPrimaryLight: 'border-indigo-500/20',
+          accentColor: '#6366F1',
+          progressGradient: 'from-indigo-500 to-purple-500',
+          resumeBg: 'bg-indigo-400',
+          labelColor: 'text-indigo-400',
+          labelBg: 'bg-indigo-500/10',
+        };
+      case 'default':
+      default: // Ocean (Default)
+        return {
+          primary: 'text-blue-500',
+          bgPrimary: 'bg-blue-600',
+          bgPrimaryHover: 'hover:bg-blue-700',
+          bgPrimaryLight: 'bg-blue-500/10',
+          borderPrimary: 'border-blue-500',
+          borderPrimaryLight: 'border-blue-500/20',
+          accentColor: '#3B82F6',
+          progressGradient: 'from-blue-500 to-indigo-500',
+          resumeBg: 'bg-blue-400',
+          labelColor: 'text-blue-400',
+          labelBg: 'bg-blue-500/10',
+        };
+    }
+  };
+
+  const themeConfig = getThemeConfig(equippedTheme);
 
   const handleContinueLearning = () => {
     setActiveTab('study');
@@ -117,8 +197,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">Resume Last Course</span>
-                <span className="text-[10px] font-extrabold text-[#10B981] bg-[#10B981]/10 px-2.5 py-0.5 rounded-full">Active</span>
+                <span className={`text-[10px] font-black uppercase tracking-wider ${themeConfig.primary}`}>Resume Last Course</span>
+                <span className={`text-[10px] font-extrabold ${themeConfig.labelColor} ${themeConfig.labelBg} px-2.5 py-0.5 rounded-full`}>Active</span>
               </div>
               
               <div className="space-y-1">
@@ -134,7 +214,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 </div>
                 <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/5">
                   <div 
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500" 
+                    className={`h-full bg-gradient-to-r ${themeConfig.progressGradient} rounded-full transition-all duration-500`} 
                     style={{ width: `${currentProgress}%` }}
                   />
                 </div>
@@ -142,7 +222,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
               <button
                 onClick={handleContinueLearning}
-                className="mt-2 w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center justify-center gap-2"
+                className={`mt-2 w-full sm:w-auto px-6 py-2.5 ${themeConfig.bgPrimary} ${themeConfig.bgPrimaryHover} text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center justify-center gap-2`}
               >
                 Continue Learning <ArrowRight className="h-3.5 w-3.5" />
               </button>
@@ -152,7 +232,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           {/* 5. Recommended Course */}
           <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[24px] shadow-lg hover:scale-[1.01] transition-all duration-300">
             <div className="space-y-4">
-              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">Recommended for You</span>
+              <span className={`text-[10px] font-black uppercase tracking-wider ${themeConfig.primary}`}>Recommended for You</span>
               
               <div className="space-y-1">
                 <h3 className="text-base font-black text-white">System Design Basics</h3>
@@ -180,7 +260,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   'Finished Lesson 10'
                 ].map((act, i) => (
                   <div key={i} className="flex items-center gap-2.5 text-xs text-zinc-300 font-semibold py-0.5">
-                    <CheckCircle2 className="h-4 w-4 text-[#10B981] shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: themeConfig.accentColor }} />
                     <span>{act}</span>
                   </div>
                 ))}
@@ -198,7 +278,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Today's Goal</h3>
-                <span className="text-[10px] font-extrabold text-indigo-400 font-mono uppercase bg-indigo-500/10 px-2 py-0.5 rounded">
+                <span className={`text-[10px] font-extrabold ${themeConfig.primary} font-mono uppercase ${themeConfig.labelBg} px-2 py-0.5 rounded`}>
                   {completedGoalsCount} / 2 Completed
                 </span>
               </div>
@@ -212,7 +292,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 >
                   <div className={`h-4.5 w-4.5 rounded-md border flex items-center justify-center transition-all ${
                     lessonGoalCompleted 
-                      ? 'bg-[#10B981] border-[#10B981] text-white' 
+                      ? `${themeConfig.bgPrimary} ${themeConfig.borderPrimary} text-white` 
                       : 'border-slate-700 bg-transparent'
                   }`}>
                     {lessonGoalCompleted && <span className="text-[9px] font-black">✓</span>}
@@ -229,7 +309,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 >
                   <div className={`h-4.5 w-4.5 rounded-md border flex items-center justify-center transition-all ${
                     quizGoalCompleted 
-                      ? 'bg-[#10B981] border-[#10B981] text-white' 
+                      ? `${themeConfig.bgPrimary} ${themeConfig.borderPrimary} text-white` 
                       : 'border-slate-700 bg-transparent'
                   }`}>
                     {quizGoalCompleted && <span className="text-[9px] font-black">✓</span>}

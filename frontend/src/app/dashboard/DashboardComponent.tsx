@@ -285,6 +285,80 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   });
   const [showThemeSelector, setShowThemeSelector] = useState(false);
 
+  // Dynamic color configuration based on selected theme
+  const getThemeConfig = () => {
+    switch (equippedTheme) {
+      case 'zengarden': // Emerald
+        return {
+          primary: 'text-[#10B981]',
+          bgPrimary: 'bg-[#10B981]',
+          bgPrimaryHover: 'hover:bg-[#0d9488]',
+          bgPrimaryLight: 'bg-[#10B981]/15',
+          borderPrimary: 'border-[#10B981]',
+          borderPrimaryLight: 'border-[#10B981]/30',
+          hoverBg: 'hover:bg-[#10B981]/10',
+          hoverText: 'hover:text-[#10B981]',
+          accentGlow: 'shadow-[#10B981]/25',
+          gradient: 'from-emerald-500 to-teal-500',
+        };
+      case 'cyberpunk': // Violet
+        return {
+          primary: 'text-fuchsia-500',
+          bgPrimary: 'bg-fuchsia-600',
+          bgPrimaryHover: 'hover:bg-fuchsia-750',
+          bgPrimaryLight: 'bg-fuchsia-500/15',
+          borderPrimary: 'border-fuchsia-500',
+          borderPrimaryLight: 'border-fuchsia-500/30',
+          hoverBg: 'hover:bg-fuchsia-500/10',
+          hoverText: 'hover:text-fuchsia-500',
+          accentGlow: 'shadow-fuchsia-500/25',
+          gradient: 'from-fuchsia-500 to-purple-500',
+        };
+      case 'theme_solar_glow': // Sunset
+        return {
+          primary: 'text-amber-500',
+          bgPrimary: 'bg-amber-600',
+          bgPrimaryHover: 'hover:bg-amber-750',
+          bgPrimaryLight: 'bg-amber-500/15',
+          borderPrimary: 'border-amber-500',
+          borderPrimaryLight: 'border-amber-500/30',
+          hoverBg: 'hover:bg-amber-500/10',
+          hoverText: 'hover:text-amber-500',
+          accentGlow: 'shadow-amber-500/25',
+          gradient: 'from-amber-500 to-orange-500',
+        };
+      case 'theme_dark_nebula': // Midnight
+        return {
+          primary: 'text-indigo-400',
+          bgPrimary: 'bg-indigo-600',
+          bgPrimaryHover: 'hover:bg-indigo-700',
+          bgPrimaryLight: 'bg-indigo-500/15',
+          borderPrimary: 'border-indigo-500',
+          borderPrimaryLight: 'border-indigo-500/30',
+          hoverBg: 'hover:bg-indigo-500/10',
+          hoverText: 'hover:text-indigo-400',
+          accentGlow: 'shadow-indigo-550/25',
+          gradient: 'from-indigo-500 to-purple-500',
+        };
+      case 'default':
+      default: // Ocean (Default)
+        return {
+          primary: 'text-blue-500',
+          bgPrimary: 'bg-blue-650',
+          bgPrimaryHover: 'hover:bg-blue-750',
+          bgPrimaryLight: 'bg-blue-500/15',
+          borderPrimary: 'border-blue-500',
+          borderPrimaryLight: 'border-blue-500/30',
+          hoverBg: 'hover:bg-blue-500/10',
+          hoverText: 'hover:text-blue-500',
+          accentGlow: 'shadow-blue-500/25',
+          gradient: 'from-blue-500 to-indigo-500',
+        };
+    }
+  };
+  
+  const themeConfig = getThemeConfig();
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       document.documentElement.setAttribute('data-theme', theme);
@@ -3372,6 +3446,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
         setSelectedInterest={setSelectedInterest}
         completedGoals={completedGoals}
         setCompletedGoals={setCompletedGoals}
+        equippedTheme={equippedTheme}
       />
     );
   };
@@ -3854,11 +3929,11 @@ Based on your desking logs and consistency, the AI tutor recommends:
               />
             </div>
             <div className="min-w-0 text-left">
-              <div className="text-xs font-extrabold text-white group-hover:text-[#10B981] transition-colors truncate">{user?.fullName || 'User'}</div>
+              <div className={`text-xs font-extrabold text-white group-hover:${themeConfig.primary} transition-colors truncate`}>{user?.fullName || 'User'}</div>
               <div className="text-[10px] font-bold text-slate-400 capitalize mt-0.5">{user?.role || 'Guest'}</div>
             </div>
           </div>
-          <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-[#10B981] transition-colors shrink-0" />
+          <ChevronRight className={`h-4 w-4 text-slate-400 group-hover:${themeConfig.primary} transition-colors shrink-0`} />
         </div>
 
         {/* Dynamic Sidebar Links */}
@@ -3876,7 +3951,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
           </div>
           <button 
             onClick={() => setShowCreateModal(true)}
-            className="w-full py-2 bg-[#10B981] hover:bg-[#0d9488] text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer"
+            className={`w-full py-2 ${themeConfig.bgPrimary} ${themeConfig.bgPrimaryHover} text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer`}
           >
             Create Group
           </button>
@@ -4051,8 +4126,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
                     }}
                     className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 border border-transparent ${
                       isActive
-                        ? 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 shadow-md font-extrabold'
-                        : 'text-slate-400 hover:text-white hover:bg-white/[0.02]'
+                        ? `${themeConfig.bgPrimaryLight} ${themeConfig.primary} ${themeConfig.borderPrimaryLight} shadow-md font-extrabold`
+                        : `text-slate-400 hover:text-white hover:${themeConfig.hoverBg}`
                     }`}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
