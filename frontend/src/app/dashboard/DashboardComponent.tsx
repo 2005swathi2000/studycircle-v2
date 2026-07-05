@@ -2127,13 +2127,15 @@ Based on your desking logs and consistency, the AI tutor recommends:
         dataLoadedRef.current = false;
         return;
       }
-      setEditFullName(user.fullName || '');
-      setEditFirstName(user.firstName || '');
-      setEditLastName(user.lastName || '');
-      setEditEmail(user.email || '');
-      setEditPhone(user.phone || '');
-      setPreviewAvatar(user.avatarUrl || '');
-      setEditBio(user.bio || '');
+      if (!isEditingProfile) {
+        setEditFullName(user.fullName || '');
+        setEditFirstName(user.firstName || '');
+        setEditLastName(user.lastName || '');
+        setEditEmail(user.email || '');
+        setEditPhone(user.phone || '');
+        setPreviewAvatar(user.avatarUrl || '');
+        setEditBio(user.bio || '');
+      }
 
       // Trigger Onboarding Questionnaire if learningGoal is unset
       if (user.role === 'student' && !user.learningGoal) {
@@ -2319,13 +2321,15 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
         if (key === 'me' && data.user) {
           setUser(data.user, data.token || (typeof window !== 'undefined' ? localStorage.getItem('studycircle_token') : null));
-          setEditFullName(data.user.fullName || '');
-          setEditFirstName(data.user.firstName || '');
-          setEditLastName(data.user.lastName || '');
-          setEditEmail(data.user.email || '');
-          setEditPhone(data.user.phone || '');
-          setPreviewAvatar(data.user.avatarUrl || '');
-          setEditBio(data.user.bio || '');
+          if (!isEditingProfile) {
+            setEditFullName(data.user.fullName || '');
+            setEditFirstName(data.user.firstName || '');
+            setEditLastName(data.user.lastName || '');
+            setEditEmail(data.user.email || '');
+            setEditPhone(data.user.phone || '');
+            setPreviewAvatar(data.user.avatarUrl || '');
+            setEditBio(data.user.bio || '');
+          }
         } else if (key === 'stats') {
           setStats({
             streakCount: data.streakCount || 0,
