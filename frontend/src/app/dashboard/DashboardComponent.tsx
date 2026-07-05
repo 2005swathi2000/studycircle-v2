@@ -58,7 +58,8 @@ import {
   HelpCircle,
   Lock,
   Unlock,
-  X
+  X,
+  Palette
 } from 'lucide-react';
 
 interface Group {
@@ -3838,7 +3839,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
     >
       
       {/* 1. Left Sidebar */}
-      <aside className={`w-64 flex flex-col shrink-0 h-screen sticky top-0 z-30 border-r transition-colors duration-500 ${
+      {user?.role !== 'student' && (
+        <aside className={`w-64 flex flex-col shrink-0 h-screen sticky top-0 z-30 border-r transition-colors duration-500 ${
         equippedTheme === 'cyberpunk' ? 'bg-[#0b0114] border-fuchsia-500/10' :
         equippedTheme === 'zengarden' ? 'bg-[#020d06] border-emerald-500/10' :
         equippedTheme === 'theme_emerald_cosmic' ? 'bg-[#061510]/95 border-emerald-500/10 shadow-lg shadow-emerald-550/5' :
@@ -3914,6 +3916,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
           </button>
         </div>
       </aside>
+      )}
 
       <div 
         ref={mainContentRef}
@@ -3949,6 +3952,50 @@ Based on your desking logs and consistency, the AI tutor recommends:
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
+
+            {/* Theme Selector for Students */}
+            {user?.role === 'student' && (
+              <div className="relative">
+                <button 
+                  onClick={() => setShowThemeSelector(!showThemeSelector)}
+                  className="p-2 border border-white/5 hover:border-white/10 bg-[#0B0F19] hover:bg-white/[0.02] rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer shadow-sm"
+                  title="Choose Theme"
+                >
+                  <Palette className="h-4 w-4 text-indigo-400" />
+                </button>
+
+                {showThemeSelector && (
+                  <div className="absolute right-0 mt-2 w-48 bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl z-50 p-3 space-y-2 animate-fadeIn text-left">
+                    <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest px-2 block mb-1">Select Theme</span>
+                    {[
+                      { id: 'default', name: '🌌 Dark Nebula (Default)' },
+                      { id: 'cyberpunk', name: '🔮 Cyberpunk' },
+                      { id: 'zengarden', name: '🎋 Zen Garden' },
+                      { id: 'theme_emerald_cosmic', name: '🪐 Cosmic Emerald' },
+                      { id: 'theme_solar_glow', name: '☀️ Solar Glow' }
+                    ].map((theme) => (
+                      <button
+                        key={theme.id}
+                        onClick={() => {
+                          setEquippedTheme(theme.id);
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem('studycircle_equipped_theme', theme.id);
+                          }
+                          setShowThemeSelector(false);
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-xl text-[10px] font-bold text-left transition-colors cursor-pointer border-none ${
+                          equippedTheme === theme.id 
+                            ? 'bg-[#10B981]/15 text-[#10B981] font-extrabold' 
+                            : 'text-slate-350 hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        {theme.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             
             {/* Interactive Notifications Bell */}
             <div className="relative" ref={notificationsRef}>
