@@ -772,6 +772,11 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [showQuizHint, setShowQuizHint] = useState<boolean>(false);
 
   const [incorrectQuestions, setIncorrectQuestions] = useState<any[]>([]);
+  const [reviewMistakesList, setReviewMistakesList] = useState<any[]>([]);
+  const [activeReviewIndex, setActiveReviewIndex] = useState<number>(0);
+  const [reviewSelectedAnswer, setReviewSelectedAnswer] = useState<number | null>(null);
+  const [reviewFeedback, setReviewFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const [reviewMessage, setReviewMessage] = useState<string | null>(null);
   const [totalMistakesCount, setTotalMistakesCount] = useState<number>(0);
 
   useEffect(() => {
@@ -2814,6 +2819,204 @@ Based on your desking logs and consistency, the AI tutor recommends:
     );
   };
 
+  const handleVerifyReviewAnswer = () => {
+    if (reviewSelectedAnswer === null) {
+      setReviewMessage('❌ Please select an option before verifying.');
+      return;
+    }
+    const q = reviewMistakesList[activeReviewIndex];
+    if (!q) return;
+
+    if (reviewSelectedAnswer === q.correctOptionIndex) {
+      setReviewFeedback('correct');
+      setReviewMessage('🎉 Great improvement! This question has been removed from your weak areas.');
+      
+      try {
+        const stored = localStorage.getItem('studycircle_incorrect_questions');
+        if (stored) {
+          const list = JSON.parse(stored);
+          const filtered = list.filter((item: any) => !(item.question === q.question && item.topic === selectedInterest));
+          localStorage.setItem('studycircle_incorrect_questions', JSON.stringify(filtered));
+          setIncorrectQuestions(filtered);
+        }
+      } catch (err) {
+        console.error('Error removing mistake:', err);
+      }
+    } else {
+      setReviewFeedback('incorrect');
+      setReviewMessage('Good attempt! Review the explanation and try again later.');
+    }
+  };
+
+  const handleNextReviewQuestion = () => {
+    const answeredCorrectly = reviewFeedback === 'correct';
+
+    let updatedList = reviewMistakesList;
+    if (answeredCorrectly) {
+      updatedList = reviewMistakesList.filter((_, idx) => idx !== activeReviewIndex);
+      setReviewMistakesList(updatedList);
+    }
+
+    setReviewSelectedAnswer(null);
+    setReviewFeedback(null);
+    setReviewMessage(null);
+
+    if (updatedList.length === 0) {
+      setPracticeSubView('mock');
+      showToast('All mistakes resolved for this topic!', 'success');
+    } else {
+      if (answeredCorrectly) {
+        if (activeReviewIndex >= updatedList.length) {
+          setActiveReviewIndex(0);
+        }
+      } else {
+        const nextIndex = (activeReviewIndex + 1) % updatedList.length;
+        setActiveReviewIndex(nextIndex);
+      }
+    }
+  };
+
+  const renderMistakeReview = () => {
+    if (reviewMistakesList.length === 0) {
+      return (
+        <div className="max-w-xl mx-auto p-8 bg-[#0B0F19]/60 border border-white/5 rounded-[28px] text-center space-y-6 animate-in fade-in duration-300">
+          <div className="text-4xl">🎉</div>
+          <div className="space-y-2">
+            <h3 className="text-base font-black text-white uppercase tracking-wider">All Clear!</h3>
+            <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+              🎉 Excellent! You have cleared all your weak areas. Keep practicing to maintain your progress.
+            </p>
+          </div>
+          <button
+            onClick={() => setPracticeSubView('mock')}
+            className="px-6 py-2.5 bg-indigo-650 hover:bg-[#5227EB] text-white text-xs font-black uppercase tracking-wider rounded-xl transition border-none cursor-pointer"
+          >
+            Back to Weak Areas
+          </button>
+        </div>
+      );
+    }
+
+    const q = reviewMistakesList[activeReviewIndex];
+    if (!q) return null;
+
+    return (
+      <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300">
+        {/* Progress Header */}
+        <div className="p-5 bg-[#0B0F19]/60 border border-white/5 rounded-2xl flex items-center justify-between gap-4 text-left">
+          <div className="space-y-1">
+            <span className="text-[9px] font-black uppercase text-indigo-400 tracking-wider">Mistake Revision &bull; {selectedInterest}</span>
+            <h4 className="text-sm font-black text-white">Reviewing Question {activeReviewIndex + 1} of {reviewMistakesList.length}</h4>
+          </div>
+          <button
+            onClick={() => setPracticeSubView('mock')}
+            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-zinc-350 hover:text-white text-[10px] font-extrabold uppercase tracking-wide rounded-lg border-none cursor-pointer transition-colors"
+          >
+            Exit Review
+          </button>
+        </div>
+
+        {/* Question Card */}
+        <div className="p-6 bg-gradient-to-br from-[#0B0F19] to-[#0A0E1A] border border-white/5 rounded-[28px] space-y-6 text-left shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+
+          {/* Question Text */}
+          <div className="space-y-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-rose-500/10 border border-rose-500/20 rounded-full text-[9px] font-black text-rose-400 uppercase tracking-widest">
+              ❌ Missed Concept
+            </span>
+            <p className="text-sm font-black text-slate-100 leading-normal">{q.question}</p>
+          </div>
+
+          {/* Options Grid */}
+          <div className="space-y-3">
+            {q.options.map((option: string, idx: number) => {
+              const isSelected = reviewSelectedAnswer === idx;
+              const showFeedback = reviewFeedback !== null;
+              
+              let optionClass = "bg-[#0B0F19]/60 border-white/5 text-slate-300 hover:bg-white/[0.02] hover:border-white/10";
+              if (isSelected) {
+                if (showFeedback) {
+                  if (reviewFeedback === 'correct') {
+                    optionClass = "bg-emerald-500/10 border-emerald-500/50 text-emerald-400 font-bold";
+                  } else {
+                    optionClass = "bg-rose-500/10 border-rose-500/50 text-rose-400 font-bold";
+                  }
+                } else {
+                  optionClass = "bg-indigo-500/10 border-indigo-500/50 text-white font-bold";
+                }
+              }
+
+              return (
+                <button
+                  key={idx}
+                  disabled={showFeedback}
+                  onClick={() => setReviewSelectedAnswer(idx)}
+                  className={`w-full p-4 rounded-xl border text-left flex items-start gap-3 transition-all duration-200 cursor-pointer ${optionClass}`}
+                >
+                  <span className={`h-5 w-5 rounded-full border flex items-center justify-center text-[10px] font-black shrink-0 ${
+                    isSelected
+                      ? showFeedback
+                        ? reviewFeedback === 'correct' ? 'border-emerald-500 bg-emerald-500 text-slate-950' : 'border-rose-500 bg-rose-500 text-white'
+                        : 'border-indigo-500 bg-indigo-500 text-white'
+                      : 'border-slate-800 text-slate-500'
+                  }`}>
+                    {String.fromCharCode(65 + idx)}
+                  </span>
+                  <span className="text-[11px] font-semibold leading-relaxed mt-0.5">{option}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Feedback & Actions */}
+          <div className="pt-4 border-t border-white/5 space-y-4">
+            {reviewMessage && (
+              <div className={`p-4 rounded-xl text-xs font-bold leading-normal ${
+                reviewFeedback === 'correct'
+                  ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                  : 'bg-rose-500/10 border border-rose-500/20 text-rose-455'
+              }`}>
+                {reviewMessage}
+              </div>
+            )}
+
+            {/* Explanation box shown if answer verified */}
+            {reviewFeedback !== null && q.explanation && (
+              <div className="p-4 bg-slate-950/40 border border-white/5 rounded-xl space-y-2 text-left">
+                <span className="text-[8px] text-slate-550 font-black uppercase tracking-wider block font-mono">Concept Explanation</span>
+                <p className="text-xs text-slate-400 font-semibold leading-relaxed">{q.explanation}</p>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center gap-4">
+              {reviewFeedback === null ? (
+                <button
+                  onClick={handleVerifyReviewAnswer}
+                  className="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition border-none cursor-pointer"
+                >
+                  Verify Answer
+                </button>
+              ) : (
+                <button
+                  onClick={handleNextReviewQuestion}
+                  className="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-550 text-white text-xs font-black uppercase tracking-widest rounded-xl transition border-none cursor-pointer"
+                >
+                  {reviewFeedback === 'correct' && reviewMistakesList.length === 1 ? 'Finish Review' : 'Next Question &rarr;'}
+                </button>
+              )}
+
+              <span className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">
+                {activeReviewIndex + 1} / {reviewMistakesList.length} Missed
+              </span>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderPracticeQuestionArea = () => {
     if (questionsCountLimit === null) {
       return (
@@ -3765,7 +3968,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
               
 
               {/* Sub-view Rendering */}
-              {practiceSubView === 'questions' ? (
+              {practiceSubView === 'review-mistakes' ? (
+                renderMistakeReview()
+              ) : practiceSubView === 'questions' ? (
                 /* Practice Questions sub-view */
                 <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="flex gap-2 border-b border-white/5 pb-4 mb-4 flex-wrap">
@@ -3949,16 +4154,13 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
                                 <button
                                   onClick={() => {
-                                    setPracticeSessionQuestions(mistakes);
+                                    setReviewMistakesList(mistakes);
                                     setSelectedInterest(topic);
-                                    setQuestionsCountLimit(mistakes.length);
-                                    setActiveQuestionIndex(0);
-                                    setPracticeSessionCompleted(false);
-                                    setPracticeSessionScore(0);
-                                    setPracticeQuizAnswer(null);
-                                    setPracticeQuizFeedback(null);
-                                    setPracticeQuizErrorMessage(null);
-                                    setPracticeSubView('questions');
+                                    setActiveReviewIndex(0);
+                                    setReviewSelectedAnswer(null);
+                                    setReviewFeedback(null);
+                                    setReviewMessage(null);
+                                    setPracticeSubView('review-mistakes');
                                   }}
                                   className="w-full py-2 bg-[#5227EB] hover:bg-[#431fd0] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer text-center border-none mt-2"
                                 >

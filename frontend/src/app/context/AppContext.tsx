@@ -85,8 +85,8 @@ export interface AppContextType {
   // Tab/Sub-view states
   studySubView: null | 'workspaces' | 'rooms' | 'resources';
   setStudySubView: React.Dispatch<React.SetStateAction<null | 'workspaces' | 'rooms' | 'resources'>>;
-  practiceSubView: null | 'questions' | 'mock';
-  setPracticeSubView: React.Dispatch<React.SetStateAction<null | 'questions' | 'mock'>>;
+  practiceSubView: null | 'questions' | 'mock' | 'review-mistakes';
+  setPracticeSubView: React.Dispatch<React.SetStateAction<null | 'questions' | 'mock' | 'review-mistakes'>>;
   progressSubView: null | 'analytics' | 'xp' | 'certificates';
   setProgressSubView: React.Dispatch<React.SetStateAction<null | 'analytics' | 'xp' | 'certificates'>>;
   communitySubView: null | 'forum' | 'leaderboard' | 'chat';
@@ -155,7 +155,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // Tab subviews
   const [studySubView, setStudySubView] = useState<null | 'workspaces' | 'rooms' | 'resources'>(null);
-  const [practiceSubView, setPracticeSubView] = useState<null | 'questions' | 'mock'>(null);
+  const [practiceSubView, setPracticeSubView] = useState<null | 'questions' | 'mock' | 'review-mistakes'>(null);
   const [progressSubView, setProgressSubView] = useState<null | 'analytics' | 'xp' | 'certificates'>(null);
   const [communitySubView, setCommunitySubView] = useState<null | 'forum' | 'leaderboard' | 'chat'>(null);
   const [profileSubView, setProfileSubView] = useState<null | 'details' | 'settings'>(null);
