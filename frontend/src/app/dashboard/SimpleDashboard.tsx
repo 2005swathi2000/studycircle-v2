@@ -11,7 +11,8 @@ import {
   MoreVertical,
   Calendar,
   Sparkles,
-  Trash2
+  Trash2,
+  TrendingUp
 } from 'lucide-react';
 
 interface SimpleDashboardProps {
@@ -270,7 +271,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
   // 1. Calculate active course & completion percentage
   const activeCourse = myGroups && myGroups.length > 0 ? myGroups[0] : null;
-  
+  let completedLessonIds: string[] = [];
+  let lastLessonId = '';
   let currentCourseName = 'Start your learning journey.';
   let currentLessonName = 'Choose an interest to begin learning.';
   let currentProgress = 0;
@@ -279,10 +281,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
   if (activeCourse) {
     const slug = activeCourse.subject ? activeCourse.subject.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'programming-dsa';
-    
-    // Check completed lessons in local storage
-    let completedLessonIds: string[] = [];
-    let lastLessonId = '';
     
     if (typeof window !== 'undefined') {
       try {
@@ -324,13 +322,13 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       // Seed default goals if none exist
       const defaultGoals = [];
       if (isZeroState) {
-        defaultGoals.push({ id: `g-${Date.now()}-1`, text: "Choose an interest to begin", completed: false });
-        defaultGoals.push({ id: `g-${Date.now()}-2`, text: "Join a Study Circle", completed: false });
-        defaultGoals.push({ id: `g-${Date.now()}-3`, text: "Complete Lesson 1", completed: false });
+        defaultGoals.push({ id: `g-${Date.now()}-1`, text: "Complete 1 Lesson", completed: false, current: 0, target: 1, type: 'lesson' });
+        defaultGoals.push({ id: `g-${Date.now()}-2`, text: "Attempt 1 Quiz", completed: false, current: 0, target: 1, type: 'quiz' });
+        defaultGoals.push({ id: `g-${Date.now()}-3`, text: "Solve 5 Practice Questions", completed: false, current: 0, target: 5, type: 'practice' });
       } else {
-        defaultGoals.push({ id: `g-${Date.now()}-1`, text: `Complete Lesson ${activeCourse ? Math.min(20, Math.round((currentProgress / 100) * 20) + 1) : 1}`, completed: false });
-        defaultGoals.push({ id: `g-${Date.now()}-2`, text: "Attempt 1 Quiz", completed: false });
-        defaultGoals.push({ id: `g-${Date.now()}-3`, text: "Solve 5 Practice Questions", completed: false });
+        defaultGoals.push({ id: `g-${Date.now()}-1`, text: `Complete Lesson ${activeCourse ? Math.min(20, Math.round((currentProgress / 100) * 20) + 1) : 1}`, completed: false, current: 0, target: 1, type: 'lesson' });
+        defaultGoals.push({ id: `g-${Date.now()}-2`, text: "Attempt 1 Quiz", completed: false, current: practiceAttempts > 0 ? 1 : 0, target: 1, type: 'quiz' });
+        defaultGoals.push({ id: `g-${Date.now()}-3`, text: "Solve 5 Practice Questions", completed: false, current: Math.min(5, practiceCorrect), target: 5, type: 'practice' });
       }
       setGoals(defaultGoals);
       localStorage.setItem('studycircle_student_goals', JSON.stringify(defaultGoals));
@@ -422,11 +420,41 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
   const themeGradient = getThemeColor();
 
+  const getGoalIcon = (type?: string, completed?: boolean) => {
+    const dimClass = completed ? 'opacity-40' : '';
+    switch (type) {
+      case 'lesson':
+        return (
+          <div className={`h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-450 shrink-0 ${dimClass}`}>
+            <BookOpen className="h-4.5 w-4.5" />
+          </div>
+        );
+      case 'quiz':
+        return (
+          <div className={`h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0 ${dimClass}`}>
+            <Trophy className="h-4.5 w-4.5" />
+          </div>
+        );
+      case 'practice':
+        return (
+          <div className={`h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0 ${dimClass}`}>
+            <CheckCircle2 className="h-4.5 w-4.5" />
+          </div>
+        );
+      default:
+        return (
+          <div className={`h-10 w-10 rounded-xl ${iconBoxStyle} flex items-center justify-center shrink-0 ${dimClass}`}>
+            <Sparkles className="h-4.5 w-4.5" />
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="space-y-6 text-white text-left font-sans animate-in fade-in duration-300 max-w-7xl mx-auto px-4 md:px-0">
       
       {/* Welcome Greeting */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-white/5 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-2 border-b border-white/5 gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
             Hi, {user?.firstName || user?.fullName?.split(' ')[0] || 'Student'} 👋
@@ -437,14 +465,87 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
       </div>
 
-      {/* Responsive Two-Column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+      {/* Top 5 KPI Cards Row */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {/* Card 1: Courses Enrolled */}
+        <div className={`p-4 ${cardStyle.bg} ${cardStyle.border} rounded-2xl flex flex-col justify-between h-28`}>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+              <BookOpen className="h-4.5 w-4.5" />
+            </div>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider line-clamp-1">Courses Enrolled</span>
+          </div>
+          <div className="space-y-0.5 mt-2">
+            <p className="text-xl font-black text-white font-mono">{enrolledCount}</p>
+            <p className="text-[9px] text-zinc-500 font-semibold">Start your first course</p>
+          </div>
+        </div>
+
+        {/* Card 2: Lessons Completed */}
+        <div className={`p-4 ${cardStyle.bg} ${cardStyle.border} rounded-2xl flex flex-col justify-between h-28`}>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <CheckCircle2 className="h-4.5 w-4.5" />
+            </div>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider line-clamp-1">Lessons Completed</span>
+          </div>
+          <div className="space-y-0.5 mt-2">
+            <p className="text-xl font-black text-white font-mono">{isZeroState ? 0 : completedLessonIds.length}</p>
+            <p className="text-[9px] text-zinc-500 font-semibold">Keep learning</p>
+          </div>
+        </div>
+
+        {/* Card 3: Practice Score */}
+        <div className={`p-4 ${cardStyle.bg} ${cardStyle.border} rounded-2xl flex flex-col justify-between h-28`}>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+              <TrendingUp className="h-4.5 w-4.5" />
+            </div>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider line-clamp-1">Practice Score</span>
+          </div>
+          <div className="space-y-0.5 mt-2">
+            <p className="text-xl font-black text-white font-mono">{averageQuizScore}%</p>
+            <p className="text-[9px] text-zinc-500 font-semibold">Attempt quizzes</p>
+          </div>
+        </div>
+
+        {/* Card 4: Certificates Earned */}
+        <div className={`p-4 ${cardStyle.bg} ${cardStyle.border} rounded-2xl flex flex-col justify-between h-28`}>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+              <Award className="h-4.5 w-4.5" />
+            </div>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider line-clamp-1">Certificates Earned</span>
+          </div>
+          <div className="space-y-0.5 mt-2">
+            <p className="text-xl font-black text-white font-mono">{certificatesCount}</p>
+            <p className="text-[9px] text-zinc-500 font-semibold">Complete courses</p>
+          </div>
+        </div>
+
+        {/* Card 5: Current Streak */}
+        <div className={`p-4 ${cardStyle.bg} ${cardStyle.border} rounded-2xl flex flex-col justify-between h-28`}>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
+              <Flame className="h-4.5 w-4.5" />
+            </div>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider line-clamp-1">Current Streak</span>
+          </div>
+          <div className="space-y-0.5 mt-2">
+            <p className="text-xl font-black text-white font-mono">{isZeroState ? 0 : stats?.streakCount || 0} Days</p>
+            <p className="text-[9px] text-zinc-500 font-semibold">Study daily</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Two-Column Split Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         
-        {/* LEFT COLUMN (60% width on Desktop) */}
-        <div className="lg:col-span-3 space-y-6">
+        {/* LEFT COLUMN: Continue Learning & My Progress */}
+        <div className="space-y-6">
           
           {/* CONTINUE LEARNING */}
-          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] relative overflow-hidden group min-h-[220px] flex flex-col justify-between`}>
+          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] relative overflow-hidden group min-h-[260px] flex flex-col justify-between`}>
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
             
             <div className="flex justify-between items-center pb-3 border-b border-white/5">
@@ -452,145 +553,158 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               <MoreVertical className="h-4 w-4 text-zinc-500 cursor-pointer" />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-center py-4">
-              {/* Left Side: Tech Image representation */}
-              <div className="sm:col-span-1 h-28 bg-gradient-to-br from-indigo-950/40 to-slate-900 border border-white/5 rounded-xl flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-                <BookOpen className="h-10 w-10 text-indigo-500/80" />
-                <div className="absolute bottom-2 left-2 right-2 h-1 bg-white/10 rounded-full overflow-hidden">
-                  <div className={`h-full bg-gradient-to-r ${themeGradient}`} style={{ width: `${currentProgress}%` }} />
+            {isZeroState ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
+                <div className="relative w-20 h-20 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
+                  <svg className="w-12 h-12 text-indigo-400/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                  </svg>
                 </div>
-              </div>
-
-              {/* Right Side: Info & Actions */}
-              <div className="sm:col-span-2 space-y-3">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-black text-white tracking-tight">
-                      {currentCourseName}
-                    </h3>
-                    {activeCourse && (
-                      <span className={`text-[8px] ${badgeStyle} font-black px-1.5 py-0.5 rounded uppercase`}>
-                        Active
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-zinc-400 font-semibold mt-1">
-                    {currentLessonName}
-                  </p>
+                <div className="space-y-1">
+                  <p className="text-sm font-black text-white">You haven't started any course yet.</p>
+                  <p className="text-xs text-zinc-500 max-w-xs font-semibold leading-relaxed">Choose a course and start learning to see your progress here.</p>
                 </div>
-
-                {activeCourse && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[9px] font-bold text-zinc-400">
-                      <span>{currentProgress}% Complete</span>
-                      <span>{remainingLessons} lessons remaining</span>
-                    </div>
-                    <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-white/5">
-                      <div className={`h-full bg-gradient-to-r ${themeGradient} rounded-full transition-all duration-500`} style={{ width: `${currentProgress}%` }} />
-                    </div>
-                  </div>
-                )}
-
                 <button
                   onClick={() => {
                     setActiveTab('study');
                     setStudySubView('workspaces');
                   }}
-                  className={`px-4 py-2 ${buttonStyle} text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center gap-1.5`}
+                  className={`px-5 py-2 ${buttonStyle} text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center gap-1.5`}
                 >
-                  Continue Learning <ArrowRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* RECOMMENDED FOR YOU */}
-          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] space-y-4`}>
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Recommended For You</span>
-            </div>
-
-            {recommendations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
-                <p className="text-xs text-zinc-450 leading-relaxed max-w-md">
-                  We don't have enough learning activity yet to recommend courses.
-                  <br /><br />
-                  Start your first learning module or complete a few practice questions to receive personalized recommendations.
-                </p>
-                <button
-                  onClick={() => {
-                    setActiveTab('practice');
-                  }}
-                  className={`px-4 py-2 ${buttonStyle} text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center gap-1.5`}
-                >
-                  Explore Practice <ArrowRight className="h-3.5 w-3.5" />
+                  Explore Courses
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {recommendations.map((rec) => (
-                  <div key={rec.id} className={`p-4 bg-white/[0.01] ${cardStyle.hoverBg} border border-white/5 rounded-xl flex flex-col justify-between min-h-28 transition-all duration-200`}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-center py-4">
+                {/* Left Side: Tech Image representation */}
+                <div className="sm:col-span-1 h-28 bg-gradient-to-br from-indigo-950/40 to-slate-900 border border-white/5 rounded-xl flex items-center justify-center relative overflow-hidden">
+                  <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+                  <BookOpen className="h-10 w-10 text-indigo-500/80" />
+                  <div className="absolute bottom-2 left-2 right-2 h-1 bg-white/10 rounded-full overflow-hidden">
+                    <div className={`h-full bg-gradient-to-r ${themeGradient}`} style={{ width: `${currentProgress}%` }} />
+                  </div>
+                </div>
+
+                {/* Right Side: Info & Actions */}
+                <div className="sm:col-span-2 space-y-3">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-black text-white tracking-tight">
+                        {currentCourseName}
+                      </h3>
+                      {activeCourse && (
+                        <span className={`text-[8px] ${badgeStyle} font-black px-1.5 py-0.5 rounded uppercase`}>
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-zinc-400 font-semibold mt-1">
+                      {currentLessonName}
+                    </p>
+                  </div>
+
+                  {activeCourse && (
                     <div className="space-y-1">
-                      <span className="text-xs font-black text-white line-clamp-1">{rec.title}</span>
-                      <p className="text-[10px] text-zinc-500 font-semibold line-clamp-2 leading-relaxed mt-1">
-                        {rec.desc}
-                      </p>
-                    </div>
-                    
-                    {rec.progress > 0 && (
-                      <div className="space-y-1.5 pt-2">
-                        <div className="flex justify-between text-[8px] font-bold text-zinc-400">
-                          <span>Course Progress</span>
-                          <span>{rec.progress}%</span>
-                        </div>
-                        <div className="w-full bg-slate-950 h-1 rounded-full overflow-hidden">
-                          <div className={`h-full ${progressBarColor} rounded-full`} style={{ width: `${rec.progress}%` }} />
-                        </div>
+                      <div className="flex justify-between text-[9px] font-bold text-zinc-400">
+                        <span>{currentProgress}% Complete</span>
+                        <span>{remainingLessons} lessons remaining</span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-white/5">
+                        <div className={`h-full bg-gradient-to-r ${themeGradient} rounded-full transition-all duration-500`} style={{ width: `${currentProgress}%` }} />
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('study');
+                      setStudySubView('workspaces');
+                    }}
+                    className={`px-4 py-2 ${buttonStyle} text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center gap-1.5`}
+                  >
+                    Continue Learning <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
-          {/* RECENT ACTIVITY */}
-          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] space-y-4`}>
+          {/* MY PROGRESS */}
+          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] shadow-lg space-y-4`}>
             <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Recent Activity</span>
-              <span className="text-[10px] text-indigo-400 font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('progress')}>View all</span>
+              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">My Progress</span>
+              <span className="text-[10px] text-indigo-400 font-bold hover:underline cursor-pointer" onClick={() => setPracticeSubView('mock')}>View all</span>
             </div>
 
-            {activities.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-6 text-zinc-500 gap-2">
-                <Calendar className="h-6 w-6 text-zinc-600" />
-                <span className="text-xs italic font-medium">No activity yet.</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+              {/* Radial Progress Chart */}
+              <div className="flex flex-col items-center justify-center relative py-2">
+                <svg className="w-24 h-24 transform -rotate-90">
+                  <circle cx="48" cy="48" r="38" stroke="rgba(255,255,255,0.03)" strokeWidth="6" fill="transparent" />
+                  <circle 
+                    cx="48" 
+                    cy="48" 
+                    r="38" 
+                    stroke="url(#progressGradient)" 
+                    strokeWidth="6" 
+                    fill="transparent" 
+                    strokeDasharray={238.76} 
+                    strokeDashoffset={238.76 - (238.76 * overallProgressPercent) / 100} 
+                    strokeLinecap="round" 
+                    className="transition-all duration-500" 
+                  />
+                  <defs>
+                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor={progressGradientColors.start} />
+                      <stop offset="100%" stopColor={progressGradientColors.end} />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute flex flex-col items-center justify-center">
+                  <span className="text-xl font-black text-white font-mono">{overallProgressPercent}%</span>
+                  <span className="text-[8px] text-zinc-500 font-black uppercase tracking-wider">Overall</span>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {activities.map((act, i) => (
-                  <div key={i} className="p-3 bg-white/[0.01] border border-white/5 rounded-xl flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-8 w-8 rounded-lg ${iconBoxStyle} flex items-center justify-center`}>
-                        {act.type === 'quiz' ? <Trophy className="h-4 w-4" /> : act.type === 'study' ? <Clock className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
-                      </div>
-                      <div className="text-left">
-                        <p className="text-xs font-black text-white">{act.title}</p>
-                        <p className="text-[10px] text-zinc-500 font-semibold">{act.subtext}</p>
-                      </div>
-                    </div>
-                    <span className="text-[9px] text-zinc-500 font-mono shrink-0">{act.time}</span>
-                  </div>
-                ))}
+
+              {/* Stats List */}
+              <div className="space-y-3 text-xs font-semibold text-zinc-400">
+                <div className="flex justify-between items-center py-1 border-b border-white/[0.02]">
+                  <span className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />
+                    Courses Enrolled
+                  </span>
+                  <span className="text-white font-mono">{enrolledCount}</span>
+                </div>
+                <div className="flex justify-between items-center py-1 border-b border-white/[0.02]">
+                  <span className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-purple-500 shrink-0" />
+                    Completed Courses
+                  </span>
+                  <span className="text-white font-mono">{completedCount}</span>
+                </div>
+                <div className="flex justify-between items-center py-1 border-b border-white/[0.02]">
+                  <span className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-blue-500 shrink-0" />
+                    Certificates Earned
+                  </span>
+                  <span className="text-white font-mono">{certificatesCount}</span>
+                </div>
+                <div className="flex justify-between items-center py-1">
+                  <span className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500 shrink-0" />
+                    Average Score
+                  </span>
+                  <span className="text-white font-mono">{averageQuizScore}%</span>
+                </div>
               </div>
-            )}
+            </div>
           </div>
 
         </div>
 
-        {/* RIGHT COLUMN (40% width on Desktop) */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* RIGHT COLUMN: Today's Goals & Recommended For You */}
+        <div className="space-y-6">
           
           {/* TODAY'S GOALS */}
           <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] space-y-4`}>
@@ -602,40 +716,53 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             </div>
 
             {/* Goals List */}
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
               {goals.length === 0 ? (
                 <p className="text-xs text-zinc-500 italic py-2 text-center">No goals set for today.</p>
               ) : (
                 goals.map((goal) => (
                   <div 
                     key={goal.id}
-                    className={`p-3 bg-white/[0.01] ${cardStyle.hoverBg} border border-white/5 rounded-xl flex items-center justify-between gap-3 transition-all duration-150`}
+                    className={`p-3 bg-white/[0.01] ${cardStyle.hoverBg} border border-white/5 rounded-xl flex items-center justify-between gap-4 transition-all duration-150`}
                   >
                     <div 
                       className="flex items-center gap-3 flex-1 cursor-pointer select-none"
                       onClick={() => handleToggleGoal(goal.id)}
                     >
-                      <div className={`h-5 w-5 rounded-md border flex items-center justify-center transition-all ${
-                        goal.completed 
-                          ? `${checkboxStyle} text-white` 
-                          : 'border-zinc-700 bg-transparent'
-                      }`}>
-                        {goal.completed && <Check className="h-3 w-3 stroke-[3]" />}
+                      {getGoalIcon(goal.type, goal.completed)}
+                      <div className="text-left space-y-0.5">
+                        <span className={`text-xs font-bold block ${goal.completed ? 'line-through text-zinc-500' : 'text-zinc-200'}`}>
+                          {goal.text}
+                        </span>
+                        {goal.completed && (
+                          <span className="text-[9px] text-emerald-500 font-extrabold flex items-center gap-1">✓ Done</span>
+                        )}
                       </div>
-                      <span className={`text-xs font-bold ${goal.completed ? 'line-through text-zinc-500' : 'text-zinc-200'}`}>
-                        {goal.text}
-                      </span>
                     </div>
-                    {goal.progress && (
-                      <span className="text-[9px] text-zinc-500 font-mono font-bold">{goal.progress}</span>
-                    )}
-                    <button
-                      onClick={() => handleDeleteGoal(goal.id)}
-                      className="p-1 hover:bg-red-950/20 text-zinc-500 hover:text-red-400 rounded transition-all border-none bg-transparent cursor-pointer shrink-0"
-                      title="Delete Goal"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    
+                    <div className="flex items-center gap-3 shrink-0">
+                      {goal.target ? (
+                        <span className="text-xs font-black text-zinc-400 font-mono">
+                          {goal.completed ? goal.target : (goal.current || 0)} / {goal.target}
+                        </span>
+                      ) : (
+                        <div className={`h-5 w-5 rounded-md border flex items-center justify-center transition-all ${
+                          goal.completed 
+                            ? `${checkboxStyle} text-white` 
+                            : 'border-zinc-700 bg-transparent'
+                        }`}>
+                          {goal.completed && <Check className="h-3 w-3 stroke-[3]" />}
+                        </div>
+                      )}
+                      
+                      <button
+                        onClick={() => handleDeleteGoal(goal.id)}
+                        className="p-1 hover:bg-red-950/20 text-zinc-500 hover:text-red-400 rounded transition-all border-none bg-transparent cursor-pointer shrink-0"
+                        title="Delete Goal"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -678,111 +805,108 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             )}
           </div>
 
-          {/* MY PROGRESS */}
+          {/* RECOMMENDED FOR YOU */}
           <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] space-y-4`}>
             <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">My Progress</span>
-              <span className="text-[10px] text-indigo-400 font-bold hover:underline cursor-pointer" onClick={() => setPracticeSubView('mock')}>View Details</span>
+              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Recommended For You</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
-              {/* Radial Progress Chart */}
-              <div className="flex flex-col items-center justify-center relative py-2">
-                <svg className="w-24 h-24 transform -rotate-90">
-                  <circle cx="48" cy="48" r="38" stroke="rgba(255,255,255,0.03)" strokeWidth="6" fill="transparent" />
-                  <circle 
-                    cx="48" 
-                    cy="48" 
-                    r="38" 
-                    stroke="url(#progressGradient)" 
-                    strokeWidth="6" 
-                    fill="transparent" 
-                    strokeDasharray={238.76} 
-                    strokeDashoffset={238.76 - (238.76 * overallProgressPercent) / 100} 
-                    strokeLinecap="round" 
-                    className="transition-all duration-500" 
-                  />
-                  <defs>
-                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor={progressGradientColors.start} />
-                      <stop offset="100%" stopColor={progressGradientColors.end} />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-xl font-black text-white font-mono">{overallProgressPercent}%</span>
-                  <span className="text-[8px] text-zinc-500 font-black uppercase tracking-wider">Overall</span>
+            {recommendations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
+                <div className="relative w-20 h-20 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-yellow-500/10 rounded-full blur-xl pointer-events-none" />
+                  <svg className="w-12 h-12 text-yellow-450/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v3m0 0h.01m-.01 0H12m0-3a5.978 5.978 0 01-3.07-5.185c0-3.31 2.69-5.97 6-5.97s6 2.66 6 5.97A5.978 5.978 0 0112 18zm-6-5.185h.01m11.98 0h.01" />
+                  </svg>
                 </div>
+                <p className="text-xs text-zinc-450 leading-relaxed max-w-md">
+                  We don't have enough activity yet to recommend courses.
+                  <br /><br />
+                  Start learning to get personalized recommendations.
+                </p>
+                <button
+                  onClick={() => {
+                    setActiveTab('practice');
+                  }}
+                  className={`px-4 py-2 ${buttonStyle} text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center gap-1.5`}
+                >
+                  Explore Practice <ArrowRight className="h-3.5 w-3.5" />
+                </button>
               </div>
-
-              {/* Stats List */}
-              <div className="space-y-2 text-xs font-semibold text-zinc-400">
-                <div className="flex justify-between py-1 border-b border-white/[0.02]">
-                  <span>Courses Enrolled</span>
-                  <span className="text-white font-mono">{enrolledCount}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-white/[0.02]">
-                  <span>Completed Courses</span>
-                  <span className="text-white font-mono">{completedCount}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-white/[0.02]">
-                  <span>Certificates Earned</span>
-                  <span className="text-white font-mono">{certificatesCount}</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span>Average Score</span>
-                  <span className="text-white font-mono">{averageQuizScore}%</span>
-                </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {recommendations.map((rec) => (
+                  <div key={rec.id} className={`p-4 bg-white/[0.01] ${cardStyle.hoverBg} border border-white/5 rounded-xl flex flex-col justify-between min-h-28 transition-all duration-200`}>
+                    <div className="space-y-1">
+                      <span className="text-xs font-black text-white line-clamp-1">{rec.title}</span>
+                      <p className="text-[10px] text-zinc-500 font-semibold line-clamp-2 leading-relaxed mt-1">
+                        {rec.desc}
+                      </p>
+                    </div>
+                    
+                    {rec.progress > 0 && (
+                      <div className="space-y-1.5 pt-2">
+                        <div className="flex justify-between text-[8px] font-bold text-zinc-400">
+                          <span>Course Progress</span>
+                          <span>{rec.progress}%</span>
+                        </div>
+                        <div className="w-full bg-slate-950 h-1 rounded-full overflow-hidden">
+                          <div className={`h-full ${progressBarColor} rounded-full`} style={{ width: `${rec.progress}%` }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            </div>
-          </div>
-
-          {/* STUDY STREAK */}
-          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] space-y-4`}>
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Study Streak</span>
-              <span className="text-[10px] text-zinc-500 font-bold font-sans uppercase">This Week</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-              {/* Grid representation */}
-              <div className="sm:col-span-2 flex flex-col gap-2">
-                <div className="flex justify-between text-[8px] font-black text-zinc-500 px-0.5">
-                  <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
-                </div>
-                <div className="grid grid-cols-7 gap-1.5">
-                  {Array.from({ length: 14 }).map((_, idx) => {
-                    // Highlight blocks representing streak count
-                    const hasStudied = !isZeroState && idx >= 14 - Math.max(1, stats?.streakCount || 0);
-                    return (
-                      <div 
-                        key={idx}
-                        className={`h-4.5 rounded-sm transition-all duration-300 ${
-                          hasStudied 
-                            ? `${progressBarColor}/80 shadow-md shadow-indigo-500/10 border border-indigo-400/20` 
-                            : 'bg-white/[0.02] border border-white/5'
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Flame display */}
-              <div className="sm:col-span-1 flex flex-col items-center justify-center p-3 bg-white/[0.01] border border-white/5 rounded-xl shrink-0">
-                <Flame className={`h-8 w-8 transition-colors ${isZeroState ? 'text-zinc-600 shrink-0' : 'text-orange-500 fill-orange-500/10'}`} />
-                <span className="text-base font-black text-white font-mono mt-1.5">{isZeroState ? 0 : stats?.streakCount || 0} Days</span>
-                <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5 text-center">
-                  Best: {isZeroState ? 0 : Math.max(6, stats?.streakCount || 0)} Days
-                </span>
-              </div>
-            </div>
+            )}
           </div>
 
         </div>
 
       </div>
 
+      {/* RECENT ACTIVITY (Full width bottom card) */}
+      <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] shadow-lg space-y-4`}>
+        <div className="flex justify-between items-center pb-2 border-b border-white/5">
+          <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Recent Activity</span>
+          <span className="text-[10px] text-indigo-400 font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('progress')}>View all</span>
+        </div>
+
+        {activities.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center space-y-3">
+            <div className="relative w-16 h-16 flex items-center justify-center">
+              <div className="absolute inset-0 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
+              <svg className="w-10 h-10 text-indigo-400/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-black text-white">No recent activity yet.</p>
+              <p className="text-xs text-zinc-500 font-semibold">Your learning activities will appear here.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {activities.map((act, i) => (
+              <div key={i} className="p-3 bg-white/[0.01] border border-white/5 rounded-xl flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`h-8 w-8 rounded-lg ${iconBoxStyle} flex items-center justify-center`}>
+                    {act.type === 'quiz' ? <Trophy className="h-4 w-4" /> : act.type === 'study' ? <Clock className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-white">{act.title}</p>
+                    <p className="text-[10px] text-zinc-500 font-semibold">{act.subtext}</p>
+                  </div>
+                </div>
+                <span className="text-[9px] text-zinc-500 font-mono shrink-0">{act.time}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };
+
+export default SimpleDashboard;
