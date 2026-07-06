@@ -1024,6 +1024,17 @@ export default function WorkspacePage() {
     return [];
   });
 
+  const [continuedLessonIds, setContinuedLessonIds] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return JSON.parse(localStorage.getItem('sc_continued_' + slug) || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+
   const [fadeTransition, setFadeTransition] = useState(false);
 
   const [hasStartedWorkspace, setHasStartedWorkspace] = useState<boolean>(() => {
@@ -1114,6 +1125,23 @@ export default function WorkspacePage() {
       if (typeof window !== 'undefined') {
         localStorage.setItem('sc_completed_' + slug, JSON.stringify(next));
       }
+      
+      // If we are unchecking a lesson that was completed
+      if (prev.includes(lessonId)) {
+        const activePath = getActivePath();
+        const activeIdx = activePath.lessons.findIndex(l => l.id === activeLessonId);
+        const uncompletedIdx = activePath.lessons.findIndex(l => l.id === lessonId);
+        
+        // If the uncompleted lesson is before the current active lesson, it locks it!
+        // We must push activeLessonId back to the uncompleted lesson.
+        if (uncompletedIdx !== -1 && activeIdx > uncompletedIdx) {
+          setActiveLessonId(lessonId);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sc_lesson_' + slug, lessonId);
+          }
+        }
+      }
+      
       return next;
     });
   };
@@ -1134,17 +1162,37 @@ export default function WorkspacePage() {
     }
   }, [learningLevel, activeLessonId, group]);
 
-  // Handle auto-initialization of lesson id
+  // Handle auto-initialization / lock-verification of lesson id
   useEffect(() => {
-    if (group && !activeLessonId) {
-      const key = getSubjectKey();
-      const firstId = subjectPathData[key]?.[learningLevel]?.lessons[0]?.id || '';
-      setActiveLessonId(firstId);
+    if (!group) return;
+    const key = getSubjectKey();
+    const path = subjectPathData[key]?.[learningLevel];
+    if (!path) return;
+    
+    // Find the first uncompleted lesson in the path
+    const firstUncompleted = path.lessons.find(l => !completedLessonIds.includes(l.id));
+    const defaultId = firstUncompleted?.id || path.lessons[0]?.id || '';
+    
+    if (!activeLessonId) {
+      setActiveLessonId(defaultId);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('sc_lesson_' + slug, firstId);
+        localStorage.setItem('sc_lesson_' + slug, defaultId);
+      }
+    } else {
+      // Verify that it is unlocked (a lesson is unlocked if it is the first or its predecessor is completed)
+      const activeIdx = path.lessons.findIndex(l => l.id === activeLessonId);
+      if (activeIdx > 0) {
+        const isUnlocked = completedLessonIds.includes(path.lessons[activeIdx - 1].id);
+        if (!isUnlocked) {
+          // Locked! Fall back to the defaultId (first uncompleted lesson)
+          setActiveLessonId(defaultId);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sc_lesson_' + slug, defaultId);
+          }
+        }
       }
     }
-  }, [group, learningLevel, activeLessonId]);
+  }, [group, learningLevel, activeLessonId, completedLessonIds]);
 
   // Notes state
   const [notes, setNotes] = useState<Note[]>([]);
@@ -2466,12 +2514,15 @@ export default function WorkspacePage() {
                   setActiveNote(null);
                   setIsEditingNote(false);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-none text-left ${
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-none text-left relative overflow-hidden ${
                   isSel 
-                    ? 'bg-indigo-650/15 border border-indigo-500/20 text-white font-extrabold shadow-sm' 
+                    ? 'bg-indigo-650/15 text-white font-extrabold shadow-sm' 
                     : 'text-slate-400 hover:text-white hover:bg-white/[0.02] border border-transparent'
                 }`}
               >
+                {isSel && (
+                  <span className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-r" />
+                )}
                 <Icon className={`h-4 w-4 ${isSel ? 'text-indigo-400' : ''}`} />
                 <span>{tab.title}</span>
               </button>
@@ -2668,9 +2719,6 @@ export default function WorkspacePage() {
                       <div className="flex items-center gap-3">
                         <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
                         <h2 className="text-xs font-bold text-white tracking-tight">{group?.name || 'Study Circle Room'}</h2>
-                        <span className="text-[9px] bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 font-extrabold uppercase px-2 py-0.5 rounded-md">
-                          {learningLevel} Track
-                        </span>
                       </div>
                       <div className="text-[10px] font-bold text-zinc-400 font-mono">
                         Lesson {(() => {
@@ -2709,6 +2757,14 @@ export default function WorkspacePage() {
                               <button
                                 onClick={() => {
                                   showToast(`Resuming learning: ${currentLesson?.title}`, 'success');
+                                  setContinuedLessonIds((prev) => {
+                                    if (prev.includes(currentLesson.id)) return prev;
+                                    const next = [...prev, currentLesson.id];
+                                    if (typeof window !== 'undefined') {
+                                      localStorage.setItem('sc_continued_' + slug, JSON.stringify(next));
+                                    }
+                                    return next;
+                                  });
                                 }}
                                 className="px-5 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none"
                               >
@@ -2721,17 +2777,37 @@ export default function WorkspacePage() {
                         {/* Simplified Lesson Path list */}
                         {(() => {
                           const activePath = getActivePath();
+                          
+                          // Count progress metrics
+                          const completedCount = activePath.lessons.filter(l => completedLessonIds.includes(l.id)).length;
+                          const totalCount = activePath.lessons.length;
+                          const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+                          
                           return (
                             <div className="bg-[#0b0e17]/85 border border-white/5 rounded-2xl p-5 shadow-sm space-y-4 text-left">
                               <div className="border-b border-white/5 pb-2.5">
                                 <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans">
                                   Learning Path Lessons
                                 </h4>
+                                {/* Course Progress bar */}
+                                <div className="space-y-1 mt-1.5">
+                                  <div className="flex justify-between text-[8px] font-black text-slate-500 uppercase font-sans">
+                                    <span>Course Progress</span>
+                                    <span>{completedCount} / {totalCount} Completed ({progressPercent}%)</span>
+                                  </div>
+                                  <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden border border-white/5">
+                                    <div 
+                                      className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                                      style={{ width: `${progressPercent}%` }}
+                                    />
+                                  </div>
+                                </div>
                               </div>
                               <div className="space-y-2">
                                 {activePath.lessons.map((lesson, idx) => {
                                   const isCompleted = completedLessonIds.includes(lesson.id);
                                   const isActive = activeLessonId === lesson.id;
+                                  const isUnlocked = idx === 0 || completedLessonIds.includes(activePath.lessons[idx - 1].id);
                                   
                                   let statusText = '○';
                                   let statusClass = 'text-zinc-500';
@@ -2745,27 +2821,49 @@ export default function WorkspacePage() {
                                     statusText = '▶';
                                     statusClass = 'text-indigo-400 font-extrabold';
                                     statusLabel = 'Current';
+                                  } else if (isUnlocked) {
+                                    statusText = '○';
+                                    statusClass = 'text-indigo-300';
+                                    statusLabel = 'Available';
+                                  } else {
+                                    statusText = '🔒';
+                                    statusClass = 'text-zinc-650';
+                                    statusLabel = 'Locked';
                                   }
                                   
                                   return (
                                     <div 
                                       key={lesson.id}
-                                      onClick={() => handleSelectLesson(lesson.id)}
-                                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                                      onClick={() => {
+                                        if (!isUnlocked) {
+                                          showToast(`Complete previous lessons to unlock "${lesson.title}"!`, 'info');
+                                          return;
+                                        }
+                                        handleSelectLesson(lesson.id);
+                                      }}
+                                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-all ${
                                         isActive 
-                                          ? 'bg-indigo-500/5 border-indigo-500/20 shadow-sm' 
-                                          : 'bg-transparent border-transparent hover:bg-white/[0.01]'
+                                          ? 'bg-indigo-500/5 border-indigo-500/20 shadow-sm cursor-pointer' 
+                                          : isUnlocked
+                                            ? 'bg-transparent border-transparent hover:bg-white/[0.01] cursor-pointer'
+                                            : 'bg-transparent border-transparent opacity-40 cursor-not-allowed'
                                       }`}
                                     >
                                       <div className="flex items-center gap-3">
                                         <button
                                           type="button"
+                                          disabled={!isUnlocked}
                                           onClick={(e) => {
                                             e.stopPropagation();
+                                            if (!isUnlocked) return;
                                             handleToggleLessonComplete(lesson.id);
                                           }}
-                                          className={`text-xs w-5 h-5 rounded-full border border-white/10 flex items-center justify-center shrink-0 cursor-pointer ${
-                                            isCompleted ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-slate-900 text-slate-400 hover:border-slate-500'
+                                          className={`text-xs w-5 h-5 rounded-full border border-white/10 flex items-center justify-center shrink-0 ${
+                                            !isUnlocked 
+                                              ? 'bg-zinc-950/40 text-zinc-700 cursor-not-allowed'
+                                              : isCompleted 
+                                                ? 'bg-emerald-500 border-emerald-400 text-white cursor-pointer' 
+                                                : 'bg-slate-900 text-slate-400 hover:border-slate-500 cursor-pointer'
                                           }`}
                                         >
                                           {statusText}
@@ -2776,7 +2874,7 @@ export default function WorkspacePage() {
                                       </div>
                                       <div className="flex items-center gap-2">
                                         <span className={`text-[8px] font-black uppercase tracking-wider ${statusClass}`}>{statusLabel}</span>
-                                        <span className="text-[9px] text-zinc-500 font-mono font-bold shrink-0">{lesson.duration}</span>
+                                        <span className="text-[9px] text-zinc-550 font-mono font-bold shrink-0">{lesson.duration}</span>
                                       </div>
                                     </div>
                                   );
@@ -2819,13 +2917,23 @@ export default function WorkspacePage() {
                               >
                                 {pomodoroIsRunning ? 'Pause' : 'Start'}
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleSetPomodoroPreset(pomodoroActivePreset, customDurationInput)}
-                                className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9px] font-bold rounded-lg border-none cursor-pointer"
-                              >
-                                Reset
-                              </button>
+                              {(() => {
+                                const canReset = pomodoroTimeLeft < pomodoroTotalDuration;
+                                return (
+                                  <button
+                                    type="button"
+                                    disabled={!canReset}
+                                    onClick={() => handleSetPomodoroPreset(pomodoroActivePreset, customDurationInput)}
+                                    className={`px-2 py-1 text-[9px] font-bold rounded-lg border-none transition-all ${
+                                      canReset 
+                                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer' 
+                                        : 'bg-slate-900 text-slate-600 cursor-not-allowed opacity-50'
+                                    }`}
+                                  >
+                                    Reset
+                                  </button>
+                                );
+                              })()}
                             </div>
                           </div>
 
@@ -2840,12 +2948,28 @@ export default function WorkspacePage() {
                               <span className="text-[9px] font-black text-zinc-500 tracking-wider uppercase">Workspace Peers</span>
                             </div>
                             
-                            <div className="text-xs font-extrabold text-white leading-tight">
-                              Online Members (4)
+                            <div className="flex items-center justify-between mt-1">
+                              {/* Stacked Avatars */}
+                              <div className="flex items-center -space-x-1.5 overflow-hidden">
+                                {[
+                                  { initial: 'S', color: 'bg-indigo-650' },
+                                  { initial: 'S', color: 'bg-emerald-650' },
+                                  { initial: 'C', color: 'bg-amber-600' },
+                                  { initial: 'R', color: 'bg-rose-600' }
+                                ].map((user, idx) => (
+                                  <div 
+                                    key={idx} 
+                                    className={`h-5.5 w-5.5 rounded-full border border-[#0b0e17] flex items-center justify-center font-black text-[8px] text-white uppercase ${user.color}`}
+                                  >
+                                    {user.initial}
+                                  </div>
+                                ))}
+                              </div>
+                              <span className="text-[9px] text-emerald-450 font-black font-mono">4 Online</span>
                             </div>
                             
-                            <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block self-start">
-                              View Members &rarr;
+                            <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest block self-start">
+                              View details &rarr;
                             </span>
                           </button>
                         </div>
@@ -2857,6 +2981,7 @@ export default function WorkspacePage() {
                           const challenge = currentLesson?.challenge;
                           const xpReward = activePath.xpReward;
                           const isSolved = solvedLessonChallengeIds.includes(activeLessonId);
+                          const isLessonContinued = continuedLessonIds.includes(activeLessonId);
                           
                           if (!challenge) {
                             return (
@@ -2866,7 +2991,28 @@ export default function WorkspacePage() {
                               </div>
                             );
                           }
-                          
+
+                          if (!isLessonContinued) {
+                            return (
+                              <div className="bg-[#0b0e17]/85 border border-white/5 rounded-2xl p-6 shadow-md text-left relative overflow-hidden">
+                                <div className="border-b border-white/5 pb-2">
+                                  <span className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">Lesson Quiz</span>
+                                </div>
+                                <div className="py-8 flex flex-col items-center justify-center text-center space-y-4">
+                                  <div className="h-12 w-12 rounded-full bg-slate-900 flex items-center justify-center border border-white/5 text-xl animate-pulse">
+                                    🔒
+                                  </div>
+                                  <div className="space-y-1 max-w-xs animate-fade-in">
+                                    <h4 className="text-xs font-black text-slate-300">Quiz Locked</h4>
+                                    <p className="text-[10px] text-zinc-500 font-bold leading-relaxed">
+                                      Read the lesson content first by clicking the <strong className="text-indigo-400">"Continue Learning"</strong> action on the left card to unlock this quiz.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
                           return (
                             <div className="bg-[#0b0e17]/85 border border-white/5 rounded-2xl p-6 shadow-md space-y-4 text-left">
                               <div className="border-b border-white/5 pb-2">
@@ -4083,6 +4229,7 @@ export default function WorkspacePage() {
           </div>
         </div>
       )}
-</div>
+    </div>
+  </div>
   );
 }
