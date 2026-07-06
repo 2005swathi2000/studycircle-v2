@@ -10,7 +10,8 @@ import {
   Check,
   MoreVertical,
   Calendar,
-  Sparkles
+  Sparkles,
+  Trash2
 } from 'lucide-react';
 
 interface SimpleDashboardProps {
@@ -56,6 +57,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 }) => {
   const [activities, setActivities] = useState<any[]>([]);
   const [goals, setGoals] = useState<any[]>([]);
+  const [newGoalText, setNewGoalText] = useState('');
+  const [showAddGoal, setShowAddGoal] = useState(false);
   
   // Local storage values for quizzes/practice questions
   const [practiceAttempts, setPracticeAttempts] = useState(0);
@@ -213,6 +216,39 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     }
   }, [equippedTheme]);
 
+  const handleToggleGoal = (id: string) => {
+    setGoals(prev => {
+      const updated = prev.map(g => g.id === id ? { ...g, completed: !g.completed } : g);
+      localStorage.setItem('studycircle_student_goals', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleDeleteGoal = (id: string) => {
+    setGoals(prev => {
+      const updated = prev.filter(g => g.id !== id);
+      localStorage.setItem('studycircle_student_goals', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleAddGoal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGoalText.trim()) return;
+    const newGoal = {
+      id: `g-${Date.now()}`,
+      text: newGoalText.trim(),
+      completed: false
+    };
+    setGoals(prev => {
+      const updated = [...prev, newGoal];
+      localStorage.setItem('studycircle_student_goals', JSON.stringify(updated));
+      return updated;
+    });
+    setNewGoalText('');
+    setShowAddGoal(false);
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const atts = parseInt(localStorage.getItem('studycircle_practice_attempts') || '0', 10);
@@ -272,35 +308,34 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     lastAccessedDate = completedLessonIds.length > 0 ? 'Today' : 'Just joined';
   }
 
-  // 2. Today's Goals generation based on current progress
+  // 2. Today's Goals persistent loader/seeder
   useEffect(() => {
-    const generatedGoals = [];
-    if (isZeroState) {
-      generatedGoals.push({ id: 'g-1', text: "Choose an interest to begin", completed: false });
-      generatedGoals.push({ id: 'g-2', text: "Join a Study Circle", completed: false });
-      generatedGoals.push({ id: 'g-3', text: "Complete Lesson 1", completed: false });
-    } else {
-      // Dynamic goals based on active study
-      const completedLesson = activeCourse && currentProgress > 0;
-      generatedGoals.push({ 
-        id: 'g-1', 
-        text: `Complete Lesson ${activeCourse ? Math.min(20, Math.round((currentProgress / 100) * 20) + 1) : 1}`, 
-        completed: completedLesson 
-      });
-      generatedGoals.push({ 
-        id: 'g-2', 
-        text: "Attempt 1 Quiz", 
-        completed: practiceAttempts > 0 
-      });
-      generatedGoals.push({ 
-        id: 'g-3', 
-        text: "Solve 5 Practice Questions", 
-        completed: practiceCorrect >= 5,
-        progress: `${Math.min(5, practiceCorrect)}/5`
-      });
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('studycircle_student_goals');
+      if (saved) {
+        try {
+          setGoals(JSON.parse(saved));
+          return;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      
+      // Seed default goals if none exist
+      const defaultGoals = [];
+      if (isZeroState) {
+        defaultGoals.push({ id: `g-${Date.now()}-1`, text: "Choose an interest to begin", completed: false });
+        defaultGoals.push({ id: `g-${Date.now()}-2`, text: "Join a Study Circle", completed: false });
+        defaultGoals.push({ id: `g-${Date.now()}-3`, text: "Complete Lesson 1", completed: false });
+      } else {
+        defaultGoals.push({ id: `g-${Date.now()}-1`, text: `Complete Lesson ${activeCourse ? Math.min(20, Math.round((currentProgress / 100) * 20) + 1) : 1}`, completed: false });
+        defaultGoals.push({ id: `g-${Date.now()}-2`, text: "Attempt 1 Quiz", completed: false });
+        defaultGoals.push({ id: `g-${Date.now()}-3`, text: "Solve 5 Practice Questions", completed: false });
+      }
+      setGoals(defaultGoals);
+      localStorage.setItem('studycircle_student_goals', JSON.stringify(defaultGoals));
     }
-    setGoals(generatedGoals);
-  }, [isZeroState, activeCourse, currentProgress, practiceAttempts, practiceCorrect]);
+  }, [isZeroState]);
 
   // 3. Dynamic Recent Activity list
   useEffect(() => {
@@ -343,12 +378,36 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const averageQuizScore = isZeroState ? 0 : (practiceAttempts > 0 ? Math.round((practiceCorrect / practiceAttempts) * 100) : 0);
   const overallProgressPercent = isZeroState ? 0 : (activeCourse ? currentProgress : 0);
 
-  // Recommendations static but zeroed progress for new users
-  const recommendations = [
-    { id: 'rec-1', title: 'System Design Basics', desc: 'Master high-availability architectures.', progress: isZeroState ? 0 : 35, iconBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
-    { id: 'rec-2', title: 'Database Management System', desc: 'Strengthen your DBMS concepts.', progress: isZeroState ? 0 : 20, iconBg: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
-    { id: 'rec-3', title: 'Graph Algorithms', desc: 'Learn BFS, DFS, Dijkstra and more.', progress: isZeroState ? 0 : 15, iconBg: 'bg-purple-500/10 text-purple-400 border-purple-500/20' }
-  ];
+  // Recommendations generated dynamically based on actual user activity (Zero State for new users)
+  const recommendations = useMemo(() => {
+    if (isZeroState) return [];
+
+    const interest = (activeCourse?.subject || user?.learningGoal || '').toLowerCase();
+    
+    if (interest.includes('db') || interest.includes('sql') || interest.includes('data')) {
+      if (interest.includes('structure') || interest.includes('dsa') || interest.includes('graph') || interest.includes('tree')) {
+        return [
+          { id: 'rec-dsa-1', title: 'Advanced Graph Theory', desc: 'BFS, DFS, Dijkstra, Kruskal, and graph traversal patterns.', progress: 0 },
+          { id: 'rec-dsa-2', title: 'Tree Data Structures', desc: 'Binary search trees, AVL trees, and segment tree implementations.', progress: 0 }
+        ];
+      }
+      return [
+        { id: 'rec-sql-1', title: 'SQL Joins & Indexing', desc: 'Master advanced SQL queries, joins, indices, and query optimization.', progress: 0 },
+        { id: 'rec-sql-2', title: 'Relational Database Schema Design', desc: 'Learn normal forms, keys, and relational models.', progress: 0 }
+      ];
+    }
+    
+    if (interest.includes('java') || interest.includes('oop') || interest.includes('object') || interest.includes('cpp') || interest.includes('c++')) {
+      return [
+        { id: 'rec-oop-1', title: 'Object-Oriented Programming Deep Dive', desc: 'Polymorphism, Inheritance, Encapsulation, and Design Patterns.', progress: 0 },
+        { id: 'rec-oop-2', title: 'Collections & Generics', desc: 'Master collection frameworks and advanced generics.', progress: 0 }
+      ];
+    }
+    
+    return [
+      { id: 'rec-gen-1', title: 'Programming & DSA Foundational Track', desc: 'Basic logic building, loops, arrays, and complexity analysis.', progress: 0 }
+    ];
+  }, [isZeroState, activeCourse, user]);
 
   // Theme helper
   const getThemeColor = () => {
@@ -450,33 +509,50 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] space-y-4`}>
             <div className="flex justify-between items-center pb-2 border-b border-white/5">
               <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Recommended For You</span>
-              <span className="text-[10px] text-indigo-400 font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('study')}>View all</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {recommendations.map((rec) => (
-                <div key={rec.id} className={`p-4 bg-white/[0.01] ${cardStyle.hoverBg} border border-white/5 rounded-xl flex flex-col justify-between h-36 transition-all duration-200`}>
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-start">
-                      <span className="text-[10px] font-black text-white line-clamp-1">{rec.title}</span>
+            {recommendations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
+                <p className="text-xs text-zinc-450 leading-relaxed max-w-md">
+                  We don't have enough learning activity yet to recommend courses.
+                  <br /><br />
+                  Start your first learning module or complete a few practice questions to receive personalized recommendations.
+                </p>
+                <button
+                  onClick={() => {
+                    setActiveTab('practice');
+                  }}
+                  className={`px-4 py-2 ${buttonStyle} text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center gap-1.5`}
+                >
+                  Explore Practice <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {recommendations.map((rec) => (
+                  <div key={rec.id} className={`p-4 bg-white/[0.01] ${cardStyle.hoverBg} border border-white/5 rounded-xl flex flex-col justify-between min-h-28 transition-all duration-200`}>
+                    <div className="space-y-1">
+                      <span className="text-xs font-black text-white line-clamp-1">{rec.title}</span>
+                      <p className="text-[10px] text-zinc-500 font-semibold line-clamp-2 leading-relaxed mt-1">
+                        {rec.desc}
+                      </p>
                     </div>
-                    <p className="text-[9px] text-zinc-500 font-semibold line-clamp-2 leading-relaxed mt-1">
-                      {rec.desc}
-                    </p>
+                    
+                    {rec.progress > 0 && (
+                      <div className="space-y-1.5 pt-2">
+                        <div className="flex justify-between text-[8px] font-bold text-zinc-400">
+                          <span>Course Progress</span>
+                          <span>{rec.progress}%</span>
+                        </div>
+                        <div className="w-full bg-slate-950 h-1 rounded-full overflow-hidden">
+                          <div className={`h-full ${progressBarColor} rounded-full`} style={{ width: `${rec.progress}%` }} />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-[8px] font-bold text-zinc-400">
-                      <span>Course Progress</span>
-                      <span>{rec.progress}%</span>
-                    </div>
-                    <div className="w-full bg-slate-950 h-1 rounded-full overflow-hidden">
-                      <div className={`h-full ${progressBarColor} rounded-full`} style={{ width: `${rec.progress}%` }} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* RECENT ACTIVITY */}
@@ -525,30 +601,81 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               </span>
             </div>
 
-            <div className="space-y-3">
-              {goals.map((goal) => (
-                <div 
-                  key={goal.id}
-                  className={`p-3 bg-white/[0.01] ${cardStyle.hoverBg} border border-white/5 rounded-xl flex items-center justify-between gap-3 cursor-pointer select-none transition-colors`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`h-5 w-5 rounded-md border flex items-center justify-center transition-all ${
-                      goal.completed 
-                        ? `${checkboxStyle} text-white` 
-                        : 'border-zinc-700 bg-transparent'
-                    }`}>
-                      {goal.completed && <Check className="h-3 w-3 stroke-[3]" />}
+            {/* Goals List */}
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {goals.length === 0 ? (
+                <p className="text-xs text-zinc-500 italic py-2 text-center">No goals set for today.</p>
+              ) : (
+                goals.map((goal) => (
+                  <div 
+                    key={goal.id}
+                    className={`p-3 bg-white/[0.01] ${cardStyle.hoverBg} border border-white/5 rounded-xl flex items-center justify-between gap-3 transition-all duration-150`}
+                  >
+                    <div 
+                      className="flex items-center gap-3 flex-1 cursor-pointer select-none"
+                      onClick={() => handleToggleGoal(goal.id)}
+                    >
+                      <div className={`h-5 w-5 rounded-md border flex items-center justify-center transition-all ${
+                        goal.completed 
+                          ? `${checkboxStyle} text-white` 
+                          : 'border-zinc-700 bg-transparent'
+                      }`}>
+                        {goal.completed && <Check className="h-3 w-3 stroke-[3]" />}
+                      </div>
+                      <span className={`text-xs font-bold ${goal.completed ? 'line-through text-zinc-500' : 'text-zinc-200'}`}>
+                        {goal.text}
+                      </span>
                     </div>
-                    <span className={`text-xs font-bold ${goal.completed ? 'line-through text-zinc-500' : 'text-zinc-200'}`}>
-                      {goal.text}
-                    </span>
+                    {goal.progress && (
+                      <span className="text-[9px] text-zinc-500 font-mono font-bold">{goal.progress}</span>
+                    )}
+                    <button
+                      onClick={() => handleDeleteGoal(goal.id)}
+                      className="p-1 hover:bg-red-950/20 text-zinc-500 hover:text-red-400 rounded transition-all border-none bg-transparent cursor-pointer shrink-0"
+                      title="Delete Goal"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  {goal.progress && (
-                    <span className="text-[9px] text-zinc-500 font-mono font-bold">{goal.progress}</span>
-                  )}
-                </div>
-              ))}
+                ))
+              )}
             </div>
+
+            {/* Add Goal Button / Form */}
+            {!showAddGoal ? (
+              <button
+                onClick={() => setShowAddGoal(true)}
+                className={`w-full py-2 bg-white/[0.01] ${cardStyle.hoverBg} border border-white/5 rounded-xl text-[10px] text-zinc-350 font-bold transition-all cursor-pointer`}
+              >
+                + Add Goal
+              </button>
+            ) : (
+              <form onSubmit={handleAddGoal} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter goal..."
+                  value={newGoalText}
+                  onChange={(e) => setNewGoalText(e.target.value)}
+                  className="flex-1 bg-[#060813]/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 placeholder-zinc-650"
+                  autoFocus
+                />
+                <div className="flex gap-1 shrink-0">
+                  <button
+                    type="submit"
+                    className={`px-3 py-2 ${buttonStyle} text-white rounded-xl text-xs font-bold border-none cursor-pointer transition-all`}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddGoal(false); setNewGoalText(''); }}
+                    className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-xl text-xs font-bold border-none cursor-pointer transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
 
           {/* MY PROGRESS */}
