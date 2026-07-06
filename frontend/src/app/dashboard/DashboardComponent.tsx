@@ -2531,7 +2531,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
           isPublic: groupIsPublic
         })
       });
-      showToast(data.message || 'Study Circle initialized!', 'success');
+      showToast(`Study Circle "${groupName}" successfully created! You can find it under the "Study" tab in the "Workspaces" section.`, 'success');
       setShowCreateModal(false);
       setGroupName('');
       setGroupDesc('');
@@ -3916,7 +3916,14 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
         {/* Profile Card */}
         <div 
-          onClick={() => setActiveTab('settings')}
+          onClick={() => {
+            if (user?.role === 'student') {
+              setProfileSubView('settings');
+              setActiveTab('profile');
+            } else {
+              setActiveTab('settings');
+            }
+          }}
           className="p-4 border-b border-white/5 bg-white/[0.01] flex items-center justify-between gap-3 cursor-pointer hover:bg-white/[0.04] transition-all group"
           title="Click to Edit Profile"
         >
@@ -7896,16 +7903,16 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
       {/* Create Circle modal overlay */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="max-w-md w-full bg-white border border-slate-200 rounded-[32px] p-6 space-y-6 shadow-2xl text-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="max-w-md w-full bg-[#0d0f1a] border border-white/10 rounded-[32px] p-6 space-y-6 shadow-2xl text-white">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <div className="flex items-center gap-2">
-                <PlusCircle className="h-5 w-5 text-indigo-600" />
-                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">Initialize Study Circle</h3>
+                <PlusCircle className="h-5 w-5 text-indigo-400" />
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">Initialize Study Circle</h3>
               </div>
               <button 
                 onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold text-xs"
+                className="text-zinc-400 hover:text-white font-bold text-xs border-none bg-transparent cursor-pointer"
               >
                 ✕
               </button>
@@ -7913,48 +7920,48 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
             <form onSubmit={handleCreateCircle} className="space-y-4 text-left">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Circle Name</label>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Circle Name</label>
                 <input
                   type="text"
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
                   placeholder="e.g. AP-Telangana B.Tech Prep"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs text-slate-900 outline-none"
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/10 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs text-white outline-none"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Subject / Area</label>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Subject / Area</label>
                 <input
                   type="text"
                   value={groupSubject}
                   onChange={(e) => setGroupSubject(e.target.value)}
                   placeholder="e.g. Data Structures & Algorithms"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs text-slate-900 outline-none"
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/10 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs text-white outline-none"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Description</label>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Description</label>
                 <textarea
                   value={groupDesc}
                   onChange={(e) => setGroupDesc(e.target.value)}
                   placeholder="Goals, topics, and schedule details."
                   rows={3}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs text-slate-900 outline-none resize-none"
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/10 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs text-white outline-none resize-none"
                 />
               </div>
 
-              <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="flex items-center justify-between p-3.5 bg-white/[0.01] border border-white/5 rounded-xl">
                 <div className="space-y-0.5">
-                  <div className="text-xs font-bold text-slate-700">Public Workspace Lounge</div>
-                  <div className="text-[9px] text-slate-400 leading-snug">Allow guests to view and join without invite codes.</div>
+                  <div className="text-xs font-bold text-slate-200">Public Workspace Lounge</div>
+                  <div className="text-[9px] text-zinc-550 leading-snug">Allow guests to view and join without invite codes.</div>
                 </div>
                 <input
                   type="checkbox"
                   checked={groupIsPublic}
                   onChange={(e) => setGroupIsPublic(e.target.checked)}
-                  className="h-4 w-4 bg-white border-slate-300 focus:ring-indigo-500 text-indigo-600 rounded-lg cursor-pointer"
+                  className="h-4 w-4 bg-[#060813] border-white/10 focus:ring-indigo-500 text-[#5227EB] rounded-lg cursor-pointer"
                 />
               </div>
 
@@ -7962,14 +7969,14 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-bold transition-all"
+                  className="px-4 py-2 border border-white/10 hover:bg-white/5 text-zinc-300 rounded-xl text-xs font-bold transition-all cursor-pointer bg-transparent"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1"
+                  className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border-none"
                 >
                   {creating ? 'Creating...' : 'Initialize'}
                 </button>
