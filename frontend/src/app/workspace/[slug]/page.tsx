@@ -1026,6 +1026,33 @@ export default function WorkspacePage() {
 
   const [fadeTransition, setFadeTransition] = useState(false);
 
+  const [hasStartedWorkspace, setHasStartedWorkspace] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(`sc_started_${slug}`) === 'true' || (completedLessonIds && completedLessonIds.length > 0);
+    }
+    return false;
+  });
+
+  const [showPeersPopup, setShowPeersPopup] = useState(false);
+
+  const getLessonDescription = (title: string | undefined) => {
+    if (!title) return "Read key literature, run through examples, and attempt the checkup challenge to verify your concepts.";
+    const t = title.toLowerCase();
+    if (t.includes('introduction') || t.includes('what is') || t.includes('basics')) {
+      return "Learn the foundational concepts, core definitions, history, and basic terminology of this topic.";
+    }
+    if (t.includes('algorithm') || t.includes('theory') || t.includes('complexity') || t.includes('analysis')) {
+      return "Explore the execution complexity, structure, logic flow, algorithms, and dry runs of this topic.";
+    }
+    if (t.includes('design') || t.includes('model') || t.includes('database') || t.includes('architecture')) {
+      return "Understand schemas, normalized structures, data models, trade-offs, and architecture best practices.";
+    }
+    if (t.includes('advanced') || t.includes('deep') || t.includes('optimization')) {
+      return "Deep dive into advanced optimization techniques, corner cases, performance tuning, and scaling.";
+    }
+    return "Study core components, trace sample code implementations, and solve checkup problems to build solid intuition.";
+  };
+
   const [solvedLessonChallengeIds, setSolvedLessonChallengeIds] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -2423,16 +2450,11 @@ export default function WorkspacePage() {
             <LayoutDashboard className="h-4 w-4" />
             <span>Return to Dashboard</span>
           </button>
-
-          <div className="pt-4 pb-2">
-            <span className="text-[9px] font-black text-slate-650 uppercase tracking-widest px-4 block">Workspace Tabs</span>
-          </div>
-
           {[
-            { id: 'lobby', title: 'Workspace Overview', icon: Activity },
+            { id: 'lobby', title: 'Overview', icon: Activity },
             { id: 'notes', title: 'Shared Notes', icon: FileText },
-            { id: 'resources', title: 'Curated Resources', icon: Bookmark },
-            { id: 'doubts', title: 'Discussion Board', icon: MessageSquare }
+            { id: 'resources', title: 'Resources', icon: Bookmark },
+            { id: 'doubts', title: 'Discussion', icon: MessageSquare }
           ].map((tab) => {
             const Icon = tab.icon;
             const isSel = activeTab === tab.id;
@@ -2604,470 +2626,371 @@ export default function WorkspacePage() {
                 </button>
               </div>
             )}
-
-            {/* Gamification stats overlay */}
-            <div className="flex items-center gap-4 bg-slate-900/50 border border-white/5 rounded-xl px-4 py-1.5 text-xs font-black shadow-inner">
-              <div className="flex items-center gap-1 text-orange-400" title="Daily Streak">
-                <Flame className="h-3.5 w-3.5 fill-orange-400" />
-                <span>{userStats.streakCount} Day</span>
-              </div>
-              <div className="flex items-center gap-1 text-indigo-400" title="XP (Scholar Points)">
-                <Award className="h-3.5 w-3.5" />
-                <span>{userStats.xp} XP</span>
-              </div>
-              <div className="flex items-center gap-1 text-amber-500" title="Focus Coins">
-                <span className="h-4.5 w-4.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-[10px] font-black">¢</span>
-                <span>{userStats.focusCoins} Coins</span>
-              </div>
-              <div className="flex items-center gap-1 text-emerald-400" title="Scholar Level">
-                <span className="px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-[9px] font-mono">Lvl {userStats.level}</span>
-              </div>
-            </div>
           </div>
         </header>
-
         {/* WORKSPACE CONTENT BODY */}
-        <div className="flex-1 p-8 grid lg:grid-cols-4 gap-8 items-start">
+        <div className="flex-1 p-8">
           
-          {/* Main workspace section (Left 3/4) */}
-          <div className="lg:col-span-3 space-y-8 text-left">
+          {/* Main workspace section */}
+          <div className="space-y-8 text-left">
             
             {/* WELCOME BANNER & LEARNING PATH HERO */}
-            <section className="bg-gradient-to-br from-[#0b1224] via-[#070b16] to-[#120b24] border border-white/5 rounded-3xl p-6 md:p-8 flex flex-col xl:flex-row gap-6 items-stretch justify-between relative overflow-hidden shadow-2xl">
-              <div className="absolute top-0 left-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-              
-              <div className="space-y-3 flex-1 flex flex-col justify-center text-left">
-                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-indigo-500/15 border border-indigo-500/25 rounded-full text-[9px] font-black text-indigo-400 uppercase tracking-widest self-start">
-                  ✨ Co-Study Lounge Workspace
-                </span>
-                <h3 className="text-xl md:text-2xl font-black text-white">🚀 Explore {group?.subject}</h3>
-                <p className="text-xs text-slate-450 leading-relaxed font-bold">
-                  {group?.description || 'Collaborative workspace to learn topics, solve codes, and discuss doubts together.'}
-                </p>
-
-                {/* Level selector */}
-                <div className="flex items-center gap-3 pt-3">
-                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Path Track:</span>
-                  <div className="flex bg-[#0B0F19]/80 border border-white/5 rounded-xl p-0.5">
-                    {(['beginner', 'intermediate', 'advanced'] as const).map((level) => (
-                      <button
-                        key={level}
-                        onClick={() => handleSwitchLevel(level)}
-                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer border-none ${
-                          learningLevel === level 
-                            ? 'bg-[#4F46E5] text-white shadow' 
-                            : 'text-slate-500 hover:text-slate-350 bg-transparent'
-                        }`}
-                      >
-                        {level}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {(() => {
-                const activePath = getActivePath();
-                const activeLesson = activePath.lessons.find((l) => l.id === activeLessonId) || activePath.lessons[0];
-                const totalLessons = activePath.lessons.length;
-                const activeLessonIndex = activePath.lessons.findIndex((l) => l.id === activeLessonId);
-                const completedInPath = activePath.lessons.filter((l) => completedLessonIds.includes(l.id)).length;
-                const pathPercent = totalLessons > 0 ? Math.round((completedInPath / totalLessons) * 100) : 0;
-                
-                const filledCount = Math.round(pathPercent / 10);
-                const textProgressBar = '█'.repeat(filledCount) + '░'.repeat(10 - filledCount);
-
-                return (
-                  <div className="w-full md:w-80 shrink-0 bg-[#0B0F19]/85 border border-white/10 rounded-2xl p-5 space-y-4 relative shadow-lg flex flex-col justify-between">
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                      <div className="text-[9px] font-black uppercase text-indigo-400 tracking-wider">Continue Learning</div>
-                      <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold uppercase">
-                        {learningLevel} track
-                      </span>
+            {activeTab === 'lobby' && (
+              <div className="space-y-6 text-left animate-in fade-in duration-200">
+                {!hasStartedWorkspace ? (
+                  <div className="flex flex-col items-center justify-center py-24 text-center space-y-6 max-w-md mx-auto animate-in fade-in duration-300">
+                    <div className="relative h-20 w-20 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-3xl">
+                      📚
                     </div>
-                    
-                    <div className="space-y-1 text-left">
-                      <h4 className="text-xs font-black text-white truncate max-w-[240px]">{activeLesson?.title || 'No active lesson'}</h4>
-                      <p className="text-[9px] text-slate-455 font-black uppercase">
-                        Lesson {activeLessonIndex !== -1 ? activeLessonIndex + 1 : 1} / {totalLessons}
+                    <div className="space-y-2">
+                      <h2 className="text-lg font-black text-white">Welcome to {group?.name || 'Study Circle'}!</h2>
+                      <p className="text-xs text-zinc-400 leading-relaxed font-semibold">
+                        Welcome! Start your first lesson to begin your learning journey.
                       </p>
                     </div>
-
-                    <div className="space-y-1.5 pt-1 text-left">
-                      <div className="flex justify-between items-center text-[9px] font-black text-slate-400 font-mono">
-                        <span>{textProgressBar}</span>
-                        <span className="text-indigo-400 font-extrabold">{pathPercent}%</span>
-                      </div>
-                    </div>
-
                     <button
                       onClick={() => {
-                        if (activeLesson) {
-                          handleSelectLesson(activeLesson.id);
-                          showToast(`Resuming: ${activeLesson.title}`, 'success');
+                        setHasStartedWorkspace(true);
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem(`sc_started_${slug}`, 'true');
                         }
+                        showToast(`Learning journey started in ${group?.name}!`, 'success');
                       }}
-                      className="w-full py-2 bg-indigo-650/15 hover:bg-indigo-650/30 border border-indigo-500/20 text-indigo-300 text-[9px] font-black uppercase tracking-wider rounded-xl transition cursor-pointer text-center"
+                      className="px-6 py-3 bg-[#5227EB] hover:bg-[#431cd3] text-white text-xs font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none"
                     >
-                      Resume →
+                      Start Learning
                     </button>
                   </div>
-                );
-              })()}
-
-              {/* POMODORO TIMER CARD IN HERO */}
-              <div className="w-full md:w-80 shrink-0 bg-[#0B0F19]/80 border border-white/10 rounded-2xl p-5 space-y-4 relative shadow-lg">
-                <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
-                    <Clock className="h-4.5 w-4.5 text-indigo-400" /> Pomodoro Arena
-                  </div>
-                  <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase ${
-                    pomodoroMode === 'focus' 
-                      ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' 
-                      : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-                  }`}>
-                    {pomodoroMode === 'focus' ? '🔥 Focus' : '☀️ Break'}
-                  </span>
-                </div>
-
-                <div className="flex flex-col items-center space-y-3">
-                  {/* Timer Display */}
-                  <div className="relative flex items-center justify-center h-28 w-28">
-                    <svg className="w-full h-full transform -rotate-90">
-                      <circle
-                        cx="56"
-                        cy="56"
-                        r="48"
-                        stroke="rgba(255, 255, 255, 0.03)"
-                        strokeWidth="5"
-                        fill="transparent"
-                      />
-                      <circle
-                        cx="56"
-                        cy="56"
-                        r="48"
-                        stroke="#6366f1"
-                        strokeWidth="5"
-                        fill="transparent"
-                        strokeDasharray={301.6}
-                        strokeDashoffset={301.6 * (1 - pomodoroTimeLeft / pomodoroTotalDuration)}
-                        className="transition-all duration-1000"
-                      />
-                    </svg>
-                    <div className="absolute flex flex-col items-center justify-center">
-                      <span className="text-xl font-black text-white font-mono leading-none tracking-tight">
-                        {Math.floor(pomodoroTimeLeft / 60).toString().padStart(2, '0')}:
-                        {(pomodoroTimeLeft % 60).toString().padStart(2, '0')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Controls */}
-                  <div className="w-full flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPomodoroIsRunning(!pomodoroIsRunning)}
-                      className={`flex-grow py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer border-none text-white flex items-center justify-center gap-1 ${
-                        pomodoroIsRunning ? 'bg-amber-600 hover:bg-amber-500' : 'bg-indigo-650 hover:bg-indigo-500'
-                      }`}
-                    >
-                      {pomodoroIsRunning ? 'Pause' : 'Start'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSetPomodoroPreset(pomodoroActivePreset, customDurationInput)}
-                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border-none text-slate-200 text-[10px] font-black rounded-xl transition-all cursor-pointer"
-                    >
-                      <RotateCcw className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-            </section>
-
-            {activeTab === 'lobby' && (() => {
-              const activePath = getActivePath();
-              const currentLesson = activePath.lessons.find((l) => l.id === activeLessonId) || activePath.lessons[0];
-              const challenge = currentLesson?.challenge;
-              const xpReward = activePath.xpReward;
-              const isSolved = solvedLessonChallengeIds.includes(activeLessonId);
-
-              return (
-                <div className={`grid lg:grid-cols-2 gap-8 items-start transition-opacity duration-200 ${fadeTransition ? 'opacity-0' : 'opacity-100'}`}>
-                  
-                  {/* COLUMN 1: VERTICAL ROADMAP */}
-                  <div className="space-y-6">
-                    <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left space-y-4">
-                      <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
-                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
-                          <BookOpen className="h-4 w-4 text-indigo-400" /> Dynamic Learning Path
-                        </h4>
-                        <span className="text-[9px] font-black bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2.5 py-0.5 rounded uppercase">
+                ) : (
+                  <>
+                    {/* Compact single-row header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-950/20 border border-white/5 rounded-2xl gap-4">
+                      <div className="flex items-center gap-3">
+                        <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                        <h2 className="text-xs font-bold text-white tracking-tight">{group?.name || 'Study Circle Room'}</h2>
+                        <span className="text-[9px] bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 font-extrabold uppercase px-2 py-0.5 rounded-md">
                           {learningLevel} Track
                         </span>
                       </div>
+                      <div className="text-[10px] font-bold text-zinc-400 font-mono">
+                        Lesson {(() => {
+                          const activePath = getActivePath();
+                          const activeIdx = activePath.lessons.findIndex(l => l.id === activeLessonId);
+                          return activeIdx !== -1 ? activeIdx + 1 : 1;
+                        })()} of {(() => {
+                          const activePath = getActivePath();
+                          return activePath.lessons.length;
+                        })()}
+                      </div>
+                    </div>
 
-                      <div className="relative pl-6 space-y-4 pt-1">
-                        {/* Vertical connector line */}
-                        <div className="absolute left-[11px] top-4 bottom-4 w-[1.5px] bg-slate-800" />
-
-                        {activePath.lessons.map((lesson) => {
-                          const isCompleted = completedLessonIds.includes(lesson.id);
-                          const isActive = activeLessonId === lesson.id;
+                    {/* Responsive two-column workspace layout */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start pt-4 text-white">
+                      
+                      {/* LEFT COLUMN: Lesson & Path list */}
+                      <div className="space-y-6">
+                        {/* Current Lesson card */}
+                        {(() => {
+                          const activePath = getActivePath();
+                          const currentLesson = activePath.lessons.find((l) => l.id === activeLessonId) || activePath.lessons[0];
                           
                           return (
-                            <div 
-                              key={lesson.id} 
-                              className={`relative flex items-center gap-4 p-3.5 rounded-2xl border transition-all ${
-                                isActive 
-                                  ? 'bg-indigo-500/5 border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.05)]' 
-                                  : 'bg-transparent border-transparent hover:bg-white/[0.01]'
-                              }`}
-                            >
-                              {/* Node icon absolute container */}
-                              <div className="absolute left-[-23px] top-1/2 -translate-y-1/2 z-10 flex items-center justify-center">
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleLessonComplete(lesson.id)}
-                                  className={`h-6 w-6 rounded-full border flex items-center justify-center transition-all cursor-pointer ${
-                                    isCompleted 
-                                      ? 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.3)]' 
-                                      : isActive
-                                        ? 'bg-indigo-650 border-indigo-500 text-white'
-                                        : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'
-                                  }`}
-                                >
-                                  {isCompleted ? (
-                                    <Check className="h-3.5 w-3.5 stroke-[3.5]" />
-                                  ) : isActive ? (
-                                    <Play className="h-2.5 w-2.5 fill-white ml-0.5" />
-                                  ) : (
-                                    <span className="h-2 w-2 rounded-full bg-slate-700" />
-                                  )}
-                                </button>
+                            <div className="bg-[#0b0e17]/85 border border-white/5 backdrop-blur-md rounded-2xl p-6 shadow-md space-y-4 text-left">
+                              <div className="flex justify-between items-start border-b border-white/5 pb-2">
+                                <span className="text-[10px] font-black uppercase text-indigo-400 tracking-wider">Current Lesson</span>
+                                <span className="text-[9px] text-zinc-550 font-bold font-mono uppercase">{currentLesson?.duration || '10m read'}</span>
                               </div>
-
-                              <div 
-                                onClick={() => handleSelectLesson(lesson.id)}
-                                className="flex-1 cursor-pointer text-left space-y-0.5 select-none"
+                              <div className="space-y-2">
+                                <h3 className="text-sm font-black text-white">{currentLesson?.title || 'No Active Lesson'}</h3>
+                                <p className="text-xs text-zinc-400 leading-relaxed font-semibold">
+                                  {getLessonDescription(currentLesson?.title)}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  showToast(`Resuming learning: ${currentLesson?.title}`, 'success');
+                                }}
+                                className="px-5 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none"
                               >
-                                <div className="flex justify-between items-center">
-                                  <h5 className={`text-xs font-black transition-all ${
-                                    isActive 
-                                      ? 'text-white' 
-                                      : isCompleted 
-                                        ? 'text-slate-450 line-through' 
-                                        : 'text-slate-300'
-                                  }`}>
-                                    {lesson.title}
-                                  </h5>
-                                  <span className="text-[8px] text-slate-550 font-black font-mono uppercase shrink-0 ml-2">{lesson.duration}</span>
-                                </div>
-                                <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Click to switch topics & challenge</p>
+                                Continue Learning
+                              </button>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Simplified Lesson Path list */}
+                        {(() => {
+                          const activePath = getActivePath();
+                          return (
+                            <div className="bg-[#0b0e17]/85 border border-white/5 rounded-2xl p-5 shadow-sm space-y-4 text-left">
+                              <div className="border-b border-white/5 pb-2.5">
+                                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans">
+                                  Learning Path Lessons
+                                </h4>
+                              </div>
+                              <div className="space-y-2">
+                                {activePath.lessons.map((lesson, idx) => {
+                                  const isCompleted = completedLessonIds.includes(lesson.id);
+                                  const isActive = activeLessonId === lesson.id;
+                                  
+                                  let statusText = '○';
+                                  let statusClass = 'text-zinc-500';
+                                  let statusLabel = 'Locked';
+                                  
+                                  if (isCompleted) {
+                                    statusText = '✔';
+                                    statusClass = 'text-emerald-450';
+                                    statusLabel = 'Completed';
+                                  } else if (isActive) {
+                                    statusText = '▶';
+                                    statusClass = 'text-indigo-400 font-extrabold';
+                                    statusLabel = 'Current';
+                                  }
+                                  
+                                  return (
+                                    <div 
+                                      key={lesson.id}
+                                      onClick={() => handleSelectLesson(lesson.id)}
+                                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                                        isActive 
+                                          ? 'bg-indigo-500/5 border-indigo-500/20 shadow-sm' 
+                                          : 'bg-transparent border-transparent hover:bg-white/[0.01]'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleToggleLessonComplete(lesson.id);
+                                          }}
+                                          className={`text-xs w-5 h-5 rounded-full border border-white/10 flex items-center justify-center shrink-0 cursor-pointer ${
+                                            isCompleted ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-slate-900 text-slate-400 hover:border-slate-500'
+                                          }`}
+                                        >
+                                          {statusText}
+                                        </button>
+                                        <span className={`text-xs font-bold ${isCompleted ? 'text-zinc-500 line-through' : 'text-zinc-200'}`}>
+                                          Lesson {idx + 1} - {lesson.title}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className={`text-[8px] font-black uppercase tracking-wider ${statusClass}`}>{statusLabel}</span>
+                                        <span className="text-[9px] text-zinc-500 font-mono font-bold shrink-0">{lesson.duration}</span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           );
-                        })}
+                        })()}
                       </div>
-                    </div>
-                  </div>
 
-                  {/* COLUMN 2: CHALLENGE, RESOURCES & DISCUSSIONS */}
-                  <div className="space-y-6">
-                    
-                    {/* TODAY'S CHALLENGE */}
-                    {challenge ? (
-                      <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-2xl pointer-events-none" />
-                        
-                        <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
-                            <span className="text-xs font-black uppercase tracking-wider text-white">Lesson Challenge</span>
-                          </div>
-                          <span className="text-[9px] font-black bg-white/5 border border-white/10 text-indigo-400 px-2.5 py-1 rounded">
-                            +{xpReward} XP | +{Math.round(xpReward / 2)} ¢
-                          </span>
-                        </div>
-
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <p className="text-xs font-bold text-slate-200 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-white/5">
-                              {challenge.question}
-                            </p>
+                      {/* RIGHT COLUMN: Pomodoro, Members, Quiz */}
+                      <div className="space-y-6">
+                        {/* Widgets Row */}
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Pomodoro Widget */}
+                          <div className="bg-[#0b0e17]/85 border border-white/5 rounded-2xl p-4 shadow-md flex flex-col justify-between h-[120px] text-left">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[9px] font-black text-zinc-500 uppercase font-mono">Pomodoro</span>
+                              <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase ${
+                                pomodoroMode === 'focus' 
+                                  ? 'bg-rose-500/10 border border-rose-500/20 text-rose-450' 
+                                  : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-455'
+                              }`}>
+                                {pomodoroMode === 'focus' ? 'Focus' : 'Break'}
+                              </span>
+                            </div>
                             
-                            <div className="grid gap-2">
-                              {challenge.options.map((option, idx) => {
-                                const isSelected = todayChallengeAnswer === idx;
-                                const isCorrect = idx === challenge.correctIndex;
-                                
-                                return (
-                                  <button
-                                    key={idx}
-                                    disabled={isSolved}
-                                    onClick={() => {
-                                      setTodayChallengeAnswer(idx);
-                                      setTodayChallengeFeedback(null);
-                                    }}
-                                    className={`p-3 rounded-xl border text-left text-xs font-bold transition-all ${
-                                      isSolved
-                                        ? isCorrect
-                                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                                          : 'bg-[#0B0F19]/45 border-white/5 text-slate-500'
-                                        : isSelected
-                                          ? 'bg-indigo-500/10 border-indigo-500/50 text-white'
-                                          : 'bg-[#0B0F19]/45 border-white/5 text-slate-400 hover:bg-[#070b16]/40 hover:text-white'
-                                    }`}
-                                  >
-                                    <span className="mr-1.5 font-black uppercase text-indigo-400">{String.fromCharCode(65 + idx)}.</span> {option}
-                                  </button>
-                                );
-                              })}
+                            <div className="text-xl font-black text-white font-mono my-1 tracking-tight">
+                              {Math.floor(pomodoroTimeLeft / 60).toString().padStart(2, '0')}:
+                              {(pomodoroTimeLeft % 60).toString().padStart(2, '0')}
                             </div>
-                          </div>
-
-                          {todayChallengeFeedback === 'wrong' && !isSolved && (
-                            <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-bold">
-                              ❌ Wrong answer! Re-check and try again.
-                            </div>
-                          )}
-
-                          {isSolved && (
-                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 rounded-xl text-xs leading-relaxed">
-                              <strong className="text-white block mb-0.5 uppercase tracking-wide text-[10px]">Explanation:</strong>
-                              {challenge.explanation}
-                            </div>
-                          )}
-
-                          <div className="pt-2 flex items-center justify-between gap-4">
-                            <div className="flex-1 h-1.5 rounded-full bg-slate-900 border border-white/5 overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full transition-all duration-500 ${isSolved ? 'w-full bg-emerald-500' : 'w-1/3 bg-indigo-500'}`} 
-                              />
-                            </div>
-                            {!isSolved ? (
+                            
+                            <div className="flex gap-2">
                               <button
-                                onClick={() => {
-                                  if (todayChallengeAnswer === null) {
-                                    showToast('Please select an option first.', 'warning');
-                                    return;
-                                  }
-                                  if (todayChallengeAnswer === challenge.correctIndex) {
-                                    showToast(`🎉 Correct! +${xpReward} XP earned.`, 'success');
-                                    setSolvedLessonChallengeIds((prev) => {
-                                      const next = [...prev, activeLessonId];
-                                      if (typeof window !== 'undefined') {
-                                        localStorage.setItem('sc_solved_challenges_' + slug, JSON.stringify(next));
-                                      }
-                                      return next;
-                                    });
-                                    
-                                    // reward api
-                                    apiRequest('/progress/complete-practice', {
-                                      method: 'POST',
-                                      body: JSON.stringify({
-                                        interest: group?.subject || 'Programming & DSA',
-                                        challengeId: 'lesson_challenge_' + activeLessonId,
-                                        xpReward: xpReward,
-                                        coinReward: Math.round(xpReward / 2)
-                                      })
-                                    })
-                                      .then((res) => {
-                                        setUserStats((prev: any) => ({
-                                          ...prev,
-                                          xp: res.xp,
-                                          focusCoins: res.focusCoins,
-                                          level: res.level,
-                                          streakCount: res.streakCount
-                                        }));
-                                      })
-                                      .catch((err) => console.error('Error rewarding challenge:', err));
-                                  } else {
-                                    setTodayChallengeFeedback('wrong');
-                                    showToast('Incorrect answer. Try again!', 'error');
-                                  }
-                                }}
-                                className="px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338ca] text-white text-[10px] font-black rounded-xl border-none uppercase tracking-wider cursor-pointer shadow-md transition-all shrink-0"
+                                type="button"
+                                onClick={() => setPomodoroIsRunning(!pomodoroIsRunning)}
+                                className={`flex-grow py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border-none text-white cursor-pointer transition ${
+                                  pomodoroIsRunning ? 'bg-amber-600' : 'bg-indigo-650'
+                                }`}
                               >
-                                Verify Answer
+                                {pomodoroIsRunning ? 'Pause' : 'Start'}
                               </button>
-                            ) : (
-                              <div className="px-5 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-455 text-[10px] font-black uppercase rounded-xl shrink-0">
-                                ✓ Claimed
-                              </div>
-                            )}
+                              <button
+                                type="button"
+                                onClick={() => handleSetPomodoroPreset(pomodoroActivePreset, customDurationInput)}
+                                className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9px] font-bold rounded-lg border-none cursor-pointer"
+                              >
+                                Reset
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left">
-                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans">Lesson Challenge</h4>
-                        <div className="p-6 bg-slate-950/40 border border-white/5 rounded-2xl text-center select-none mt-3">
-                          <p className="text-[10px] text-slate-500 font-bold">No challenge quiz available for this topic yet.</p>
-                        </div>
-                      </div>
-                    )}
 
-                    {/* DYNAMIC CONTEXT-AWARE RESOURCES */}
-                    <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left space-y-4">
-                      <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
-                        <Bookmark className="h-4 w-4 text-indigo-400" /> Study Resources
-                      </h4>
-                      
-                      {!currentLesson?.resources || currentLesson.resources.length === 0 ? (
-                        <div className="p-6 bg-slate-955/40 border border-white/5 rounded-2xl text-center space-y-2 select-none">
-                          <Bookmark className="h-6 w-6 text-slate-700 mx-auto" />
-                          <p className="text-[10px] text-slate-500 font-bold">No downloadable notes for this lesson yet.</p>
+                          {/* Online Members Card */}
+                          <button
+                            type="button"
+                            onClick={() => setShowPeersPopup(true)}
+                            className="bg-[#0b0e17]/85 border border-white/5 hover:border-indigo-500/20 rounded-2xl p-4 shadow-md flex flex-col justify-between h-[120px] text-left transition duration-205 cursor-pointer text-white"
+                          >
+                            <div className="flex items-center gap-1.5 text-indigo-400">
+                              <Users className="h-4.5 w-4.5" />
+                              <span className="text-[9px] font-black text-zinc-500 tracking-wider uppercase">Workspace Peers</span>
+                            </div>
+                            
+                            <div className="text-xs font-extrabold text-white leading-tight">
+                              Online Members (4)
+                            </div>
+                            
+                            <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block self-start">
+                              View Members &rarr;
+                            </span>
+                          </button>
                         </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {currentLesson.resources.map((res, idx) => (
-                            <button
-                              key={idx}
-                              type="button"
-                              onClick={() => showToast(`Downloading ${res.name}...`, 'success')}
-                              className="w-full text-left p-3 bg-slate-950/45 hover:bg-slate-900/60 border border-white/5 rounded-xl flex items-center justify-between text-[10px] text-slate-300 font-bold transition cursor-pointer"
-                            >
-                              <span className="truncate pr-2">📄 {res.name}</span>
-                              <span className="text-slate-500 font-mono text-[8px] shrink-0 font-semibold">{res.size}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
 
-                    {/* DYNAMIC RECENT DISCUSSIONS */}
-                    <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-6 shadow-xl relative overflow-hidden text-left space-y-4">
-                      <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
-                        <MessageSquare className="h-4 w-4 text-indigo-400" /> Recent Doubts & Discussions
-                      </h4>
-                      
-                      {!currentLesson?.discussions || currentLesson.discussions.length === 0 ? (
-                        <div className="p-6 bg-slate-955/40 border border-white/5 rounded-2xl text-center space-y-2 select-none">
-                          <MessageSquare className="h-6 w-6 text-slate-700 mx-auto" />
-                          <p className="text-[10px] text-slate-550 font-bold">No discussions yet. Start the first discussion.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2.5">
-                          {currentLesson.discussions.map((disc, idx) => (
-                            <div key={idx} className="p-3.5 bg-slate-955/45 border border-white/5 rounded-xl text-left space-y-1">
-                              <p className="text-xs font-black text-slate-200">{disc.title}</p>
-                              <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold">
-                                <span>Asked by @{disc.author}</span>
-                                <span>{disc.replies} replies • {disc.time}</span>
+                        {/* Redesigned Quiz Card */}
+                        {(() => {
+                          const activePath = getActivePath();
+                          const currentLesson = activePath.lessons.find((l) => l.id === activeLessonId) || activePath.lessons[0];
+                          const challenge = currentLesson?.challenge;
+                          const xpReward = activePath.xpReward;
+                          const isSolved = solvedLessonChallengeIds.includes(activeLessonId);
+                          
+                          if (!challenge) {
+                            return (
+                              <div className="bg-[#0b0e17]/85 border border-white/5 rounded-2xl p-6 shadow-sm text-left">
+                                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans">Lesson Quiz</h4>
+                                <p className="text-xs text-zinc-550 font-bold mt-2">No checkup quiz is available for this lesson topic yet.</p>
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <div className="bg-[#0b0e17]/85 border border-white/5 rounded-2xl p-6 shadow-md space-y-4 text-left">
+                              <div className="border-b border-white/5 pb-2">
+                                <span className="text-[10px] font-black uppercase text-indigo-400 tracking-wider">Lesson Quiz</span>
+                              </div>
+                              
+                              <p className="text-xs font-bold text-slate-200 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-white/5">
+                                {challenge.question}
+                              </p>
+                              
+                              <div className="grid gap-2">
+                                {challenge.options.map((option, idx) => {
+                                  const isSelected = todayChallengeAnswer === idx;
+                                  const isCorrect = idx === challenge.correctIndex;
+                                  
+                                  let buttonStyle = 'bg-slate-950/20 border-white/5 text-slate-400 hover:bg-white/[0.02] hover:text-white';
+                                  if (isSolved) {
+                                    if (isCorrect) {
+                                      buttonStyle = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+                                    } else {
+                                      buttonStyle = 'bg-[#0B0F19]/45 border-white/5 text-slate-500';
+                                    }
+                                  } else if (isSelected) {
+                                    buttonStyle = 'bg-indigo-500/10 border-indigo-500/50 text-white';
+                                  }
+                                  
+                                  return (
+                                    <button
+                                      key={idx}
+                                      disabled={isSolved}
+                                      type="button"
+                                      onClick={() => {
+                                        setTodayChallengeAnswer(idx);
+                                        setTodayChallengeFeedback(null);
+                                      }}
+                                      className={`p-3 rounded-xl border text-left text-xs font-bold transition-all cursor-pointer ${buttonStyle}`}
+                                    >
+                                      <span className="mr-1.5 font-black uppercase text-indigo-400">{String.fromCharCode(65 + idx)}.</span> {option}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Wrong answer warning feedback */}
+                              {todayChallengeFeedback === 'wrong' && !isSolved && (
+                                <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-455 rounded-xl text-xs font-bold">
+                                  Not quite. Think again and try once more.
+                                </div>
+                              )}
+
+                              {/* Correct answer success message */}
+                              {isSolved && (
+                                <div className="space-y-2">
+                                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 rounded-xl text-xs font-bold">
+                                    ✓ Correct! Concept check verified.
+                                  </div>
+                                  <div className="p-4 bg-slate-950/50 border border-white/5 rounded-xl text-xs leading-relaxed">
+                                    <strong className="text-white block mb-0.5 uppercase tracking-wide text-[10px]">Explanation:</strong>
+                                    {challenge.explanation}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="pt-2 flex justify-end">
+                                {!isSolved ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (todayChallengeAnswer === null) {
+                                        showToast('Please select an option first.', 'warning');
+                                        return;
+                                      }
+                                      if (todayChallengeAnswer === challenge.correctIndex) {
+                                        showToast(`🎉 Correct! Concept verified.`, 'success');
+                                        setSolvedLessonChallengeIds((prev) => {
+                                          const next = [...prev, activeLessonId];
+                                          if (typeof window !== 'undefined') {
+                                            localStorage.setItem('sc_solved_challenges_' + slug, JSON.stringify(next));
+                                          }
+                                          return next;
+                                        });
+                                        
+                                        // reward api call
+                                        apiRequest('/progress/complete-practice', {
+                                          method: 'POST',
+                                          body: JSON.stringify({
+                                            interest: group?.subject || 'Programming & DSA',
+                                            challengeId: 'lesson_challenge_' + activeLessonId,
+                                            xpReward: xpReward,
+                                            coinReward: Math.round(xpReward / 2)
+                                          })
+                                        })
+                                        .then((res) => {
+                                          setUserStats((prev: any) => ({
+                                            ...prev,
+                                            xp: res.xp,
+                                            focusCoins: res.focusCoins,
+                                            level: res.level,
+                                            streakCount: res.streakCount
+                                          }));
+                                        })
+                                        .catch((err) => console.error('Error rewarding challenge:', err));
+                                      } else {
+                                        setTodayChallengeFeedback('wrong');
+                                      }
+                                    }}
+                                    className="px-5 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black rounded-xl border-none uppercase tracking-wider cursor-pointer shadow-md transition-all animate-fade-in"
+                                  >
+                                    Submit
+                                  </button>
+                                ) : (
+                                  <div className="px-5 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-455 text-[10px] font-black uppercase rounded-xl">
+                                    ✓ Claimed
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      )}
+                          );
+                        })()}
+                      </div>
                     </div>
-
-                  </div>
-
-                </div>
-              );
-            })()}
+                )}
+              </div>
+            )}
 
             {activeTab === 'notes' && (
               <div className="space-y-6 animate-in fade-in duration-300">
@@ -3892,17 +3815,26 @@ export default function WorkspacePage() {
               </div>
             )}
           </div>
+        </div>
 
-            {/* RIGHT SIDEBAR PANEL: PEERS, SHORTCUTS, AI QUICK CHAT (1/4) */}
-          <aside className="space-y-6 text-left shrink-0 w-80">
-            
-            {/* Online Members (Peers) */}
-            <div className="bg-[#0B0F19]/60 border border-white/5 backdrop-blur-md rounded-3xl p-5 shadow-xl space-y-4">
-              <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-sans flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-indigo-400" /> Online Members (4)
-              </h4>
-              
-              <div className="space-y-3">
+        {/* Collapsible Peers Popup overlay */}
+        {showPeersPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+            <div className="max-w-md w-full bg-[#0d0f1a] border border-white/10 rounded-[32px] p-6 shadow-2xl space-y-6 text-white text-left">
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-indigo-400" />
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">Workspace Members</h3>
+                </div>
+                <button 
+                  onClick={() => setShowPeersPopup(false)}
+                  className="text-zinc-400 hover:text-white font-bold text-xs border-none bg-transparent cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                 {[
                   { name: 'Swathi (You)', role: 'Owner', status: '🟢 Active' },
                   { name: 'Swapna', role: 'Student', status: '🟢 Active' },
@@ -3917,29 +3849,37 @@ export default function WorkspacePage() {
                         return;
                       }
                       setSelectedPeerForChat(peer);
+                      setShowPeersPopup(false);
                     }}
-                    className="flex items-center justify-between p-2 bg-[#070b16]/40 border border-white/5 hover:border-indigo-500/30 rounded-xl cursor-pointer hover:bg-white/[0.02] active:scale-[0.99] transition-all select-none"
+                    className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/5 hover:border-indigo-500/30 rounded-2xl cursor-pointer hover:bg-white/[0.04] transition-all select-none"
                     title={peer.name.includes('(You)') ? "You" : `Click to connect & ask doubts to ${peer.name}`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-7 w-7 rounded-full bg-slate-850 border border-white/10 flex items-center justify-center font-black text-xs text-white uppercase relative">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-black text-xs text-white uppercase relative">
                         {peer.name.charAt(0)}
-                        <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 border border-[#0B0F19]" />
+                        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border border-[#0d0f1a]" />
                       </div>
                       <div>
-                        <p className="text-[11px] font-black text-white">{peer.name}</p>
-                        <p className="text-[8px] text-slate-550 font-extrabold uppercase">{peer.role}</p>
+                        <p className="text-xs font-black text-white">{peer.name}</p>
+                        <p className="text-[9px] text-zinc-500 font-extrabold uppercase">{peer.role}</p>
                       </div>
                     </div>
-                    <span className="text-[8px] text-emerald-400 font-black font-mono">{peer.status}</span>
+                    <span className="text-[10px] text-emerald-450 font-black font-mono">{peer.status}</span>
                   </div>
                 ))}
               </div>
-            </div>
-          </aside>
 
-        </div>
-      </div>
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => setShowPeersPopup(false)}
+                  className="px-4 py-2 border border-white/10 hover:bg-white/5 text-zinc-300 rounded-xl text-xs font-bold transition-all cursor-pointer bg-transparent"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
     
       {/* Create Challenge Modal */}

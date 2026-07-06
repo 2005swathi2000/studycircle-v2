@@ -5054,24 +5054,6 @@ Based on your desking logs and consistency, the AI tutor recommends:
                             ))}
                           </div>
                         </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Cover Preset</label>
-                          <div className="flex gap-2">
-                            {['/images/dsa-cover.jpg', '/images/web-cover.jpg', '/images/ai-cover.jpg'].map((cover, idx) => (
-                              <button
-                                type="button"
-                                key={cover}
-                                onClick={() => setCreateRoomCover(cover)}
-                                className={`text-[10px] font-mono p-1 rounded-lg border transition ${
-                                  createRoomCover === cover ? 'bg-indigo-500/10 border-indigo-500 text-white' : 'border-white/5 bg-transparent'
-                                }`}
-                              >
-                                Cover {idx + 1}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
                       </div>
 
                       <div className="flex gap-3 justify-end pt-2">
