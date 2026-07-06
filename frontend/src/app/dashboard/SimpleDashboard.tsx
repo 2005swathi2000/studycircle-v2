@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Flame, 
   CheckCircle2, 
@@ -61,6 +61,157 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const [practiceAttempts, setPracticeAttempts] = useState(0);
   const [practiceCorrect, setPracticeCorrect] = useState(0);
   const [practiceXP, setPracticeXP] = useState(0);
+
+  // Dynamic theme config mapping
+  const cardStyle = useMemo(() => {
+    switch (equippedTheme) {
+      case 'cyberpunk':
+        return {
+          bg: 'bg-[#0f021e]/80 backdrop-blur-md',
+          border: 'border border-fuchsia-500/20 shadow-md shadow-fuchsia-500/5',
+          accent: 'text-fuchsia-400',
+          hoverBg: 'hover:bg-fuchsia-500/5',
+          badge: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20'
+        };
+      case 'zengarden':
+        return {
+          bg: 'bg-[#03140a]/80 backdrop-blur-md',
+          border: 'border border-emerald-500/20 shadow-md shadow-emerald-500/5',
+          accent: 'text-emerald-400',
+          hoverBg: 'hover:bg-emerald-500/5',
+          badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+        };
+      case 'theme_solar_glow':
+        return {
+          bg: 'bg-[#1c1209]/80 backdrop-blur-md',
+          border: 'border border-amber-500/20 shadow-md shadow-amber-500/5',
+          accent: 'text-amber-400',
+          hoverBg: 'hover:bg-amber-500/5',
+          badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+        };
+      case 'theme_dark_nebula':
+        return {
+          bg: 'bg-[#120a1c]/80 backdrop-blur-md',
+          border: 'border border-purple-500/20 shadow-md shadow-purple-500/5',
+          accent: 'text-purple-400',
+          hoverBg: 'hover:bg-purple-500/5',
+          badge: 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+        };
+      case 'theme_emerald_cosmic':
+        return {
+          bg: 'bg-[#061510]/80 backdrop-blur-md',
+          border: 'border border-emerald-500/20 shadow-md shadow-emerald-550/5',
+          accent: 'text-emerald-400',
+          hoverBg: 'hover:bg-emerald-500/5',
+          badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+        };
+      case 'default':
+      default:
+        return {
+          bg: 'bg-[#0B0F19]/60 backdrop-blur-md',
+          border: 'border border-white/5 shadow-2xl',
+          accent: 'text-indigo-400',
+          hoverBg: 'hover:bg-indigo-500/5',
+          badge: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+        };
+    }
+  }, [equippedTheme]);
+
+  const buttonStyle = useMemo(() => {
+    switch (equippedTheme) {
+      case 'cyberpunk':
+        return 'bg-fuchsia-600 hover:bg-fuchsia-500';
+      case 'zengarden':
+        return 'bg-emerald-600 hover:bg-emerald-500';
+      case 'theme_solar_glow':
+        return 'bg-amber-600 hover:bg-amber-500';
+      case 'theme_dark_nebula':
+        return 'bg-indigo-650 hover:bg-indigo-550';
+      case 'default':
+      default:
+        return 'bg-blue-650 hover:bg-blue-550';
+    }
+  }, [equippedTheme]);
+
+  const checkboxStyle = useMemo(() => {
+    switch (equippedTheme) {
+      case 'cyberpunk':
+        return 'bg-fuchsia-600 border-fuchsia-500';
+      case 'zengarden':
+        return 'bg-emerald-600 border-emerald-500';
+      case 'theme_solar_glow':
+        return 'bg-amber-600 border-amber-500';
+      case 'theme_dark_nebula':
+        return 'bg-indigo-650 border-indigo-550';
+      case 'default':
+      default:
+        return 'bg-blue-600 border-blue-500';
+    }
+  }, [equippedTheme]);
+
+  const badgeStyle = useMemo(() => {
+    switch (equippedTheme) {
+      case 'cyberpunk':
+        return 'bg-fuchsia-500/15 text-fuchsia-400';
+      case 'zengarden':
+        return 'bg-emerald-500/15 text-emerald-400';
+      case 'theme_solar_glow':
+        return 'bg-amber-500/15 text-amber-400';
+      case 'theme_dark_nebula':
+        return 'bg-indigo-500/15 text-indigo-400';
+      case 'default':
+      default:
+        return 'bg-blue-500/15 text-blue-400';
+    }
+  }, [equippedTheme]);
+
+  const progressBarColor = useMemo(() => {
+    switch (equippedTheme) {
+      case 'cyberpunk':
+        return 'bg-fuchsia-500';
+      case 'zengarden':
+        return 'bg-emerald-500';
+      case 'theme_solar_glow':
+        return 'bg-amber-500';
+      case 'theme_dark_nebula':
+        return 'bg-indigo-500';
+      case 'default':
+      default:
+        return 'bg-blue-500';
+    }
+  }, [equippedTheme]);
+
+  const iconBoxStyle = useMemo(() => {
+    switch (equippedTheme) {
+      case 'cyberpunk':
+        return 'bg-fuchsia-500/10 border-fuchsia-500/20 text-fuchsia-400';
+      case 'zengarden':
+        return 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400';
+      case 'theme_solar_glow':
+        return 'bg-amber-500/10 border-amber-500/20 text-amber-400';
+      case 'theme_dark_nebula':
+        return 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400';
+      case 'default':
+      default:
+        return 'bg-blue-500/10 border-blue-500/20 text-blue-400';
+    }
+  }, [equippedTheme]);
+
+  const progressGradientColors = useMemo(() => {
+    switch (equippedTheme) {
+      case 'cyberpunk':
+        return { start: '#d946ef', end: '#a855f7' };
+      case 'zengarden':
+        return { start: '#10b981', end: '#14b8a6' };
+      case 'theme_solar_glow':
+        return { start: '#f59e0b', end: '#f97316' };
+      case 'theme_dark_nebula':
+        return { start: '#6366f1', end: '#a855f7' };
+      case 'default':
+      default:
+        return { start: '#3b82f6', end: '#6366f1' };
+    }
+  }, [equippedTheme]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -234,7 +385,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         <div className="lg:col-span-3 space-y-6">
           
           {/* CONTINUE LEARNING */}
-          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[20px] shadow-2xl relative overflow-hidden group min-h-[220px] flex flex-col justify-between">
+          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] relative overflow-hidden group min-h-[220px] flex flex-col justify-between`}>
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
             
             <div className="flex justify-between items-center pb-3 border-b border-white/5">
@@ -260,7 +411,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                       {currentCourseName}
                     </h3>
                     {activeCourse && (
-                      <span className="text-[8px] bg-indigo-500/10 text-indigo-400 font-black px-1.5 py-0.5 rounded uppercase">
+                      <span className={`text-[8px] ${badgeStyle} font-black px-1.5 py-0.5 rounded uppercase`}>
                         Active
                       </span>
                     )}
@@ -287,7 +438,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                     setActiveTab('study');
                     setStudySubView('workspaces');
                   }}
-                  className={`px-4 py-2 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center gap-1.5`}
+                  className={`px-4 py-2 ${buttonStyle} text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center gap-1.5`}
                 >
                   Continue Learning <ArrowRight className="h-3.5 w-3.5" />
                 </button>
@@ -296,7 +447,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
 
           {/* RECOMMENDED FOR YOU */}
-          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[20px] shadow-lg space-y-4">
+          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] space-y-4`}>
             <div className="flex justify-between items-center pb-2 border-b border-white/5">
               <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Recommended For You</span>
               <span className="text-[10px] text-indigo-400 font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('study')}>View all</span>
@@ -304,7 +455,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {recommendations.map((rec) => (
-                <div key={rec.id} className="p-4 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 rounded-xl flex flex-col justify-between h-36 transition-all duration-200">
+                <div key={rec.id} className={`p-4 bg-white/[0.01] ${cardStyle.hoverBg} border border-white/5 rounded-xl flex flex-col justify-between h-36 transition-all duration-200`}>
                   <div className="space-y-1">
                     <div className="flex justify-between items-start">
                       <span className="text-[10px] font-black text-white line-clamp-1">{rec.title}</span>
@@ -320,7 +471,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                       <span>{rec.progress}%</span>
                     </div>
                     <div className="w-full bg-slate-950 h-1 rounded-full overflow-hidden">
-                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${rec.progress}%` }} />
+                      <div className={`h-full ${progressBarColor} rounded-full`} style={{ width: `${rec.progress}%` }} />
                     </div>
                   </div>
                 </div>
@@ -329,7 +480,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
 
           {/* RECENT ACTIVITY */}
-          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[20px] shadow-lg space-y-4">
+          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] space-y-4`}>
             <div className="flex justify-between items-center pb-2 border-b border-white/5">
               <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Recent Activity</span>
               <span className="text-[10px] text-indigo-400 font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('progress')}>View all</span>
@@ -345,7 +496,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 {activities.map((act, i) => (
                   <div key={i} className="p-3 bg-white/[0.01] border border-white/5 rounded-xl flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                      <div className={`h-8 w-8 rounded-lg ${iconBoxStyle} flex items-center justify-center`}>
                         {act.type === 'quiz' ? <Trophy className="h-4 w-4" /> : act.type === 'study' ? <Clock className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
                       </div>
                       <div className="text-left">
@@ -366,10 +517,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         <div className="lg:col-span-2 space-y-6">
           
           {/* TODAY'S GOALS */}
-          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[20px] shadow-lg space-y-4">
+          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] space-y-4`}>
             <div className="flex justify-between items-center pb-2 border-b border-white/5">
               <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Today's Goals</span>
-              <span className="text-[10px] bg-indigo-500/15 text-indigo-400 font-mono px-2 py-0.5 rounded font-black">
+              <span className={`text-[10px] ${badgeStyle} font-mono px-2 py-0.5 rounded font-black`}>
                 {goals.filter(g => g.completed).length} / {goals.length} Completed
               </span>
             </div>
@@ -378,12 +529,12 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               {goals.map((goal) => (
                 <div 
                   key={goal.id}
-                  className="p-3 bg-white/[0.01] hover:bg-white/[0.02] border border-white/5 rounded-xl flex items-center justify-between gap-3 cursor-pointer select-none transition-colors"
+                  className={`p-3 bg-white/[0.01] ${cardStyle.hoverBg} border border-white/5 rounded-xl flex items-center justify-between gap-3 cursor-pointer select-none transition-colors`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`h-5 w-5 rounded-md border flex items-center justify-center transition-all ${
                       goal.completed 
-                        ? 'bg-indigo-600 border-indigo-500 text-white' 
+                        ? `${checkboxStyle} text-white` 
                         : 'border-zinc-700 bg-transparent'
                     }`}>
                       {goal.completed && <Check className="h-3 w-3 stroke-[3]" />}
@@ -401,7 +552,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
 
           {/* MY PROGRESS */}
-          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[20px] shadow-lg space-y-4">
+          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] space-y-4`}>
             <div className="flex justify-between items-center pb-2 border-b border-white/5">
               <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">My Progress</span>
               <span className="text-[10px] text-indigo-400 font-bold hover:underline cursor-pointer" onClick={() => setPracticeSubView('mock')}>View Details</span>
@@ -426,8 +577,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   />
                   <defs>
                     <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#818CF8" />
-                      <stop offset="100%" stopColor="#4F46E5" />
+                      <stop offset="0%" stopColor={progressGradientColors.start} />
+                      <stop offset="100%" stopColor={progressGradientColors.end} />
                     </linearGradient>
                   </defs>
                 </svg>
@@ -460,7 +611,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
 
           {/* STUDY STREAK */}
-          <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-[20px] shadow-lg space-y-4">
+          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] space-y-4`}>
             <div className="flex justify-between items-center pb-2 border-b border-white/5">
               <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Study Streak</span>
               <span className="text-[10px] text-zinc-500 font-bold font-sans uppercase">This Week</span>
@@ -481,7 +632,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                         key={idx}
                         className={`h-4.5 rounded-sm transition-all duration-300 ${
                           hasStudied 
-                            ? 'bg-indigo-500/80 shadow-md shadow-indigo-500/10 border border-indigo-400/20' 
+                            ? `${progressBarColor}/80 shadow-md shadow-indigo-500/10 border border-indigo-400/20` 
                             : 'bg-white/[0.02] border border-white/5'
                         }`}
                       />
