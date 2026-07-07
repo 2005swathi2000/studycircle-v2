@@ -285,6 +285,19 @@ export default function RegisterPage() {
     return emailRegex.test(trimmed) || phoneRegex.test(trimmed);
   };
 
+  const isGmailTypo = (email: string) => {
+    const parts = email.trim().toLowerCase().split('@');
+    if (parts.length !== 2) return false;
+    const domain = parts[1];
+    const gmailTypos = [
+      'gmaail.com', 'gmaill.com', 'gamil.com', 'gmal.com', 'gmil.com', 
+      'gmaile.com', 'gmai.com', 'gmeil.com', 'gmail.con', 'gamail.com',
+      'gmaail.co', 'gmaill.co', 'gamil.co', 'gmal.co', 'gmil.co', 
+      'gmaile.co', 'gmai.co', 'gmeil.co', 'gamail.co', 'gmaial.com'
+    ];
+    return gmailTypos.includes(domain);
+  };
+
   const sendRegOtp = async (role: 'student' | 'mentor') => {
     const contact = role === 'student' ? studentContact : mentorContact;
     if (!contact.trim()) {
@@ -293,6 +306,10 @@ export default function RegisterPage() {
     }
     if (!isValidEmailOrPhone(contact)) {
       showToast('Invalid email, please check and try again!', 'error');
+      return;
+    }
+    if (isGmailTypo(contact)) {
+      showToast('Invalid email spelling. Check proper and try again!', 'error');
       return;
     }
     if (role === 'student') setStudentOtpLoading(true);
@@ -331,6 +348,10 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!studentFirstName.trim() || !studentLastName.trim() || !studentUser.trim() || !studentPass || !studentConfirmPass || !studentContact.trim() || !studentPhone.trim() || !studentOtp || !studentGender) {
       showToast('All fields (including name, username, email, phone, passwords, and gender) are required.', 'error');
+      return;
+    }
+    if (isGmailTypo(studentContact)) {
+      showToast('Invalid email spelling. Check proper and try again!', 'error');
       return;
     }
     if (usernameStatus && !usernameStatus.available) {
@@ -375,6 +396,10 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!mentorFirstName.trim() || !mentorLastName.trim() || !mentorUser.trim() || !mentorPass || !mentorConfirmPass || !mentorContact.trim() || !mentorPhone.trim() || !mentorInstitution || !mentorOtp || !mentorGender) {
       showToast('All fields (including name, username, email, phone, passwords, role, and college) are required.', 'error');
+      return;
+    }
+    if (isGmailTypo(mentorContact)) {
+      showToast('Invalid email spelling. Check proper and try again!', 'error');
       return;
     }
     if (usernameStatus && !usernameStatus.available) {
@@ -587,6 +612,11 @@ export default function RegisterPage() {
                           : 'Send OTP'}
                     </button>
                   </div>
+                  {studentContact && isGmailTypo(studentContact) && (
+                    <p className="text-[10px] font-bold text-rose-500 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                      Check proper and try again
+                    </p>
+                  )}
                 </div>
 
                 {/* OTP Input Field */}
@@ -889,6 +919,11 @@ export default function RegisterPage() {
                           : 'Send OTP'}
                     </button>
                   </div>
+                  {mentorContact && isGmailTypo(mentorContact) && (
+                    <p className="text-[10px] font-bold text-rose-500 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                      Check proper and try again
+                    </p>
+                  )}
                 </div>
 
                 {/* OTP Input Field */}

@@ -613,6 +613,19 @@ export default function Home() {
     return emailRegex.test(trimmed) || phoneRegex.test(trimmed);
   };
 
+  const isGmailTypo = (email: string) => {
+    const parts = email.trim().toLowerCase().split('@');
+    if (parts.length !== 2) return false;
+    const domain = parts[1];
+    const gmailTypos = [
+      'gmaail.com', 'gmaill.com', 'gamil.com', 'gmal.com', 'gmil.com', 
+      'gmaile.com', 'gmai.com', 'gmeil.com', 'gmail.con', 'gamail.com',
+      'gmaail.co', 'gmaill.co', 'gamil.co', 'gmal.co', 'gmil.co', 
+      'gmaile.co', 'gmai.co', 'gmeil.co', 'gamail.co', 'gmaial.com'
+    ];
+    return gmailTypos.includes(domain);
+  };
+
   // Send Registration OTP
   const sendRegOtp = async (role: 'student' | 'mentor' | 'admin') => {
     const contact = role === 'student' ? studentContact : role === 'mentor' ? mentorContact : adminContact;
@@ -622,6 +635,10 @@ export default function Home() {
     }
     if (!isValidEmailOrPhone(contact)) {
       showToast('Invalid email, please check and try again!', 'error');
+      return;
+    }
+    if (isGmailTypo(contact)) {
+      showToast('Invalid email spelling. Check proper and try again!', 'error');
       return;
     }
     setFormLoading(true);
@@ -667,6 +684,10 @@ export default function Home() {
     }
     if (!isValidEmailOrPhone(forgotUser)) {
       showToast('Invalid email or phone format, please check and try again!', 'error');
+      return;
+    }
+    if (isGmailTypo(forgotUser)) {
+      showToast('Invalid email spelling. Check proper and try again!', 'error');
       return;
     }
     setFormLoading(true);
@@ -1908,6 +1929,11 @@ export default function Home() {
                         {forgotOtpSent ? 'Sent ✓' : 'Send Code'}
                       </button>
                     </div>
+                    {forgotUser && isGmailTypo(forgotUser) && (
+                      <p className="text-[10px] font-bold text-rose-500 mt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                        Check proper and try again
+                      </p>
+                    )}
                   </div>
 
                   {forgotOtpSent && (

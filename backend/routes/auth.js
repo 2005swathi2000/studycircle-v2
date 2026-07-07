@@ -58,6 +58,20 @@ const checkDomainMx = async (domain) => {
   }
 };
 
+const isGmailTypo = (email) => {
+  if (typeof email !== 'string') return false;
+  const parts = email.trim().toLowerCase().split('@');
+  if (parts.length !== 2) return false;
+  const domain = parts[1];
+  const gmailTypos = [
+    'gmaail.com', 'gmaill.com', 'gamil.com', 'gmal.com', 'gmil.com', 
+    'gmaile.com', 'gmai.com', 'gmeil.com', 'gmail.con', 'gamail.com',
+    'gmaail.co', 'gmaill.co', 'gamil.co', 'gmal.co', 'gmil.co', 
+    'gmaile.co', 'gmai.co', 'gmeil.co', 'gamail.co', 'gmaial.com'
+  ];
+  return gmailTypos.includes(domain);
+};
+
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP or contact to 100 send-otp requests per windowMs for testing
@@ -192,6 +206,9 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue)) {
         return res.status(400).json({ error: 'Invalid email, please check and try again!' });
       }
+      if (isGmailTypo(trimmedValue)) {
+        return res.status(400).json({ error: 'Invalid email spelling. Check proper and try again' });
+      }
       // Perform MX record lookup on real email domains to verify domain exists
       const isReal = isRealContact(trimmedValue);
       if (isReal) {
@@ -316,6 +333,13 @@ router.post('/register', async (req, res) => {
     // Calculate composite fields for backward compatibility
     const fullName = `${firstName.trim()} ${lastName.trim()}`;
     const phoneOrEmail = (email || phone || '').trim().toLowerCase();
+
+    if (email && isGmailTypo(email)) {
+      return res.status(400).json({ error: 'Invalid email spelling. Check proper and try again' });
+    }
+    if (phoneOrEmail.includes('@') && isGmailTypo(phoneOrEmail)) {
+      return res.status(400).json({ error: 'Invalid email spelling. Check proper and try again' });
+    }
 
     // Verification check for all accounts
     if (!phoneOrEmail || !otp) {
