@@ -505,8 +505,12 @@ router.post('/login', loginLimiter, async (req, res) => {
         return res.status(403).json({ error: 'This portal is only for students. Mentors and Admins must login via the right portal.' });
       }
     } else if (portal === 'mentor') {
-      if (user.role !== 'mentor' && user.role !== 'admin') {
-        return res.status(403).json({ error: 'This portal is only for mentors and administrators. Students must login via the left portal.' });
+      if (user.role !== 'mentor') {
+        return res.status(403).json({ error: 'This option is only for mentors. Admins and Students must choose their correct option.' });
+      }
+    } else if (portal === 'admin') {
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: 'This option is only for administrators. Mentors and Students must choose their correct option.' });
       }
     }
 
