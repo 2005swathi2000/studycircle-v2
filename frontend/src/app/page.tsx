@@ -1666,11 +1666,11 @@ export default function Home() {
                 <AnimatePresence>
                   {activePortal === 'mentor' && (
                     <motion.div
-                      initial={{ height: 0, opacity: 0, marginBottom: 0 }}
-                      animate={{ height: 'auto', opacity: 1, marginBottom: 12 }}
-                      exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+                      initial={{ height: 0, opacity: 0, marginBottom: 0, overflow: 'hidden' }}
+                      animate={{ height: 'auto', opacity: 1, marginBottom: 12, transitionEnd: { overflow: 'visible' } }}
+                      exit={{ height: 0, opacity: 0, marginBottom: 0, overflow: 'hidden' }}
                       transition={{ duration: 0.2 }}
-                      className="overflow-hidden space-y-1.5"
+                      className="space-y-1.5"
                     >
                       <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                         Login As *
