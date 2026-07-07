@@ -131,6 +131,11 @@ const User = sequelize.define('User', {
     type: DataTypes.DATE,
     allowNull: true,
     defaultValue: null
+  },
+  assignedTasks: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
   }
 }, {
   hooks: {

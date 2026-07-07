@@ -212,6 +212,15 @@ const startServer = async () => {
         // Column already exists or table does not exist yet (sync will create it)
       }
     }
+    try {
+      await sequelize.query('ALTER TABLE Users ADD COLUMN assignedTasks TEXT;');
+    } catch (e1) {
+      try {
+        await sequelize.query('ALTER TABLE "Users" ADD COLUMN "assignedTasks" TEXT;');
+      } catch (e2) {
+        // Column already exists or table does not exist yet (sync will create it)
+      }
+    }
     if (isProduction || isSqlite) {
       await sequelize.sync();
     } else {

@@ -126,7 +126,13 @@ export function MentorDashboardComponent() {
   const [newSession, setNewSession] = useState({ groupId: '', title: '', description: '', scheduledAt: '', durationMinutes: 60, meetingLink: '' });
   const [newAssignment, setNewAssignment] = useState({ title: '', subject: 'Data Structures', deadline: '', totalAssigned: 42 });
   const [announcementText, setAnnouncementText] = useState('');
-  const [challengeData, setChallengeData] = useState({ text: '', xpReward: 50, coinReward: 20 });
+  const [challengeData, setChallengeData] = useState({ title: '', text: '', dueDate: '', priority: 'Medium', xpReward: 50, coinReward: 20 });
+  
+  // Messaging Drawer State
+  const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const [chatStudent, setChatStudent] = useState<any | null>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [typedMessage, setTypedMessage] = useState('');
   
   // Selected student for quick actions
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
@@ -173,6 +179,23 @@ export function MentorDashboardComponent() {
       fetchAssignments();
     }
   }, [user]);
+
+  // Load messaging history when selected student changes
+  useEffect(() => {
+    if (chatStudent) {
+      const key = `sc_chat_${chatStudent.id}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        try {
+          setChatMessages(JSON.parse(saved));
+        } catch (e) {
+          setChatMessages([]);
+        }
+      } else {
+        setChatMessages([]);
+      }
+    }
+  }, [chatStudent]);
 
   const fetchStudents = async () => {
     setLoadingStudents(true);
@@ -347,29 +370,32 @@ export function MentorDashboardComponent() {
     setShowCreateRoom(false);
   };
 
-  const handleScheduleSession = (e: React.FormEvent) => {
+  const handleScheduleSession = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSession.title || !newSession.scheduledAt || !newSession.groupId) {
       addToast('Session Title, Date, and Target Group are required', 'error');
       return;
     }
-    const targetGroup = studyRooms.find(r => r.id === newSession.groupId);
-    const mockSess = {
-      id: `se-${Date.now()}`,
-      title: newSession.title,
-      description: newSession.description,
-      scheduledAt: newSession.scheduledAt,
-      durationMinutes: Number(newSession.durationMinutes),
-      meetingLink: newSession.meetingLink || 'https://meet.google.com/mock-link',
-      groupName: targetGroup ? targetGroup.name : 'All Cohort',
-      registered: 20,
-      joined: 0,
-      attendanceRate: 0
-    };
-    setSessions(prev => [mockSess, ...prev]);
-    addToast('Mentoring session scheduled successfully!', 'success');
-    setNewSession({ groupId: '', title: '', description: '', scheduledAt: '', durationMinutes: 60, meetingLink: '' });
-    setShowCreateSession(false);
+    try {
+      const data = await apiRequest('/sessions', {
+        method: 'POST',
+        body: JSON.stringify({
+          groupId: newSession.groupId,
+          title: newSession.title,
+          description: newSession.description,
+          scheduledAt: newSession.scheduledAt,
+          durationMinutes: Number(newSession.durationMinutes),
+          meetingLink: newSession.meetingLink
+        })
+      });
+      addToast(data.message || 'Mentoring session scheduled successfully!', 'success');
+      setNewSession({ groupId: '', title: '', description: '', scheduledAt: '', durationMinutes: 60, meetingLink: '' });
+      setShowCreateSession(false);
+      fetchSessions();
+    } catch (err: any) {
+      console.error(err);
+      addToast(err.message || 'Failed to schedule session', 'error');
+    }
   };
 
   const handleCreateAssignment = async (e: React.FormEvent) => {
@@ -444,12 +470,55 @@ export function MentorDashboardComponent() {
     }
   };
 
-  const handleAssignChallenge = (e: React.FormEvent) => {
+  const getMentorGreeting = () => {
+    const hr = new Date().getHours();
+    if (hr >= 5 && hr < 12) return 'Good Morning, Mentor 👋';
+    if (hr >= 12 && hr < 17) return 'Good Afternoon, Mentor 👋';
+    if (hr >= 17 && hr < 21) return 'Good Evening, Mentor 👋';
+    return 'Good Night, Mentor 👋';
+  };
+
+  const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudent || !challengeData.text) return;
-    addToast(`Assigned task challenge to ${selectedStudent.fullName}`, 'success');
-    setShowAssignChallenge(false);
-    setChallengeData({ text: '', xpReward: 50, coinReward: 20 });
+    if (!typedMessage.trim() || !chatStudent) return;
+    const newMsg = {
+      id: `msg-${Date.now()}`,
+      sender: 'mentor',
+      text: typedMessage.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    const updated = [...chatMessages, newMsg];
+    setChatMessages(updated);
+    localStorage.setItem(`sc_chat_${chatStudent.id}`, JSON.stringify(updated));
+    setTypedMessage('');
+  };
+
+  const handleAssignChallenge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudent || !challengeData.title || !challengeData.text) {
+      addToast('Task Title and Instruction/Description are required', 'error');
+      return;
+    }
+    try {
+      const data = await apiRequest('/auth/assign-challenge', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: selectedStudent.id,
+          title: challengeData.title,
+          description: challengeData.text,
+          dueDate: challengeData.dueDate,
+          priority: challengeData.priority,
+          xpReward: challengeData.xpReward,
+          coinReward: challengeData.coinReward
+        })
+      });
+      addToast(data.message || 'Task assigned successfully.', 'success');
+      setShowAssignChallenge(false);
+      setChallengeData({ title: '', text: '', dueDate: '', priority: 'Medium', xpReward: 50, coinReward: 20 });
+    } catch (err: any) {
+      console.error(err);
+      addToast(err.message || 'Failed to assign task.', 'error');
+    }
   };
 
   const handleToggleAttendanceCheckbox = (studentId: string) => {
@@ -747,7 +816,7 @@ export function MentorDashboardComponent() {
               {/* Section 1 — Welcome */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-white/5">
                 <div>
-                  <h2 className="text-xl font-bold text-white tracking-tight">Good Morning, Mentor 👋</h2>
+                  <h2 className="text-xl font-bold text-white tracking-tight">{getMentorGreeting()}</h2>
                   <p className="text-zinc-500 text-xs mt-0.5">Today's overview.</p>
                 </div>
                 
@@ -1135,7 +1204,7 @@ export function MentorDashboardComponent() {
                           Assign Task
                         </button>
                         <button
-                          onClick={() => addToast(`Opening chat with @${student.username}`, 'info')}
+                          onClick={() => { setChatStudent(student); setShowChatDrawer(true); }}
                           className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-[10px] font-bold cursor-pointer border-none transition-all"
                         >
                           Message
@@ -1797,16 +1866,56 @@ export function MentorDashboardComponent() {
             </div>
             <form onSubmit={handleAssignChallenge} className="space-y-3">
               <p className="text-xs text-zinc-400">Assigning challenge task to <span className="text-white font-bold">{selectedStudent.fullName}</span>.</p>
+              
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-400">Task Instruction</label>
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Task Title</label>
                 <input
                   type="text"
+                  placeholder="e.g. Trees and Graphs homework"
+                  value={challengeData.title}
+                  onChange={(e) => setChallengeData(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Description / Instruction</label>
+                <textarea
                   placeholder="e.g. Complete 5 DFS questions on LeetCode"
                   value={challengeData.text}
                   onChange={(e) => setChallengeData(prev => ({ ...prev, text: e.target.value }))}
-                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                  rows={3}
+                  className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 resize-none"
+                  required
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1 font-mono">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400 font-sans">Due Date</label>
+                  <input
+                    type="date"
+                    value={challengeData.dueDate}
+                    onChange={(e) => setChallengeData(prev => ({ ...prev, dueDate: e.target.value }))}
+                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400">Priority</label>
+                  <select
+                    value={challengeData.priority}
+                    onChange={(e) => setChallengeData(prev => ({ ...prev, priority: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 cursor-pointer"
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4 font-mono">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase text-zinc-400 font-sans">XP Reward</label>
@@ -1827,11 +1936,12 @@ export function MentorDashboardComponent() {
                   />
                 </div>
               </div>
+
               <button
                 type="submit"
                 className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all border-none mt-2"
               >
-                Send Challenge Task
+                Assign Task
               </button>
             </form>
           </div>
@@ -2129,6 +2239,186 @@ export function MentorDashboardComponent() {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: SCHEDULE SESSION */}
+      {showCreateSession && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Schedule Mentoring Session</h3>
+              <button 
+                onClick={() => setShowCreateSession(false)}
+                className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <form onSubmit={handleScheduleSession} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Session Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Active Recall Doubt Solving Session"
+                  value={newSession.title}
+                  onChange={(e) => setNewSession(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Target Study Room / Group</label>
+                <select
+                  value={newSession.groupId}
+                  onChange={(e) => setNewSession(prev => ({ ...prev, groupId: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 cursor-pointer"
+                  required
+                >
+                  <option value="">Select a study room...</option>
+                  {studyRooms.map(room => (
+                    <option key={room.id} value={room.id}>{room.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400">Scheduled Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    value={newSession.scheduledAt}
+                    onChange={(e) => setNewSession(prev => ({ ...prev, scheduledAt: e.target.value }))}
+                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-mono"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400">Duration (Minutes)</label>
+                  <input
+                    type="number"
+                    value={newSession.durationMinutes}
+                    onChange={(e) => setNewSession(prev => ({ ...prev, durationMinutes: Number(e.target.value) }))}
+                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-mono"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Meeting Link (Optional)</label>
+                <input
+                  type="url"
+                  placeholder="https://meet.google.com/abc-defg-hij"
+                  value={newSession.meetingLink}
+                  onChange={(e) => setNewSession(prev => ({ ...prev, meetingLink: e.target.value }))}
+                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Description / Notes</label>
+                <textarea
+                  placeholder="Session description or pre-reads..."
+                  value={newSession.description}
+                  onChange={(e) => setNewSession(prev => ({ ...prev, description: e.target.value }))}
+                  rows={3}
+                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 resize-none font-medium leading-relaxed"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all border-none mt-2"
+              >
+                Schedule Session
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* RIGHT CHAT DRAWER */}
+      {showChatDrawer && chatStudent && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
+            onClick={() => setShowChatDrawer(false)}
+          />
+          
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div className="w-screen max-w-md bg-[#0B0F19] border-l border-white/10 shadow-2xl flex flex-col">
+              
+              {/* Header */}
+              <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-sm">
+                    {chatStudent.fullName.charAt(0)}
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-xs font-black text-white">{chatStudent.fullName}</h3>
+                    <p className="text-[10px] text-zinc-500 font-mono">@{chatStudent.username}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowChatDrawer(false)}
+                  className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Chat Message Window */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col justify-end min-h-0 bg-[#070b13]/40">
+                {chatMessages.length === 0 ? (
+                  <div className="my-auto text-center space-y-2">
+                    <div className="h-12 w-12 rounded-full bg-white/5 mx-auto flex items-center justify-center text-zinc-500 text-lg">💬</div>
+                    <p className="text-xs text-zinc-500 font-medium">Start a conversation with this student.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 overflow-y-auto pr-1">
+                    {chatMessages.map((msg) => (
+                      <div 
+                        key={msg.id} 
+                        className={`flex flex-col max-w-[80%] ${msg.sender === 'mentor' ? 'ml-auto items-end' : 'mr-auto items-start'}`}
+                      >
+                        <div className={`p-3 rounded-2xl text-xs leading-relaxed ${
+                          msg.sender === 'mentor' 
+                            ? 'bg-[#5227EB] text-white rounded-tr-none' 
+                            : 'bg-white/5 text-zinc-200 rounded-tl-none border border-white/5'
+                        }`}>
+                          {msg.text}
+                        </div>
+                        <span className="text-[8px] text-zinc-650 font-mono mt-1">{msg.timestamp}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Status Alert */}
+              <div className="px-6 py-2 bg-indigo-950/20 border-t border-b border-white/5 text-[9px] text-indigo-400 font-bold text-left flex items-center gap-1.5">
+                <span>⚡</span>
+                <span>Messages will be delivered when the student comes online.</span>
+              </div>
+
+              {/* Input Footer */}
+              <form onSubmit={handleSendMessage} className="p-4 bg-[#070b13] border-t border-white/5 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={typedMessage}
+                  onChange={(e) => setTypedMessage(e.target.value)}
+                  className="flex-1 px-4 py-2.5 bg-[#0d1222] border border-white/5 rounded-xl text-xs text-white placeholder-zinc-600 outline-none focus:border-indigo-500"
+                  required
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold border-none transition-all cursor-pointer shadow-md"
+                >
+                  Send
+                </button>
+              </form>
+
+            </div>
           </div>
         </div>
       )}

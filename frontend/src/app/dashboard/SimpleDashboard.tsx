@@ -14,6 +14,8 @@ import {
   Trash2,
   TrendingUp
 } from 'lucide-react';
+import { useToast } from '../components/ToastProvider';
+import { apiRequest } from '../utils/api';
 
 interface SimpleDashboardProps {
   user: any;
@@ -56,6 +58,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   setCommunitySubView,
   equippedTheme
 }) => {
+  const { showToast } = useToast();
   const [activities, setActivities] = useState<any[]>([]);
   const [goals, setGoals] = useState<any[]>([]);
   const [newGoalText, setNewGoalText] = useState('');
@@ -698,6 +701,73 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   <span className="text-white font-mono">{averageQuizScore}%</span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* ASSIGNED TASKS */}
+          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-[20px] shadow-lg space-y-4`}>
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Assigned Tasks</span>
+              <span className="text-[10px] text-indigo-400 font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('study')}>View all</span>
+            </div>
+            
+            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+              {!user?.assignedTasks || user.assignedTasks.length === 0 ? (
+                <p className="text-xs text-zinc-500 italic py-2 text-center">No assigned tasks from your mentor.</p>
+              ) : (
+                user.assignedTasks.map((task: any) => (
+                  <div key={task.id} className="p-3 bg-white/[0.01] border border-white/5 rounded-xl text-left space-y-2 relative group">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-xs font-bold text-white">{task.title}</h4>
+                        <p className="text-[10px] text-zinc-450 mt-0.5">{task.description}</p>
+                      </div>
+                      <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                        task.priority === 'High' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                        task.priority === 'Medium' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                        'bg-slate-500/10 text-slate-400 border border-slate-500/10'
+                      }`}>
+                        {task.priority}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center text-[9px] font-semibold text-zinc-500">
+                      <span>Assigned by: <strong className="text-zinc-450">{task.assignedBy}</strong></span>
+                      <span>Due: <span className="font-mono text-zinc-400">{task.dueDate}</span></span>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-1 border-t border-white/[0.02]">
+                      <span className={`text-[9px] font-bold uppercase ${
+                        task.status === 'Completed' ? 'text-emerald-450' : 'text-amber-455'
+                      }`}>
+                        ● {task.status}
+                      </span>
+                      {task.status !== 'Completed' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const updated = user.assignedTasks.map((t: any) => 
+                                t.id === task.id ? { ...t, status: 'Completed' } : t
+                              );
+                              await apiRequest('/auth/update-tasks', {
+                                method: 'POST',
+                                body: JSON.stringify({ assignedTasks: updated })
+                              });
+                              showToast('Task marked as completed! (+50 XP)', 'success');
+                              if (typeof window !== 'undefined') window.location.reload();
+                            } catch (e) {
+                              showToast('Failed to update task status.', 'error');
+                            }
+                          }}
+                          className="px-2 py-1 bg-[#10B981]/10 hover:bg-[#10B981]/20 text-[#10B981] rounded text-[9px] font-bold border-none transition-all cursor-pointer"
+                        >
+                          Mark Completed
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

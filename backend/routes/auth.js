@@ -843,9 +843,9 @@ router.post('/assign-challenge', authMiddleware, async (req, res) => {
     if (req.user.role !== 'mentor' && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Access denied. Mentor or Administrator privileges required.' });
     }
-    const { studentId, challengeText, xpReward, coinReward } = req.body;
-    if (!studentId || !challengeText) {
-      return res.status(400).json({ error: 'Student ID and challenge description are required.' });
+    const { studentId, title, description, dueDate, priority, xpReward, coinReward } = req.body;
+    if (!studentId || !title || !description) {
+      return res.status(400).json({ error: 'Student ID, Task Title, and Description are required.' });
     }
 
     const student = await User.findByPk(studentId);
@@ -853,10 +853,28 @@ router.post('/assign-challenge', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Student user not found.' });
     }
 
+    const tasks = student.assignedTasks || [];
+    const newTask = {
+      id: 'task-' + Date.now(),
+      title,
+      description,
+      dueDate: dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      priority: priority || 'Medium',
+      assignedBy: req.user.fullName || 'Mentor',
+      status: 'Pending',
+      xpReward: xpReward || 150,
+      coinReward: coinReward || 50,
+      createdAt: new Date()
+    };
+    tasks.push(newTask);
+    student.assignedTasks = tasks;
+    student.changed('assignedTasks', true);
+    await student.save();
+
     // We can create a notification for the student
     const notification = await Notification.create({
       userId: student.id,
-      message: `🎯 New Mentor Challenge assigned: "${challengeText}" (Reward: ${xpReward || 150} XP, ${coinReward || 50} Focus Coins)`,
+      message: `🎯 New Mentor Task assigned: "${title}" (Due: ${newTask.dueDate})`,
       type: 'doubt',
       unread: true,
       actionTab: 'progress'
@@ -867,10 +885,51 @@ router.post('/assign-challenge', authMiddleware, async (req, res) => {
       io.to(`user-${student.id}`).emit('new-notification', notification);
     }
 
-    return res.json({ message: `Successfully assigned challenge to student @${student.username}!` });
+    return res.json({ message: 'Task assigned successfully.', task: newTask });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error assigning challenge.' });
+  }
+});
+
+// Update student task status (Student user only)
+router.post('/update-tasks', authMiddleware, async (req, res) => {
+  try {
+    const { assignedTasks } = req.body;
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const oldTasks = user.assignedTasks || [];
+    let xpGranted = 0;
+    let coinsGranted = 0;
+
+    assignedTasks.forEach((task) => {
+      const old = oldTasks.find(o => o.id === task.id);
+      if (task.status === 'Completed' && (!old || old.status !== 'Completed')) {
+        xpGranted += task.xpReward || 50;
+        coinsGranted += task.coinReward || 20;
+      }
+    });
+
+    user.assignedTasks = assignedTasks;
+    user.changed('assignedTasks', true);
+
+    if (xpGranted > 0) {
+      user.xp = (user.xp || 0) + xpGranted;
+      user.focusCoins = (user.focusCoins || 0) + coinsGranted;
+      const nextLevelXp = user.level * 1000;
+      if (user.xp >= nextLevelXp) {
+        user.level = user.level + 1;
+      }
+    }
+
+    await user.save();
+    return res.json({ message: 'Tasks updated successfully!', user });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error updating tasks.' });
   }
 });
 

@@ -2247,6 +2247,12 @@ Based on your desking logs and consistency, the AI tutor recommends:
         fetchKeys.push('students');
       }
 
+      // Fetch sessions list if student (required for dashboard/sessions)
+      if (info.role === 'student' && (tab === 'dashboard' || tab === 'sessions')) {
+        promises.push(apiRequest('/sessions').catch(err => { console.error('Failed to fetch sessions list:', err); return null; }));
+        fetchKeys.push('sessions');
+      }
+
       if (promises.length === 0) {
         setLoading(false);
         return;
@@ -2288,6 +2294,16 @@ Based on your desking logs and consistency, the AI tutor recommends:
           setNotesList(data.notes || []);
         } else if (key === 'students') {
           setStudentsList(data.students || []);
+        } else if (key === 'sessions') {
+          if (data && data.sessions) {
+            setMockSessions(data.sessions.map((s: any) => ({
+              id: s.id.toString(),
+              title: s.title,
+              time: new Date(s.scheduledAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }),
+              status: s.status === 'upcoming' ? 'Upcoming' : s.status === 'completed' ? 'Completed' : 'Live Now',
+              subject: s.description || 'General Session'
+            })));
+          }
         }
       });
 
