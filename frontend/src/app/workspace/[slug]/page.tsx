@@ -3736,39 +3736,20 @@ export default function WorkspacePage() {
               </div>
             )}
 
-            {/* T5: CURATED RESOURCES */}
+            {/* T5: STUDY RESOURCES */}
             {activeTab === 'resources' && (
-              <div className="space-y-6 animate-in fade-in duration-350">
-                <div className="text-left space-y-0.5">
-                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-350 flex items-center gap-2">
-                    <Bookmark className="h-4.5 w-4.5 text-indigo-400" /> Curated Syllabus Resources
-                  </h3>
-                  <p className="text-[10px] text-slate-550 font-bold">Instantly customized articles, guidelines, and videos corresponding to the track.</p>
-                </div>
-
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {getPathResourcesList().map((res, i) => (
-                    <div key={i} className="p-5 bg-[#0B0F19]/60 border border-white/5 hover:border-indigo-500/30 rounded-2xl shadow-lg flex flex-col justify-between gap-4 text-left relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/[0.01] rounded-full blur-2xl pointer-events-none" />
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-start font-sans">
-                          <span className="text-[8px] font-extrabold uppercase px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/25">
-                            {res.type}
-                          </span>
-                        </div>
-                        <h4 className="text-xs font-black text-white group-hover:text-indigo-455 transition-colors">{res.title}</h4>
-                        <p className="text-[10px] text-slate-450 leading-normal">Placement preparation notes curated matching learning path requirements.</p>
-                      </div>
-                      <div className="pt-2 flex justify-end font-sans">
-                        <button
-                          onClick={() => showToast('Opening resource document in mock sandbox...', 'success')}
-                          className="px-3.5 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-slate-300 hover:text-white text-[9px] font-black rounded-lg transition-all cursor-pointer uppercase tracking-wider flex items-center gap-1 font-bold"
-                        >
-                          Access Resource <ExternalLink className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+              <div className="space-y-6 animate-in fade-in duration-350 text-left max-w-xl mx-auto py-12">
+                <div className="p-8 bg-[#0B0F19]/60 border border-white/5 rounded-2xl text-center space-y-4 shadow-xl">
+                  <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center mx-auto text-indigo-400">
+                    <Bookmark className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">📚 Study Resources</h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    No resources have been shared yet.
+                  </p>
+                  <p className="text-[10px] text-slate-500 leading-relaxed">
+                    Resources uploaded by your mentor or study group will appear here automatically.
+                  </p>
                 </div>
               </div>
             )}
