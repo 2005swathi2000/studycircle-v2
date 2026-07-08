@@ -24,6 +24,27 @@ const seedDatabase = async () => {
       });
     }
 
+    // Ensure Swathi Mentor is always present in the database (self-healing credentials for Render)
+    const swathiMentorExists = await User.findOne({
+      where: { email: 'swathikumar862@gmail.com' }
+    });
+    if (!swathiMentorExists) {
+      console.log('Self-healing DB check: Swathi Mentor not found. Seeding Swathi Mentor...');
+      await User.create({
+        fullName: 'Swathi Kumar',
+        username: 'swathikumar862',
+        password: 'Charan@123',
+        role: 'mentor',
+        phoneOrEmail: 'swathikumar862@gmail.com',
+        isVerified: true,
+        isApproved: true,
+        email: 'swathikumar862@gmail.com',
+        gender: 'female',
+        streakCount: 0,
+        totalStudyHours: 0.0
+      });
+    }
+
     const userCount = await User.count();
     if (userCount > 1) {
       console.log('Database already has demo data. Skipping further seeding.');
