@@ -337,4 +337,70 @@ router.put('/answers/:answerId/accept', authMiddleware, async (req, res) => {
   }
 });
 
+// Solve status toggle (Mentor/Admin/Author only)
+router.put('/:id/solve', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doubt = await Doubt.findByPk(id);
+    if (!doubt) {
+      return res.status(404).json({ error: 'Doubt not found.' });
+    }
+
+    if (req.user.role !== 'mentor' && req.user.role !== 'admin' && req.user.id !== doubt.userId) {
+      return res.status(403).json({ error: 'Permission denied.' });
+    }
+
+    doubt.isSolved = !doubt.isSolved;
+    await doubt.save();
+    return res.json({ message: doubt.isSolved ? 'Doubt marked as resolved!' : 'Doubt marked as unresolved!', doubt });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error updating solved status.' });
+  }
+});
+
+// Pin status toggle (Mentor/Admin only)
+router.put('/:id/pin', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (req.user.role !== 'mentor' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Permission denied. Mentors or Administrators privileges required.' });
+    }
+
+    const doubt = await Doubt.findByPk(id);
+    if (!doubt) {
+      return res.status(404).json({ error: 'Doubt not found.' });
+    }
+
+    doubt.isPinned = !doubt.isPinned;
+    await doubt.save();
+    return res.json({ message: doubt.isPinned ? 'Discussion pinned successfully!' : 'Discussion unpinned successfully!', doubt });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error updating pin status.' });
+  }
+});
+
+// Close status toggle (Mentor/Admin only)
+router.put('/:id/close', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (req.user.role !== 'mentor' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Permission denied. Mentors or Administrators privileges required.' });
+    }
+
+    const doubt = await Doubt.findByPk(id);
+    if (!doubt) {
+      return res.status(404).json({ error: 'Doubt not found.' });
+    }
+
+    doubt.isClosed = !doubt.isClosed;
+    await doubt.save();
+    return res.json({ message: doubt.isClosed ? 'Discussion closed successfully!' : 'Discussion opened successfully!', doubt });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error updating close status.' });
+  }
+});
+
 module.exports = router;

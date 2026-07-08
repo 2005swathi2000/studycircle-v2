@@ -221,6 +221,26 @@ const startServer = async () => {
         // Column already exists or table does not exist yet (sync will create it)
       }
     }
+    // Migration for Doubts: isPinned
+    try {
+      await sequelize.query('ALTER TABLE Doubts ADD COLUMN isPinned BOOLEAN DEFAULT 0;');
+    } catch (e1) {
+      try {
+        await sequelize.query('ALTER TABLE "Doubts" ADD COLUMN "isPinned" BOOLEAN DEFAULT 0;');
+      } catch (e2) {
+        // Column already exists or table does not exist yet
+      }
+    }
+    // Migration for Doubts: isClosed
+    try {
+      await sequelize.query('ALTER TABLE Doubts ADD COLUMN isClosed BOOLEAN DEFAULT 0;');
+    } catch (e1) {
+      try {
+        await sequelize.query('ALTER TABLE "Doubts" ADD COLUMN "isClosed" BOOLEAN DEFAULT 0;');
+      } catch (e2) {
+        // Column already exists or table does not exist yet
+      }
+    }
     if (isProduction || isSqlite) {
       await sequelize.sync();
     } else {

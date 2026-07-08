@@ -28,6 +28,14 @@ const Doubt = sequelize.define('Doubt', {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+  isPinned: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  isClosed: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
   groupId: {
     type: DataTypes.UUID,
     allowNull: false

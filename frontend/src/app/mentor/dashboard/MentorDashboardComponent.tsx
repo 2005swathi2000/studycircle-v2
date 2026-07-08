@@ -33,7 +33,10 @@ import {
   UserCheck,
   Menu,
   Eye,
-  Edit3
+  Edit3,
+  Home,
+  User,
+  Pin
 } from 'lucide-react';
 
 interface Goal {
@@ -64,9 +67,10 @@ export function MentorDashboardComponent() {
         'mentoring-sessions': 'sessions',
         'assignments': 'assignments',
         'cohort-analytics': 'analytics',
+        'discussions': 'discussions',
         'profile': 'profile'
       };
-      return (tabMapRev[currentTab] || 'dashboard') as 'dashboard' | 'students' | 'rooms' | 'sessions' | 'assignments' | 'analytics' | 'profile';
+      return (tabMapRev[currentTab] || 'dashboard') as any;
     }
     return 'dashboard';
   }, [pathname]);
@@ -80,6 +84,7 @@ export function MentorDashboardComponent() {
       'sessions': 'mentoring-sessions',
       'assignments': 'assignments',
       'analytics': 'cohort-analytics',
+      'discussions': 'discussions',
       'profile': 'profile'
     };
     const expectedRoute = mentorTabMap[newTab] || newTab;
@@ -101,6 +106,39 @@ export function MentorDashboardComponent() {
   const [doubts, setDoubts] = useState<any[]>([]);
   const [loadingDoubts, setLoadingDoubts] = useState(false);
   const [assignments, setAssignments] = useState<any[]>([]);
+
+  // Discussion Board States
+  const [selectedDoubt, setSelectedDoubt] = useState<any | null>(null);
+  const [doubtAnswers, setDoubtAnswers] = useState<any[]>([]);
+  const [loadingAnswers, setLoadingAnswers] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [searchDoubtQuery, setSearchDoubtQuery] = useState('');
+
+  // Student Details Modal State
+  const [selectedStudentDetail, setSelectedStudentDetail] = useState<any | null>(null);
+
+  // Room Members State
+  const [roomParticipants, setRoomParticipants] = useState<any[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [showParticipantsModal, setShowParticipantsModal] = useState(false);
+  const [participantsRoomName, setParticipantsRoomName] = useState('');
+
+  // Edit / Delete Room States
+  const [showEditRoom, setShowEditRoom] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<any | null>(null);
+  const [showDeleteRoom, setShowDeleteRoom] = useState(false);
+  const [deletingRoom, setDeletingRoom] = useState<any | null>(null);
+
+  // Derived real database metrics
+  const todaysSessionsCount = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return sessions.filter(s => s.scheduledAt && s.scheduledAt.startsWith(todayStr)).length;
+  }, [sessions]);
+
+  const pendingAssignmentsCount = useMemo(() => {
+    const now = new Date();
+    return assignments.filter(a => a.deadline && new Date(a.deadline) > now).length;
+  }, [assignments]);
 
   // Interactive Goals State
   const [goals, setGoals] = useState<Goal[]>([
@@ -296,10 +334,14 @@ export function MentorDashboardComponent() {
         setDoubts(data.doubts.map((d: any) => ({
           id: d.id,
           title: d.title,
+          description: d.description || '',
           upvotes: d.upvotes || 0,
           isSolved: d.isSolved,
+          isPinned: d.isPinned || false,
+          isClosed: d.isClosed || false,
           studentName: d.Author?.fullName || 'Student',
           topic: d.tags || d.subject || 'General',
+          groupName: d.Group?.name || 'Study Circle',
           waitingTime: d.createdAt ? `${Math.round((Date.now() - new Date(d.createdAt).getTime()) / 60000)}m ago` : '1h ago'
         })));
       }
@@ -318,6 +360,141 @@ export function MentorDashboardComponent() {
       }
     } catch (err) {
       console.error('Error fetching assignments:', err);
+    }
+  };
+
+  // Custom API clear doubt/room handlers
+  const handleSelectDoubt = async (doubtId: string) => {
+    const doubt = doubts.find(d => d.id === doubtId);
+    if (!doubt) return;
+    setSelectedDoubt(doubt);
+    setLoadingAnswers(true);
+    try {
+      const data = await apiRequest(`/doubts/${doubtId}`);
+      if (data && data.answers) {
+        setDoubtAnswers(data.answers);
+      }
+    } catch (err) {
+      console.error('Error fetching doubt answers:', err);
+    } finally {
+      setLoadingAnswers(false);
+    }
+  };
+
+  const handlePostReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDoubt || !replyText.trim()) return;
+    try {
+      const data = await apiRequest(`/doubts/${selectedDoubt.id}/answers`, {
+        method: 'POST',
+        body: JSON.stringify({ content: replyText.trim() })
+      });
+      if (data && data.answer) {
+        setDoubtAnswers(prev => [...prev, data.answer]);
+        setReplyText('');
+        addToast('Reply posted successfully!', 'success');
+      }
+    } catch (err: any) {
+      addToast(err.message || 'Failed to post reply.', 'error');
+    }
+  };
+
+  const handleTogglePin = async () => {
+    if (!selectedDoubt) return;
+    try {
+      const data = await apiRequest(`/doubts/${selectedDoubt.id}/pin`, {
+        method: 'PUT'
+      });
+      if (data && data.doubt) {
+        setDoubts(prev => prev.map(d => d.id === selectedDoubt.id ? { ...d, isPinned: data.doubt.isPinned } : d));
+        setSelectedDoubt(prev => prev ? { ...prev, isPinned: data.doubt.isPinned } : null);
+        addToast(data.message || 'Updated pin status', 'success');
+      }
+    } catch (err: any) {
+      addToast(err.message || 'Failed to update pin status.', 'error');
+    }
+  };
+
+  const handleToggleClose = async () => {
+    if (!selectedDoubt) return;
+    try {
+      const data = await apiRequest(`/doubts/${selectedDoubt.id}/close`, {
+        method: 'PUT'
+      });
+      if (data && data.doubt) {
+        setDoubts(prev => prev.map(d => d.id === selectedDoubt.id ? { ...d, isClosed: data.doubt.isClosed } : d));
+        setSelectedDoubt(prev => prev ? { ...prev, isClosed: data.doubt.isClosed } : null);
+        addToast(data.message || 'Updated close status', 'success');
+      }
+    } catch (err: any) {
+      addToast(err.message || 'Failed to update close status.', 'error');
+    }
+  };
+
+  const handleToggleSolve = async () => {
+    if (!selectedDoubt) return;
+    try {
+      const data = await apiRequest(`/doubts/${selectedDoubt.id}/solve`, {
+        method: 'PUT'
+      });
+      if (data && data.doubt) {
+        setDoubts(prev => prev.map(d => d.id === selectedDoubt.id ? { ...d, isSolved: data.doubt.isSolved } : d));
+        setSelectedDoubt(prev => prev ? { ...prev, isSolved: data.doubt.isSolved } : null);
+        addToast(data.message || 'Updated solved status', 'success');
+      }
+    } catch (err: any) {
+      addToast(err.message || 'Failed to update solved status.', 'error');
+    }
+  };
+
+  const handleViewRoomMembers = async (roomId: string, roomName: string) => {
+    setLoadingParticipants(true);
+    setParticipantsRoomName(roomName);
+    setShowParticipantsModal(true);
+    try {
+      const data = await apiRequest(`/groups/${roomId}/members`);
+      if (data && data.members) {
+        setRoomParticipants(data.members);
+      }
+    } catch (err) {
+      console.error('Error fetching room members:', err);
+    } finally {
+      setLoadingParticipants(false);
+    }
+  };
+
+  const handleEditRoomSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRoom || !editingRoom.name.trim()) return;
+    try {
+      await apiRequest(`/groups/${editingRoom.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: editingRoom.name,
+          description: editingRoom.description,
+          subject: editingRoom.subject,
+          isPublic: editingRoom.isPublic
+        })
+      });
+      addToast('Study room updated successfully!', 'success');
+      setShowEditRoom(false);
+      fetchStudyRooms();
+    } catch (err: any) {
+      addToast(err.message || 'Failed to update room.', 'error');
+    }
+  };
+
+  const handleDeleteRoomSubmit = async () => {
+    if (!deletingRoom) return;
+    try {
+      await apiRequest(`/groups/${deletingRoom.id}`, {
+        method: 'DELETE'
+      });
+      addToast('Study room deleted successfully!', 'success');
+      setShowDeleteRoom(false);
+      fetchStudyRooms();
+    } catch (err: any) {
+      addToast(err.message || 'Failed to delete room.', 'error');
     }
   };
 
@@ -677,91 +854,102 @@ export function MentorDashboardComponent() {
               </div>
             </div>
 
-            <hr className="border-white/5 mx-6" />
-
+            <hr className="border-white/5" />
             <div className="space-y-1 px-4">
               <button
                 onClick={() => { setActiveTab('dashboard'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'dashboard' 
-                    ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
+                    ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
                     : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <Sliders className="h-4 w-4" />
-                <span>Dashboard</span>
+                <Home className="h-4 w-4" />
+                <span>🏠 Dashboard</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('students'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'students' 
-                    ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
+                    ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
                     : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
                 <Users className="h-4 w-4" />
-                <span>Students</span>
+                <span>👨🎓 My Students</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('rooms'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'rooms' 
-                    ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
+                    ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
                     : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
                 <BookOpen className="h-4 w-4" />
-                <span>Study Rooms</span>
-              </button>
-
-              <button
-                onClick={() => { setActiveTab('sessions'); setShowSidebar(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'sessions' 
-                    ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
-                    : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
-                }`}
-              >
-                <Calendar className="h-4 w-4" />
-                <span>Sessions</span>
+                <span>📚 Study Rooms</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('assignments'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'assignments' 
-                    ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
+                    ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
                     : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
                 <FileText className="h-4 w-4" />
-                <span>Assignments</span>
+                <span>📝 Assignments</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('sessions'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'sessions' 
+                    ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
+                    : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <Calendar className="h-4 w-4" />
+                <span>📅 Schedule</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('discussions'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'discussions' 
+                    ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
+                    : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>💬 Discussion Board</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('analytics'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'analytics' 
-                    ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
+                    ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
                     : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
                 <BarChart2 className="h-4 w-4" />
-                <span>Analytics</span>
+                <span>📊 Progress Reports</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('profile'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
                   activeTab === 'profile' 
-                    ? 'bg-indigo-600/10 border border-indigo-500/20 text-indigo-400' 
+                    ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
                     : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <Settings className="h-4 w-4" />
-                <span>Profile</span>
+                <User className="h-4 w-4" />
+                <span>👤 Profile</span>
               </button>
             </div>
           </div>
@@ -929,16 +1117,16 @@ export function MentorDashboardComponent() {
                       <p className="text-xl font-bold text-white mt-1 font-mono">{studyRooms.length}</p>
                     </div>
                     <div className="p-4 rounded-xl bg-white/[0.01] border border-white/5">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Pending Doubts</p>
-                      <p className="text-xl font-bold text-white mt-1 font-mono">{doubts.length}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Pending Assignments</p>
+                      <p className="text-xl font-bold text-white mt-1 font-mono">{pendingAssignmentsCount}</p>
                     </div>
                     <div className="p-4 rounded-xl bg-white/[0.01] border border-white/5">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Today's Sessions</p>
-                      <p className="text-xl font-bold text-white mt-1 font-mono">{sessions.length}</p>
+                      <p className="text-xl font-bold text-white mt-1 font-mono">{todaysSessionsCount}</p>
                     </div>
                   </div>
 
-                  {/* Section 3 — Students Needing Attention */}
+                  {/* Section 3 — Students Needing Attention / Activity */}
                   <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-red-500" />
@@ -966,7 +1154,7 @@ export function MentorDashboardComponent() {
                                 Assign
                               </button>
                               <button 
-                                onClick={() => addToast(`Direct messaging @${s.username}`, 'info')}
+                                onClick={() => { setChatStudent(s); setShowChatDrawer(true); }}
                                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-[10px] font-bold transition-all border-none cursor-pointer"
                               >
                                 Message
@@ -1002,77 +1190,17 @@ export function MentorDashboardComponent() {
                             </div>
                             <button
                               onClick={() => {
-                                setDoubts(prev => prev.filter(db => db.id !== d.id));
-                                addToast('Doubt marked resolved!', 'success');
+                                handleSelectDoubt(d.id);
+                                setActiveTab('discussions');
                               }}
                               className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold transition-all border-none cursor-pointer"
                             >
-                              Resolve
+                              Resolve in Feed
                             </button>
                           </div>
                         ))}
                       </div>
                     )}
-                  </div>
-
-                  {/* Section 7 — Analytics (Moved Below; handles Flat Zero-Line Analytics when state is zero) */}
-                  <div className="p-5 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">Analytics overview</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-bold uppercase text-zinc-500">Weekly Study Hours</p>
-                        <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2 relative">
-                          {viewMode === 'new' && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[0.5px] rounded-xl">
-                              <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black font-mono">No data logged</span>
-                            </div>
-                          )}
-                          <svg viewBox="0 0 100 40" className="w-full h-full overflow-visible">
-                            {viewMode === 'new' ? (
-                              // Flat baseline graph with no peaks/downs
-                              <line x1="0" y1="35" x2="100" y2="35" stroke="rgba(99, 102, 241, 0.4)" strokeWidth="1.5" strokeDasharray="3,3" />
-                            ) : (
-                              <path d="M 0 35 Q 20 15 40 25 T 80 10 T 100 5" fill="none" stroke="#6366F1" strokeWidth="2" />
-                            )}
-                          </svg>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-bold uppercase text-zinc-500">Subject Performance</p>
-                        <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2 flex items-end justify-around gap-2 relative">
-                          {viewMode === 'new' && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[0.5px] rounded-xl">
-                              <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black font-mono">No score records</span>
-                            </div>
-                          )}
-                          {viewMode === 'new' ? (
-                            <>
-                              <div className="w-4 bg-zinc-800 rounded-t h-[2px]" />
-                              <div className="w-4 bg-zinc-800 rounded-t h-[2px]" />
-                              <div className="w-4 bg-zinc-800 rounded-t h-[2px]" />
-                            </>
-                          ) : (
-                            <>
-                              <div className="w-4 bg-indigo-650 rounded-t h-4/5" />
-                              <div className="w-4 bg-emerald-650 rounded-t h-3/5" />
-                              <div className="w-4 bg-amber-500 rounded-t h-2/5" />
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-bold uppercase text-zinc-500">Attendance Ratios</p>
-                        <div className="h-28 bg-[#0B0F19]/40 border border-white/5 rounded-xl p-2 flex items-center justify-center">
-                          <div className={`h-16 w-16 rounded-full border-4 flex items-center justify-center text-[10px] font-bold text-white font-mono ${
-                            viewMode === 'new' 
-                              ? 'border-zinc-800 text-zinc-500' 
-                              : 'border-emerald-500/20 border-t-emerald-500'
-                          }`}>
-                            {viewMode === 'new' ? '0%' : '84%'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                 </div>
@@ -1164,7 +1292,11 @@ export function MentorDashboardComponent() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {filteredStudents.map(student => (
-                    <div key={student.id} className="p-5 rounded-xl bg-white/[0.01] border border-white/5 flex flex-col justify-between gap-4">
+                    <div 
+                      key={student.id} 
+                      onClick={() => setSelectedStudentDetail(student)}
+                      className="p-5 rounded-xl bg-white/[0.01] border border-white/5 flex flex-col justify-between gap-4 cursor-pointer hover:bg-white/[0.03] hover:border-white/10 transition-all text-left"
+                    >
                       <div className="space-y-1">
                         <div className="flex justify-between items-start">
                           <div>
@@ -1198,13 +1330,13 @@ export function MentorDashboardComponent() {
 
                       <div className="flex gap-2 pt-2 border-t border-white/5">
                         <button
-                          onClick={() => { setSelectedStudent(student); setShowAssignChallenge(true); }}
+                          onClick={(e) => { e.stopPropagation(); setSelectedStudent(student); setShowAssignChallenge(true); }}
                           className="flex-1 py-1.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold cursor-pointer border-none transition-all"
                         >
                           Assign Task
                         </button>
                         <button
-                          onClick={() => { setChatStudent(student); setShowChatDrawer(true); }}
+                          onClick={(e) => { e.stopPropagation(); setChatStudent(student); setShowChatDrawer(true); }}
                           className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-[10px] font-bold cursor-pointer border-none transition-all"
                         >
                           Message
@@ -1271,16 +1403,51 @@ export function MentorDashboardComponent() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
                         <button
                           onClick={() => toggleRoomLock(room.id)}
-                          className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg cursor-pointer transition-all border-none flex items-center justify-center gap-1.5 ${
+                          className={`flex-1 min-w-[70px] py-1.5 text-[9px] font-bold rounded-lg cursor-pointer transition-all border-none flex items-center justify-center gap-1 ${
                             room.isLocked 
                               ? 'bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600/20' 
                               : 'bg-red-600/10 text-red-400 hover:bg-red-600/20'
                           }`}
                         >
-                          {room.isLocked ? 'Unlock Room' : 'Lock Room'}
+                          {room.isLocked ? 'Unlock' : 'Lock'}
+                        </button>
+                        <button
+                          onClick={() => { setEditingRoom(room); setShowEditRoom(true); }}
+                          className="flex-1 min-w-[50px] py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-[9px] font-bold cursor-pointer border-none transition-all"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => { setDeletingRoom(room); setShowDeleteRoom(true); }}
+                          className="flex-1 min-w-[50px] py-1.5 bg-red-950/20 hover:bg-red-950/40 text-red-400 rounded-lg text-[9px] font-bold cursor-pointer border-none transition-all"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(room.inviteCode);
+                            addToast('Invite code copied to clipboard!', 'success');
+                          }}
+                          className="flex-1 min-w-[80px] py-1.5 bg-[#0B0F19] hover:bg-white/5 border border-white/5 text-zinc-300 rounded-lg text-[9px] font-bold cursor-pointer transition-all"
+                        >
+                          Share Code
+                        </button>
+                        <button
+                          onClick={() => {
+                            window.open(room.meetingLink || 'https://meet.google.com/new', '_blank');
+                          }}
+                          className="flex-1 min-w-[80px] py-1.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-lg text-[9px] font-bold cursor-pointer transition-all border-none"
+                        >
+                          Start Live
+                        </button>
+                        <button
+                          onClick={() => handleViewRoomMembers(room.id, room.name)}
+                          className="flex-1 min-w-[90px] py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-[9px] font-bold cursor-pointer border-none transition-all"
+                        >
+                          Participants
                         </button>
                       </div>
                     </div>
@@ -1457,26 +1624,44 @@ export function MentorDashboardComponent() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => setViewingAssignment(asg)}
-                          className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-xs font-bold border-none cursor-pointer transition-all flex items-center justify-center gap-1.5"
-                        >
-                          <Eye className="h-3.5 w-3.5" /> View
-                        </button>
-                        <button 
-                          onClick={() => { setEditingAssignment(asg); setShowEditAssignment(true); }}
-                          className="flex-1 py-2 bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-300 rounded-lg text-xs font-bold border-none cursor-pointer transition-all flex items-center justify-center gap-1.5"
-                        >
-                          <Edit3 className="h-3.5 w-3.5" /> Edit
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteAssignment(asg.id)}
-                          className="p-2 bg-red-950/40 hover:bg-red-950/60 text-red-400 rounded-lg text-xs font-bold border-none cursor-pointer transition-all flex items-center justify-center"
-                          title="Delete Assignment"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                      <div className="flex flex-col gap-2 pt-2 border-t border-white/5">
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => setViewingAssignment(asg)}
+                            className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-[10px] font-bold border-none cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> View
+                          </button>
+                          <button 
+                            onClick={() => { setEditingAssignment(asg); setShowEditAssignment(true); }}
+                            className="flex-1 py-1.5 bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-300 rounded-lg text-[10px] font-bold border-none cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <Edit3 className="h-3.5 w-3.5" /> Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteAssignment(asg.id)}
+                            className="p-1.5 bg-red-950/40 hover:bg-red-950/60 text-red-400 rounded-lg text-[10px] font-bold border-none cursor-pointer transition-all flex items-center justify-center"
+                            title="Delete Assignment"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        {asg.status !== 'Completed' && (
+                          <button
+                            onClick={() => {
+                              apiRequest(`/assignments/${asg.id}`, {
+                                method: 'PUT',
+                                body: JSON.stringify({ status: 'Completed' })
+                              }).then(() => {
+                                addToast('Assignment marked completed!', 'success');
+                                fetchAssignments();
+                              }).catch(err => addToast(err.message || 'Error updating status', 'error'));
+                            }}
+                            className="w-full py-1.5 bg-indigo-650/20 hover:bg-indigo-650/40 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold rounded-lg cursor-pointer transition-all"
+                          >
+                            Mark Completed
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1666,6 +1851,245 @@ export function MentorDashboardComponent() {
                   >
                     Save Options
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 8: DISCUSSION BOARD (Piazza Style) */}
+          {activeTab === 'discussions' && (
+            <div className="space-y-6 max-w-7xl mx-auto h-[75vh] flex flex-col">
+              {/* Header */}
+              <div className="shrink-0 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-white tracking-tight">💬 Discussion Board</h2>
+                  <p className="text-zinc-500 text-xs mt-0.5 font-medium">Academic doubt clearance feed.</p>
+                </div>
+              </div>
+
+              {/* Dual-Pane Layout */}
+              <div className="flex-1 grid grid-cols-1 lg:grid-cols-10 gap-6 overflow-hidden">
+                {/* Left Pane: Doubt List (40%) */}
+                <div className="lg:col-span-4 bg-[#0B0F19]/40 border border-white/5 rounded-2xl flex flex-col overflow-hidden">
+                  {/* Search Bar */}
+                  <div className="p-4 border-b border-white/5 shrink-0">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+                      <input
+                        type="text"
+                        placeholder="Search student doubts..."
+                        value={searchDoubtQuery}
+                        onChange={(e) => setSearchDoubtQuery(e.target.value)}
+                        className="w-full bg-[#060813] border border-white/5 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:border-indigo-500/50 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Doubt list feed */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                    {loadingDoubts ? (
+                      <div className="flex justify-center py-12">
+                        <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
+                      </div>
+                    ) : doubts.length === 0 ? (
+                      <p className="text-xs text-zinc-500 italic py-4 text-center">No doubts posted yet.</p>
+                    ) : (
+                      doubts
+                        .filter(d => d.title.toLowerCase().includes(searchDoubtQuery.toLowerCase()) || d.topic.toLowerCase().includes(searchDoubtQuery.toLowerCase()))
+                        .map(d => {
+                          const isSelected = selectedDoubt && selectedDoubt.id === d.id;
+                          return (
+                            <div 
+                              key={d.id}
+                              onClick={() => handleSelectDoubt(d.id)}
+                              className={`p-4 rounded-xl border text-left cursor-pointer transition-all space-y-2 select-none ${
+                                isSelected 
+                                  ? 'bg-indigo-650/10 border-indigo-500' 
+                                  : 'bg-white/[0.01] border-white/5 hover:bg-white/[0.02]'
+                              }`}
+                            >
+                              <div className="flex justify-between items-start gap-2">
+                                <h4 className="text-xs font-bold text-white leading-snug line-clamp-1 flex-1">
+                                  {d.title}
+                                </h4>
+                                <div className="flex gap-1 shrink-0">
+                                  {d.isPinned && (
+                                    <span className="text-[8px] px-1.5 py-0.5 bg-amber-500/10 text-amber-450 rounded font-bold uppercase">
+                                      Pinned
+                                    </span>
+                                  )}
+                                  {d.isClosed && (
+                                    <span className="text-[8px] px-1.5 py-0.5 bg-zinc-800 text-zinc-400 rounded font-bold uppercase">
+                                      Closed
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-zinc-500 font-medium">
+                                Student: <span className="text-white font-bold">{d.studentName}</span> • Group: <span className="text-indigo-400 font-bold">{d.groupName}</span>
+                              </p>
+                              <div className="flex justify-between items-center text-[9px] pt-1">
+                                <span className="text-zinc-500 font-mono">{d.waitingTime}</span>
+                                <span className={`font-bold uppercase ${d.isSolved ? 'text-emerald-450' : 'text-amber-500'}`}>
+                                  {d.isSolved ? 'Solved ✓' : 'Unresolved ⨯'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Pane: Thread Details (60%) */}
+                <div className="lg:col-span-6 bg-[#0B0F19]/40 border border-white/5 rounded-2xl flex flex-col overflow-hidden text-left">
+                  {!selectedDoubt ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-2">
+                      <MessageSquare className="h-10 w-10 text-zinc-650" />
+                      <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wide">No Discussion Selected</h4>
+                      <p className="text-[10px] text-zinc-500 max-w-xs">
+                        Select an academic doubt or question from the left sidebar feed to load full discussion details, answers, and moderator actions.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                      {/* Doubt Header + Actions */}
+                      <div className="p-5 border-b border-white/5 shrink-0 bg-white/[0.005] space-y-3">
+                        <div className="flex justify-between items-start gap-4">
+                          <div>
+                            <span className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold block">
+                              Question Thread • {selectedDoubt.topic}
+                            </span>
+                            <h3 className="text-sm font-bold text-white mt-1 leading-snug">
+                              {selectedDoubt.title}
+                            </h3>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleTogglePin}
+                              className={`px-3 py-1 bg-[#060913] border hover:border-indigo-500 text-[10px] font-bold rounded-lg cursor-pointer transition-all ${
+                                selectedDoubt.isPinned ? 'border-amber-500/30 text-amber-450' : 'border-white/5 text-zinc-400'
+                              }`}
+                            >
+                              {selectedDoubt.isPinned ? 'Unpin' : 'Pin'}
+                            </button>
+                            <button
+                              onClick={handleToggleClose}
+                              className={`px-3 py-1 bg-[#060913] border hover:border-indigo-500 text-[10px] font-bold rounded-lg cursor-pointer transition-all ${
+                                selectedDoubt.isClosed ? 'border-zinc-800 text-zinc-405' : 'border-white/5 text-zinc-400'
+                              }`}
+                            >
+                              {selectedDoubt.isClosed ? 'Reopen' : 'Close'}
+                            </button>
+                            <button
+                              onClick={handleToggleSolve}
+                              className={`px-3 py-1 bg-[#060913] border hover:border-indigo-500 text-[10px] font-bold rounded-lg cursor-pointer transition-all ${
+                                selectedDoubt.isSolved ? 'border-emerald-500/20 text-emerald-450' : 'border-white/5 text-zinc-400'
+                              }`}
+                            >
+                              {selectedDoubt.isSolved ? 'Solved ✓' : 'Unresolved ⨯'}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-[10px] text-zinc-500">
+                          <span>Posted by <span className="text-zinc-300 font-bold">{selectedDoubt.studentName}</span></span>
+                          <span>•</span>
+                          <span>In Group <span className="text-zinc-300 font-bold">{selectedDoubt.groupName}</span></span>
+                          <span>•</span>
+                          <span className="font-mono">{selectedDoubt.waitingTime}</span>
+                        </div>
+                      </div>
+
+                      {/* Thread Messages List */}
+                      <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                        {/* Parent Doubt Body */}
+                        <div className="space-y-2 pb-4 border-b border-white/5">
+                          <p className="text-xs text-zinc-300 font-medium leading-relaxed whitespace-pre-wrap font-sans">
+                            {selectedDoubt.description}
+                          </p>
+                        </div>
+
+                        {/* Answers/Replies header */}
+                        <div className="space-y-4 pt-2">
+                          <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                            Replies ({doubtAnswers.length})
+                          </h4>
+
+                          {loadingAnswers ? (
+                            <div className="flex justify-center py-6">
+                              <RefreshCw className="h-6 w-6 text-indigo-500 animate-spin" />
+                            </div>
+                          ) : doubtAnswers.length === 0 ? (
+                            <p className="text-xs text-zinc-500 italic py-2">No replies posted yet. Be the first to answer this doubt!</p>
+                          ) : (
+                            <div className="space-y-3">
+                              {doubtAnswers.map((ans) => (
+                                <div key={ans.id} className={`p-4 rounded-xl border space-y-2 transition-all ${
+                                  ans.isAccepted 
+                                    ? 'bg-emerald-500/[0.02] border-emerald-500/20' 
+                                    : 'bg-white/[0.005] border-white/5'
+                                }`}>
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-bold text-white">
+                                        {ans.Author?.fullName || 'Anonymous'}
+                                      </span>
+                                      <span className="text-[9px] text-zinc-500 font-bold uppercase px-1.5 py-0.5 bg-white/5 rounded">
+                                        {ans.Author?.role || 'user'}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {ans.isAccepted && (
+                                        <span className="text-[9px] px-2 py-0.5 bg-emerald-500/10 text-emerald-450 rounded font-bold uppercase">
+                                          Best Answer ✓
+                                        </span>
+                                      )}
+                                      <span className="text-[9px] text-zinc-500 font-mono">
+                                        {new Date(ans.createdAt).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-zinc-300 font-medium leading-relaxed font-sans">
+                                    {ans.content}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Reply Editor Form */}
+                      <div className="p-4 border-t border-white/5 shrink-0 bg-white/[0.005]">
+                        {selectedDoubt.isClosed ? (
+                          <div className="p-3 bg-zinc-800/40 border border-zinc-700/20 rounded-xl text-center">
+                            <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider">
+                              🔒 This discussion thread has been closed by a moderator.
+                            </p>
+                          </div>
+                        ) : (
+                          <form onSubmit={handlePostReply} className="flex gap-3">
+                            <textarea
+                              placeholder="Write a helpful academic response or reply..."
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              rows={2}
+                              className="flex-1 bg-[#060813] border border-white/5 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-indigo-500/50 resize-none font-medium leading-normal"
+                              required
+                            />
+                            <button
+                              type="submit"
+                              className="px-5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all border-none shrink-0"
+                            >
+                              Post Reply
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2419,6 +2843,230 @@ export function MentorDashboardComponent() {
               </form>
 
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* STUDENT DETAIL MODAL */}
+      {selectedStudentDetail && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-5">
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">{selectedStudentDetail.fullName}</h3>
+                <p className="text-[10px] text-zinc-500 font-mono">@{selectedStudentDetail.username}</p>
+              </div>
+              <button 
+                onClick={() => setSelectedStudentDetail(null)}
+                className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-xs text-left">
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block">Email Address</span>
+                <span className="text-zinc-300 font-medium">{selectedStudentDetail.email || 'N/A'}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block">Phone Number</span>
+                <span className="text-zinc-300 font-medium">{selectedStudentDetail.phone || 'N/A'}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block">Study Interest / Level</span>
+                <span className="text-indigo-400 font-bold">{selectedStudentDetail.learningPath} Level</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block">Department / College</span>
+                <span className="text-zinc-300 font-medium">{selectedStudentDetail.department} • {selectedStudentDetail.college}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 py-3.5 text-center bg-white/[0.005] border border-white/5 rounded-xl text-[10px] font-medium text-zinc-500 font-mono">
+              <div>
+                <p className="font-sans">Study Hours</p>
+                <p className="text-white text-base font-bold mt-1">{selectedStudentDetail.totalStudyHours} hrs</p>
+              </div>
+              <div>
+                <p className="font-sans">Performance</p>
+                <p className="text-white text-base font-bold mt-1">{selectedStudentDetail.completionRate}%</p>
+              </div>
+              <div>
+                <p className="font-sans">Attendance</p>
+                <p className="text-white text-base font-bold mt-1">{selectedStudentDetail.attendanceRate}%</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-left text-xs">
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Weak Topics</span>
+                <span className="text-amber-500 font-bold bg-amber-500/5 px-2 py-1 rounded border border-amber-500/10 block">{selectedStudentDetail.weakTopics}</span>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Recent Activity</span>
+                <span className="text-zinc-300 font-medium block">{selectedStudentDetail.lastActive}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-3 border-t border-white/5">
+              <button
+                onClick={() => {
+                  setSelectedStudent(selectedStudentDetail);
+                  setSelectedStudentDetail(null);
+                  setShowAssignChallenge(true);
+                }}
+                className="flex-1 py-2 bg-indigo-650 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold cursor-pointer border-none transition-all"
+              >
+                Assign Task
+              </button>
+              <button
+                onClick={() => {
+                  setChatStudent(selectedStudentDetail);
+                  setSelectedStudentDetail(null);
+                  setShowChatDrawer(true);
+                }}
+                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-xs font-bold cursor-pointer border-none transition-all"
+              >
+                Message Student
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedStudentDetail(null);
+                  setShowCreateSession(true);
+                }}
+                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-xs font-bold cursor-pointer border-none transition-all"
+              >
+                Schedule Session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT ROOM MODAL */}
+      {showEditRoom && editingRoom && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Edit Study Room</h3>
+              <button onClick={() => setShowEditRoom(false)} className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <form onSubmit={handleEditRoomSubmit} className="space-y-3 text-left">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Room Name</label>
+                <input
+                  type="text"
+                  value={editingRoom.name}
+                  onChange={(e) => setEditingRoom(prev => prev ? { ...prev, name: e.target.value } : null)}
+                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Subject Category</label>
+                <input
+                  type="text"
+                  value={editingRoom.subject}
+                  onChange={(e) => setEditingRoom(prev => prev ? { ...prev, subject: e.target.value } : null)}
+                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Room Description</label>
+                <textarea
+                  value={editingRoom.description}
+                  onChange={(e) => setEditingRoom(prev => prev ? { ...prev, description: e.target.value } : null)}
+                  rows={3}
+                  className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 resize-none font-medium leading-relaxed"
+                />
+              </div>
+              <div className="flex gap-4 items-center">
+                <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingRoom.isPublic}
+                    onChange={(e) => setEditingRoom(prev => prev ? { ...prev, isPublic: e.target.checked } : null)}
+                    className="h-4 w-4 bg-[#0B0F19] border-white/5 rounded text-indigo-500 focus:ring-0"
+                  />
+                  Public Room (Anyone can search and join)
+                </label>
+              </div>
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all border-none mt-2"
+              >
+                Save Room Details
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE ROOM CONFIRMATION */}
+      {showDeleteRoom && deletingRoom && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4 text-left">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Delete Study Room?</h3>
+            <p className="text-xs text-zinc-400 leading-normal">
+              Are you sure you want to delete **{deletingRoom.name}**? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setShowDeleteRoom(false)}
+                className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-xs font-bold border-none cursor-pointer transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteRoomSubmit}
+                className="flex-1 py-2 bg-red-650 hover:bg-red-500 text-white rounded-lg text-xs font-bold border-none cursor-pointer transition-all"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW PARTICIPANTS MODAL */}
+      {showParticipantsModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-white/5 text-left">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">{participantsRoomName}</h3>
+                <p className="text-[10px] text-zinc-500 font-bold">Room Participants List</p>
+              </div>
+              <button onClick={() => setShowParticipantsModal(false)} className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {loadingParticipants ? (
+              <div className="flex justify-center py-8">
+                <RefreshCw className="h-6 w-6 text-indigo-500 animate-spin" />
+              </div>
+            ) : roomParticipants.length === 0 ? (
+              <p className="text-xs text-zinc-500 italic py-4 text-center">No participants joined yet.</p>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {roomParticipants.map((m: any) => (
+                  <div key={m.id} className="flex items-center justify-between p-3 bg-[#060913] border border-white/5 rounded-xl text-left">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-white">{m.User?.fullName || 'Student'}</span>
+                      <span className="text-[9px] text-zinc-500 font-mono">@{m.User?.username}</span>
+                    </div>
+                    <span className="text-[9px] px-2 py-0.5 bg-indigo-500/10 text-indigo-400 font-bold uppercase rounded">
+                      {m.role || 'Member'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
