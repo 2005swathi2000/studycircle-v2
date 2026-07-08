@@ -111,6 +111,10 @@ export default function ProfilePage() {
       showToast('First name, Last name, and Email are required.', 'error');
       return;
     }
+    if (phone && phone.length !== 10) {
+      showToast('Phone number must contain exactly 10 digits.', 'error');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -261,9 +265,15 @@ export default function ProfilePage() {
             <div className="relative">
               <Phone className="absolute left-3.5 top-3.5 h-3.5 w-3.5 text-slate-500" />
               <input 
-                type="text" 
+                type="tel" 
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={10}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setPhone(cleaned);
+                }}
                 placeholder="Phone number"
                 className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#10B981]/50 outline-none transition-all font-semibold"
               />

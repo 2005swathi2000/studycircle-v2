@@ -326,6 +326,13 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'First name, last name, username, password, and gender are required.' });
     }
 
+    if (phone) {
+      const trimmedPhone = phone.trim();
+      if (!/^[0-9]{10}$/.test(trimmedPhone)) {
+        return res.status(400).json({ error: 'Phone number must contain exactly 10 digits.' });
+      }
+    }
+
     const normalizedUsername = username.trim().toLowerCase();
     const validRole = (role === 'admin' || role === 'mentor' || role === 'student') ? role : 'student';
     const normalizedGender = (gender === 'male' || gender === 'female' || gender === 'other') ? gender : 'other';
@@ -723,7 +730,11 @@ router.put('/update-profile', authMiddleware, async (req, res) => {
     }
 
     if (phone !== undefined) {
-      user.phone = phone ? phone.trim() : null;
+      const trimmedPhone = phone ? phone.trim() : '';
+      if (trimmedPhone && !/^[0-9]{10}$/.test(trimmedPhone)) {
+        return res.status(400).json({ error: 'Phone number must contain exactly 10 digits.' });
+      }
+      user.phone = trimmedPhone || null;
     }
 
     if (avatarUrl !== undefined) {

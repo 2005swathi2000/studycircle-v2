@@ -350,6 +350,10 @@ export default function RegisterPage() {
       showToast('All fields (including name, username, email, phone, passwords, and gender) are required.', 'error');
       return;
     }
+    if (studentPhone.length !== 10) {
+      showToast('Phone number must contain exactly 10 digits.', 'error');
+      return;
+    }
     if (isGmailTypo(studentContact)) {
       showToast('Invalid email spelling. Check proper and try again!', 'error');
       return;
@@ -396,6 +400,10 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!mentorFirstName.trim() || !mentorLastName.trim() || !mentorUser.trim() || !mentorPass || !mentorConfirmPass || !mentorContact.trim() || !mentorPhone.trim() || !mentorInstitution || !mentorOtp || !mentorGender) {
       showToast('All fields (including name, username, email, phone, passwords, role, and college) are required.', 'error');
+      return;
+    }
+    if (mentorPhone.length !== 10) {
+      showToast('Phone number must contain exactly 10 digits.', 'error');
       return;
     }
     if (isGmailTypo(mentorContact)) {
@@ -651,9 +659,15 @@ export default function RegisterPage() {
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                     <input
                       type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={10}
                       placeholder="Enter your phone number"
                       value={studentPhone}
-                      onChange={(e) => setStudentPhone(e.target.value)}
+                      onChange={(e) => {
+                        const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setStudentPhone(cleaned);
+                      }}
                       className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#00b074]/50 focus:bg-[#070b19] outline-none transition-all"
                       required
                     />
@@ -958,9 +972,15 @@ export default function RegisterPage() {
                     <Phone className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
                     <input
                       type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={10}
                       placeholder="Enter your phone number"
                       value={mentorPhone}
-                      onChange={(e) => setMentorPhone(e.target.value)}
+                      onChange={(e) => {
+                        const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setMentorPhone(cleaned);
+                      }}
                       className="w-full bg-[#070b19]/80 border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-[#5046E5]/50 focus:bg-[#070b19] outline-none transition-all"
                       required
                     />
