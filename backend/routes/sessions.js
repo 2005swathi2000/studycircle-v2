@@ -72,8 +72,9 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Access denied. You are not a member of this group.' });
     }
 
-    if (membership.role !== 'admin' && membership.role !== 'mentor' && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only coordinators, group admins, and mentors can schedule sessions.' });
+    // Any member of the group can schedule study sessions to foster student collaboration
+    if (!membership && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. You must be a member of this study circle.' });
     }
 
     const session = await Session.create({

@@ -54,6 +54,9 @@ interface SimpleDashboardProps {
   equippedTheme?: string;
   sessions?: any[];
   onCreateGroup?: () => void;
+  onCreateNote?: () => void;
+  onAskDoubt?: () => void;
+  onScheduleSession?: () => void;
 }
 
 export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
@@ -65,7 +68,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   setPracticeSubView,
   equippedTheme,
   sessions = [],
-  onCreateGroup
+  onCreateGroup,
+  onCreateNote,
+  onAskDoubt,
+  onScheduleSession
 }) => {
   const { showToast } = useToast();
   
@@ -310,9 +316,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
           <div className="grid grid-cols-5 gap-2 mt-4">
             <button 
-              onClick={() => { setActiveTab('study'); setStudySubView('rooms'); }}
+              onClick={onCreateGroup}
               className="p-3 bg-[#0c101d] hover:bg-indigo-650/15 border border-white/5 hover:border-indigo-500/30 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
-              title="Join Study Room"
+              title="Create Study Room"
             >
               <Video className="h-4.5 w-4.5 text-indigo-400" />
               <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wide">Live Room</span>
@@ -326,15 +332,15 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wide">Practice</span>
             </button>
             <button 
-              onClick={() => setActiveTab('notes')}
+              onClick={onCreateNote}
               className="p-3 bg-[#0c101d] hover:bg-indigo-650/15 border border-white/5 hover:border-indigo-500/30 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
-              title="Create Notes"
+              title="Create Note"
             >
               <FileText className="h-4.5 w-4.5 text-amber-400" />
               <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wide">Notes</span>
             </button>
             <button 
-              onClick={() => setActiveTab('discussions')}
+              onClick={onAskDoubt}
               className="p-3 bg-[#0c101d] hover:bg-indigo-650/15 border border-white/5 hover:border-indigo-500/30 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
               title="Ask Doubt"
             >
@@ -342,9 +348,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wide">Ask Doubt</span>
             </button>
             <button 
-              onClick={() => setActiveTab('sessions')}
+              onClick={onScheduleSession}
               className="p-3 bg-[#0c101d] hover:bg-indigo-650/15 border border-white/5 hover:border-indigo-500/30 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
-              title="View Schedule"
+              title="Schedule Session"
             >
               <Calendar className="h-4.5 w-4.5 text-blue-400" />
               <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wide">Schedule</span>
@@ -544,31 +550,31 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
             <div className="grid grid-cols-2 gap-3 text-left">
               <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
-                <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Study Hours</span>
+                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">Study Hours</span>
                 <span className="text-sm font-black text-white block mt-1 leading-none">{stats?.totalStudyHours || 0} hrs</span>
               </div>
               <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
-                <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Current Streak</span>
+                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">Current Streak</span>
                 <span className="text-sm font-black text-white block mt-1 leading-none">{stats?.streakCount || 0} Days</span>
               </div>
               <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
-                <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">XP Earned</span>
+                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">XP Earned</span>
                 <span className="text-sm font-black text-white block mt-1 leading-none">{stats?.xp || 0} XP</span>
               </div>
               <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
-                <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Topics Completed</span>
+                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">Topics Completed</span>
                 <span className="text-sm font-black text-white block mt-1 leading-none">{completedLessonsCount}</span>
               </div>
               <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
-                <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Practice Solved</span>
+                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">Practice Solved</span>
                 <span className="text-sm font-black text-white block mt-1 leading-none">{practiceCorrect}</span>
               </div>
               <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
-                <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Sessions Attended</span>
+                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">Sessions Attended</span>
                 <span className="text-sm font-black text-white block mt-1 leading-none">{stats?.totalStudySessions || 0}</span>
               </div>
               <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl col-span-2">
-                <span className="text-[8px] text-zinc-500 font-black uppercase block tracking-wider">Certificates</span>
+                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">Certificates</span>
                 <span className="text-sm font-black text-white block mt-1 leading-none">{stats?.certificatesEarned || 0}</span>
               </div>
             </div>

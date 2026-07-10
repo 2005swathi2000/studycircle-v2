@@ -22,6 +22,10 @@ const SharedNote = sequelize.define('SharedNote', {
   publishedBy: {
     type: DataTypes.STRING,
     allowNull: false
+  },
+  content: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 });
 

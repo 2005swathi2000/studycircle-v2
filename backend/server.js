@@ -241,6 +241,16 @@ const startServer = async () => {
         // Column already exists or table does not exist yet
       }
     }
+    // Migration for SharedNotes: content
+    try {
+      await sequelize.query('ALTER TABLE SharedNotes ADD COLUMN content TEXT;');
+    } catch (e1) {
+      try {
+        await sequelize.query('ALTER TABLE "SharedNotes" ADD COLUMN "content" TEXT;');
+      } catch (e2) {
+        // Column already exists or table does not exist yet
+      }
+    }
     if (isProduction || isSqlite) {
       await sequelize.sync();
     } else {

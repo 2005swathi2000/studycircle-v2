@@ -1268,6 +1268,29 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [groupSubject, setGroupSubject] = useState('');
   const [groupIsPublic, setGroupIsPublic] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [focusTopic, setFocusTopic] = useState('');
+  const [scheduleOption, setScheduleOption] = useState('now');
+  const [scheduledDateTime, setScheduledDateTime] = useState('');
+
+  // Quick Action States
+  const [showCreateNoteModal, setShowCreateNoteModal] = useState(false);
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteContent, setNoteContent] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+
+  const [showAskDoubtModal, setShowAskDoubtModal] = useState(false);
+  const [doubtSubject, setDoubtSubject] = useState('');
+  const [doubtTopic, setDoubtTopic] = useState('');
+  const [doubtQuestion, setDoubtQuestion] = useState('');
+  const [doubtGroupId, setDoubtGroupId] = useState('');
+  const [postingDoubt, setPostingDoubt] = useState(false);
+
+  const [showScheduleSessionModal, setShowScheduleSessionModal] = useState(false);
+  const [sessionTitle, setSessionTitle] = useState('');
+  const [sessionDate, setSessionDate] = useState('');
+  const [sessionTime, setSessionTime] = useState('');
+  const [sessionGroupId, setSessionGroupId] = useState('');
+  const [schedulingSession, setSchedulingSession] = useState(false);
 
   // Loading stats indicator
   const [refreshing, setRefreshing] = useState(false);
@@ -2533,37 +2556,164 @@ Based on your desking logs and consistency, the AI tutor recommends:
   const handleCreateCircle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!groupName.trim() || !groupSubject.trim()) {
-      showToast('Circle Name and Subject are required.', 'error');
+      showToast('Room Name and Subject are required.', 'error');
       return;
     }
     setCreating(true);
     try {
+      const roomDesc = focusTopic ? `Focus Topic: ${focusTopic}` : '';
       const data = await apiRequest('/groups', {
         method: 'POST',
         body: JSON.stringify({
           name: groupName,
-          description: groupDesc,
+          description: roomDesc,
           subject: groupSubject,
-          isPublic: groupIsPublic
+          isPublic: true
         })
       });
-      showToast(`Study Circle "${groupName}" successfully created! You can find it under the "Study" tab in the "Workspaces" section.`, 'success');
+
+      // If scheduled for later, call schedule session route
+      if (scheduleOption === 'later' && scheduledDateTime) {
+        await apiRequest('/sessions', {
+          method: 'POST',
+          body: JSON.stringify({
+            groupId: data.group.id,
+            title: `${groupName} Session`,
+            description: focusTopic ? `Focus Topic: ${focusTopic}` : 'Peer Study Session',
+            scheduledAt: scheduledDateTime
+          })
+        });
+      }
+
+      // Success toast feedback with View button
+      const targetSlug = getSlugByGroup(data.group);
+      showToast('Study Room Created Successfully', 'success', 'View', () => {
+        router.push(`/workspace/${targetSlug}`);
+      });
+
       setShowCreateModal(false);
       setGroupName('');
-      setGroupDesc('');
+      setFocusTopic('');
       setGroupSubject('');
-      setGroupIsPublic(true);
-      loadDashboardData(user);
-      if (user?.role === 'student') {
-        setActiveTab('study');
-        setStudySubView('workspaces');
-      } else {
-        setActiveTab('groups');
-      }
+      setScheduleOption('now');
+      setScheduledDateTime('');
+
+      await loadDashboardData(user);
+      
+      // Auto redirect
+      router.push(`/workspace/${targetSlug}`);
     } catch (err: any) {
-      showToast(err.message || 'Failed to create study circle.', 'error');
+      showToast(err.message || 'Failed to create study room.', 'error');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleCreateNoteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!noteTitle.trim()) {
+      showToast('Title is required.', 'error');
+      return;
+    }
+    setSavingNote(true);
+    try {
+      await apiRequest('/shared-notes', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: noteTitle,
+          content: noteContent
+        })
+      });
+      showToast('✓ Note Saved', 'success', 'View', () => {
+        setActiveTab('notes');
+      });
+      setShowCreateNoteModal(false);
+      setNoteTitle('');
+      setNoteContent('');
+      await loadDashboardData(user);
+      setActiveTab('notes');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to save note.', 'error');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleAskDoubtSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!doubtGroupId) {
+      showToast('Please join or select a Study Circle first.', 'error');
+      return;
+    }
+    if (!doubtSubject.trim() || !doubtQuestion.trim()) {
+      showToast('Subject and Question are required.', 'error');
+      return;
+    }
+    setPostingDoubt(true);
+    try {
+      const fullTitle = doubtTopic.trim() ? `[${doubtSubject.trim()}] ${doubtTopic.trim()}` : doubtSubject.trim();
+      await apiRequest('/doubts', {
+        method: 'POST',
+        body: JSON.stringify({
+          groupId: doubtGroupId,
+          title: fullTitle,
+          description: doubtQuestion,
+          tags: doubtSubject
+        })
+      });
+      showToast('✓ Doubt Posted', 'success', 'View', () => {
+        setActiveTab('discussions');
+      });
+      setShowAskDoubtModal(false);
+      setDoubtSubject('');
+      setDoubtTopic('');
+      setDoubtQuestion('');
+      setDoubtGroupId('');
+      await loadDashboardData(user);
+      setActiveTab('discussions');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to post doubt.', 'error');
+    } finally {
+      setPostingDoubt(false);
+    }
+  };
+
+  const handleScheduleSessionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sessionGroupId) {
+      showToast('Please join or select a Study Circle first.', 'error');
+      return;
+    }
+    if (!sessionTitle.trim() || !sessionDate || !sessionTime) {
+      showToast('Title, Date and Time are required.', 'error');
+      return;
+    }
+    setSchedulingSession(true);
+    try {
+      const scheduledAt = `${sessionDate}T${sessionTime}:00`;
+      await apiRequest('/sessions', {
+        method: 'POST',
+        body: JSON.stringify({
+          groupId: sessionGroupId,
+          title: sessionTitle,
+          scheduledAt,
+          description: 'Scheduled via Quick Actions'
+        })
+      });
+      showToast('✓ Session Scheduled', 'success', 'View', () => {
+        setActiveTab('sessions');
+      });
+      setShowScheduleSessionModal(false);
+      setSessionTitle('');
+      setSessionDate('');
+      setSessionTime('');
+      setSessionGroupId('');
+      await loadDashboardData(user);
+      setActiveTab('sessions');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to schedule session.', 'error');
+    } finally {
+      setSchedulingSession(false);
     }
   };
 
@@ -3465,6 +3615,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
         equippedTheme={equippedTheme}
         sessions={mockSessions}
         onCreateGroup={() => setShowCreateModal(true)}
+        onCreateNote={() => setShowCreateNoteModal(true)}
+        onAskDoubt={() => setShowAskDoubtModal(true)}
+        onScheduleSession={() => setShowScheduleSessionModal(true)}
       />
     );
   };
@@ -7903,12 +8056,12 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
       {/* Create Circle modal overlay */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="max-w-md w-full bg-[#0d0f1a] border border-white/10 rounded-[32px] p-6 space-y-6 shadow-2xl text-white">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="max-w-[380px] w-full bg-[#0d0f1a] border border-white/5 rounded-2xl p-6 space-y-5 shadow-2xl text-white text-left">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <div className="flex items-center gap-2">
                 <PlusCircle className="h-5 w-5 text-indigo-400" />
-                <h3 className="text-sm font-black text-white uppercase tracking-wider">Initialize Study Circle</h3>
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider">Create Study Room</h3>
               </div>
               <button 
                 onClick={() => setShowCreateModal(false)}
@@ -7918,67 +8071,353 @@ Based on your desking logs and consistency, the AI tutor recommends:
               </button>
             </div>
 
-            <form onSubmit={handleCreateCircle} className="space-y-4 text-left">
+            <form onSubmit={handleCreateCircle} className="space-y-4">
+              {/* 1. Room Name */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Circle Name</label>
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Room Name *</label>
                 <input
                   type="text"
+                  required
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
-                  placeholder="e.g. AP-Telangana B.Tech Prep"
-                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/10 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs text-white outline-none"
+                  placeholder="Example: Java Placement Preparation"
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium"
                 />
               </div>
 
+              {/* 2. Subject Dropdown */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Subject / Area</label>
-                <input
-                  type="text"
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Subject *</label>
+                <select
+                  required
                   value={groupSubject}
                   onChange={(e) => setGroupSubject(e.target.value)}
-                  placeholder="e.g. Data Structures & Algorithms"
-                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/10 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs text-white outline-none"
-                />
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium appearance-none"
+                >
+                  <option value="" disabled className="bg-[#0d0f1a] text-zinc-550">Select a Subject</option>
+                  <option value="Programming & DSA" className="bg-[#0d0f1a]">Programming & DSA</option>
+                  <option value="Web Development" className="bg-[#0d0f1a]">Web Development</option>
+                  <option value="Core CS" className="bg-[#0d0f1a]">Core CS</option>
+                  <option value="Aptitude" className="bg-[#0d0f1a]">Aptitude</option>
+                  <option value="AI / ML" className="bg-[#0d0f1a]">AI / ML</option>
+                  <option value="Cloud" className="bg-[#0d0f1a]">Cloud</option>
+                  <option value="Others" className="bg-[#0d0f1a]">Others</option>
+                </select>
               </div>
 
+              {/* 3. Focus Topic (Optional) */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Description</label>
-                <textarea
-                  value={groupDesc}
-                  onChange={(e) => setGroupDesc(e.target.value)}
-                  placeholder="Goals, topics, and schedule details."
-                  rows={3}
-                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/10 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs text-white outline-none resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-3.5 bg-white/[0.01] border border-white/5 rounded-xl">
-                <div className="space-y-0.5">
-                  <div className="text-xs font-bold text-slate-200">Public Workspace Lounge</div>
-                  <div className="text-[9px] text-zinc-550 leading-snug">Allow guests to view and join without invite codes.</div>
-                </div>
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Focus Topic (Optional)</label>
                 <input
-                  type="checkbox"
-                  checked={groupIsPublic}
-                  onChange={(e) => setGroupIsPublic(e.target.checked)}
-                  className="h-4 w-4 bg-[#060813] border-white/10 focus:ring-indigo-500 text-[#5227EB] rounded-lg cursor-pointer"
+                  type="text"
+                  value={focusTopic}
+                  onChange={(e) => setFocusTopic(e.target.value)}
+                  placeholder="Example: Trees & Graphs"
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              {/* 4. Study Schedule */}
+              <div className="space-y-2">
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Study Schedule</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-1.5 text-xs text-zinc-300 cursor-pointer select-none">
+                    <input 
+                      type="radio" 
+                      name="schedule" 
+                      value="now" 
+                      checked={scheduleOption === 'now'}
+                      onChange={() => setScheduleOption('now')}
+                      className="h-4 w-4 text-indigo-500 focus:ring-0 cursor-pointer"
+                    />
+                    Now
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-zinc-300 cursor-pointer select-none">
+                    <input 
+                      type="radio" 
+                      name="schedule" 
+                      value="later" 
+                      checked={scheduleOption === 'later'}
+                      onChange={() => setScheduleOption('later')}
+                      className="h-4 w-4 text-indigo-500 focus:ring-0 cursor-pointer"
+                    />
+                    Schedule Later
+                  </label>
+                </div>
+                
+                {scheduleOption === 'later' && (
+                  <input
+                    type="datetime-local"
+                    required
+                    value={scheduledDateTime}
+                    onChange={(e) => setScheduledDateTime(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium mt-1.5"
+                  />
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-white/10 hover:bg-white/5 text-zinc-300 rounded-xl text-xs font-bold transition-all cursor-pointer bg-transparent"
+                  className="px-4 py-2 border border-white/5 hover:bg-white/5 text-zinc-300 rounded-xl text-xs font-bold transition-all cursor-pointer bg-transparent"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border-none"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border-none"
                 >
-                  {creating ? 'Creating...' : 'Initialize'}
+                  {creating ? 'Creating...' : 'Create Room'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Note Modal Overlay */}
+      {showCreateNoteModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="max-w-[380px] w-full bg-[#0d0f1a] border border-white/5 rounded-2xl p-6 space-y-5 shadow-2xl text-white text-left animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-amber-400" />
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider">Create Note</h3>
+              </div>
+              <button 
+                onClick={() => setShowCreateNoteModal(false)}
+                className="text-zinc-400 hover:text-white font-bold text-xs border-none bg-transparent cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateNoteSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={noteTitle}
+                  onChange={(e) => setNoteTitle(e.target.value)}
+                  placeholder="e.g. Operating Systems Notes"
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Content</label>
+                <textarea
+                  value={noteContent}
+                  onChange={(e) => setNoteContent(e.target.value)}
+                  placeholder="Write your note description or contents here..."
+                  rows={4}
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateNoteModal(false)}
+                  className="px-4 py-2 border border-white/5 hover:bg-white/5 text-zinc-300 rounded-xl text-xs font-bold transition-all cursor-pointer bg-transparent"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingNote}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border-none"
+                >
+                  {savingNote ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Ask Doubt Modal Overlay */}
+      {showAskDoubtModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="max-w-[380px] w-full bg-[#0d0f1a] border border-white/5 rounded-2xl p-6 space-y-5 shadow-2xl text-white text-left animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="h-5 w-5 text-purple-400" />
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider">Ask Doubt</h3>
+              </div>
+              <button 
+                onClick={() => setShowAskDoubtModal(false)}
+                className="text-zinc-400 hover:text-white font-bold text-xs border-none bg-transparent cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAskDoubtSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Subject *</label>
+                <select
+                  required
+                  value={doubtSubject}
+                  onChange={(e) => setDoubtSubject(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium appearance-none"
+                >
+                  <option value="" disabled className="bg-[#0d0f1a] text-zinc-550">Select a Subject</option>
+                  <option value="Programming & DSA" className="bg-[#0d0f1a]">Programming & DSA</option>
+                  <option value="Web Development" className="bg-[#0d0f1a]">Web Development</option>
+                  <option value="Core CS" className="bg-[#0d0f1a]">Core CS</option>
+                  <option value="Aptitude" className="bg-[#0d0f1a]">Aptitude</option>
+                  <option value="AI / ML" className="bg-[#0d0f1a]">AI / ML</option>
+                  <option value="Cloud" className="bg-[#0d0f1a]">Cloud</option>
+                  <option value="Others" className="bg-[#0d0f1a]">Others</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Topic</label>
+                <input
+                  type="text"
+                  value={doubtTopic}
+                  onChange={(e) => setDoubtTopic(e.target.value)}
+                  placeholder="e.g. React Hooks lifecycle"
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Post Doubt inside Group *</label>
+                <select
+                  required
+                  value={doubtGroupId}
+                  onChange={(e) => setDoubtGroupId(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium appearance-none"
+                >
+                  <option value="" disabled className="bg-[#0d0f1a] text-zinc-550">Select Study Group</option>
+                  {myGroups.map(g => (
+                    <option key={g.id} value={g.id} className="bg-[#0d0f1a]">{g.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Question *</label>
+                <textarea
+                  required
+                  value={doubtQuestion}
+                  onChange={(e) => setDoubtQuestion(e.target.value)}
+                  placeholder="Describe your question or doubt details here..."
+                  rows={3}
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setShowAskDoubtModal(false)}
+                  className="px-4 py-2 border border-white/5 hover:bg-white/5 text-zinc-300 rounded-xl text-xs font-bold transition-all cursor-pointer bg-transparent"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={postingDoubt}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border-none"
+                >
+                  {postingDoubt ? 'Posting...' : 'Post'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Study Session Modal Overlay */}
+      {showScheduleSessionModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="max-w-[380px] w-full bg-[#0d0f1a] border border-white/5 rounded-2xl p-6 space-y-5 shadow-2xl text-white text-left animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-blue-400" />
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider">Schedule Session</h3>
+              </div>
+              <button 
+                onClick={() => setShowScheduleSessionModal(false)}
+                className="text-zinc-400 hover:text-white font-bold text-xs border-none bg-transparent cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleScheduleSessionSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={sessionTitle}
+                  onChange={(e) => setSessionTitle(e.target.value)}
+                  placeholder="e.g. DBMS Revision Session"
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Study Circle / Group *</label>
+                <select
+                  required
+                  value={sessionGroupId}
+                  onChange={(e) => setSessionGroupId(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium appearance-none"
+                >
+                  <option value="" disabled className="bg-[#0d0f1a] text-zinc-550">Select Study Group</option>
+                  {myGroups.map(g => (
+                    <option key={g.id} value={g.id} className="bg-[#0d0f1a]">{g.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={sessionDate}
+                    onChange={(e) => setSessionDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Time *</label>
+                  <input
+                    type="time"
+                    required
+                    value={sessionTime}
+                    onChange={(e) => setSessionTime(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setShowScheduleSessionModal(false)}
+                  className="px-4 py-2 border border-white/5 hover:bg-white/5 text-zinc-300 rounded-xl text-xs font-bold transition-all cursor-pointer bg-transparent"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={schedulingSession}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border-none"
+                >
+                  {schedulingSession ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

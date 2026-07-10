@@ -9,10 +9,12 @@ interface Toast {
   id: string;
   message: string;
   type: ToastType;
+  actionLabel?: string;
+  actionCallback?: () => void;
 }
 
 interface ToastContextType {
-  showToast: (message: string, type?: ToastType) => void;
+  showToast: (message: string, type?: ToastType, actionLabel?: string, actionCallback?: () => void) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -29,7 +31,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const activeMessagesRef = useRef<Set<string>>(new Set());
 
-  const showToast = useCallback((message: string, type: ToastType = 'info') => {
+  const showToast = useCallback((message: string, type: ToastType = 'info', actionLabel?: string, actionCallback?: () => void) => {
     // Intercept and prevent noisy/navigation/view toasts
     const lowerMsg = message.toLowerCase();
     const isForbidden = [
@@ -82,12 +84,12 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
 
     const id = Math.random().toString(36).substring(2, 9);
     activeMessagesRef.current.add(message);
-    setToasts((prev) => [...prev, { id, message, type }]);
+    setToasts((prev) => [...prev, { id, message, type, actionLabel, actionCallback }]);
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
       activeMessagesRef.current.delete(message);
-    }, 2500); // 2.5 seconds duration
+    }, 5000); // Increased duration to 5 seconds to let users read and click "View"
   }, []);
 
   const removeToast = (id: string) => {
@@ -115,23 +117,39 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
             bgClass = 'bg-red-950/90 border-red-500/30 text-red-200';
             icon = <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />;
           } else if (t.type === 'warning') {
-            bgClass = 'bg-amber-955/90 border-amber-500/30 text-amber-200';
+            bgClass = 'bg-amber-950/90 border-amber-500/30 text-amber-200';
             icon = <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />;
           }
 
           return (
             <div
               key={t.id}
-              className={`p-4 rounded-2xl border backdrop-blur-md shadow-2xl flex items-start gap-3 text-xs font-semibold pointer-events-auto transition-all duration-300 transform translate-y-0 scale-100 ${bgClass}`}
+              className={`p-4 rounded-2xl border backdrop-blur-md shadow-2xl flex items-center justify-between gap-3 text-xs font-semibold pointer-events-auto transition-all duration-300 transform translate-y-0 scale-100 ${bgClass}`}
             >
-              {icon}
-              <div className="flex-1 leading-relaxed">{t.message}</div>
-              <button
-                onClick={() => removeToast(t.id)}
-                className="text-zinc-500 hover:text-zinc-350 transition-colors shrink-0"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <div className="flex items-center gap-3 min-w-0">
+                {icon}
+                <div className="leading-relaxed truncate">{t.message}</div>
+              </div>
+              
+              <div className="flex items-center gap-2 shrink-0">
+                {t.actionLabel && t.actionCallback && (
+                  <button
+                    onClick={() => {
+                      t.actionCallback?.();
+                      removeToast(t.id);
+                    }}
+                    className="px-2.5 py-1 bg-white/10 hover:bg-white/20 border-none text-[10px] font-black text-white uppercase rounded-lg cursor-pointer transition-all"
+                  >
+                    {t.actionLabel}
+                  </button>
+                )}
+                <button
+                  onClick={() => removeToast(t.id)}
+                  className="text-zinc-500 hover:text-zinc-350 transition-colors shrink-0 border-none bg-transparent cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           );
         })}
