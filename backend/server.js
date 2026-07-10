@@ -27,6 +27,7 @@ const doubtRoutes = require('./routes/doubts');
 const sharedNoteRoutes = require('./routes/sharedNotes');
 const notificationRoutes = require('./routes/notifications');
 const assignmentRoutes = require('./routes/assignments');
+const personalNoteRoutes = require('./routes/personalNotes');
 
 const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
@@ -78,6 +79,7 @@ app.use('/api/doubts', doubtRoutes);
 app.use('/api/shared-notes', sharedNoteRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/assignments', assignmentRoutes);
+app.use('/api/personal-notes', personalNoteRoutes);
 
 // AI Tutor API Route calling Gemini API
 app.post('/api/ai-tutor', async (req, res) => {

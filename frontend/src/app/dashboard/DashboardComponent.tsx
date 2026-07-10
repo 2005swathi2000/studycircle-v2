@@ -8,6 +8,7 @@ import { useApp } from '../context/AppContext';
 import { useToast } from '../components/ToastProvider';
 import { practiceQuestionsPool } from './practiceData';
 import { SimpleDashboard } from './SimpleDashboard';
+import { PersonalNotesView } from './PersonalNotesView';
 import { 
   Users, 
   LogOut, 
@@ -3615,7 +3616,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
         equippedTheme={equippedTheme}
         sessions={mockSessions}
         onCreateGroup={() => setShowCreateModal(true)}
-        onCreateNote={() => setShowCreateNoteModal(true)}
+        onCreateNote={() => setActiveTab('notes')}
         onAskDoubt={() => setShowAskDoubtModal(true)}
         onScheduleSession={() => setShowScheduleSessionModal(true)}
       />
@@ -4290,7 +4291,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
               {[
                 { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
                 { id: 'study', label: 'Study Circles', icon: GraduationCap },
-                { id: 'practice', label: 'Practice', icon: Sparkles }
+                { id: 'practice', label: 'Practice', icon: Sparkles },
+                { id: 'notes', label: 'Notes', icon: FileText }
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -5416,7 +5418,10 @@ Based on your desking logs and consistency, the AI tutor recommends:
           )}
 
           {activeTab === 'notes' && (
-            <div className="space-y-6 text-left">
+            user?.role === 'student' ? (
+              <PersonalNotesView equippedTheme={equippedTheme} setActiveTab={setActiveTab} />
+            ) : (
+              <div className="space-y-6 text-left">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
                 <FileText className="h-4.5 w-4.5 text-[#5227EB]" /> Notes Workspace
               </h3>
@@ -5548,7 +5553,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 </div>
               </div>
             </div>
-          )}
+          )
+        )}
 
           {/* Tab 5: Sessions */}
           {activeTab === 'sessions' && (
@@ -8177,67 +8183,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
         </div>
       )}
 
-      {/* Create Note Modal Overlay */}
-      {showCreateNoteModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="max-w-[380px] w-full bg-[#0d0f1a] border border-white/5 rounded-2xl p-6 space-y-5 shadow-2xl text-white text-left animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-white/5 pb-2">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-amber-400" />
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider">Create Note</h3>
-              </div>
-              <button 
-                onClick={() => setShowCreateNoteModal(false)}
-                className="text-zinc-400 hover:text-white font-bold text-xs border-none bg-transparent cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
 
-            <form onSubmit={handleCreateNoteSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Title *</label>
-                <input
-                  type="text"
-                  required
-                  value={noteTitle}
-                  onChange={(e) => setNoteTitle(e.target.value)}
-                  placeholder="e.g. Operating Systems Notes"
-                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">Content</label>
-                <textarea
-                  value={noteContent}
-                  onChange={(e) => setNoteContent(e.target.value)}
-                  placeholder="Write your note description or contents here..."
-                  rows={4}
-                  className="w-full px-3 py-2 bg-slate-950/50 border border-white/5 focus:border-indigo-500 rounded-xl text-xs text-white outline-none font-medium resize-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateNoteModal(false)}
-                  className="px-4 py-2 border border-white/5 hover:bg-white/5 text-zinc-300 rounded-xl text-xs font-bold transition-all cursor-pointer bg-transparent"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingNote}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border-none"
-                >
-                  {savingNote ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Ask Doubt Modal Overlay */}
       {showAskDoubtModal && (
