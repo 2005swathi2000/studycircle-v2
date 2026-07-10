@@ -3463,6 +3463,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
         completedGoals={completedGoals}
         setCompletedGoals={setCompletedGoals}
         equippedTheme={equippedTheme}
+        sessions={mockSessions}
+        onCreateGroup={() => setShowCreateModal(true)}
       />
     );
   };
