@@ -728,6 +728,7 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
       if (currentTab === 'progress') return 'progress';
       if (currentTab === 'community') return 'community';
       if (currentTab === 'profile') return 'profile';
+      if (currentTab === 'notes') return 'notes';
       return 'dashboard';
     } else if (currentRole === 'mentor') {
       const tabMapRev: Record<string, string> = {
