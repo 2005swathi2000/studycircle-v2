@@ -174,6 +174,355 @@ export function AdminDashboardComponent() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
   };
+
+  // Panel layout reordering state for drag-and-drop
+  const [leftPanels, setLeftPanels] = useState<string[]>(['approvals', 'moderation']);
+  const [rightPanels, setRightPanels] = useState<string[]>(['health', 'activities', 'actions']);
+  const [draggedPanelId, setDraggedPanelId] = useState<string | null>(null);
+  const [draggedSourceCol, setDraggedSourceCol] = useState<'left' | 'right' | null>(null);
+
+  const handlePanelDragStart = (e: React.DragEvent, panelId: string, sourceCol: 'left' | 'right') => {
+    setDraggedPanelId(panelId);
+    setDraggedSourceCol(sourceCol);
+    e.dataTransfer.effectAllowed = 'move';
+    const target = e.currentTarget as HTMLElement;
+    target.style.opacity = '0.4';
+  };
+
+  const handlePanelDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handlePanelDragEnd = (e: React.DragEvent) => {
+    const target = e.currentTarget as HTMLElement;
+    target.style.opacity = '1';
+    setDraggedPanelId(null);
+    setDraggedSourceCol(null);
+  };
+
+  const handlePanelDrop = (e: React.DragEvent, targetCol: 'left' | 'right', targetIndex: number) => {
+    e.preventDefault();
+    if (!draggedPanelId || !draggedSourceCol) return;
+
+    let sourceList = draggedSourceCol === 'left' ? [...leftPanels] : [...rightPanels];
+    const sourceIndex = sourceList.indexOf(draggedPanelId);
+    if (sourceIndex > -1) {
+      sourceList.splice(sourceIndex, 1);
+    }
+
+    let targetList = targetCol === 'left' ? [...leftPanels] : [...rightPanels];
+    if (draggedSourceCol === targetCol) {
+      targetList = sourceList;
+    }
+
+    targetList.splice(targetIndex, 0, draggedPanelId);
+
+    if (targetCol === 'left') {
+      setLeftPanels(targetList);
+      if (draggedSourceCol !== 'left') {
+        setRightPanels(sourceList);
+      }
+    } else {
+      setRightPanels(targetList);
+      if (draggedSourceCol !== 'right') {
+        setLeftPanels(sourceList);
+      }
+    }
+  };
+
+  const handleColumnDrop = (e: React.DragEvent, targetCol: 'left' | 'right') => {
+    e.preventDefault();
+    if (!draggedPanelId || !draggedSourceCol) return;
+    
+    const currentList = targetCol === 'left' ? leftPanels : rightPanels;
+    if (currentList.includes(draggedPanelId)) return;
+
+    let sourceList = draggedSourceCol === 'left' ? [...leftPanels] : [...rightPanels];
+    const sourceIndex = sourceList.indexOf(draggedPanelId);
+    if (sourceIndex > -1) {
+      sourceList.splice(sourceIndex, 1);
+    }
+
+    const targetList = [...currentList, draggedPanelId];
+
+    if (targetCol === 'left') {
+      setLeftPanels(targetList);
+      setRightPanels(sourceList);
+    } else {
+      setRightPanels(targetList);
+      setLeftPanels(sourceList);
+    }
+  };
+
+  const renderPanel = (panelId: string, colType: 'left' | 'right', index: number) => {
+    if (panelId === 'approvals') {
+      return (
+        <div 
+          key="approvals"
+          draggable
+          onDragStart={(e) => handlePanelDragStart(e, 'approvals', colType)}
+          onDragOver={handlePanelDragOver}
+          onDragEnd={handlePanelDragEnd}
+          onDrop={(e) => handlePanelDrop(e, colType, index)}
+          className={`p-5 bg-[#0B0F19]/40 border ${draggedPanelId === 'approvals' ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5'} rounded-lg cursor-grab active:cursor-grabbing transition-all space-y-4 text-left select-none`}
+        >
+          <h3 className="text-[18px] font-bold text-white">Pending Approvals</h3>
+          
+          {loadingApprovals ? (
+            <div className="space-y-2">
+              <div className="h-14 bg-white/5 animate-pulse rounded-lg" />
+              <div className="h-14 bg-white/5 animate-pulse rounded-lg" />
+            </div>
+          ) : errorApprovals ? (
+            <div className="p-4 text-center">
+              <p className="text-xs text-zinc-550">Unable to load pending registrations.</p>
+              <button type="button" onClick={fetchPendingApprovals} className="mt-2 text-indigo-400 underline text-xs font-bold bg-transparent border-none cursor-pointer">Retry</button>
+            </div>
+          ) : pendingApprovals.length === 0 ? (
+            <p className="text-[14px] text-zinc-550 italic py-4 text-center">No pending approvals.</p>
+          ) : (
+            <div className="space-y-3">
+              {pendingApprovals.map(req => (
+                <div key={req.id} className="p-4 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col sm:flex-row justify-between gap-3 text-left">
+                  <div className="flex gap-3">
+                    <div className="h-9 w-9 rounded-full bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center font-bold text-indigo-400 uppercase text-[11px] shrink-0">
+                      {req.fullName.substring(0, 2)}
+                    </div>
+                    <div className="space-y-0.5">
+                      <h4 className="text-[14px] font-semibold text-white">{req.fullName}</h4>
+                      <p className="text-[12px] text-zinc-400">{req.college || 'KL University'}</p>
+                      <span className="text-[11px] text-indigo-400 block font-semibold">Specialization: {req.subjects || req.role}</span>
+                      <span className="text-[10px] text-zinc-550 block pt-0.5">Requested: {getRelativeTime(req.createdAt)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 items-center shrink-0">
+                    <button 
+                      type="button"
+                      onClick={() => setSelectedPendingProfile(req)} 
+                      className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[11px] font-bold cursor-pointer"
+                    >
+                      View Profile
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => handleApproveUser(req.id)} 
+                      className="px-3 py-1.5 bg-emerald-500/15 border border-[#10B981]/20 hover:border-emerald-600 text-emerald-400 text-[11px] font-bold rounded-lg cursor-pointer"
+                    >
+                      Approve
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => handleDeclineUser(req.id)} 
+                      className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/15 hover:border-rose-600 text-rose-455 text-[11px] font-bold rounded-lg cursor-pointer"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (panelId === 'moderation') {
+      return (
+        <div 
+          key="moderation"
+          draggable
+          onDragStart={(e) => handlePanelDragStart(e, 'moderation', colType)}
+          onDragOver={handlePanelDragOver}
+          onDragEnd={handlePanelDragEnd}
+          onDrop={(e) => handlePanelDrop(e, colType, index)}
+          className={`p-5 bg-[#0B0F19]/40 border ${draggedPanelId === 'moderation' ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5'} rounded-lg cursor-grab active:cursor-grabbing transition-all space-y-4 text-left select-none`}
+        >
+          <h3 className="text-[18px] font-bold text-white">Content Moderation</h3>
+          
+          {loadingDoubts ? (
+            <div className="h-12 bg-white/5 animate-pulse rounded-lg" />
+          ) : errorDoubts ? (
+            <div className="p-4 text-center">
+              <p className="text-xs text-zinc-550">Unable to load content flags.</p>
+              <button type="button" onClick={fetchDoubts} className="mt-2 text-indigo-400 underline text-xs font-bold bg-transparent border-none cursor-pointer">Retry</button>
+            </div>
+          ) : doubts.filter(d => d.isReported).length === 0 ? (
+            <div className="py-6 text-center text-[14px] text-emerald-400 font-medium">
+              No reports pending. Everything looks good 🎉
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {doubts.filter(d => d.isReported).slice(0, 3).map(d => (
+                <div key={d.id} className="p-4 bg-white/[0.02] border border-white/5 rounded-lg flex items-center justify-between gap-4 text-left">
+                  <div className="space-y-0.5">
+                    <h4 className="text-[14px] font-semibold text-white truncate max-w-xs">{d.title}</h4>
+                    <p className="text-[12px] text-rose-400 font-medium">Flagged post from: {d.studentName}</p>
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('reports')}
+                    className="px-3.5 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[11px] font-bold rounded-lg text-center cursor-pointer shrink-0 border-none"
+                  >
+                    Review
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (panelId === 'health') {
+      return (
+        <div 
+          key="health"
+          draggable
+          onDragStart={(e) => handlePanelDragStart(e, 'health', colType)}
+          onDragOver={handlePanelDragOver}
+          onDragEnd={handlePanelDragEnd}
+          onDrop={(e) => handlePanelDrop(e, colType, index)}
+          className={`p-5 bg-[#0B0F19]/40 border ${draggedPanelId === 'health' ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5'} rounded-lg cursor-grab active:cursor-grabbing transition-all space-y-4 text-left select-none`}
+        >
+          <h3 className="text-[18px] font-bold text-white">Platform Health</h3>
+          
+          {loadingHealth ? (
+            <div className="space-y-2">
+              <div className="h-4 bg-white/5 animate-pulse rounded" />
+              <div className="h-4 bg-white/5 animate-pulse rounded" />
+            </div>
+          ) : errorHealth ? (
+            <div className="p-4 text-center">
+              <p className="text-xs text-zinc-550">Unable to load infrastructure telemetry.</p>
+              <button type="button" onClick={fetchSystemHealth} className="mt-2 text-indigo-400 underline text-xs font-bold bg-transparent border-none cursor-pointer">Retry</button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
+                <span className="text-[10px] text-zinc-500 uppercase font-bold block">Platform Status</span>
+                <span className="text-[13px] text-emerald-400 font-bold">{healthMetrics.status || 'Healthy'}</span>
+              </div>
+              <div className="p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
+                <span className="text-[10px] text-zinc-500 uppercase font-bold block">Storage Used</span>
+                <span className="text-[13px] text-white font-bold">{healthMetrics.storageUsed || '68%'}</span>
+              </div>
+              <div className="p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
+                <span className="text-[10px] text-zinc-500 uppercase font-bold block">Today's Backup</span>
+                <span className="text-[13px] text-white font-bold">{healthMetrics.backupStatus || 'Completed'}</span>
+              </div>
+              <div className="p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
+                <span className="text-[10px] text-zinc-500 uppercase font-bold block">Average Response</span>
+                <span className="text-[13px] text-white font-bold">{healthMetrics.avgResponseTime || '120 ms'}</span>
+              </div>
+              <div className="col-span-2 p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
+                <span className="text-[10px] text-zinc-500 uppercase font-bold block">System Uptime</span>
+                <span className="text-[13px] text-emerald-400 font-bold">{healthMetrics.uptime || '99.98%'}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (panelId === 'activities') {
+      return (
+        <div 
+          key="activities"
+          draggable
+          onDragStart={(e) => handlePanelDragStart(e, 'activities', colType)}
+          onDragOver={handlePanelDragOver}
+          onDragEnd={handlePanelDragEnd}
+          onDrop={(e) => handlePanelDrop(e, colType, index)}
+          className={`p-5 bg-[#0B0F19]/40 border ${draggedPanelId === 'activities' ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5'} rounded-lg cursor-grab active:cursor-grabbing transition-all space-y-4 text-left select-none`}
+        >
+          <h3 className="text-[18px] font-bold text-white">Recent Platform Activity</h3>
+          
+          {loadingActivities ? (
+            <div className="space-y-2">
+              <div className="h-4 bg-white/5 animate-pulse rounded" />
+              <div className="h-4 bg-white/5 animate-pulse rounded" />
+            </div>
+          ) : errorActivities ? (
+            <div className="p-4 text-center">
+              <p className="text-xs text-zinc-550">Unable to load event logs.</p>
+              <button type="button" onClick={fetchPlatformActivities} className="mt-2 text-indigo-400 underline text-xs font-bold bg-transparent border-none cursor-pointer">Retry</button>
+            </div>
+          ) : activities.length === 0 ? (
+            <p className="text-[14px] text-zinc-550 italic py-4 text-center">No recent platform activity.</p>
+          ) : (
+            <div className="space-y-4">
+              {activities.slice(0, 5).map(act => (
+                <div key={act.id} className="flex justify-between items-start gap-4 text-left">
+                  <div className="space-y-0.5">
+                    <p className="text-[14px] font-semibold text-white">{act.title}</p>
+                    <p className="text-[12px] text-zinc-400 leading-normal">{act.description}</p>
+                    <span className="text-[10px] text-zinc-550 block pt-0.5">User: {act.user}</span>
+                  </div>
+                  <span className="text-[12px] text-zinc-500 shrink-0 mt-0.5">{getRelativeTime(act.createdAt)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (panelId === 'actions') {
+      return (
+        <div 
+          key="actions"
+          draggable
+          onDragStart={(e) => handlePanelDragStart(e, 'actions', colType)}
+          onDragOver={handlePanelDragOver}
+          onDragEnd={handlePanelDragEnd}
+          onDrop={(e) => handlePanelDrop(e, colType, index)}
+          className={`p-5 bg-[#0B0F19]/40 border ${draggedPanelId === 'actions' ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5'} rounded-lg cursor-grab active:cursor-grabbing transition-all space-y-4 text-left select-none`}
+        >
+          <h3 className="text-[18px] font-bold text-white">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <button 
+              type="button"
+              onClick={() => setActiveTab('announcements')} 
+              className="py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[12px] font-bold cursor-pointer"
+            >
+              Create Announcement
+            </button>
+            <button 
+              type="button"
+              onClick={() => setActiveTab('mentors')} 
+              className="py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[12px] font-bold cursor-pointer"
+            >
+              Approve Mentors
+            </button>
+            <button 
+              type="button"
+              onClick={() => setActiveTab('reports')} 
+              className="py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[12px] font-bold cursor-pointer"
+            >
+              View Reports
+            </button>
+            <button 
+              type="button"
+              onClick={() => setActiveTab('students')} 
+              className="py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[12px] font-bold cursor-pointer"
+            >
+              Manage Students
+            </button>
+            <button 
+              type="button"
+              onClick={handleBackupSystem} 
+              className="col-span-2 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-lg text-[12px] font-bold cursor-pointer transition-all uppercase tracking-wider border-none"
+            >
+              Backup System
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
   
   // Platform Settings State
   const [platformSettings, setPlatformSettings] = useState({
@@ -824,220 +1173,35 @@ export function AdminDashboardComponent() {
                 })}
               </div>
 
-              {/* 2-COLUMN workspace layout (Desktop: 2 cols, Mobile/Tablet: 1 col) */}
+              {/* 2-COLUMN workspace layout (Movable Panels via Drag-and-Drop) */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
                 
-                {/* Left Side: Pending Approvals & Moderation */}
-                <div className="space-y-4">
-                  
-                  {/* PENDING APPROVALS LIST */}
-                  <div className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
-                    <h3 className="text-[18px] font-bold text-white">Pending Approvals</h3>
-                    
-                    {loadingApprovals ? (
-                      <div className="space-y-2">
-                        <div className="h-14 bg-white/5 animate-pulse rounded-lg" />
-                        <div className="h-14 bg-white/5 animate-pulse rounded-lg" />
-                      </div>
-                    ) : errorApprovals ? (
-                      <div className="p-4 text-center">
-                        <p className="text-xs text-zinc-500">Unable to load pending registrations.</p>
-                        <button onClick={fetchPendingApprovals} className="mt-2 text-indigo-400 underline text-xs font-bold">Retry</button>
-                      </div>
-                    ) : pendingApprovals.length === 0 ? (
-                      <p className="text-[14px] text-zinc-500 italic py-4 text-center">No pending approvals.</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {pendingApprovals.map(req => (
-                          <div key={req.id} className="p-4 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col sm:flex-row justify-between gap-3 text-left">
-                            <div className="flex gap-3">
-                              <div className="h-9 w-9 rounded-full bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center font-bold text-indigo-400 uppercase text-[11px] shrink-0">
-                                {req.fullName.substring(0, 2)}
-                              </div>
-                              <div className="space-y-0.5">
-                                <h4 className="text-[14px] font-semibold text-white">{req.fullName}</h4>
-                                <p className="text-[12px] text-zinc-400">{req.college || 'KL University'}</p>
-                                <span className="text-[11px] text-indigo-400 block font-semibold">Specialization: {req.subjects || req.role}</span>
-                                <span className="text-[10px] text-zinc-550 block pt-0.5">Requested: {getRelativeTime(req.createdAt)}</span>
-                              </div>
-                            </div>
-                            
-                            <div className="flex gap-2 items-center shrink-0">
-                              <button 
-                                onClick={() => setSelectedPendingProfile(req)} 
-                                className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[11px] font-bold cursor-pointer"
-                              >
-                                View Profile
-                              </button>
-                              <button 
-                                onClick={() => handleApproveUser(req.id)} 
-                                className="px-3 py-1.5 bg-emerald-500/15 border border-[#10B981]/20 hover:border-emerald-600 text-emerald-400 text-[11px] font-bold rounded-lg cursor-pointer"
-                              >
-                                Approve
-                              </button>
-                              <button 
-                                onClick={() => handleDeclineUser(req.id)} 
-                                className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/15 hover:border-rose-600 text-rose-455 text-[11px] font-bold rounded-lg cursor-pointer"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* CONTENT MODERATION */}
-                  <div className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
-                    <h3 className="text-[18px] font-bold text-white">Content Moderation</h3>
-                    
-                    {loadingDoubts ? (
-                      <div className="h-12 bg-white/5 animate-pulse rounded-lg" />
-                    ) : errorDoubts ? (
-                      <div className="p-4 text-center">
-                        <p className="text-xs text-zinc-500">Unable to load content flags.</p>
-                        <button onClick={fetchDoubts} className="mt-2 text-indigo-400 underline text-xs font-bold">Retry</button>
-                      </div>
-                    ) : doubts.filter(d => d.isReported).length === 0 ? (
-                      <div className="py-6 text-center text-[14px] text-emerald-400 font-medium">
-                        No reports pending. Everything looks good 🎉
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {doubts.filter(d => d.isReported).slice(0, 3).map(d => (
-                          <div key={d.id} className="p-4 bg-white/[0.02] border border-white/5 rounded-lg flex items-center justify-between gap-4 text-left">
-                            <div className="space-y-0.5">
-                              <h4 className="text-[14px] font-semibold text-white truncate max-w-xs">{d.title}</h4>
-                              <p className="text-[12px] text-rose-400 font-medium">Flagged post from: {d.studentName}</p>
-                            </div>
-                            
-                            <button
-                              onClick={() => setActiveTab('reports')}
-                              className="px-3.5 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[11px] font-bold rounded-lg text-center cursor-pointer shrink-0"
-                            >
-                              Review
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
+                {/* Left Column drop target */}
+                <div 
+                  onDragOver={handlePanelDragOver}
+                  onDrop={(e) => handleColumnDrop(e, 'left')}
+                  className="space-y-4 min-h-[300px] bg-transparent rounded-lg transition-all"
+                >
+                  {leftPanels.map((panelId, idx) => renderPanel(panelId, 'left', idx))}
+                  {leftPanels.length === 0 && (
+                    <div className="border-2 border-dashed border-white/5 rounded-lg py-12 text-center text-zinc-550 text-xs">
+                      Drop panels here to reorganize
+                    </div>
+                  )}
                 </div>
 
-                {/* Right Side: Health, Activity & Quick Actions */}
-                <div className="space-y-4">
-                  
-                  {/* PLATFORM HEALTH */}
-                  <div className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
-                    <h3 className="text-[18px] font-bold text-white">Platform Health</h3>
-                    
-                    {loadingHealth ? (
-                      <div className="space-y-2">
-                        <div className="h-4 bg-white/5 animate-pulse rounded" />
-                        <div className="h-4 bg-white/5 animate-pulse rounded" />
-                      </div>
-                    ) : errorHealth ? (
-                      <div className="p-4 text-center">
-                        <p className="text-xs text-zinc-500">Unable to load infrastructure telemetry.</p>
-                        <button onClick={fetchSystemHealth} className="mt-2 text-indigo-400 underline text-xs font-bold">Retry</button>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
-                          <span className="text-[10px] text-zinc-500 uppercase font-bold block">Platform Status</span>
-                          <span className="text-[13px] text-emerald-400 font-bold">{healthMetrics.status || 'Healthy'}</span>
-                        </div>
-                        <div className="p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
-                          <span className="text-[10px] text-zinc-500 uppercase font-bold block">Storage Used</span>
-                          <span className="text-[13px] text-white font-bold">{healthMetrics.storageUsed || '68%'}</span>
-                        </div>
-                        <div className="p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
-                          <span className="text-[10px] text-zinc-500 uppercase font-bold block">Today's Backup</span>
-                          <span className="text-[13px] text-white font-bold">{healthMetrics.backupStatus || 'Completed'}</span>
-                        </div>
-                        <div className="p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
-                          <span className="text-[10px] text-zinc-500 uppercase font-bold block">Average Response</span>
-                          <span className="text-[13px] text-white font-bold">{healthMetrics.avgResponseTime || '120 ms'}</span>
-                        </div>
-                        <div className="col-span-2 p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
-                          <span className="text-[10px] text-zinc-500 uppercase font-bold block">System Uptime</span>
-                          <span className="text-[13px] text-emerald-400 font-bold">{healthMetrics.uptime || '99.98%'}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* RECENT PLATFORM ACTIVITY */}
-                  <div className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
-                    <h3 className="text-[18px] font-bold text-white">Recent Platform Activity</h3>
-                    
-                    {loadingActivities ? (
-                      <div className="space-y-2">
-                        <div className="h-4 bg-white/5 animate-pulse rounded" />
-                        <div className="h-4 bg-white/5 animate-pulse rounded" />
-                      </div>
-                    ) : errorActivities ? (
-                      <div className="p-4 text-center">
-                        <p className="text-xs text-zinc-500">Unable to load event logs.</p>
-                        <button onClick={fetchPlatformActivities} className="mt-2 text-indigo-400 underline text-xs font-bold">Retry</button>
-                      </div>
-                    ) : activities.length === 0 ? (
-                      <p className="text-[14px] text-zinc-500 italic py-4 text-center">No recent platform activity.</p>
-                    ) : (
-                      <div className="space-y-4">
-                        {activities.slice(0, 5).map(act => (
-                          <div key={act.id} className="flex justify-between items-start gap-4 text-left">
-                            <div className="space-y-0.5">
-                              <p className="text-[14px] font-semibold text-white">{act.title}</p>
-                              <p className="text-[12px] text-zinc-400 leading-normal">{act.description}</p>
-                              <span className="text-[10px] text-zinc-500 block pt-0.5">User: {act.user}</span>
-                            </div>
-                            <span className="text-[12px] text-zinc-500 shrink-0 mt-0.5">{getRelativeTime(act.createdAt)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* QUICK ACTIONS */}
-                  <div className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
-                    <h3 className="text-[18px] font-bold text-white">Quick Actions</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button 
-                        onClick={() => setActiveTab('announcements')} 
-                        className="py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[12px] font-bold cursor-pointer"
-                      >
-                        Create Announcement
-                      </button>
-                      <button 
-                        onClick={() => setActiveTab('mentors')} 
-                        className="py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[12px] font-bold cursor-pointer"
-                      >
-                        Approve Mentors
-                      </button>
-                      <button 
-                        onClick={() => setActiveTab('reports')} 
-                        className="py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[12px] font-bold cursor-pointer"
-                      >
-                        View Reports
-                      </button>
-                      <button 
-                        onClick={() => setActiveTab('students')} 
-                        className="py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[12px] font-bold cursor-pointer"
-                      >
-                        Manage Students
-                      </button>
-                      <button 
-                        onClick={handleBackupSystem} 
-                        className="col-span-2 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-lg text-[12px] font-bold cursor-pointer transition-all uppercase tracking-wider"
-                      >
-                        Backup System
-                      </button>
+                {/* Right Column drop target */}
+                <div 
+                  onDragOver={handlePanelDragOver}
+                  onDrop={(e) => handleColumnDrop(e, 'right')}
+                  className="space-y-4 min-h-[300px] bg-transparent rounded-lg transition-all"
+                >
+                  {rightPanels.map((panelId, idx) => renderPanel(panelId, 'right', idx))}
+                  {rightPanels.length === 0 && (
+                    <div className="border-2 border-dashed border-white/5 rounded-lg py-12 text-center text-zinc-550 text-xs">
+                      Drop panels here to reorganize
                     </div>
-                  </div>
-
+                  )}
                 </div>
 
               </div>
