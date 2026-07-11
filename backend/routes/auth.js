@@ -1455,4 +1455,89 @@ router.post('/change-password', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /recent-activity
+router.get('/recent-activity', authMiddleware, async (req, res) => {
+  try {
+    const { Session, Assignment, Answer, SharedNote, Doubt } = require('../models');
+    
+    // 1. Fetch sessions
+    const sessions = await Session.findAll({
+      where: { createdBy: req.user.id },
+      limit: 10,
+      order: [['createdAt', 'DESC']]
+    });
+
+    // 2. Fetch assignments
+    const assignments = await Assignment.findAll({
+      where: { createdBy: req.user.id },
+      limit: 10,
+      order: [['createdAt', 'DESC']]
+    });
+
+    // 3. Fetch answers
+    const answers = await Answer.findAll({
+      where: { userId: req.user.id },
+      limit: 10,
+      order: [['createdAt', 'DESC']],
+      include: [{ model: Doubt, attributes: ['title'] }]
+    });
+
+    // 4. Fetch shared notes
+    const user = await User.findByPk(req.user.id);
+    const notes = user ? await SharedNote.findAll({
+      where: { publishedBy: user.username },
+      limit: 10,
+      order: [['createdAt', 'DESC']]
+    }) : [];
+
+    // Merge and format
+    const activities = [];
+
+    sessions.forEach(s => {
+      activities.push({
+        type: 'session',
+        title: 'Created Study Session',
+        description: s.title,
+        createdAt: s.createdAt
+      });
+    });
+
+    assignments.forEach(a => {
+      activities.push({
+        type: 'assignment',
+        title: 'Assigned Practice',
+        description: a.title,
+        createdAt: a.createdAt
+      });
+    });
+
+    answers.forEach(an => {
+      activities.push({
+        type: 'answer',
+        title: 'Answered Discussion',
+        description: an.Doubt ? an.Doubt.title : 'Discussion Thread',
+        createdAt: an.createdAt
+      });
+    });
+
+    notes.forEach(n => {
+      activities.push({
+        type: 'note',
+        title: 'Uploaded Resource',
+        description: n.name,
+        createdAt: n.createdAt
+      });
+    });
+
+    // Sort by date descending
+    activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Limit to 5 items
+    return res.json({ activities: activities.slice(0, 5) });
+  } catch (err) {
+    console.error(err);
+    return res.status(550).json({ error: 'Server error retrieving recent activity.' });
+  }
+});
+
 module.exports = router;

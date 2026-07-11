@@ -165,10 +165,7 @@ export function MentorDashboardComponent() {
   
   // Attendance recording checkboxes state mapping student.id -> isPresent
   const [attendanceRecords, setAttendanceRecords] = useState<Record<string, boolean>>({});
-  const [mentorActivities, setMentorActivities] = useState<any[]>([
-    { title: 'Answered student doubts', desc: 'Resolved recursion questions on Discussion Board.', date: 'Recently' },
-    { title: 'Created exam prep study session', desc: 'Scheduled revision session for DBMS circle.', date: 'Recently' }
-  ]);
+  const [mentorActivities, setMentorActivities] = useState<any[]>([]);
 
   // Form Inputs
   const [newRoom, setNewRoom] = useState({ name: '', description: '', subject: '', isPublic: true });
@@ -418,6 +415,7 @@ export function MentorDashboardComponent() {
       fetchAssignments();
       fetchResources();
       fetchNotifications();
+      fetchRecentActivity();
     }
   }, [user]);
 
@@ -489,12 +487,12 @@ export function MentorDashboardComponent() {
           description: g.description || '',
           subject: g.subject || 'General',
           inviteCode: g.inviteCode || 'INV123',
-          memberCount: g.memberCount || 5,
+          memberCount: g.memberCount || 0,
           isLocked: !g.isPublic,
-          activeStudents: g.activeStudents || 2,
-          mentorAssigned: g.mentorAssigned || 'Mentor',
+          activeStudents: g.memberCount || 0,
+          mentorAssigned: user?.fullName || 'Mentor',
           pendingDoubts: g.pendingDoubts || 0,
-          focusTopic: g.focusTopic || g.subject || 'General Study'
+          focusTopic: g.subject || 'General Study'
         })));
       }
     } catch (err) {
@@ -517,9 +515,10 @@ export function MentorDashboardComponent() {
           durationMinutes: se.durationMinutes || 60,
           meetingLink: se.meetingLink || '',
           groupName: se.Group?.name || 'Study Circle',
-          registered: se.registered || 10,
-          joined: se.joined || 5,
-          attendanceRate: se.attendanceRate || 80
+          groupId: se.groupId,
+          registered: se.registered || 0,
+          joined: se.joined || 0,
+          attendanceRate: se.attendanceRate || 0
         })));
       }
     } catch (err) {
@@ -594,6 +593,56 @@ export function MentorDashboardComponent() {
     }
   };
 
+  const [loadingActivities, setLoadingActivities] = useState(false);
+
+  const fetchRecentActivity = async () => {
+    setLoadingActivities(true);
+    try {
+      const data = await apiRequest('/auth/recent-activity');
+      if (data && data.activities) {
+        setMentorActivities(data.activities);
+      }
+    } catch (err) {
+      console.error('Error fetching recent activity:', err);
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
+
+  const getRelativeTimeString = (dateInput: string | Date) => {
+    if (!dateInput) return '';
+    const date = new Date(dateInput);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+
+    if (diffSec < 60) {
+      return 'Just now';
+    } else if (diffMin < 60) {
+      return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
+    } else if (diffHr < 24) {
+      return `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
+    } else if (diffDay === 1) {
+      return 'Yesterday';
+    } else if (diffDay < 7) {
+      return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+    } else {
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+  };
+
+  const getNextSessionForGroup = (groupId: string) => {
+    const now = new Date();
+    const groupSessions = sessions.filter(s => s.groupId === groupId && s.scheduledAt && new Date(s.scheduledAt) > now);
+    if (groupSessions.length === 0) return 'No upcoming sessions';
+    groupSessions.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+    const targetDate = new Date(groupSessions[0].scheduledAt);
+    return targetDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + targetDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  };
+
   // Custom API clear doubt/room handlers
   const handleSelectDoubt = async (doubtId: string) => {
     const doubt = doubts.find(d => d.id === doubtId);
@@ -624,10 +673,7 @@ export function MentorDashboardComponent() {
         setDoubtAnswers(prev => [...prev, data.answer]);
         setReplyText('');
         addToast('Reply posted successfully!', 'success');
-        setMentorActivities(prev => [
-          { title: 'Answered Student Doubt', desc: `Answered doubt thread: "${selectedDoubt.title}"`, date: 'Just now' },
-          ...prev
-        ]);
+        fetchRecentActivity();
       }
     } catch (err: any) {
       addToast(err.message || 'Failed to post reply.', 'error');
@@ -801,13 +847,10 @@ export function MentorDashboardComponent() {
         })
       });
       addToast(data.message || 'Mentoring session scheduled successfully!', 'success');
-      setMentorActivities(prev => [
-        { title: 'Created Study Session', desc: `Scheduled session "${newSession.title}"`, date: 'Just now' },
-        ...prev
-      ]);
       setNewSession({ groupId: '', title: '', description: '', scheduledAt: '', durationMinutes: 60, meetingLink: '' });
       setShowCreateSession(false);
       fetchSessions();
+      fetchRecentActivity();
     } catch (err: any) {
       console.error(err);
       addToast(err.message || 'Failed to schedule session', 'error');
@@ -834,6 +877,7 @@ export function MentorDashboardComponent() {
       if (data && data.assignment) {
         setAssignments(prev => [data.assignment, ...prev]);
         addToast(`Assignment published!`, 'success');
+        fetchRecentActivity();
       }
       setNewAssignment({ title: '', subject: 'Data Structures', deadline: '', totalAssigned: 42 });
       setShowCreateAssignment(false);
@@ -888,10 +932,10 @@ export function MentorDashboardComponent() {
 
   const getMentorGreeting = () => {
     const hr = new Date().getHours();
-    if (hr >= 5 && hr < 12) return 'Good Morning, Mentor 👋';
-    if (hr >= 12 && hr < 17) return 'Good Afternoon, Mentor 👋';
-    if (hr >= 17 && hr < 21) return 'Good Evening, Mentor 👋';
-    return 'Good Night, Mentor 👋';
+    if (hr >= 5 && hr < 12) return 'Good Morning';
+    if (hr >= 12 && hr < 17) return 'Good Afternoon';
+    if (hr >= 17 && hr < 21) return 'Good Evening';
+    return 'Good Night';
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -1303,56 +1347,60 @@ export function MentorDashboardComponent() {
                 }`}
               >
                 Active Cohort
-              </button>
-            </div>
-          </div>
-
-          {activeTab === 'dashboard' && (
-            <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-300">
+              </button>          {activeTab === 'dashboard' && (
+            <div className="max-w-[1200px] mx-auto space-y-6">
               
-              {/* Section 1 — Welcome Card */}
-              <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-2xl flex flex-col justify-between min-h-[140px] text-left">
-                <div className="space-y-1">
-                  <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">
+              {/* HERO SECTION */}
+              <div className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg text-left space-y-4">
+                <div>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
                     {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                   </span>
-                  <h1 className="text-xl font-black text-white tracking-tight mt-1">
-                    {getMentorGreeting()}, {user?.fullName || 'Mentor'} 👋
+                  <h1 className="text-[28px] font-bold text-white tracking-tight mt-1 leading-tight">
+                    {getMentorGreeting()}, {user?.fullName || 'User'} 👋
                   </h1>
-                  <div className="mt-3 space-y-1">
-                    <p className="text-xs text-zinc-450 font-bold">Today's Schedule:</p>
-                    <ul className="text-xs text-zinc-400 space-y-0.5 list-disc pl-4">
-                      <li><span className="text-indigo-400 font-bold">{todaysSessionsCount}</span> Live Sessions</li>
-                      <li><span className="text-indigo-400 font-bold">{doubts.filter(d => !d.isSolved).length}</span> Pending Doubts</li>
-                      <li><span className="text-indigo-400 font-bold">{strugglingStudents.length}</span> Students Need Attention</li>
-                    </ul>
+                  <p className="text-[14px] text-zinc-400 mt-1 font-medium">
+                    Welcome back. Here's what's waiting for you today.
+                  </p>
+                </div>
+                <div className="max-w-md space-y-2.5 pt-2 border-t border-white/5">
+                  <div className="flex justify-between items-center text-[14px]">
+                    <span className="text-zinc-400 font-medium">Live Sessions</span>
+                    <span className="font-bold text-white">{todaysSessionsCount}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[14px]">
+                    <span className="text-zinc-400 font-medium">Pending Doubts</span>
+                    <span className="font-bold text-white">{doubts.filter(d => !d.isSolved).length}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[14px]">
+                    <span className="text-zinc-400 font-medium">Students Needing Attention</span>
+                    <span className="font-bold text-white">{strugglingStudents.length}</span>
                   </div>
                 </div>
               </div>
 
-              {/* 2-Column Split Workspace */}
-              <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 items-start text-left">
+              {/* Responsive Split Workspace (Desktop 2 Columns, Mobile/Tablet Single Column) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start text-left">
                 
-                {/* Left Side (60%) */}
-                <div className="lg:col-span-6 space-y-7">
+                {/* Left Column */}
+                <div className="space-y-4">
                   
-                  {/* Section 2 — Today's Schedule */}
-                  <div className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-white/5 pb-2">
-                      🗓 Today's Schedule
+                  {/* Today's Schedule */}
+                  <div className="p-5 rounded-lg bg-[#0B0F19]/40 border border-white/5 space-y-4">
+                    <h3 className="text-[18px] font-bold text-white">
+                      Today's Schedule
                     </h3>
-                    
                     {sessions.filter(s => {
                       const todayStr = new Date().toISOString().split('T')[0];
                       return s.scheduledAt && s.scheduledAt.startsWith(todayStr);
                     }).length === 0 ? (
                       <div className="py-6 text-center space-y-3">
-                        <p className="text-xs text-zinc-555 italic">No sessions scheduled today.</p>
+                        <p className="text-[14px] text-zinc-400">No sessions scheduled today.</p>
                         <button
                           onClick={() => setShowCreateSession(true)}
-                          className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-all"
+                          className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[12px] font-bold rounded-lg cursor-pointer transition-all uppercase tracking-wider"
                         >
-                          + Schedule Session
+                          Schedule Session
                         </button>
                       </div>
                     ) : (
@@ -1361,67 +1409,115 @@ export function MentorDashboardComponent() {
                           const todayStr = new Date().toISOString().split('T')[0];
                           return s.scheduledAt && s.scheduledAt.startsWith(todayStr);
                         }).map(sess => (
-                          <div key={sess.id} className="p-4 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-center justify-between gap-4">
-                            <div className="space-y-1">
-                              <h4 className="text-xs font-bold text-white">{sess.title}</h4>
-                              <p className="text-[10px] text-zinc-450 flex items-center gap-1">
-                                <Clock className="h-3.5 w-3.5 text-indigo-400" />
+                          <div key={sess.id} className="p-4 bg-white/[0.02] border border-white/5 rounded-lg flex items-center justify-between gap-4">
+                            <div className="space-y-0.5">
+                              <h4 className="text-[14px] font-semibold text-white">{sess.title}</h4>
+                              <p className="text-[12px] text-indigo-400">
                                 {new Date(sess.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </p>
-                              <span className="text-[9px] font-bold text-indigo-400 block pt-0.5">Circle: {sess.groupName}</span>
+                              <span className="text-[11px] text-zinc-500 block">Circle: {sess.groupName}</span>
                             </div>
-                            <a 
-                              href={sess.meetingLink || '#'} 
-                              target="_blank" 
-                              rel="noreferrer"
-                              className="px-3.5 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider border-none text-center"
-                            >
-                              Join Session
-                            </a>
+                            {sess.meetingLink && (
+                              <a 
+                                href={sess.meetingLink} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="px-3.5 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[11px] font-bold rounded-lg text-center"
+                              >
+                                Join
+                              </a>
+                            )}
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  {/* Section 3 — Students Needing Attention */}
-                  <div className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-white/5 pb-2">
-                      ⚠️ Students Needing Attention
+                  {/* Assigned Study Groups */}
+                  <div className="p-5 rounded-lg bg-[#0B0F19]/40 border border-white/5 space-y-4">
+                    <h3 className="text-[18px] font-bold text-white">
+                      Assigned Study Groups
                     </h3>
-
-                    {strugglingStudents.length === 0 ? (
-                      <p className="text-xs text-zinc-555 italic text-center py-4">No students needing attention today.</p>
+                    {studyRooms.length === 0 ? (
+                      <div className="py-6 text-center space-y-3">
+                        <p className="text-[14px] text-zinc-400">No study groups assigned.</p>
+                        <button
+                          onClick={() => setActiveTab('rooms')}
+                          className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[12px] font-bold rounded-lg cursor-pointer transition-all uppercase tracking-wider"
+                        >
+                          Browse Groups
+                        </button>
+                      </div>
                     ) : (
-                      <div className="space-y-3">
-                        {strugglingStudents.map(s => (
-                          <div key={s.id} className="p-4 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="space-y-1 text-left">
-                              <h4 className="text-xs font-bold text-white">{s.fullName}</h4>
-                              <p className="text-[9px] text-zinc-500">College: {s.college}</p>
-                              <span className="text-[9.5px] font-bold text-rose-455 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/15 inline-block">
-                                Reason: {s.attentionReason}
-                              </span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {studyRooms.map(group => (
+                          <div key={group.id} className="p-4 bg-white/[0.02] border border-white/5 rounded-lg space-y-2 text-left flex flex-col justify-between">
+                            <div>
+                              <h4 className="text-[14px] font-semibold text-white">{group.name}</h4>
+                              <p className="text-[12px] text-zinc-450">{group.memberCount} Students</p>
                             </div>
-                            <div className="flex gap-1.5 flex-wrap sm:flex-nowrap">
-                              <button 
+                            <div className="pt-2 border-t border-white/5 flex justify-between items-center mt-2">
+                              <div className="space-y-0.5">
+                                <span className="text-[10px] uppercase text-zinc-500 block">Next Session</span>
+                                <span className="text-[12px] text-indigo-400 font-semibold">{getNextSessionForGroup(group.id)}</span>
+                              </div>
+                              <button
+                                onClick={() => setActiveTab('rooms')}
+                                className="px-3 py-1 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white text-[11px] font-bold rounded-lg cursor-pointer"
+                              >
+                                Open
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-4">
+                  
+                  {/* Students Needing Attention */}
+                  <div className="p-5 rounded-lg bg-[#0B0F19]/40 border border-white/5 space-y-4">
+                    <h3 className="text-[18px] font-bold text-white">
+                      Students Needing Attention
+                    </h3>
+                    {strugglingStudents.length === 0 ? (
+                      <div className="py-6 text-center">
+                        <p className="text-[14px] text-zinc-400 font-semibold text-[#10B981]">Great!</p>
+                        <p className="text-[12px] text-zinc-500 mt-1">No students currently require attention.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {strugglingStudents.map(s => (
+                          <div key={s.id} className="p-4 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col gap-3">
+                            <div className="space-y-1">
+                              <h4 className="text-[14px] font-semibold text-white">{s.fullName}</h4>
+                              <p className="text-[12px] text-zinc-400">{s.college}</p>
+                              <p className="text-[12px] text-rose-400 font-medium">Reason: {s.attentionReason}</p>
+                              <p className="text-[11px] text-zinc-500">Last Active: {s.lastActive}</p>
+                            </div>
+                            <div className="flex gap-2 flex-wrap">
+                              <button
                                 onClick={() => { setChatStudent(s); setShowChatDrawer(true); }}
-                                className="px-2.5 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all"
+                                className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[11px] font-bold cursor-pointer"
                               >
                                 Message
                               </button>
-                              <button 
+                              <button
                                 onClick={() => {
                                   setNewSession(prev => ({ ...prev, groupId: studyRooms[0]?.id || '' }));
                                   setShowCreateSession(true);
                                 }}
-                                className="px-2.5 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all"
+                                className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[11px] font-bold cursor-pointer"
                               >
-                                Schedule
+                                Schedule Session
                               </button>
-                              <button 
+                              <button
                                 onClick={() => setSelectedStudentDetail(s)}
-                                className="px-2.5 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all"
+                                className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-[11px] font-bold cursor-pointer"
                               >
                                 View Progress
                               </button>
@@ -1432,118 +1528,29 @@ export function MentorDashboardComponent() {
                     )}
                   </div>
 
-                  {/* Section 4 — Pending Doubts */}
-                  <div className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-white/5 pb-2">
-                      💬 Pending Doubts
+                  {/* Recent Activity */}
+                  <div className="p-5 rounded-lg bg-[#0B0F19]/40 border border-white/5 space-y-4">
+                    <h3 className="text-[18px] font-bold text-white">
+                      Recent Activity
                     </h3>
-                    
-                    {doubts.filter(d => !d.isSolved).length === 0 ? (
-                      <div className="py-4 text-center text-emerald-450 text-xs font-bold flex items-center justify-center gap-1.5">
-                        <CheckCircle2 className="h-4.5 w-4.5" />
-                        <span>✓ All doubts resolved today.</span>
+                    {mentorActivities.length === 0 ? (
+                      <div className="py-6 text-center space-y-1">
+                        <p className="text-[14px] text-zinc-450 italic">No recent activity yet.</p>
+                        <p className="text-[12px] text-zinc-500">Start mentoring students to see your activity history.</p>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        {doubts.filter(d => !d.isSolved).slice(0, 4).map(d => (
-                          <div key={d.id} className="p-4 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
-                            <div className="space-y-1 min-w-0 flex-1">
-                              <h4 className="text-xs font-bold text-white truncate">{d.title}</h4>
-                              <p className="text-[10px] text-zinc-450 leading-relaxed line-clamp-2">{d.description}</p>
-                              <p className="text-[8px] text-zinc-550 font-mono pt-1">
-                                Student: {d.studentName} • Subject: {d.topic} • {d.waitingTime}
-                              </p>
+                      <div className="space-y-3.5">
+                        {mentorActivities.slice(0, 5).map((act, i) => (
+                          <div key={i} className="flex justify-between items-start gap-4">
+                            <div className="space-y-0.5">
+                              <p className="text-[14px] font-semibold text-white">{act.title}</p>
+                              <p className="text-[12px] text-zinc-400 leading-normal">{act.description}</p>
                             </div>
-                            <div className="flex gap-1.5 shrink-0">
-                              <button
-                                onClick={() => {
-                                  handleSelectDoubt(d.id);
-                                  setActiveTab('discussions');
-                                }}
-                                className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer"
-                              >
-                                Reply
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  setSelectedDoubt(d);
-                                  try {
-                                    const res = await apiRequest(`/doubts/${d.id}/solve`, { method: 'PUT' });
-                                    addToast(res.message || 'Solved status updated!', 'success');
-                                    fetchDoubts();
-                                  } catch (e) {
-                                    addToast('Failed to update status.', 'error');
-                                  }
-                                }}
-                                className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer"
-                              >
-                                Solve
-                              </button>
-                            </div>
+                            <span className="text-[12px] text-zinc-500 shrink-0 mt-0.5">{getRelativeTimeString(act.createdAt)}</span>
                           </div>
                         ))}
                       </div>
                     )}
-                  </div>
-
-                </div>
-
-                {/* Right Side (40%) */}
-                <div className="lg:col-span-4 space-y-7">
-                  
-                  {/* Section 5 — Study Groups */}
-                  <div className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-white/5 pb-2">
-                      👥 Assigned Study Groups
-                    </h3>
-
-                    {studyRooms.length === 0 ? (
-                      <p className="text-xs text-zinc-555 italic text-center py-4">No study groups assigned.</p>
-                    ) : (
-                      <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
-                        {studyRooms.map(group => (
-                          <div key={group.id} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-center justify-between gap-3 text-left">
-                            <div>
-                              <h4 className="text-xs font-bold text-white">{group.name}</h4>
-                              <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-wider block mt-0.5">Subject: {group.subject}</span>
-                              <span className="text-[8.5px] text-zinc-450 block mt-0.5">{group.memberCount} Members • Active</span>
-                            </div>
-                            <button
-                              onClick={() => setActiveTab('rooms')}
-                              className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-all"
-                            >
-                              Open
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Section 6 — Recent Mentor Activity */}
-                  <div className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 border-b border-white/5 pb-2">
-                      ⏱ Recent Mentor Activity
-                    </h3>
-
-                    <div className="space-y-3">
-                      {mentorActivities.length === 0 ? (
-                        <p className="text-xs text-zinc-555 italic text-center py-4">No recent activity.</p>
-                      ) : (
-                        mentorActivities.slice(0, 5).map((act, i) => (
-                          <div key={i} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-start gap-3 text-left">
-                            <div className="h-7 w-7 rounded-lg bg-indigo-500/10 border border-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
-                              <Clock className="h-3.5 w-3.5" />
-                            </div>
-                            <div className="space-y-0.5 min-w-0">
-                              <h4 className="text-xs font-bold text-white truncate">{act.title}</h4>
-                              <p className="text-[9px] text-zinc-450 leading-normal">{act.desc}</p>
-                              <span className="text-[8px] text-zinc-500 font-mono block mt-1">{act.date}</span>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
                   </div>
 
                 </div>

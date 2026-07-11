@@ -155,7 +155,22 @@ router.get('/', authMiddleware, async (req, res) => {
       }]
     });
 
-    return res.json({ groups: user ? user.Groups : [] });
+    if (!user) {
+      return res.json({ groups: [] });
+    }
+
+    const { Doubt } = require('../models');
+    const groups = [];
+    for (const g of user.Groups) {
+      const memberCount = await GroupMember.count({ where: { groupId: g.id } });
+      const pendingDoubts = await Doubt.count({ where: { groupId: g.id, isSolved: false } });
+      const groupJson = g.toJSON();
+      groupJson.memberCount = memberCount;
+      groupJson.pendingDoubts = pendingDoubts;
+      groups.push(groupJson);
+    }
+
+    return res.json({ groups });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error fetching groups.' });
