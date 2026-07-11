@@ -252,69 +252,97 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   return (
     <div className="space-y-6 text-white text-left font-sans animate-in fade-in duration-300 max-w-7xl mx-auto px-4 md:px-0 pb-16">
       
-      {/* 1. WELCOME CARD & QUICK ACTIONS */}
-      <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
-        {/* Welcome Card (6 cols) */}
-        <div className={`lg:col-span-6 p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl flex flex-col justify-between min-h-[160px]`}>
-          <div className="space-y-1">
-            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">{todayDateString}</span>
-            <h1 className="text-xl font-black text-white tracking-tight mt-1">
-              {greetingText}, {user?.firstName || user?.fullName?.split(' ')[0] || 'Student'} 👋
-            </h1>
-            <p className="text-xs text-zinc-400 font-medium leading-relaxed mt-2 italic">
-              "{motivationalQuote}"
-            </p>
-          </div>
+      {/* 1. WELCOME CARD */}
+      <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl flex flex-col justify-between min-h-[120px]`}>
+        <div className="space-y-1">
+          <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">{todayDateString}</span>
+          <h1 className="text-xl font-black text-white tracking-tight mt-1">
+            {greetingText}, {user?.firstName || user?.fullName?.split(' ')[0] || 'Student'} 👋
+          </h1>
+          <p className="text-xs text-zinc-400 font-medium leading-relaxed mt-2 italic">
+            "{motivationalQuote}"
+          </p>
+        </div>
+      </div>
+
+      {/* 2. REDESIGNED QUICK ACTIONS SECTION */}
+      <div className="space-y-3.5 pt-2">
+        <div className="text-left">
+          <h3 className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
+            ⚡ Quick Actions
+          </h3>
+          <p className="text-[10px] text-zinc-500 font-semibold mt-0.5">
+            Jump directly to the tools you use every day.
+          </p>
         </div>
 
-        {/* Quick Actions (4 cols) */}
-        <div className={`lg:col-span-4 p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl flex flex-col justify-between min-h-[160px]`}>
-          <div>
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">⚡ Quick Actions</h3>
-            <p className="text-[9px] text-zinc-550 font-semibold mt-0.5">Direct navigations to study modules.</p>
-          </div>
-          <div className="grid grid-cols-5 gap-2 mt-4">
-            <button 
-              onClick={() => { setActiveTab('groups'); }}
-              className="p-3 bg-[#0c101d] hover:bg-white/[0.02] border border-white/5 hover:border-zinc-700 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
-              title="Study Circles"
-            >
-              <GraduationCap className="h-4.5 w-4.5 text-zinc-400" />
-              <span className="text-[8.5px] font-black text-zinc-400 uppercase tracking-wider text-center leading-none">Circles</span>
-            </button>
-            <button 
-              onClick={() => { setActiveTab('practice'); setPracticeSubView('questions'); }}
-              className="p-3 bg-[#0c101d] hover:bg-white/[0.02] border border-white/5 hover:border-zinc-700 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
-              title="Practice Questions"
-            >
-              <Trophy className="h-4.5 w-4.5 text-zinc-400" />
-              <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider">Practice</span>
-            </button>
-            <button 
-              onClick={onCreateNote}
-              className="p-3 bg-[#0c101d] hover:bg-white/[0.02] border border-white/5 hover:border-zinc-700 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
-              title="Create Note"
-            >
-              <FileText className="h-4.5 w-4.5 text-zinc-400" />
-              <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider">Notes</span>
-            </button>
-            <button 
-              onClick={onAskDoubt}
-              className="p-3 bg-[#0c101d] hover:bg-white/[0.02] border border-white/5 hover:border-zinc-700 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
-              title="Discussion Board"
-            >
-              <MessageSquare className="h-4.5 w-4.5 text-zinc-400" />
-              <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider">Doubts</span>
-            </button>
-            <button 
-              onClick={onScheduleSession}
-              className="p-3 bg-[#0c101d] hover:bg-white/[0.02] border border-white/5 hover:border-zinc-700 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
-              title="Schedule Study"
-            >
-              <Calendar className="h-4.5 w-4.5 text-zinc-400" />
-              <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider">Schedule</span>
-            </button>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {[
+            {
+              title: 'Study Circles',
+              desc: 'Join or create study rooms',
+              icon: GraduationCap,
+              action: () => setActiveTab('groups'),
+              color: 'text-indigo-400',
+              accentBg: 'bg-indigo-500/10 border-indigo-500/15'
+            },
+            {
+              title: 'Practice',
+              desc: 'Solve coding & quiz challenges',
+              icon: Sparkles,
+              action: () => { setActiveTab('practice'); setPracticeSubView('questions'); },
+              color: 'text-emerald-400',
+              accentBg: 'bg-emerald-500/10 border-emerald-500/15'
+            },
+            {
+              title: 'Notes',
+              desc: 'Write and organize study notes',
+              icon: FileText,
+              action: onCreateNote,
+              color: 'text-sky-400',
+              accentBg: 'bg-sky-500/10 border-sky-500/15'
+            },
+            {
+              title: 'Discussion',
+              desc: 'Ask and answer doubts',
+              icon: MessageSquare,
+              action: onAskDoubt,
+              color: 'text-[#7C4DFF]',
+              accentBg: 'bg-[#7C4DFF]/10 border-[#7C4DFF]/15'
+            },
+            {
+              title: 'Schedule',
+              desc: "Plan today's study sessions",
+              icon: Calendar,
+              action: onScheduleSession,
+              color: 'text-amber-400',
+              accentBg: 'bg-amber-500/10 border-amber-500/15'
+            }
+          ].map((act, idx) => {
+            const Icon = act.icon;
+            return (
+              <button
+                key={idx}
+                onClick={act.action}
+                className={`group p-5 bg-[#0B0F19]/40 border border-white/5 hover:border-[#7C4DFF]/30 hover:shadow-[0_0_20px_rgba(124,77,255,0.08)] rounded-xl flex flex-col justify-between min-h-[140px] text-left cursor-pointer transition-all duration-200 hover:-translate-y-0.5`}
+              >
+                <div className="space-y-3 w-full flex flex-col h-full justify-between">
+                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-250 group-hover:scale-105 ${act.accentBg}`}>
+                    <Icon className={`h-4.5 w-4.5 ${act.color}`} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-100 group-hover:text-[#7C4DFF] transition-colors flex items-center gap-1">
+                      {act.title}
+                      <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-[-4px] group-hover:translate-x-0" />
+                    </h4>
+                    <p className="text-[10px] text-zinc-500 leading-normal font-medium mt-1 select-none">
+                      {act.desc}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
