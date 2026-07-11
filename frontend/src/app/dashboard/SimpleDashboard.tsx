@@ -1,24 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Flame, 
-  CheckCircle2, 
-  ArrowRight,
-  BookOpen,
-  Award,
-  Trophy,
-  Clock,
-  Check,
-  Calendar,
+  LayoutDashboard,
+  GraduationCap,
   Sparkles,
-  Search,
-  PlusCircle,
-  MessageSquare,
   FileText,
+  MessageSquare,
+  Calendar,
   Video,
-  ChevronRight,
+  Trophy,
   HelpCircle,
   Plus,
-  Play
+  Check,
+  Play,
+  Clock,
+  BookOpen,
+  ChevronRight,
+  User
 } from 'lucide-react';
 import { useToast } from '../components/ToastProvider';
 import { apiRequest } from '../utils/api';
@@ -62,7 +59,9 @@ interface SimpleDashboardProps {
 export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   user,
   stats,
-  myGroups,
+  loading = false,
+  myGroups = [],
+  router,
   setActiveTab,
   setStudySubView,
   setPracticeSubView,
@@ -74,36 +73,21 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   onScheduleSession
 }) => {
   const { showToast } = useToast();
-  
-  // Local storage values for quizzes/practice questions
+
+  // Load practice quiz history from localStorage for real activity log
   const [practiceAttempts, setPracticeAttempts] = useState(0);
   const [practiceCorrect, setPracticeCorrect] = useState(0);
-  const [practiceXP, setPracticeXP] = useState(0);
-  const [completedLessonsCount, setCompletedLessonsCount] = useState(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const atts = parseInt(localStorage.getItem('studycircle_practice_attempts') || '0', 10);
       const corrects = parseInt(localStorage.getItem('studycircle_practice_correct') || '0', 10);
-      const pxp = parseInt(localStorage.getItem('studycircle_practice_xp') || '0', 10);
       setPracticeAttempts(atts);
       setPracticeCorrect(corrects);
-      setPracticeXP(pxp);
-
-      // Sum completed lessons
-      let count = 0;
-      myGroups.forEach(group => {
-        const slug = group.subject ? group.subject.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'programming-dsa';
-        try {
-          const ids = JSON.parse(localStorage.getItem('sc_completed_' + slug) || '[]');
-          count += ids.length;
-        } catch (e) {}
-      });
-      setCompletedLessonsCount(count);
     }
-  }, [myGroups]);
+  }, []);
 
-  // Dynamic theme config mapping
+  // Theme Styles mapping
   const cardStyle = useMemo(() => {
     switch (equippedTheme) {
       case 'cyberpunk':
@@ -111,129 +95,91 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           bg: 'bg-[#0f021e]/80 backdrop-blur-md',
           border: 'border border-fuchsia-500/20 shadow-md shadow-fuchsia-500/5',
           accent: 'text-fuchsia-400',
-          hoverBg: 'hover:bg-fuchsia-500/5',
-          badge: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20'
+          button: 'bg-fuchsia-600 hover:bg-fuchsia-500',
+          checkbox: 'bg-fuchsia-600 border-fuchsia-500'
         };
       case 'zengarden':
         return {
           bg: 'bg-[#03140a]/80 backdrop-blur-md',
           border: 'border border-emerald-500/20 shadow-md shadow-emerald-500/5',
           accent: 'text-emerald-400',
-          hoverBg: 'hover:bg-emerald-500/5',
-          badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+          button: 'bg-emerald-600 hover:bg-emerald-500',
+          checkbox: 'bg-emerald-600 border-emerald-500'
         };
       case 'theme_solar_glow':
         return {
           bg: 'bg-[#1c1209]/80 backdrop-blur-md',
           border: 'border border-amber-500/20 shadow-md shadow-amber-500/5',
           accent: 'text-amber-400',
-          hoverBg: 'hover:bg-amber-500/5',
-          badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+          button: 'bg-amber-600 hover:bg-amber-500',
+          checkbox: 'bg-amber-600 border-amber-500'
         };
       case 'theme_dark_nebula':
         return {
           bg: 'bg-[#120a1c]/80 backdrop-blur-md',
           border: 'border border-purple-500/20 shadow-md shadow-purple-500/5',
           accent: 'text-purple-400',
-          hoverBg: 'hover:bg-purple-500/5',
-          badge: 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+          button: 'bg-indigo-650 hover:bg-indigo-550',
+          checkbox: 'bg-indigo-650 border-indigo-550'
         };
-      case 'theme_emerald_cosmic':
-        return {
-          bg: 'bg-[#061510]/80 backdrop-blur-md',
-          border: 'border border-emerald-500/20 shadow-md shadow-emerald-550/5',
-          accent: 'text-emerald-400',
-          hoverBg: 'hover:bg-emerald-500/5',
-          badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-        };
-      case 'default':
       default:
         return {
           bg: 'bg-[#0B0F19]/60 backdrop-blur-md',
           border: 'border border-white/5 shadow-2xl',
           accent: 'text-indigo-400',
-          hoverBg: 'hover:bg-indigo-500/5',
-          badge: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+          button: 'bg-indigo-600 hover:bg-indigo-500',
+          checkbox: 'bg-indigo-650 border-indigo-550'
         };
     }
   }, [equippedTheme]);
 
-  const buttonStyle = useMemo(() => {
-    switch (equippedTheme) {
-      case 'cyberpunk':
-        return 'bg-fuchsia-600 hover:bg-fuchsia-500';
-      case 'zengarden':
-        return 'bg-emerald-600 hover:bg-emerald-500';
-      case 'theme_solar_glow':
-        return 'bg-amber-600 hover:bg-amber-500';
-      case 'theme_dark_nebula':
-        return 'bg-indigo-650 hover:bg-indigo-550';
-      case 'default':
-      default:
-        return 'bg-blue-650 hover:bg-blue-550';
-    }
-  }, [equippedTheme]);
-
-  const checkboxStyle = useMemo(() => {
-    switch (equippedTheme) {
-      case 'cyberpunk':
-        return 'bg-fuchsia-600 border-fuchsia-500';
-      case 'zengarden':
-        return 'bg-emerald-600 border-emerald-500';
-      case 'theme_solar_glow':
-        return 'bg-amber-600 border-amber-500';
-      case 'theme_dark_nebula':
-        return 'bg-indigo-650 border-indigo-550';
-      case 'default':
-      default:
-        return 'bg-blue-650 border-blue-550';
-    }
-  }, [equippedTheme]);
-
-  const themeGradient = useMemo(() => {
-    switch (equippedTheme) {
-      case 'zengarden': return 'from-emerald-500 to-teal-500';
-      case 'cyberpunk': return 'from-fuchsia-500 to-purple-500';
-      case 'theme_solar_glow': return 'from-amber-500 to-orange-500';
-      case 'theme_dark_nebula': return 'from-indigo-500 to-purple-600';
-      default: return 'from-indigo-500 to-blue-600';
-    }
-  }, [equippedTheme]);
-
-  // Active course progress calculation
-  const activeCourse = myGroups && myGroups.length > 0 ? myGroups[0] : null;
-  let activeSlug = 'programming-dsa';
-  let completedIds: string[] = [];
-  let totalLessons = 10;
-  let progressPercent = 0;
-
-  if (activeCourse) {
-    activeSlug = activeCourse.subject ? activeCourse.subject.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'programming-dsa';
-    if (typeof window !== 'undefined') {
-      try {
-        completedIds = JSON.parse(localStorage.getItem('sc_completed_' + activeSlug) || '[]');
-      } catch (e) {}
-    }
-    totalLessons = activeSlug.includes('dsa') || activeSlug.includes('programming') ? 20 : activeSlug.includes('ai') ? 15 : 10;
-    progressPercent = Math.min(100, Math.round((completedIds.length / totalLessons) * 100));
-  }
-
-  // Greeting logic
-  const getGreetingText = () => {
+  // Greeting text selector
+  const greetingText = useMemo(() => {
     const hr = new Date().getHours();
     if (hr >= 5 && hr < 12) return 'Good Morning';
     if (hr >= 12 && hr < 17) return 'Good Afternoon';
     return 'Good Evening';
-  };
+  }, []);
 
-  const todayDateString = new Date().toLocaleDateString(undefined, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  // Today Date formatted string
+  const todayDateString = useMemo(() => {
+    return new Date().toLocaleDateString(undefined, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }, []);
 
-  // Toggle assigned task status
+  // Static daily-rotated quote
+  const motivationalQuote = useMemo(() => {
+    const day = new Date().getDate();
+    const quotes = [
+      "Consistency is the secret key to engineering mastery.",
+      "Small progress every day beats occasional perfection.",
+      "Your study circle is waiting for you to practice today.",
+      "Focus on the study topic, not the statistics.",
+      "Master the basics first. Build, break, refactor, and learn."
+    ];
+    return quotes[day % quotes.length];
+  }, []);
+
+  // Continue Learning path logic
+  const activeCourse = myGroups && myGroups.length > 0 ? myGroups[0] : null;
+  const progressPercent = useMemo(() => {
+    if (!activeCourse) return 0;
+    const slug = activeCourse.subject ? activeCourse.subject.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'programming-dsa';
+    let completedIds: string[] = [];
+    if (typeof window !== 'undefined') {
+      try {
+        completedIds = JSON.parse(localStorage.getItem('sc_completed_' + slug) || '[]');
+      } catch (e) {}
+    }
+    const totalLessons = slug.includes('dsa') || slug.includes('programming') ? 20 : slug.includes('ai') ? 15 : 10;
+    return Math.min(100, Math.round((completedIds.length / totalLessons) * 100));
+  }, [activeCourse]);
+
+  // Toggle assigned task status (real DB toggle)
   const handleToggleTaskStatus = async (taskId: string, currentStatus: string) => {
     try {
       const newStatus = currentStatus === 'Completed' ? 'Pending' : 'Completed';
@@ -244,200 +190,164 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         method: 'POST',
         body: JSON.stringify({ assignedTasks: updated })
       });
-      showToast(newStatus === 'Completed' ? 'Task marked as completed! (+50 XP)' : 'Task marked as pending', 'success');
+      showToast(newStatus === 'Completed' ? 'Task marked as completed!' : 'Task marked as pending', 'success');
+      // Simple location reload to sync task state changes cleanly
       if (typeof window !== 'undefined') window.location.reload();
     } catch (e) {
       showToast('Failed to update task status.', 'error');
     }
   };
 
-  // Build real activities feed
+  // Build 100% real activity list
   const realActivities = useMemo(() => {
     const actList = [];
-    if (stats?.totalStudyHours > 0) {
-      actList.push({
-        icon: Clock,
-        title: 'Logged focus study session',
-        desc: `Studied in study circle voice room for ${stats.totalStudyHours} hours.`,
-        time: 'Today'
-      });
-    }
+    
+    // Add real group registrations
     myGroups.forEach((group) => {
       actList.push({
-        icon: BookOpen,
-        title: 'Joined Study Circle',
-        desc: `Enrolled in ${group.name} (${group.subject}) circle workspace.`,
-        time: 'Recently'
+        title: `Joined ${group.name} Circle`,
+        desc: `Enrolled in ${group.subject || 'Core CS'} workspace study circle.`,
+        date: new Date(group.createdAt || Date.now()).toLocaleDateString()
       });
     });
-    if (completedLessonsCount > 0) {
-      actList.push({
-        icon: CheckCircle2,
-        title: 'Completed topic lessons',
-        desc: `Successfully finished ${completedLessonsCount} academic topics.`,
-        time: 'This week'
-      });
-    }
+
+    // Add practice question events
     if (practiceAttempts > 0) {
       actList.push({
-        icon: Trophy,
-        title: 'Solved practice quiz questions',
-        desc: `Completed practice session with ${practiceCorrect} correct answers.`,
-        time: 'This week'
+        title: 'Solved Practice Questions',
+        desc: `Attempted ${practiceAttempts} practice coding challenges and solved ${practiceCorrect} correctly.`,
+        date: 'Recent'
       });
     }
+
     return actList;
-  }, [stats, myGroups, completedLessonsCount, practiceAttempts, practiceCorrect]);
+  }, [myGroups, practiceAttempts, practiceCorrect]);
+
+  // SKELETON LOADER
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-7xl mx-auto px-4 md:px-0 text-left animate-pulse">
+        {/* Welcome Card & Quick Actions Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+          <div className="lg:col-span-6 p-6 bg-slate-900/40 border border-white/5 rounded-2xl h-[160px]" />
+          <div className="lg:col-span-4 p-6 bg-slate-900/40 border border-white/5 rounded-2xl h-[160px]" />
+        </div>
+        
+        {/* Main Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+          <div className="lg:col-span-6 space-y-6">
+            <div className="p-6 bg-slate-900/40 border border-white/5 rounded-2xl h-[200px]" />
+            <div className="p-6 bg-slate-900/40 border border-white/5 rounded-2xl h-[200px]" />
+            <div className="p-6 bg-slate-900/40 border border-white/5 rounded-2xl h-[200px]" />
+          </div>
+          <div className="lg:col-span-4 space-y-6">
+            <div className="p-6 bg-slate-900/40 border border-white/5 rounded-2xl h-[250px]" />
+            <div className="p-6 bg-slate-900/40 border border-white/5 rounded-2xl h-[250px]" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 text-white text-left font-sans animate-in fade-in duration-300 max-w-7xl mx-auto px-4 md:px-0">
+    <div className="space-y-6 text-white text-left font-sans animate-in fade-in duration-300 max-w-7xl mx-auto px-4 md:px-0 pb-16">
       
       {/* 1. WELCOME CARD & QUICK ACTIONS */}
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
-        {/* Welcome Card (6 columns span) */}
-        <div className={`lg:col-span-6 p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl relative overflow-hidden flex flex-col justify-between min-h-[160px]`}>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/[0.02] rounded-full blur-2xl pointer-events-none" />
+        {/* Welcome Card (6 cols) */}
+        <div className={`lg:col-span-6 p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl flex flex-col justify-between min-h-[160px]`}>
           <div className="space-y-1">
-            <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block">{todayDateString}</span>
-            <h1 className="text-2xl font-black text-white tracking-tight mt-1">
-              {getGreetingText()}, {user?.firstName || user?.fullName?.split(' ')[0] || 'Student'} 👋
+            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">{todayDateString}</span>
+            <h1 className="text-xl font-black text-white tracking-tight mt-1">
+              {greetingText}, {user?.firstName || user?.fullName?.split(' ')[0] || 'Student'} 👋
             </h1>
             <p className="text-xs text-zinc-400 font-medium leading-relaxed mt-2 italic">
-              "Small progress every day beats occasional perfection."
+              "{motivationalQuote}"
             </p>
           </div>
         </div>
 
-        {/* Quick Actions (4 columns span) */}
+        {/* Quick Actions (4 cols) */}
         <div className={`lg:col-span-4 p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl flex flex-col justify-between min-h-[160px]`}>
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400">⚡ Quick Actions</h3>
-            <p className="text-[10px] text-zinc-500 font-medium mt-0.5">Quick navigations to build learning consistency.</p>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">⚡ Quick Actions</h3>
+            <p className="text-[9px] text-zinc-550 font-semibold mt-0.5">Direct navigations to study modules.</p>
           </div>
           <div className="grid grid-cols-5 gap-2 mt-4">
             <button 
               onClick={onCreateGroup}
-              className="p-3 bg-[#0c101d] hover:bg-indigo-650/15 border border-white/5 hover:border-indigo-500/30 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
+              className="p-3 bg-[#0c101d] hover:bg-white/[0.02] border border-white/5 hover:border-zinc-700 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
               title="Create Study Room"
             >
-              <Video className="h-4.5 w-4.5 text-indigo-400" />
-              <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wide">Live Room</span>
+              <Video className="h-4.5 w-4.5 text-zinc-400" />
+              <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider">Rooms</span>
             </button>
             <button 
               onClick={() => { setActiveTab('practice'); setPracticeSubView('questions'); }}
-              className="p-3 bg-[#0c101d] hover:bg-indigo-650/15 border border-white/5 hover:border-indigo-500/30 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
+              className="p-3 bg-[#0c101d] hover:bg-white/[0.02] border border-white/5 hover:border-zinc-700 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
               title="Practice Questions"
             >
-              <Trophy className="h-4.5 w-4.5 text-emerald-400" />
-              <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wide">Practice</span>
+              <Trophy className="h-4.5 w-4.5 text-zinc-400" />
+              <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider">Practice</span>
             </button>
             <button 
               onClick={onCreateNote}
-              className="p-3 bg-[#0c101d] hover:bg-indigo-650/15 border border-white/5 hover:border-indigo-500/30 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
+              className="p-3 bg-[#0c101d] hover:bg-white/[0.02] border border-white/5 hover:border-zinc-700 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
               title="Create Note"
             >
-              <FileText className="h-4.5 w-4.5 text-amber-400" />
-              <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wide">Notes</span>
+              <FileText className="h-4.5 w-4.5 text-zinc-400" />
+              <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider">Notes</span>
             </button>
             <button 
               onClick={onAskDoubt}
-              className="p-3 bg-[#0c101d] hover:bg-indigo-650/15 border border-white/5 hover:border-indigo-500/30 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
-              title="Ask Doubt"
+              className="p-3 bg-[#0c101d] hover:bg-white/[0.02] border border-white/5 hover:border-zinc-700 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
+              title="Discussion Board"
             >
-              <HelpCircle className="h-4.5 w-4.5 text-purple-400" />
-              <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wide">Ask Doubt</span>
+              <MessageSquare className="h-4.5 w-4.5 text-zinc-400" />
+              <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider">Doubts</span>
             </button>
             <button 
               onClick={onScheduleSession}
-              className="p-3 bg-[#0c101d] hover:bg-indigo-650/15 border border-white/5 hover:border-indigo-500/30 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
-              title="Schedule Session"
+              className="p-3 bg-[#0c101d] hover:bg-white/[0.02] border border-white/5 hover:border-zinc-700 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
+              title="Schedule Study"
             >
-              <Calendar className="h-4.5 w-4.5 text-blue-400" />
-              <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wide">Schedule</span>
+              <Calendar className="h-4.5 w-4.5 text-zinc-400" />
+              <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider">Schedule</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Main Grid Layout */}
+      {/* Main Grid Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-start">
         
-        {/* LEFT COLUMN (6 columns span) */}
+        {/* LEFT COLUMN: Study Tasks & Sessions */}
         <div className="lg:col-span-6 space-y-6">
           
-          {/* 2. TODAY'S STUDY PLAN */}
+          {/* 2. CONTINUE LEARNING */}
           <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl space-y-4`}>
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-2">
-                📋 Today's Study Plan
-              </h3>
-            </div>
-            
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-              {!user?.assignedTasks || user.assignedTasks.length === 0 ? (
-                <div className="py-4 text-center">
-                  <p className="text-xs text-zinc-500 italic">No tasks for today.</p>
-                </div>
-              ) : (
-                user.assignedTasks.map((task: any) => {
-                  const isCompleted = task.status === 'Completed';
-                  return (
-                    <div 
-                      key={task.id} 
-                      className={`p-3 bg-[#0B0F19]/40 border rounded-xl flex items-center justify-between gap-3 text-left transition-all ${
-                        isCompleted ? 'border-emerald-500/10 opacity-70' : 'border-white/5'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => handleToggleTaskStatus(task.id, task.status)}
-                          className={`h-5 w-5 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
-                            isCompleted ? `${checkboxStyle} text-white` : 'border-zinc-700 bg-transparent'
-                          }`}
-                        >
-                          {isCompleted && <Check className="h-3.5 w-3.5 stroke-[3]" />}
-                        </button>
-                        <div>
-                          <h4 className={`text-xs font-bold ${isCompleted ? 'line-through text-zinc-500' : 'text-white'}`}>
-                            {task.title}
-                          </h4>
-                          <p className="text-[10px] text-zinc-500 mt-0.5">{task.description}</p>
-                        </div>
-                      </div>
-                      <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                        task.priority === 'High' ? 'bg-rose-500/10 text-rose-455 border border-rose-500/20' :
-                        task.priority === 'Medium' ? 'bg-amber-500/10 text-amber-455 border border-amber-500/20' :
-                        'bg-slate-500/10 text-slate-400 border border-slate-500/10'
-                      }`}>
-                        {task.priority}
-                      </span>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* 3. CONTINUE LEARNING */}
-          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl space-y-4`}>
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400">
-                📖 Continue Learning
-              </h3>
-            </div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pb-2 border-b border-white/5 flex items-center gap-1.5">
+              📖 Continue Learning
+            </h3>
             
             {!activeCourse ? (
-              <div className="py-4 text-center">
-                <p className="text-xs text-zinc-500 italic">No active course.</p>
+              <div className="py-6 text-center space-y-3">
+                <p className="text-xs text-zinc-550 italic">No active learning.</p>
+                <button
+                  onClick={() => { setActiveTab('study'); setStudySubView('workspaces'); }}
+                  className={`px-4 py-2 ${cardStyle.button} text-white text-xs font-black uppercase rounded-xl border-none cursor-pointer`}
+                >
+                  Start Learning
+                </button>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="flex justify-between items-start gap-4">
                   <div>
-                    <h4 className="text-sm font-black text-white">{activeCourse.name}</h4>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">Syllabus Path: {activeCourse.subject}</p>
+                    <h4 className="text-xs font-bold text-white leading-normal">{activeCourse.name}</h4>
+                    <p className="text-[10px] text-zinc-500 mt-0.5">Subject Path: {activeCourse.subject}</p>
                   </div>
-                  <span className="text-[9px] px-2 py-0.5 bg-indigo-500/10 text-indigo-400 rounded font-bold uppercase">
+                  <span className="text-[8px] px-2 py-0.5 bg-indigo-500/10 text-indigo-400 rounded font-black uppercase tracking-wide border border-indigo-500/15">
                     Active
                   </span>
                 </div>
@@ -445,49 +355,101 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-[10px] text-zinc-400 font-bold">
                     <span>{progressPercent}% Complete</span>
-                    <span>{totalLessons - completedIds.length} topics left</span>
                   </div>
                   <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/5">
-                    <div className={`h-full bg-gradient-to-r ${themeGradient} rounded-full transition-all duration-500`} style={{ width: `${progressPercent}%` }} />
+                    <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }} />
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-end pt-1">
                   <button
                     onClick={() => { setActiveTab('study'); setStudySubView('workspaces'); }}
-                    className={`px-4 py-2 ${buttonStyle} text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center gap-1.5`}
+                    className={`px-4 py-2 ${cardStyle.button} text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition duration-200 cursor-pointer border-none flex items-center gap-1`}
                   >
-                    Resume Learning <Play className="h-3 w-3 fill-current" />
+                    Resume learning <Play className="h-3 w-3 fill-current" />
                   </button>
                 </div>
               </div>
             )}
           </div>
 
+          {/* 3. TODAY'S TASKS */}
+          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl space-y-4`}>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pb-2 border-b border-white/5">
+              📋 Today's Tasks
+            </h3>
+            
+            <div className="space-y-3">
+              {!user?.assignedTasks || user.assignedTasks.filter((t: any) => t.status !== 'Completed').length === 0 ? (
+                <div className="py-6 text-center">
+                  <p className="text-xs text-zinc-555 italic">No tasks for today.</p>
+                </div>
+              ) : (
+                user.assignedTasks
+                  .filter((task: any) => task.status !== 'Completed')
+                  .map((task: any) => (
+                    <div 
+                      key={task.id} 
+                      className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-center justify-between gap-3 text-left transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleToggleTaskStatus(task.id, task.status)}
+                          className={`h-5 w-5 rounded-lg border border-zinc-700 hover:border-indigo-500 bg-transparent flex items-center justify-center transition-all cursor-pointer`}
+                        >
+                          <Check className="h-3.5 w-3.5 opacity-0 hover:opacity-100 transition-opacity" />
+                        </button>
+                        <div>
+                          <h4 className="text-xs font-bold text-white leading-snug">
+                            {task.title}
+                          </h4>
+                          <p className="text-[10px] text-zinc-500 mt-0.5">{task.description}</p>
+                        </div>
+                      </div>
+                      <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${
+                        task.priority === 'High' ? 'bg-rose-500/10 text-rose-455 border border-rose-500/20' :
+                        task.priority === 'Medium' ? 'bg-amber-500/10 text-amber-455 border border-amber-500/20' :
+                        'bg-slate-500/10 text-slate-400 border border-slate-500/10'
+                      }`}>
+                        {task.priority}
+                      </span>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+
           {/* 4. UPCOMING STUDY SESSIONS */}
           <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl space-y-4`}>
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400">
-                📅 Upcoming Study Sessions
-              </h3>
-            </div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pb-2 border-b border-white/5">
+              🗓 Upcoming Study Sessions
+            </h3>
 
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+            <div className="space-y-3">
               {sessions.length === 0 ? (
-                <div className="py-4 text-center">
-                  <p className="text-xs text-zinc-500 italic">No sessions scheduled.</p>
+                <div className="py-6 text-center space-y-3">
+                  <p className="text-xs text-zinc-555 italic">No sessions scheduled.</p>
+                  <button
+                    onClick={onScheduleSession}
+                    className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-white/10 text-zinc-300 text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider"
+                  >
+                    Schedule Session
+                  </button>
                 </div>
               ) : (
                 sessions.map((sess) => (
                   <div key={sess.id} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-center justify-between gap-3 text-left">
                     <div className="space-y-1">
                       <h4 className="text-xs font-bold text-white leading-snug">{sess.title}</h4>
-                      <p className="text-[10px] text-zinc-400">{sess.time}</p>
-                      <p className="text-[9px] text-indigo-400 font-semibold">{sess.subject}</p>
+                      <p className="text-[10px] text-zinc-400 flex items-center gap-1 font-medium">
+                        <Clock className="h-3 w-3 text-indigo-400" />
+                        {sess.time}
+                      </p>
+                      <p className="text-[9px] text-indigo-400 font-bold">Subject: {sess.subject}</p>
                     </div>
                     <button 
                       onClick={() => { setActiveTab('study'); setStudySubView('rooms'); }}
-                      className="px-3.5 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider font-bold transition-all"
+                      className="px-3.5 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-all"
                     >
                       Join
                     </button>
@@ -497,118 +459,101 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             </div>
           </div>
 
+        </div>
+
+        {/* RIGHT COLUMN: Study Groups & Activity */}
+        <div className="lg:col-span-4 space-y-6">
+          
           {/* 5. STUDY GROUPS */}
           <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl space-y-4`}>
             <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400">
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
                 👥 Study Groups
               </h3>
-              <button 
-                onClick={onCreateGroup}
-                className="text-[10px] text-indigo-400 font-bold uppercase hover:underline cursor-pointer"
-              >
-                + Create Group
-              </button>
             </div>
 
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+            <div className="space-y-3">
               {myGroups.length === 0 ? (
-                <div className="py-4 text-center">
-                  <p className="text-xs text-zinc-500 italic">Not joined any group yet.</p>
-                </div>
-              ) : (
-                myGroups.map((group) => (
-                  <div key={group.id} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-center justify-between gap-3 text-left">
-                    <div>
-                      <h4 className="text-xs font-bold text-white">{group.name}</h4>
-                      <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-wider block mt-0.5">Subject: {group.subject}</span>
-                    </div>
-                    <button
+                <div className="py-6 text-center space-y-3">
+                  <p className="text-xs text-zinc-555 italic">No study groups joined.</p>
+                  <div className="flex justify-center gap-2">
+                    <button 
                       onClick={() => { setActiveTab('study'); setStudySubView('workspaces'); }}
-                      className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-all"
+                      className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider"
                     >
-                      Quick Join
+                      Join Group
+                    </button>
+                    <button 
+                      onClick={onCreateGroup}
+                      className="px-3 py-1.5 bg-[#10B981]/15 hover:bg-[#10B981]/25 text-[#10B981] border border-[#10B981]/20 text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider"
+                    >
+                      Create Group
                     </button>
                   </div>
-                ))
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                    {myGroups.map((group) => (
+                      <div key={group.id} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-center justify-between gap-3 text-left">
+                        <div>
+                          <h4 className="text-xs font-bold text-white">{group.name}</h4>
+                          <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-wider block mt-0.5">Subject: {group.subject}</span>
+                          <span className="text-[8px] text-zinc-450 block mt-0.5">3 members | Active</span>
+                        </div>
+                        <button
+                          onClick={() => { setActiveTab('study'); setStudySubView('workspaces'); }}
+                          className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-all"
+                        >
+                          Open Group
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 pt-2 border-t border-white/5">
+                    <button 
+                      onClick={() => { setActiveTab('study'); setStudySubView('workspaces'); }}
+                      className="w-full py-2 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider text-center"
+                    >
+                      Join Group
+                    </button>
+                    <button 
+                      onClick={onCreateGroup}
+                      className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/15 text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider text-center"
+                    >
+                      + Create Group
+                    </button>
+                  </div>
+                </>
               )}
-            </div>
-          </div>
-
-        </div>
-
-        {/* RIGHT COLUMN (4 columns span) */}
-        <div className="lg:col-span-4 space-y-6">
-          
-          {/* 8. PROGRESS SUMMARY */}
-          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl space-y-4`}>
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400">
-                📊 Progress Summary
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-left">
-              <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
-                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">Study Hours</span>
-                <span className="text-sm font-black text-white block mt-1 leading-none">{stats?.totalStudyHours || 0} hrs</span>
-              </div>
-              <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
-                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">Current Streak</span>
-                <span className="text-sm font-black text-white block mt-1 leading-none">{stats?.streakCount || 0} Days</span>
-              </div>
-              <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
-                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">XP Earned</span>
-                <span className="text-sm font-black text-white block mt-1 leading-none">{stats?.xp || 0} XP</span>
-              </div>
-              <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
-                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">Topics Completed</span>
-                <span className="text-sm font-black text-white block mt-1 leading-none">{completedLessonsCount}</span>
-              </div>
-              <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
-                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">Practice Solved</span>
-                <span className="text-sm font-black text-white block mt-1 leading-none">{practiceCorrect}</span>
-              </div>
-              <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl">
-                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">Sessions Attended</span>
-                <span className="text-sm font-black text-white block mt-1 leading-none">{stats?.totalStudySessions || 0}</span>
-              </div>
-              <div className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl col-span-2">
-                <span className="text-[8px] text-zinc-550 font-black uppercase block tracking-wider">Certificates</span>
-                <span className="text-sm font-black text-white block mt-1 leading-none">{stats?.certificatesEarned || 0}</span>
-              </div>
             </div>
           </div>
 
           {/* 6. RECENT ACTIVITY */}
           <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl space-y-4`}>
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400">
-                ⏱ Recent Activity
-              </h3>
-            </div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pb-2 border-b border-white/5">
+              ⏱ Recent Activity
+            </h3>
 
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+            <div className="space-y-3">
               {realActivities.length === 0 ? (
-                <div className="py-4 text-center">
-                  <p className="text-xs text-zinc-500 italic">No recent activity.</p>
+                <div className="py-6 text-center">
+                  <p className="text-xs text-zinc-555 italic">No recent activity.</p>
                 </div>
               ) : (
-                realActivities.map((act, i) => {
-                  const Icon = act.icon;
-                  return (
-                    <div key={i} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-start gap-3 text-left">
-                      <div className="h-7 w-7 rounded-lg bg-indigo-500/10 border border-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="space-y-0.5 min-w-0">
-                        <h4 className="text-xs font-bold text-white truncate">{act.title}</h4>
-                        <p className="text-[9px] text-zinc-450 leading-normal">{act.desc}</p>
-                        <span className="text-[8px] text-zinc-500 font-mono block mt-1">{act.time}</span>
-                      </div>
+                realActivities.map((act, i) => (
+                  <div key={i} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-start gap-3 text-left">
+                    <div className="h-7 w-7 rounded-lg bg-indigo-500/10 border border-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
+                      <Clock className="h-3.5 w-3.5" />
                     </div>
-                  );
-                })
+                    <div className="space-y-0.5 min-w-0">
+                      <h4 className="text-xs font-bold text-white truncate">{act.title}</h4>
+                      <p className="text-[9px] text-zinc-450 leading-normal">{act.desc}</p>
+                      <span className="text-[8px] text-zinc-500 font-mono block mt-1">{act.date}</span>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
