@@ -492,55 +492,49 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         {/* RIGHT COLUMN: Study Groups & Activity */}
         <div className="lg:col-span-4 space-y-6">
           
-          {/* 5. WEEKLY STREAK CARD */}
+          {/* 5. WEEKLY PROGRESS CARD */}
           <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl space-y-5 text-left`}>
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+            <div className="pb-2 border-b border-white/5">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-[#7C4DFF] flex items-center gap-1.5">
-                🔥 Weekly Streak
+                🔥 Weekly Progress
               </h3>
-              <span className="text-[8px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/15 uppercase tracking-wider">
-                Consistency
-              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-550">Current Streak</span>
+                <span className="text-[9px] uppercase font-bold tracking-wider text-[#94a3b8]">Current Streak</span>
                 <p className="text-lg font-black text-white">{stats.streakCount || 0} Days</p>
               </div>
               <div className="space-y-1">
-                <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-550">Longest Streak</span>
+                <span className="text-[9px] uppercase font-bold tracking-wider text-[#94a3b8]">Best Streak</span>
                 <p className="text-lg font-black text-white">{(stats.streakCount || 0) + 3} Days</p>
               </div>
-              <div className="space-y-1">
-                <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-550">This Week</span>
+              <div className="col-span-2 space-y-1">
+                <span className="text-[9px] uppercase font-bold tracking-wider text-[#94a3b8]">This Week</span>
                 <p className="text-lg font-black text-white">{stats.totalStudyHours || 0.0} hrs</p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-550">Consistency</span>
-                <p className="text-lg font-black text-[#10B981]">{stats.streakCount > 0 ? '82%' : '0%'}</p>
               </div>
             </div>
 
-            {/* Mini 7-day calendar */}
+            {/* Week Activity */}
             <div className="space-y-2 pt-2 border-t border-white/5">
-              <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-550">7-Day Calendar</span>
-              <div className="flex justify-between items-center bg-[#070b13]/40 border border-white/5 p-2 rounded-xl">
+              <span className="text-[9px] uppercase font-bold tracking-wider text-[#94a3b8] block mb-1">Week Activity</span>
+              <div className="grid grid-cols-7 gap-1 text-center bg-[#070b13]/40 border border-white/5 p-2 rounded-xl">
                 {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
                   const isActive = idx < (stats.streakCount || 0);
                   return (
-                    <div key={idx} className="flex flex-col items-center gap-1.5">
-                      <span className="text-[8px] font-bold text-zinc-500">{day}</span>
-                      <div className={`h-4.5 w-4.5 rounded-full flex items-center justify-center text-[8px] font-black ${
-                        isActive 
-                          ? 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30' 
-                          : 'bg-[#0B0F19] text-zinc-650 border border-white/5'
-                      }`}>
-                        {isActive ? '✓' : ''}
-                      </div>
+                    <div key={idx} className="flex flex-col items-center gap-1">
+                      <span className="text-[8px] font-bold text-zinc-550">{day}</span>
+                      <span className={`text-[12px] font-bold ${isActive ? 'text-[#10B981]' : 'text-zinc-650'}`}>
+                        {isActive ? '●' : '○'}
+                      </span>
                     </div>
                   );
                 })}
+              </div>
+              {/* Legend */}
+              <div className="flex justify-between items-center text-[9px] text-zinc-500 px-1 pt-1">
+                <span className="flex items-center gap-1">● <span className="text-zinc-450">Studied</span></span>
+                <span className="flex items-center gap-1">○ <span className="text-zinc-450">No Activity</span></span>
               </div>
             </div>
           </div>
