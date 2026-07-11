@@ -227,6 +227,7 @@ export function MentorDashboardComponent() {
   const [profileExpertise, setProfileExpertise] = useState<string[]>([]);
   const [showExpertiseDropdown, setShowExpertiseDropdown] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   // Password change modal state
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -343,6 +344,7 @@ export function MentorDashboardComponent() {
       if (response && response.user) {
         setUser(response.user);
         addToast('✅ Profile updated successfully.', 'success');
+        setIsEditingProfile(false);
         // Refresh local dashboard data
         fetchStudyRooms();
         fetchSessions();
@@ -2010,250 +2012,99 @@ export function MentorDashboardComponent() {
                 <p className="text-zinc-500 text-xs mt-0.5 font-medium">Manage your personal details and expertise settings.</p>
               </div>
 
-              {/* Main Settings Card */}
-              <div className="p-6 rounded-2xl bg-[#0B0F19]/40 border border-white/5 space-y-6 text-left">
-                
-                {/* SECTION 1: PROFILE PICTURE */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#7C4DFF]">1. Profile Information</h3>
-                  
-                  {/* Photo row */}
-                  <div className="flex items-center gap-5 bg-white/[0.01] border border-white/5 p-4 rounded-xl">
-                    <div className="relative">
-                      {profileAvatar ? (
-                        <img 
-                          src={profileAvatar} 
-                          className="h-16 w-16 rounded-full object-cover border border-white/10" 
-                          alt="Avatar preview" 
-                        />
-                      ) : (
-                        <div className="h-16 w-16 rounded-full bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center text-indigo-400 font-bold text-xl">
-                          {profileName ? profileName.charAt(0).toUpperCase() : 'M'}
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[10px] text-zinc-400 font-medium">Recommended: JPG or PNG, max 1MB</p>
-                      <div className="flex items-center gap-2">
-                        <label className="px-3 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black rounded-lg cursor-pointer transition-colors uppercase tracking-wider">
-                          Upload Image
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={handleAvatarChange} 
-                            className="hidden" 
-                          />
-                        </label>
-                        {profileAvatar && (
-                          <button
-                            type="button"
-                            onClick={handleRemoveAvatar}
-                            className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-red-500/30 text-zinc-300 hover:text-red-400 text-[10px] font-black rounded-lg cursor-pointer transition-colors uppercase tracking-wider"
-                          >
-                            Remove Photo
-                          </button>
-                        )}
-                      </div>
-                    </div>
+              {/* Main Settings Card Switcher */}
+              {!isEditingProfile ? (
+                /* Normal Card Read-Only View */
+                <div className="p-6 rounded-2xl bg-[#0B0F19]/40 border border-white/5 space-y-6 text-left relative">
+                  {/* Edit Button at Top-Right */}
+                  <div className="absolute top-6 right-6">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingProfile(true)}
+                      className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-colors flex items-center gap-1.5"
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                      Edit Profile
+                    </button>
                   </div>
 
-                  {/* Input fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Full Name *</label>
-                      <input 
-                        type="text"
-                        value={profileName}
-                        onChange={(e) => setProfileName(e.target.value)}
-                        placeholder="Swathi Kumar"
-                        className="w-full bg-[#070b13] border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#7C4DFF]/50 transition-colors"
+                  {/* Section 1: Picture & Basic Info */}
+                  <div className="flex flex-col md:flex-row gap-6 items-center border-b border-white/5 pb-6">
+                    {user.avatarUrl ? (
+                      <img 
+                        src={user.avatarUrl} 
+                        className="h-20 w-20 rounded-full object-cover border border-white/10" 
+                        alt="Avatar" 
                       />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">Username (Read Only)</label>
-                      <input 
-                        type="text"
-                        value={user?.username ? `@${user.username}` : ''}
-                        disabled
-                        className="w-full bg-[#070b13]/50 border border-white/5 text-zinc-500 rounded-lg px-3.5 py-2 text-xs cursor-not-allowed select-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Email Address *</label>
-                      <input 
-                        type="email"
-                        value={profileEmail}
-                        onChange={(e) => setProfileEmail(e.target.value)}
-                        placeholder="mentor@gmail.com"
-                        className="w-full bg-[#070b13] border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#7C4DFF]/50 transition-colors"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Phone Number (10 Digits)</label>
-                      <input 
-                        type="text"
-                        maxLength={10}
-                        value={profilePhone}
-                        onChange={(e) => setProfilePhone(e.target.value.replace(/\D/g, ''))}
-                        placeholder="9876543210"
-                        className="w-full bg-[#070b13] border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#7C4DFF]/50 transition-colors"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2 space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">College / Organization</label>
-                      <input 
-                        type="text"
-                        value={profileCollege}
-                        onChange={(e) => setProfileCollege(e.target.value)}
-                        placeholder="Aditya College of Engineering"
-                        className="w-full bg-[#070b13] border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#7C4DFF]/50 transition-colors"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2 space-y-1.5">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Short Bio</label>
-                        <span className="text-[8px] text-zinc-500 font-bold">{150 - profileBio.length} characters left</span>
-                      </div>
-                      <textarea 
-                        maxLength={150}
-                        rows={2.5}
-                        value={profileBio}
-                        onChange={(e) => setProfileBio(e.target.value)}
-                        placeholder="Helping students prepare for placements."
-                        className="w-full bg-[#070b13] border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#7C4DFF]/50 transition-colors resize-none leading-relaxed"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* SECTION 2: EXPERTISE */}
-                <div className="space-y-3 pt-6 border-t border-white/5 relative">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#7C4DFF]">2. Expertise</h3>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Teaching Expertise</label>
-                    
-                    {/* Select Trigger */}
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setShowExpertiseDropdown(!showExpertiseDropdown)}
-                        className="w-full bg-[#070b13] border border-white/5 hover:border-zinc-700 rounded-lg px-3.5 py-2 text-xs text-white flex justify-between items-center cursor-pointer transition-colors"
-                      >
-                        <span className="truncate select-none">
-                          {profileExpertise.length === 0 
-                            ? 'Select subjects...' 
-                            : `${profileExpertise.length} subject(s) selected`}
-                        </span>
-                        <ChevronDown className="h-4 w-4 text-zinc-400 transition-transform duration-200" />
-                      </button>
-
-                      {/* Dropdown overlay */}
-                      {showExpertiseDropdown && (
-                        <>
-                          <div 
-                            className="fixed inset-0 z-40" 
-                            onClick={() => setShowExpertiseDropdown(false)} 
-                          />
-                          <div className="absolute left-0 right-0 mt-1 bg-[#090d16] border border-white/10 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto p-2.5 space-y-1">
-                            {['Data Structures', 'Algorithms', 'DBMS', 'Operating Systems', 'Computer Networks', 'Aptitude', 'Java', 'Python'].map((subject) => {
-                              const checked = profileExpertise.includes(subject);
-                              return (
-                                <button
-                                  key={subject}
-                                  type="button"
-                                  onClick={() => {
-                                    if (checked) {
-                                      setProfileExpertise(prev => prev.filter(s => s !== subject));
-                                    } else {
-                                      setProfileExpertise(prev => [...prev, subject]);
-                                    }
-                                  }}
-                                  className="w-full flex items-center justify-between px-3 py-2 hover:bg-white/[0.02] rounded-lg text-left text-xs text-slate-200 transition-colors"
-                                >
-                                  <span>{subject}</span>
-                                  <div className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${
-                                    checked 
-                                      ? 'bg-[#7C4DFF] border-[#7C4DFF] text-white' 
-                                      : 'border-white/10 bg-slate-950/40'
-                                  }`}>
-                                    {checked && <Check className="h-3 w-3 stroke-[3]" />}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Selected pills list */}
-                    {profileExpertise.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 pt-1.5">
-                        {profileExpertise.map((subject) => (
-                          <span 
-                            key={subject}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#7C4DFF]/10 border border-[#7C4DFF]/25 text-[#B39DFF] text-[9.5px] font-bold"
-                          >
-                            {subject}
-                            <button
-                              type="button"
-                              onClick={() => setProfileExpertise(prev => prev.filter(s => s !== subject))}
-                              className="text-[#B39DFF]/60 hover:text-white transition-colors cursor-pointer"
-                            >
-                              ✕
-                            </button>
-                          </span>
-                        ))}
+                    ) : (
+                      <div className="h-20 w-20 rounded-full bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center text-indigo-400 font-bold text-2xl uppercase">
+                        {user.fullName ? user.fullName.substring(0, 2) : 'M'}
                       </div>
                     )}
-                  </div>
-                </div>
-
-                {/* SECTION 3: AVAILABILITY */}
-                <div className="space-y-3 pt-6 border-t border-white/5">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#7C4DFF]">3. Availability</h3>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex-1 min-w-[200px] space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Status</label>
-                      <select
-                        value={profileAvailability}
-                        onChange={(e) => setProfileAvailability(e.target.value)}
-                        className="w-full bg-[#070b13] border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#7C4DFF]/50 transition-colors"
-                      >
-                        <option value="Available">Available</option>
-                        <option value="Busy">Busy</option>
-                        <option value="Away">Away</option>
-                      </select>
+                    <div className="space-y-1.5 text-center md:text-left min-w-0 flex-1">
+                      <h3 className="text-lg font-black text-white">{user.fullName}</h3>
+                      <p className="text-xs text-indigo-400 font-bold uppercase tracking-wider">{user.role}</p>
+                      <p className="text-xs text-zinc-400">@{user.username}</p>
                     </div>
+                  </div>
 
-                    {/* Colored Badge */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide block">Current Status</span>
-                      <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/[0.01] border border-white/5 text-xs font-bold">
-                        <span className={`h-2.5 w-2.5 rounded-full animate-pulse ${
-                          profileAvailability === 'Available' ? 'bg-[#10B981]' :
-                          profileAvailability === 'Away' ? 'bg-yellow-500' : 'bg-red-500'
+                  {/* Section 2: Details Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 border-b border-white/5 pb-6">
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase tracking-wider text-zinc-450 font-bold">Email Address</span>
+                      <p className="text-xs font-semibold text-white">{user.email || 'Not specified'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase tracking-wider text-zinc-450 font-bold">Phone Number</span>
+                      <p className="text-xs font-semibold text-white">{user.phone || 'Not specified'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase tracking-wider text-zinc-450 font-bold">College / Organization</span>
+                      <p className="text-xs font-semibold text-white">{user.college || 'Not specified'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase tracking-wider text-zinc-450 font-bold">Availability Status</span>
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <span className={`h-2 w-2 rounded-full ${
+                          user.availability === 'Available' ? 'bg-[#10B981]' :
+                          user.availability === 'Away' ? 'bg-yellow-500' : 'bg-red-500'
                         }`} />
-                        <span className={
-                          profileAvailability === 'Available' ? 'text-[#10B981]' :
-                          profileAvailability === 'Away' ? 'text-yellow-500' : 'text-red-500'
-                        }>
-                          {profileAvailability}
-                        </span>
+                        <span className={`text-xs font-semibold ${
+                          user.availability === 'Available' ? 'text-[#10B981]' :
+                          user.availability === 'Away' ? 'text-yellow-500' : 'text-red-500'
+                        }`}>{user.availability || 'Available'}</span>
                       </div>
                     </div>
+                    <div className="md:col-span-2 space-y-1">
+                      <span className="text-[10px] uppercase tracking-wider text-zinc-450 font-bold">Short Bio</span>
+                      <p className="text-xs font-medium text-slate-300 leading-relaxed italic">
+                        "{user.bio || 'No bio written yet.'}"
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {/* SECTION 4: SECURITY */}
-                <div className="space-y-3 pt-6 border-t border-white/5">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#7C4DFF]">4. Security & Account</h3>
-                  <div className="flex items-center gap-3">
+                  {/* Section 3: Expertise */}
+                  <div className="border-b border-white/5 pb-6 space-y-2">
+                    <span className="text-[10px] uppercase tracking-wider text-zinc-450 font-bold">Teaching Expertise</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {profileExpertise.length === 0 ? (
+                        <span className="text-xs text-zinc-500 italic">No subjects selected yet.</span>
+                      ) : (
+                        profileExpertise.map((subject) => (
+                          <span 
+                            key={subject}
+                            className="px-2.5 py-1 rounded bg-[#7C4DFF]/10 border border-[#7C4DFF]/25 text-[#B39DFF] text-[9.5px] font-bold"
+                          >
+                            {subject}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Section 4: Security */}
+                  <div className="space-y-3">
+                    <span className="text-[10px] uppercase tracking-wider text-zinc-450 font-bold block">Security & Account</span>
                     <button
                       type="button"
                       onClick={() => setShowPasswordModal(true)}
@@ -2261,31 +2112,351 @@ export function MentorDashboardComponent() {
                     >
                       Change Password
                     </button>
+                  </div>
+                </div>
+              ) : (
+                /* Editable Form Mode */
+                <div className="p-6 rounded-2xl bg-[#0B0F19]/40 border border-white/5 space-y-6 text-left relative">
+                  {/* Top Close Button */}
+                  <div className="absolute top-6 right-6">
                     <button
                       type="button"
                       onClick={() => {
-                        logout().then(() => router.push('/'));
+                        // Reset and close
+                        if (user) {
+                          setProfileName(user.fullName || '');
+                          setProfileEmail(user.email || '');
+                          setProfilePhone(user.phone || '');
+                          setProfileCollege(user.college || '');
+                          setProfileBio(user.bio || '');
+                          setProfileAvatar(user.avatarUrl || '');
+                          setProfileAvailability(user.availability || 'Available');
+                          
+                          let parsedExpertise: string[] = [];
+                          try {
+                            if (user.expertise) {
+                              parsedExpertise = typeof user.expertise === 'string' ? JSON.parse(user.expertise) : user.expertise;
+                            }
+                          } catch (e) {
+                            if (typeof user.expertise === 'string') {
+                              parsedExpertise = user.expertise.split(',').map(s => s.trim()).filter(Boolean);
+                            }
+                          }
+                          setProfileExpertise(parsedExpertise);
+                        }
+                        setIsEditingProfile(false);
                       }}
-                      className="px-4 py-2 bg-slate-900 border border-white/10 hover:border-red-500/30 text-red-400 text-[10px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-colors"
+                      className="px-3.5 py-1.5 bg-slate-900 border border-white/10 hover:border-red-500/30 text-zinc-300 hover:text-red-400 text-[10px] font-black rounded-lg cursor-pointer transition-colors uppercase tracking-wider"
                     >
-                      Logout
+                      ✕ Close
+                    </button>
+                  </div>
+
+                  {/* SECTION 1: PROFILE PICTURE */}
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#7C4DFF]">1. Profile Information</h3>
+                    
+                    {/* Photo row */}
+                    <div className="flex items-center gap-5 bg-white/[0.01] border border-white/5 p-4 rounded-xl">
+                      <div className="relative">
+                        {profileAvatar ? (
+                          <img 
+                            src={profileAvatar} 
+                            className="h-16 w-16 rounded-full object-cover border border-white/10" 
+                            alt="Avatar preview" 
+                          />
+                        ) : (
+                          <div className="h-16 w-16 rounded-full bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center text-indigo-400 font-bold text-xl">
+                            {profileName ? profileName.charAt(0).toUpperCase() : 'M'}
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[10px] text-zinc-400 font-medium">Recommended: JPG or PNG, max 1MB</p>
+                        <div className="flex items-center gap-2">
+                          <label className="px-3 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black rounded-lg cursor-pointer transition-colors uppercase tracking-wider">
+                            Upload Image
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              onChange={handleAvatarChange} 
+                              className="hidden" 
+                            />
+                          </label>
+                          {profileAvatar && (
+                            <button
+                              type="button"
+                              onClick={handleRemoveAvatar}
+                              className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-red-500/30 text-zinc-300 hover:text-red-400 text-[10px] font-black rounded-lg cursor-pointer transition-colors uppercase tracking-wider"
+                            >
+                              Remove Photo
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Input fields */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Full Name *</label>
+                        <input 
+                          type="text"
+                          value={profileName}
+                          onChange={(e) => setProfileName(e.target.value)}
+                          placeholder="Swathi Kumar"
+                          className="w-full bg-[#070b13] border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#7C4DFF]/50 transition-colors"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">Username (Read Only)</label>
+                        <input 
+                          type="text"
+                          value={user?.username ? `@${user.username}` : ''}
+                          disabled
+                          className="w-full bg-[#070b13]/50 border border-white/5 text-zinc-500 rounded-lg px-3.5 py-2 text-xs cursor-not-allowed select-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Email Address *</label>
+                        <input 
+                          type="email"
+                          value={profileEmail}
+                          onChange={(e) => setProfileEmail(e.target.value)}
+                          placeholder="mentor@gmail.com"
+                          className="w-full bg-[#070b13] border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#7C4DFF]/50 transition-colors"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Phone Number (10 Digits)</label>
+                        <input 
+                          type="text"
+                          maxLength={10}
+                          value={profilePhone}
+                          onChange={(e) => setProfilePhone(e.target.value.replace(/\D/g, ''))}
+                          placeholder="9876543210"
+                          className="w-full bg-[#070b13] border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#7C4DFF]/50 transition-colors"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2 space-y-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">College / Organization</label>
+                        <input 
+                          type="text"
+                          value={profileCollege}
+                          onChange={(e) => setProfileCollege(e.target.value)}
+                          placeholder="Aditya College of Engineering"
+                          className="w-full bg-[#070b13] border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#7C4DFF]/50 transition-colors"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2 space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Short Bio</label>
+                          <span className="text-[8px] text-zinc-500 font-bold">{150 - profileBio.length} characters left</span>
+                        </div>
+                        <textarea 
+                          maxLength={150}
+                          rows={2.5}
+                          value={profileBio}
+                          onChange={(e) => setProfileBio(e.target.value)}
+                          placeholder="Helping students prepare for placements."
+                          className="w-full bg-[#070b13] border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#7C4DFF]/50 transition-colors resize-none leading-relaxed"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 2: EXPERTISE */}
+                  <div className="space-y-3 pt-6 border-t border-white/5 relative">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#7C4DFF]">2. Expertise</h3>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Teaching Expertise</label>
+                      
+                      {/* Select Trigger */}
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowExpertiseDropdown(!showExpertiseDropdown)}
+                          className="w-full bg-[#070b13] border border-white/5 hover:border-zinc-700 rounded-lg px-3.5 py-2 text-xs text-white flex justify-between items-center cursor-pointer transition-colors"
+                        >
+                          <span className="truncate select-none">
+                            {profileExpertise.length === 0 
+                              ? 'Select subjects...' 
+                              : `${profileExpertise.length} subject(s) selected`}
+                          </span>
+                          <ChevronDown className="h-4 w-4 text-zinc-400 transition-transform duration-200" />
+                        </button>
+
+                        {/* Dropdown overlay */}
+                        {showExpertiseDropdown && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-40" 
+                              onClick={() => setShowExpertiseDropdown(false)} 
+                            />
+                            <div className="absolute left-0 right-0 mt-1 bg-[#090d16] border border-white/10 rounded-xl shadow-xl z-50 max-h-56 overflow-y-auto p-2.5 space-y-1">
+                              {['Data Structures', 'Algorithms', 'DBMS', 'Operating Systems', 'Computer Networks', 'Aptitude', 'Java', 'Python'].map((subject) => {
+                                const checked = profileExpertise.includes(subject);
+                                return (
+                                  <button
+                                    key={subject}
+                                    type="button"
+                                    onClick={() => {
+                                      if (checked) {
+                                        setProfileExpertise(prev => prev.filter(s => s !== subject));
+                                      } else {
+                                        setProfileExpertise(prev => [...prev, subject]);
+                                      }
+                                    }}
+                                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-white/[0.02] rounded-lg text-left text-xs text-slate-200 transition-colors"
+                                  >
+                                    <span>{subject}</span>
+                                    <div className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${
+                                      checked 
+                                        ? 'bg-[#7C4DFF] border-[#7C4DFF] text-white' 
+                                        : 'border-white/10 bg-slate-950/40'
+                                    }`}>
+                                      {checked && <Check className="h-3 w-3 stroke-[3]" />}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Selected pills list */}
+                      {profileExpertise.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1.5">
+                          {profileExpertise.map((subject) => (
+                            <span 
+                              key={subject}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#7C4DFF]/10 border border-[#7C4DFF]/25 text-[#B39DFF] text-[9.5px] font-bold"
+                            >
+                              {subject}
+                              <button
+                                type="button"
+                                onClick={() => setProfileExpertise(prev => prev.filter(s => s !== subject))}
+                                className="text-[#B39DFF]/60 hover:text-white transition-colors cursor-pointer"
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* SECTION 3: AVAILABILITY */}
+                  <div className="space-y-3 pt-6 border-t border-white/5">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#7C4DFF]">3. Availability</h3>
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex-1 min-w-[200px] space-y-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Status</label>
+                        <select
+                          value={profileAvailability}
+                          onChange={(e) => setProfileAvailability(e.target.value)}
+                          className="w-full bg-[#070b13] border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#7C4DFF]/50 transition-colors"
+                        >
+                          <option value="Available">Available</option>
+                          <option value="Busy">Busy</option>
+                          <option value="Away">Away</option>
+                        </select>
+                      </div>
+
+                      {/* Colored Badge */}
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide block">Current Status</span>
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/[0.01] border border-white/5 text-xs font-bold">
+                          <span className={`h-2.5 w-2.5 rounded-full animate-pulse ${
+                            profileAvailability === 'Available' ? 'bg-[#10B981]' :
+                            profileAvailability === 'Away' ? 'bg-yellow-500' : 'bg-red-500'
+                          }`} />
+                          <span className={
+                            profileAvailability === 'Available' ? 'text-[#10B981]' :
+                            profileAvailability === 'Away' ? 'text-yellow-500' : 'text-red-500'
+                          }>
+                            {profileAvailability}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 4: SECURITY */}
+                  <div className="space-y-3 pt-6 border-t border-white/5">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#7C4DFF]">4. Security & Account</h3>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordModal(true)}
+                        className="px-4 py-2 bg-slate-900 border border-white/10 hover:border-[#7C4DFF]/30 text-white text-[10px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-colors"
+                      >
+                        Change Password
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          logout().then(() => router.push('/'));
+                        }}
+                        className="px-4 py-2 bg-slate-900 border border-white/10 hover:border-red-500/30 text-red-400 text-[10px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* BOTTOM SAVE & CLOSE BUTTONS */}
+                  <div className="pt-6 border-t border-white/5 flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Discard changes and close
+                        if (user) {
+                          setProfileName(user.fullName || '');
+                          setProfileEmail(user.email || '');
+                          setProfilePhone(user.phone || '');
+                          setProfileCollege(user.college || '');
+                          setProfileBio(user.bio || '');
+                          setProfileAvatar(user.avatarUrl || '');
+                          setProfileAvailability(user.availability || 'Available');
+                          
+                          let parsedExpertise: string[] = [];
+                          try {
+                            if (user.expertise) {
+                              parsedExpertise = typeof user.expertise === 'string' ? JSON.parse(user.expertise) : user.expertise;
+                            }
+                          } catch (e) {
+                            if (typeof user.expertise === 'string') {
+                              parsedExpertise = user.expertise.split(',').map(s => s.trim()).filter(Boolean);
+                            }
+                          }
+                          setProfileExpertise(parsedExpertise);
+                        }
+                        setIsEditingProfile(false);
+                      }}
+                      className="px-5 py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-zinc-300 text-[11px] font-black rounded-lg cursor-pointer uppercase tracking-widest transition-all"
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      disabled={savingProfile}
+                      onClick={handleSaveProfile}
+                      className="px-6 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[11px] font-black rounded-lg cursor-pointer uppercase tracking-widest disabled:opacity-50 transition-all flex items-center gap-2"
+                    >
+                      {savingProfile && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                      {savingProfile ? 'Saving...' : 'Save Changes'}
                     </button>
                   </div>
                 </div>
-
-                {/* BOTTOM SAVE BUTTON */}
-                <div className="pt-6 border-t border-white/5 flex justify-end">
-                  <button
-                    type="button"
-                    disabled={savingProfile}
-                    onClick={handleSaveProfile}
-                    className="px-6 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[11px] font-black rounded-lg cursor-pointer uppercase tracking-widest disabled:opacity-50 transition-all flex items-center gap-2"
-                  >
-                    {savingProfile && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-                    {savingProfile ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              </div>
+              )}
 
               {/* Password Change Modal */}
               {showPasswordModal && (
