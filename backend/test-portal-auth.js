@@ -50,11 +50,11 @@ async function run() {
   console.log('Test 4 (Mentor -> admin portal):', !res4.success && res4.error.includes('only for administrators') ? 'PASSED' : 'FAILED', res4.error || '');
 
   // Test 5: Admin tries to login via admin portal (Should SUCCEED)
-  const res5 = await testLogin('admin.demo@studycircle.com', 'Demo@123', 'admin');
+  const res5 = await testLogin('tulasi', 'Tulasi@123', 'admin');
   console.log('Test 5 (Admin -> admin portal):', res5.success ? 'PASSED' : 'FAILED', res5.error || '');
 
   // Test 6: Admin tries to login via mentor portal (Should FAIL)
-  const res6 = await testLogin('admin.demo@studycircle.com', 'Demo@123', 'mentor');
+  const res6 = await testLogin('tulasi', 'Tulasi@123', 'mentor');
   console.log('Test 6 (Admin -> mentor portal):', !res6.success && res6.error.includes('only for mentors') ? 'PASSED' : 'FAILED', res6.error || '');
 
   process.exit(0);

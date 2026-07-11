@@ -79,11 +79,11 @@ const seedDatabase = async () => {
     });
 
     const admin = await User.create({
-      fullName: 'Hanumanthu Prasad (AU, Vizag)',
-      username: 'admin.demo@studycircle.com',
-      password: 'Demo@123',
+      fullName: 'Tulasi Devi',
+      username: 'tulasi',
+      password: 'Tulasi@123',
       role: 'admin',
-      phoneOrEmail: 'admin.demo@studycircle.com',
+      phoneOrEmail: 'tulasi.admin@studycircle.com',
       isVerified: true,
       isApproved: true,
       streakCount: 12,
