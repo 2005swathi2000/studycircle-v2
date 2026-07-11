@@ -45,6 +45,25 @@ const seedDatabase = async () => {
       });
     }
 
+    // Ensure Tulasi Admin is always present in the database (self-healing credentials for Render)
+    const tulasiExists = await User.findOne({
+      where: { username: 'tulasi' }
+    });
+    if (!tulasiExists) {
+      console.log('Self-healing DB check: Tulasi Admin not found. Seeding Tulasi Admin...');
+      await User.create({
+        fullName: 'Tulasi Devi',
+        username: 'tulasi',
+        password: 'Tulasi@123',
+        role: 'admin',
+        phoneOrEmail: 'tulasi.admin@studycircle.com',
+        isVerified: true,
+        isApproved: true,
+        streakCount: 12,
+        totalStudyHours: 100.0
+      });
+    }
+
     const userCount = await User.count();
     if (userCount > 1) {
       console.log('Database already has demo data. Skipping further seeding.');
