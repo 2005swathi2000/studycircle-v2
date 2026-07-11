@@ -100,8 +100,6 @@ export function MentorDashboardComponent() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [showAddGoalInput, setShowAddGoalInput] = useState(false);
 
-  // Toggle mode to switcher between Zero State (new user) and populating an active existing cohort self.
-  const [viewMode, setViewMode] = useState<'new' | 'existing'>('new');
 
   // Core Data States - Managed dynamically based on viewMode
   const [students, setStudents] = useState<any[]>([]);
@@ -1089,29 +1087,6 @@ export function MentorDashboardComponent() {
           </div>
         </div>
 
-        {/* View mode toggle switcher (Desktop View - Hidden on Mobile) */}
-        <div className="hidden md:flex bg-[#060813] border border-white/5 rounded-xl p-0.5 select-none shrink-0">
-          <button
-            onClick={() => setViewMode('new')}
-            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border-none ${
-              viewMode === 'new' 
-                ? 'bg-indigo-650 text-white' 
-                : 'bg-transparent text-zinc-450 hover:text-zinc-200'
-            }`}
-          >
-            New User (Zero State)
-          </button>
-          <button
-            onClick={() => setViewMode('existing')}
-            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border-none ${
-              viewMode === 'existing' 
-                ? 'bg-indigo-650 text-white' 
-                : 'bg-transparent text-zinc-450 hover:text-zinc-200'
-            }`}
-          >
-            Existing Self (Active Cohort)
-          </button>
-        </div>
 
         {/* User Profile Widget */}
         <div className="flex items-center gap-3 pl-4 border-l border-white/5">
@@ -1325,31 +1300,6 @@ export function MentorDashboardComponent() {
         {/* Core Workspace Panel */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#070913] w-full">
           
-          {/* Mobile View Mode switcher */}
-          <div className="flex justify-center md:hidden mb-6">
-            <div className="flex bg-[#060813] border border-white/5 rounded-xl p-0.5 select-none">
-              <button
-                onClick={() => setViewMode('new')}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border-none ${
-                  viewMode === 'new' 
-                    ? 'bg-indigo-650 text-white' 
-                    : 'bg-transparent text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                Zero State
-              </button>
-              <button
-                onClick={() => setViewMode('existing')}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border-none ${
-                  viewMode === 'existing' 
-                    ? 'bg-indigo-650 text-white' 
-                    : 'bg-transparent text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                Active Cohort
-              </button>
-            </div>
-          </div>
 
           {activeTab === 'dashboard' && (
             <div className="max-w-[1200px] mx-auto space-y-6">
@@ -1971,13 +1921,13 @@ export function MentorDashboardComponent() {
                 <div className="p-6 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-white">Study Hours Trend</h3>
                   <div className="h-44 bg-[#0C0F19] border border-white/5 rounded-xl p-4 relative">
-                    {viewMode === 'new' && (
+                    {students.length === 0 && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[0.5px] rounded-xl">
                         <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">No activity logged</span>
                       </div>
                     )}
                     <svg viewBox="0 0 500 150" className="w-full h-full overflow-visible">
-                      {viewMode === 'new' ? (
+                      {students.length === 0 ? (
                         <line x1="0" y1="130" x2="500" y2="130" stroke="rgba(99, 102, 241, 0.4)" strokeWidth="2" strokeDasharray="5,5" />
                       ) : (
                         <path d="M 0 110 Q 80 80 160 95 T 320 40 T 480 30 L 500 30" fill="none" stroke="#6366F1" strokeWidth="2" />
@@ -1989,12 +1939,12 @@ export function MentorDashboardComponent() {
                 <div className="p-6 rounded-xl bg-white/[0.01] border border-white/5 space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-white">Subject Accuracy</h3>
                   <div className="h-44 bg-[#0C0F19] border border-white/5 rounded-xl p-4 flex items-end justify-around gap-4 relative">
-                    {viewMode === 'new' && (
+                    {students.length === 0 && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[0.5px] rounded-xl">
                         <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-black">No quiz scores recorded</span>
                       </div>
                     )}
-                    {viewMode === 'new' ? (
+                    {students.length === 0 ? (
                       <>
                         <div className="w-8 bg-zinc-800 rounded-t h-[4px]" />
                         <div className="w-8 bg-zinc-800 rounded-t h-[4px]" />
