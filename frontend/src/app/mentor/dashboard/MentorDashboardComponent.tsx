@@ -1347,7 +1347,11 @@ export function MentorDashboardComponent() {
                 }`}
               >
                 Active Cohort
-              </button>          {activeTab === 'dashboard' && (
+              </button>
+            </div>
+          </div>
+
+          {activeTab === 'dashboard' && (
             <div className="max-w-[1200px] mx-auto space-y-6">
               
               {/* HERO SECTION */}
