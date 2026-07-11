@@ -127,4 +127,23 @@ router.put('/:noteId', authMiddleware, async (req, res) => {
   }
 });
 
+// Delete a shared note
+router.delete('/:noteId', authMiddleware, async (req, res) => {
+  try {
+    const { noteId } = req.params;
+    if (req.user.role !== 'admin' && req.user.role !== 'mentor') {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+    const note = await SharedNote.findByPk(noteId);
+    if (!note) {
+      return res.status(404).json({ error: 'Shared note not found.' });
+    }
+    await note.destroy();
+    return res.json({ message: 'Shared note deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting shared note:', err);
+    return res.status(500).json({ error: 'Server error deleting shared note.' });
+  }
+});
+
 module.exports = router;

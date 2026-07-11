@@ -124,4 +124,54 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
+// Edit session
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, scheduledAt, durationMinutes, meetingLink } = req.body;
+    
+    const session = await Session.findByPk(id);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found.' });
+    }
+
+    if (session.createdBy !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'mentor') {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
+    if (title) session.title = title;
+    if (description !== undefined) session.description = description;
+    if (scheduledAt) session.scheduledAt = scheduledAt;
+    if (durationMinutes) session.durationMinutes = Number(durationMinutes);
+    if (meetingLink !== undefined) session.meetingLink = meetingLink;
+
+    await session.save();
+    return res.json({ message: 'Session updated successfully!', session });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error updating session.' });
+  }
+});
+
+// Cancel/Delete session
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const session = await Session.findByPk(id);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found.' });
+    }
+
+    if (session.createdBy !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'mentor') {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
+    await session.destroy();
+    return res.json({ message: 'Session cancelled successfully.' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error cancelling session.' });
+  }
+});
+
 module.exports = router;

@@ -68,7 +68,10 @@ export function MentorDashboardComponent() {
         'assignments': 'assignments',
         'cohort-analytics': 'analytics',
         'discussions': 'discussions',
-        'profile': 'profile'
+        'profile': 'profile',
+        'resources': 'resources',
+        'messages': 'messages',
+        'notifications': 'notifications'
       };
       return (tabMapRev[currentTab] || 'dashboard') as any;
     }
@@ -85,7 +88,10 @@ export function MentorDashboardComponent() {
       'assignments': 'assignments',
       'analytics': 'cohort-analytics',
       'discussions': 'discussions',
-      'profile': 'profile'
+      'profile': 'profile',
+      'resources': 'resources',
+      'messages': 'messages',
+      'notifications': 'notifications'
     };
     const expectedRoute = mentorTabMap[newTab] || newTab;
     router.push(`/mentor/${expectedRoute}`);
@@ -179,6 +185,15 @@ export function MentorDashboardComponent() {
   // Selected student for quick actions
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
 
+  // Resources, Notifications & Full Messages states
+  const [resources, setResources] = useState<any[]>([]);
+  const [loadingResources, setLoadingResources] = useState(false);
+  const [showCreateResource, setShowCreateResource] = useState(false);
+  const [newResource, setNewResource] = useState({ name: '', type: 'PDF', content: '', size: '' });
+  
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+
   // Global Search state (Searches Students, Rooms, Sessions)
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -219,6 +234,8 @@ export function MentorDashboardComponent() {
       fetchSessions();
       fetchDoubts();
       fetchAssignments();
+      fetchResources();
+      fetchNotifications();
     }
   }, [user]);
 
@@ -364,6 +381,34 @@ export function MentorDashboardComponent() {
       }
     } catch (err) {
       console.error('Error fetching assignments:', err);
+    }
+  };
+
+  const fetchResources = async () => {
+    setLoadingResources(true);
+    try {
+      const data = await apiRequest('/shared-notes');
+      if (data && data.notes) {
+        setResources(data.notes);
+      }
+    } catch (err) {
+      console.error('Error fetching resources:', err);
+    } finally {
+      setLoadingResources(false);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    setLoadingNotifications(true);
+    try {
+      const data = await apiRequest('/notifications');
+      if (data && data.notifications) {
+        setNotifications(data.notifications);
+      }
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    } finally {
+      setLoadingNotifications(false);
     }
   };
 
@@ -909,7 +954,7 @@ export function MentorDashboardComponent() {
                 }`}
               >
                 <Users className="h-4 w-4" />
-                <span>👨🎓 My Students</span>
+                <span>👨‍🎓 Students</span>
               </button>
 
               <button
@@ -920,20 +965,8 @@ export function MentorDashboardComponent() {
                     : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <BookOpen className="h-4 w-4" />
-                <span>📚 Study Rooms</span>
-              </button>
-
-              <button
-                onClick={() => { setActiveTab('assignments'); setShowSidebar(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'assignments' 
-                    ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
-                    : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
-                }`}
-              >
-                <FileText className="h-4 w-4" />
-                <span>📝 Assignments</span>
+                <Users className="h-4 w-4 text-emerald-450" />
+                <span>👥 Study Groups</span>
               </button>
 
               <button
@@ -945,7 +978,19 @@ export function MentorDashboardComponent() {
                 }`}
               >
                 <Calendar className="h-4 w-4" />
-                <span>📅 Schedule</span>
+                <span>📅 Study Sessions</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('assignments'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'assignments' 
+                    ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
+                    : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <FileText className="h-4 w-4 text-amber-500" />
+                <span>📝 Assignments</span>
               </button>
 
               <button
@@ -956,20 +1001,44 @@ export function MentorDashboardComponent() {
                     : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <MessageSquare className="h-4 w-4" />
+                <MessageSquare className="h-4 w-4 text-indigo-400" />
                 <span>💬 Discussion Board</span>
               </button>
 
               <button
-                onClick={() => { setActiveTab('analytics'); setShowSidebar(false); }}
+                onClick={() => { setActiveTab('resources'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'analytics' 
+                  activeTab === 'resources' 
                     ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
                     : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <BarChart2 className="h-4 w-4" />
-                <span>📊 Progress Reports</span>
+                <BookOpen className="h-4 w-4 text-sky-400" />
+                <span>📚 Resources</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('messages'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'messages' 
+                    ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
+                    : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <MessageSquare className="h-4 w-4 text-purple-400" />
+                <span>✉️ Messages</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('notifications'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'notifications' 
+                    ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' 
+                    : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <Sparkles className="h-4 w-4 text-yellow-400" />
+                <span>🔔 Notifications</span>
               </button>
 
               <button
@@ -1041,9 +1110,14 @@ export function MentorDashboardComponent() {
                   <h1 className="text-xl font-black text-white tracking-tight mt-1">
                     {getMentorGreeting()}, {user?.fullName || 'Mentor'} 👋
                   </h1>
-                  <p className="text-xs text-indigo-400 font-bold mt-2">
-                    Today you have {todaysSessionsCount} scheduled study sessions.
-                  </p>
+                  <div className="mt-3 space-y-1">
+                    <p className="text-xs text-zinc-450 font-bold">Today's Schedule:</p>
+                    <ul className="text-xs text-zinc-400 space-y-0.5 list-disc pl-4">
+                      <li><span className="text-indigo-400 font-bold">{todaysSessionsCount}</span> Live Sessions</li>
+                      <li><span className="text-indigo-400 font-bold">{doubts.filter(d => !d.isSolved).length}</span> Pending Doubts</li>
+                      <li><span className="text-indigo-400 font-bold">{strugglingStudents.length}</span> Students Need Attention</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
 
@@ -2089,6 +2163,292 @@ export function MentorDashboardComponent() {
               </div>
             </div>
           )}
+
+          {/* TAB 9: RESOURCES MODULE */}
+          {activeTab === 'resources' && (
+            <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-white tracking-tight">Shared Study Resources</h2>
+                  <p className="text-zinc-500 text-xs mt-0.5 font-medium">Upload study materials, PPTs, YouTube links, and practice sheets.</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setNewResource({ name: '', type: 'PDF', content: '', size: '' });
+                    setShowCreateResource(true);
+                  }}
+                  className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-xs font-black rounded-xl border-none cursor-pointer flex items-center gap-1.5 transition-all uppercase tracking-wider"
+                >
+                  <Plus className="h-4 w-4" /> Share Resource
+                </button>
+              </div>
+
+              {loadingResources ? (
+                <div className="flex justify-center py-12">
+                  <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
+                </div>
+              ) : resources.length === 0 ? (
+                <div className="py-12 text-center bg-white/[0.01] border border-white/5 rounded-2xl space-y-3">
+                  <p className="text-sm text-zinc-500 italic">No study materials shared yet.</p>
+                  <p className="text-xs text-zinc-600">Share your first PPT, PDF, or YouTube guide with students.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {resources.map((res) => (
+                    <div key={res.id} className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl flex flex-col justify-between min-h-[160px] text-left">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start gap-3">
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
+                            res.type === 'PDF' ? 'bg-red-500/10 text-red-400 border-red-500/15' :
+                            res.type === 'PPT' ? 'bg-amber-500/10 text-amber-400 border-amber-500/15' :
+                            res.type === 'YouTube' ? 'bg-rose-500/10 text-rose-455 border-rose-500/15' :
+                            'bg-sky-500/10 text-sky-400 border-sky-500/15'
+                          }`}>
+                            {res.type}
+                          </span>
+                          <span className="text-[9px] text-zinc-500 font-mono font-bold">{res.size || '0 KB'}</span>
+                        </div>
+                        <h4 className="text-xs font-bold text-white leading-snug">{res.name}</h4>
+                        <p className="text-[10px] text-zinc-450 leading-relaxed line-clamp-2">{res.content}</p>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-4">
+                        <span className="text-[8px] text-zinc-550 font-bold uppercase">By {res.publishedBy}</span>
+                        <div className="flex gap-2">
+                          {res.content && res.content.startsWith('http') && (
+                            <a
+                              href={res.content}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-md cursor-pointer uppercase tracking-wider text-center decoration-none"
+                            >
+                              Open Link
+                            </a>
+                          )}
+                          <button
+                            onClick={async () => {
+                              if (window.confirm('Delete this resource?')) {
+                                try {
+                                  await apiRequest(`/shared-notes/${res.id}`, { method: 'DELETE' });
+                                  addToast('Resource deleted successfully.', 'info');
+                                  fetchResources();
+                                } catch (e) {
+                                  addToast('Failed to delete resource.', 'error');
+                                }
+                              }
+                            }}
+                            className="p-1 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/20 rounded border-none bg-transparent cursor-pointer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 10: MESSAGES */}
+          {activeTab === 'messages' && (
+            <div className="space-y-6 max-w-7xl mx-auto h-[75vh] flex flex-col animate-in fade-in duration-200">
+              <div className="text-left">
+                <h2 className="text-xl font-bold text-white tracking-tight">Private Messages</h2>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Chat directly with students or send group announcements.</p>
+              </div>
+
+              <div className="flex-1 bg-white/[0.01] border border-white/5 rounded-2xl overflow-hidden flex divide-x divide-white/5 min-h-0">
+                {/* Students roster column */}
+                <div className="w-1/3 flex flex-col min-h-0 bg-[#070b13]/30">
+                  <div className="p-4 border-b border-white/5">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-550" />
+                      <input
+                        type="text"
+                        placeholder="Search student chat..."
+                        value={globalSearch}
+                        onChange={(e) => setGlobalSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 bg-[#060813] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 placeholder-zinc-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                    {students
+                      .filter(s => s.fullName.toLowerCase().includes(globalSearch.toLowerCase()))
+                      .map((st) => (
+                        <button
+                          key={st.id}
+                          onClick={() => setChatStudent(st)}
+                          className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all border-none text-left cursor-pointer ${
+                            chatStudent?.id === st.id ? 'bg-[#5227EB]/10 text-white border border-[#5227EB]/25' : 'bg-transparent text-zinc-400 hover:bg-white/5'
+                          }`}
+                        >
+                          <div className="h-8 w-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                            {st.fullName.charAt(0)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-xs font-bold text-white truncate">{st.fullName}</h4>
+                            <p className="text-[9.5px] text-zinc-500 truncate mt-0.5">Click to host chat thread</p>
+                          </div>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Private thread workspace */}
+                <div className="flex-1 flex flex-col min-h-0 bg-[#070b13]/10">
+                  {chatStudent ? (
+                    <>
+                      {/* Thread header */}
+                      <div className="p-4 border-b border-white/5 flex justify-between items-center bg-[#070b13]/40">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-sm uppercase">
+                            {chatStudent.fullName.charAt(0)}
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-xs font-bold text-white">{chatStudent.fullName}</h3>
+                            <p className="text-[9.5px] text-zinc-500 font-mono">@{chatStudent.username}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setNewSession(prev => ({ ...prev, groupId: studyRooms[0]?.id || '' }));
+                            setShowCreateSession(true);
+                          }}
+                          className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg uppercase tracking-wider cursor-pointer"
+                        >
+                          Schedule Study Session
+                        </button>
+                      </div>
+
+                      {/* Chat Messages Log */}
+                      <div className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col justify-end bg-[#070b13]/5">
+                        {chatMessages.length === 0 ? (
+                          <div className="my-auto text-center space-y-1.5">
+                            <p className="text-xs text-zinc-500 italic">No messages exchanged yet.</p>
+                            <p className="text-[10px] text-zinc-600">Send advice or assignments review notes to start.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 overflow-y-auto pr-1">
+                            {chatMessages.map((msg) => (
+                              <div
+                                key={msg.id}
+                                className={`flex flex-col max-w-[80%] ${msg.sender === 'mentor' ? 'ml-auto items-end' : 'mr-auto items-start'}`}
+                              >
+                                <div className={`p-3 rounded-2xl text-xs leading-relaxed text-left ${
+                                  msg.sender === 'mentor'
+                                    ? 'bg-[#5227EB] text-white rounded-tr-none'
+                                    : 'bg-white/5 text-zinc-200 rounded-tl-none border border-white/5'
+                                }`}>
+                                  {msg.text}
+                                </div>
+                                <span className="text-[8px] text-zinc-600 font-mono mt-1">{msg.timestamp}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Send bar */}
+                      <form onSubmit={handleSendMessage} className="p-4 bg-[#070b13]/80 border-t border-white/5 flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Type academic message or announcement..."
+                          value={typedMessage}
+                          onChange={(e) => setTypedMessage(e.target.value)}
+                          className="flex-1 bg-[#060813] border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-indigo-500 placeholder-zinc-600"
+                        />
+                        <button
+                          type="submit"
+                          className="px-5 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-xl text-xs font-bold border-none cursor-pointer transition-all uppercase tracking-wider"
+                        >
+                          Send Message
+                        </button>
+                      </form>
+                    </>
+                  ) : (
+                    <div className="m-auto text-center space-y-2 select-none">
+                      <div className="h-12 w-12 rounded-full bg-white/5 mx-auto flex items-center justify-center text-zinc-650">✉️</div>
+                      <p className="text-xs text-zinc-500 italic">Select a student from the sidebar roster to start guidance chats.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 11: NOTIFICATIONS */}
+          {activeTab === 'notifications' && (
+            <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-left">
+              <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-white tracking-tight">Activity Alerts</h2>
+                  <p className="text-zinc-500 text-xs mt-0.5 font-medium">Real-time alerts triggered by student workspace operations.</p>
+                </div>
+                {notifications.filter(n => n.unread).length > 0 && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await apiRequest('/notifications/mark-read', { method: 'POST' });
+                        addToast('All notifications marked as read.', 'success');
+                        fetchNotifications();
+                      } catch (e) {
+                        addToast('Failed to mark read.', 'error');
+                      }
+                    }}
+                    className="px-3.5 py-2 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider"
+                  >
+                    Mark All Read
+                  </button>
+                )}
+              </div>
+
+              {loadingNotifications ? (
+                <div className="flex justify-center py-12">
+                  <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="py-12 text-center bg-white/[0.01] border border-white/5 rounded-2xl">
+                  <p className="text-xs text-zinc-500 italic">No notifications logs recorded yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {notifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      onClick={async () => {
+                        if (notif.unread) {
+                          try {
+                            await apiRequest(`/notifications/${notif.id}/read`, { method: 'POST' });
+                            fetchNotifications();
+                          } catch (e) {}
+                        }
+                        if (notif.actionTab) {
+                          setActiveTab(notif.actionTab);
+                        }
+                      }}
+                      className={`p-4 rounded-xl border flex items-center justify-between gap-4 transition-all cursor-pointer ${
+                        notif.unread
+                          ? 'bg-[#5227EB]/5 border-[#5227EB]/20 text-white font-bold'
+                          : 'bg-white/[0.005] border-white/5 text-zinc-400 hover:bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`h-2 w-2 rounded-full shrink-0 ${notif.unread ? 'bg-indigo-500 animate-pulse' : 'bg-transparent'}`} />
+                        <p className="text-xs">{notif.message}</p>
+                      </div>
+                      <span className="text-[8px] text-zinc-600 font-mono font-medium shrink-0">
+                        {new Date(notif.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
         </main>
       </div>
 
@@ -3062,6 +3422,113 @@ export function MentorDashboardComponent() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* SHARE STUDY RESOURCE MODAL */}
+      {showCreateResource && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4">
+            <div className="flex justify-between items-center text-left">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Share Study Resource</h3>
+              <button 
+                onClick={() => setShowCreateResource(false)}
+                className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newResource.name.trim() || !newResource.content.trim()) {
+                  addToast('Resource Title and URL/Content are required.', 'error');
+                  return;
+                }
+                try {
+                  const res = await apiRequest('/shared-notes', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      name: newResource.name.trim(),
+                      type: newResource.type,
+                      content: newResource.content.trim(),
+                      size: newResource.size || '250 KB'
+                    })
+                  });
+                  addToast(res.message || 'Resource shared successfully!', 'success');
+                  setShowCreateResource(false);
+                  fetchResources();
+                  setMentorActivities(prev => [
+                    { title: 'Uploaded study material', desc: `Uploaded resource "${newResource.name}"`, date: 'Just now' },
+                    ...prev
+                  ]);
+                } catch (err: any) {
+                  addToast(err.message || 'Failed to share resource.', 'error');
+                }
+              }} 
+              className="space-y-3 text-left"
+            >
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Resource Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Master-Method-Cheat-Sheet"
+                  value={newResource.name}
+                  onChange={(e) => setNewResource(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400">Resource Type</label>
+                  <select
+                    value={newResource.type}
+                    onChange={(e) => setNewResource(prev => ({ ...prev, type: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 cursor-pointer"
+                  >
+                    <option value="PDF">📄 PDF Document</option>
+                    <option value="PPT">📊 PPT Slide Deck</option>
+                    <option value="Link">🔗 External Link</option>
+                    <option value="YouTube">🎥 YouTube Guide</option>
+                    <option value="Practice Sheet">📝 Practice Sheet</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400">Resource Size / Details</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 1.2 MB"
+                    value={newResource.size}
+                    onChange={(e) => setNewResource(prev => ({ ...prev, size: e.target.value }))}
+                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Document URL / Description content</label>
+                <textarea
+                  placeholder="Paste resource link URL (e.g. https://...) or descriptive note content..."
+                  value={newResource.content}
+                  onChange={(e) => setNewResource(prev => ({ ...prev, content: e.target.value }))}
+                  rows={4}
+                  className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 resize-none font-mono"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-xl text-xs font-black cursor-pointer transition-all border-none mt-2 uppercase tracking-wider"
+              >
+                Share with Cohort
+              </button>
+            </form>
           </div>
         </div>
       )}
