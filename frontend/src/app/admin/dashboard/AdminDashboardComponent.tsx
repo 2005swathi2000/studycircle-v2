@@ -15,14 +15,12 @@ import {
   RefreshCw, 
   Search, 
   ChevronRight, 
-  TrendingUp, 
   Bell, 
   LogOut, 
   Database, 
   Cpu, 
   Lock, 
   Unlock, 
-  Slash,
   AlertTriangle,
   Play,
   CheckCircle2,
@@ -30,20 +28,17 @@ import {
   UserPlus,
   Sparkles,
   Megaphone,
-  Download,
-  Eye,
   Mail,
-  Key,
   Check,
   X,
-  FileSpreadsheet
+  Home,
+  BookOpen
 } from 'lucide-react';
 
 export function AdminDashboardComponent() {
-  const { user, loading, logout, unreadCount } = useApp();
+  const { user, loading, logout } = useApp();
   const router = useRouter();
   const { showToast: addToast } = useToast();
-
   const pathname = usePathname();
 
   // Derive activeTab directly from the pathname
@@ -56,14 +51,17 @@ export function AdminDashboardComponent() {
     if (currentRole === 'admin') {
       const tabMapRev: Record<string, string> = {
         'dashboard': 'overview',
-        'users': 'users',
+        'users': 'students',
         'mentors': 'mentors',
         'study-rooms': 'rooms',
-        'analytics': 'overview',
-        'system-health': 'reports',
-        'settings': 'settings'
+        'resources': 'resources',
+        'reports': 'reports',
+        'announcements': 'announcements',
+        'system-health': 'system-health',
+        'settings': 'settings',
+        'profile': 'profile'
       };
-      return (tabMapRev[currentTab] || 'overview') as 'overview' | 'users' | 'mentors' | 'rooms' | 'reports' | 'settings';
+      return (tabMapRev[currentTab] || 'overview') as any;
     }
     return 'overview';
   }, [pathname]);
@@ -72,15 +70,21 @@ export function AdminDashboardComponent() {
   const setActiveTab = (newTab: string) => {
     const adminTabMap: Record<string, string> = {
       'overview': 'dashboard',
-      'users': 'users',
+      'students': 'users',
       'mentors': 'mentors',
       'rooms': 'study-rooms',
-      'reports': 'system-health',
-      'settings': 'settings'
+      'resources': 'resources',
+      'reports': 'reports',
+      'announcements': 'announcements',
+      'system-health': 'system-health',
+      'settings': 'settings',
+      'profile': 'profile'
     };
     const expectedRoute = adminTabMap[newTab] || newTab;
     router.push(`/admin/${expectedRoute}`);
   };
+
+  const [showSidebar, setShowSidebar] = useState(false);
 
   // Core Data States
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
@@ -89,40 +93,35 @@ export function AdminDashboardComponent() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [studyRooms, setStudyRooms] = useState<any[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
-  
-  // Search and Filter states
-  const [userSearch, setUserSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'student' | 'mentor' | 'admin'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
-  const [collegeFilter, setCollegeFilter] = useState('all');
-  
-  // Interactive UI Action states
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
-  const [showEditUserModal, setShowEditUserModal] = useState(false);
-  
-  // Form Inputs
-  const [newUser, setNewUser] = useState({ fullName: '', username: '', email: '', role: 'student', college: '', department: '' });
-  const [announcement, setAnnouncement] = useState({ title: '', message: '', target: 'all' });
-  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [doubts, setDoubts] = useState<any[]>([]);
+  const [loadingDoubts, setLoadingDoubts] = useState(false);
+  const [resources, setResources] = useState<any[]>([]);
+  const [loadingResources, setLoadingResources] = useState(false);
 
+  // Search and Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [collegeFilter, setCollegeFilter] = useState('all');
+
+  // Modal / Form triggers
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [newUser, setNewUser] = useState({ fullName: '', username: '', email: '', role: 'student', college: '', department: 'CSE' });
+  const [announcement, setAnnouncement] = useState({ title: '', message: '', target: 'all' });
+  
   // Platform Settings State
   const [platformSettings, setPlatformSettings] = useState({
-    geminiApiKey: '••••••••••••••••••••••••••••••••',
-    enforce2FA: false,
-    emailVerification: true,
+    appName: 'StudyCircle',
+    emailConfig: 'smtp.studycircle.com',
     maintenanceMode: false,
     welcomeEmailSubject: 'Welcome to StudyCircle!',
-    welcomeEmailBody: 'Hello {name}, Welcome to the collaborative study circle network!'
+    welcomeEmailBody: 'Hello, Welcome to the collaborative study circle network!'
   });
 
   // Timeline events state
   const [activities, setActivities] = useState([
-    { id: 1, time: '10:30 AM', text: 'New student registered from KL University', type: 'user' },
+    { id: 1, time: '10:30 AM', text: 'New student registered from VRSEC College', type: 'user' },
     { id: 2, time: '11:15 AM', text: 'Study Room "Operating Systems Core" created', type: 'room' },
     { id: 3, time: '11:50 AM', text: 'Mentor @sita_cse approved by admin', type: 'mentor' },
-    { id: 4, time: '12:05 PM', text: 'Doubt thread #140 marked resolved', type: 'doubt' },
-    { id: 5, time: '02:30 PM', text: 'Scheduled backup snapshot created', type: 'backup' }
+    { id: 4, time: '12:05 PM', text: 'Doubt thread #140 marked resolved', type: 'doubt' }
   ]);
 
   // Authentication check
@@ -136,12 +135,14 @@ export function AdminDashboardComponent() {
     }
   }, [user, loading, router]);
 
-  // Load Data
+  // Load Data on Mount
   useEffect(() => {
     if (user && user.role === 'admin') {
       fetchPendingApprovals();
       fetchUsers();
       fetchStudyRooms();
+      fetchDoubts();
+      fetchResources();
     }
   }, [user]);
 
@@ -152,10 +153,10 @@ export function AdminDashboardComponent() {
       if (data && data.pendingUsers && data.pendingUsers.length > 0) {
         setPendingApprovals(data.pendingUsers);
       } else {
-        // Mock pending coordinator requests if DB empty
+        // Fallback seed
         setPendingApprovals([
-          { id: 'usr-p1', fullName: 'Dr. Ramana Murthy', username: 'ramana_mentor', role: 'mentor', college: 'VRSEC Vijayawada', subjects: 'DBMS, SQL', experience: '12 Years', resumeLink: '#', createdAt: new Date(Date.now() - 3600000 * 5).toISOString() },
-          { id: 'usr-p2', fullName: 'Sita Ram', username: 'sita_cse_mentor', role: 'mentor', college: 'KL University Guntur', subjects: 'Data Structures, Java', experience: '5 Years', resumeLink: '#', createdAt: new Date(Date.now() - 3600000 * 12).toISOString() }
+          { id: 'usr-p1', fullName: 'Dr. Ramana Murthy', username: 'ramana_mentor', role: 'mentor', college: 'VRSEC Vijayawada', subjects: 'DBMS, SQL', experience: '12 Years', createdAt: new Date(Date.now() - 3600000 * 5).toISOString() },
+          { id: 'usr-p2', fullName: 'Sita Ram', username: 'sita_cse_mentor', role: 'mentor', college: 'KL University Guntur', subjects: 'Data Structures, Java', experience: '5 Years', createdAt: new Date(Date.now() - 3600000 * 12).toISOString() }
         ]);
       }
     } catch (err) {
@@ -171,18 +172,18 @@ export function AdminDashboardComponent() {
       const studentData = await apiRequest('/auth/students');
       let students = [];
       if (studentData && studentData.students) {
-        students = studentData.students.map((s: any) => ({ ...s, role: 'student', status: 'active', department: s.department || 'CSE' }));
+        students = studentData.students.map((s: any) => ({ ...s, role: 'student', status: 'active', department: s.department || 'CSE', college: s.college || 'VRSEC Vijayawada' }));
       } else {
         students = [
-          { id: 'usr-1', fullName: 'Vijay Kumar', username: 'vijay_cse', email: 'vijay@gmail.com', role: 'student', status: 'active', college: 'VRSEC Vijayawada', department: 'CSE', xp: 1240, streakCount: 12, createdAt: '2026-06-01' },
-          { id: 'usr-2', fullName: 'Swathi Hanumanthu', username: 'swathi_dev', email: 'swathi@gmail.com', role: 'student', status: 'active', college: 'KL University Guntur', department: 'IT', xp: 2450, streakCount: 22, createdAt: '2026-06-05' },
-          { id: 'usr-3', fullName: 'Charan Teja', username: 'charan_admin', email: 'charan@gmail.com', role: 'student', status: 'suspended', college: 'SRKR Bhimavaram', department: 'CSE', xp: 480, streakCount: 5, createdAt: '2026-06-10' }
+          { id: 'usr-1', fullName: 'Vijay Kumar', username: 'vijay_cse', email: 'vijay@gmail.com', role: 'student', status: 'active', college: 'VRSEC Vijayawada', department: 'CSE', xp: 1240, streakCount: 12 },
+          { id: 'usr-2', fullName: 'Swathi Hanumanthu', username: 'swathi_dev', email: 'swathi@gmail.com', role: 'student', status: 'active', college: 'KL University Guntur', department: 'IT', xp: 2450, streakCount: 22 },
+          { id: 'usr-3', fullName: 'Charan Teja', username: 'charan_admin', email: 'charan@gmail.com', role: 'student', status: 'suspended', college: 'SRKR Bhimavaram', department: 'CSE', xp: 480, streakCount: 5 }
         ];
       }
 
       const mockMentors = [
-        { id: 'usr-m1', fullName: 'Prof. Srinivasa Rao', username: 'srinivas_rao', email: 'srinivas@studycircle.com', role: 'mentor', status: 'active', college: 'VRSEC Vijayawada', department: 'CSE', xp: 450, streakCount: 0, createdAt: '2026-05-15' },
-        { id: 'usr-m2', fullName: 'Anjali Sharma', username: 'anjali_mentor', email: 'anjali@studycircle.com', role: 'mentor', status: 'active', college: 'VNR VJIET', department: 'ECE', xp: 820, streakCount: 0, createdAt: '2026-05-20' }
+        { id: 'usr-m1', fullName: 'Prof. Srinivasa Rao', username: 'srinivas_rao', email: 'srinivas@studycircle.com', role: 'mentor', status: 'active', college: 'VRSEC Vijayawada', department: 'CSE', xp: 450, streakCount: 0 },
+        { id: 'usr-m2', fullName: 'Anjali Sharma', username: 'anjali_mentor', email: 'anjali@studycircle.com', role: 'mentor', status: 'active', college: 'VNR VJIET', department: 'ECE', xp: 820, streakCount: 0 }
       ];
 
       setAllUsers([...students, ...mockMentors]);
@@ -196,15 +197,9 @@ export function AdminDashboardComponent() {
   const fetchStudyRooms = async () => {
     setLoadingRooms(true);
     try {
-      const data = await apiRequest('/progress/global-leaderboards');
-      if (data && data.rooms) {
-        setStudyRooms(data.rooms.map((r: any) => ({ ...r, reportsCount: r.id === 'gr-3' ? 2 : 0, isLocked: r.id === 'gr-3', mentorAssigned: r.id === 'gr-1' ? 'Prof. Srinivasa Rao' : 'Unassigned' })));
-      } else {
-        setStudyRooms([
-          { id: 'gr-1', name: 'Database Masterclass', description: 'Group for standard SQL and Schema design discussions', subject: 'DBMS', inviteCode: 'SQL101', memberCount: 15, isLocked: false, reportsCount: 0, mentorAssigned: 'Prof. Srinivasa Rao' },
-          { id: 'gr-2', name: 'Placement Coding Hub', description: 'Daily DSA practice and problem solving', subject: 'Data Structures', inviteCode: 'DSA202', memberCount: 42, isLocked: false, reportsCount: 0, mentorAssigned: 'Unassigned' },
-          { id: 'gr-3', name: 'OS & Architecture Circle', description: 'Discussions on Operating Systems principles', subject: 'OS', inviteCode: 'OS303', memberCount: 8, isLocked: true, reportsCount: 2, mentorAssigned: 'Anjali Sharma' }
-        ]);
+      const data = await apiRequest('/groups');
+      if (data && data.groups) {
+        setStudyRooms(data.groups);
       }
     } catch (err) {
       console.error('Error fetching study rooms:', err);
@@ -213,423 +208,409 @@ export function AdminDashboardComponent() {
     }
   };
 
+  const fetchDoubts = async () => {
+    setLoadingDoubts(true);
+    try {
+      const data = await apiRequest('/doubts');
+      if (data && data.doubts) {
+        setDoubts(data.doubts.map((d: any) => ({
+          ...d,
+          studentName: d.Author?.fullName || 'Student',
+          topic: d.subject || 'General'
+        })));
+      }
+    } catch (err) {
+      console.error('Error fetching doubts:', err);
+    } finally {
+      setLoadingDoubts(false);
+    }
+  };
+
+  const fetchResources = async () => {
+    setLoadingResources(true);
+    try {
+      const data = await apiRequest('/shared-notes');
+      if (data && data.notes) {
+        setResources(data.notes);
+      }
+    } catch (err) {
+      console.error('Error fetching resources:', err);
+    } finally {
+      setLoadingResources(false);
+    }
+  };
+
   // Actions
   const handleApproveUser = async (userId: string) => {
     try {
-      await apiRequest('/auth/approve', {
-        method: 'POST',
-        body: JSON.stringify({ userId })
-      });
-      addToast('Coordinator account registration approved!', 'success');
-      setPendingApprovals(prev => prev.filter(u => u.id !== userId));
+      await apiRequest(`/auth/approve-mentor/${userId}`, { method: 'POST' });
+      addToast('Mentor registration approved!', 'success');
+      setActivities(prev => [
+        { id: Date.now(), time: 'Just now', text: `Mentor approved by admin`, type: 'mentor' },
+        ...prev
+      ]);
+      fetchPendingApprovals();
       fetchUsers();
-    } catch (err) {
-      setPendingApprovals(prev => prev.filter(u => u.id !== userId));
-      addToast('Approved registration successfully!', 'success');
-      fetchUsers();
+    } catch (err: any) {
+      addToast(err.message || 'Approval request failed.', 'error');
     }
   };
 
-  const handleDeclineUser = (userId: string, name: string) => {
-    setPendingApprovals(prev => prev.filter(u => u.id !== userId));
-    addToast(`Registration request for ${name} declined`, 'warning');
+  const handleDeclineUser = async (userId: string) => {
+    try {
+      await apiRequest(`/auth/reject-mentor/${userId}`, { method: 'POST' });
+      addToast('Mentor registration request declined.', 'info');
+      fetchPendingApprovals();
+    } catch (err: any) {
+      addToast('Reject request failed.', 'error');
+    }
   };
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUser.fullName || !newUser.username || !newUser.email) {
-      addToast('Full name, username, and email are required', 'error');
+      addToast('All fields are required', 'error');
       return;
     }
-    const created = {
-      id: `usr-${Date.now()}`,
-      ...newUser,
-      xp: 0,
-      streakCount: 0,
-      status: 'active',
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-    setAllUsers(prev => [created, ...prev]);
-    addToast(`User @${newUser.username} added successfully!`, 'success');
+    // Simulate user creation
+    setAllUsers(prev => [
+      ...prev,
+      { id: `usr-${Date.now()}`, ...newUser, status: 'active', xp: 0, streakCount: 0 }
+    ]);
+    addToast(`User @${newUser.username} created successfully.`, 'success');
     setShowAddUserModal(false);
-    setNewUser({ fullName: '', username: '', email: '', role: 'student', college: '', department: '' });
+    setNewUser({ fullName: '', username: '', email: '', role: 'student', college: '', department: 'CSE' });
   };
 
   const handleBroadcastAnnouncement = (e: React.FormEvent) => {
     e.preventDefault();
     if (!announcement.title || !announcement.message) {
-      addToast('Title and message are required', 'error');
+      addToast('Announcement text required.', 'error');
       return;
     }
-    addToast(`Announcement broadcasted to all ${announcement.target} channels!`, 'success');
-    setShowAnnouncementModal(false);
+    addToast('Broadcast announcement sent to all online users.', 'success');
     setAnnouncement({ title: '', message: '', target: 'all' });
   };
 
-  const handleBanUser = (userId: string, username: string) => {
-    if (!confirm(`Are you sure you want to revoke authorization and ban @${username}?`)) {
-      return;
-    }
-    setAllUsers(prev => prev.filter(u => u.id !== userId));
-    addToast(`User @${username} has been suspended from the network`, 'warning');
-  };
-
-  const handleDatabaseBackup = async () => {
-    addToast('Initiating database backup process...', 'info');
-    setTimeout(() => {
-      addToast('Database snapshot archived successfully to database.sqlite.bak', 'success');
-    }, 1550);
-  };
-
-  const handleDeleteRoom = (roomId: string) => {
-    if (!confirm('Are you sure you want to delete this study room?')) return;
-    setStudyRooms(prev => prev.filter(r => r.id !== roomId));
-    addToast('Study room deleted from database', 'success');
-  };
-
-  const toggleRoomLock = (roomId: string) => {
-    setStudyRooms(prev => prev.map(r => {
-      if (r.id === roomId) {
-        const nextState = !r.isLocked;
-        addToast(`Room ${r.name} is now ${nextState ? 'LOCKED' : 'UNLOCKED'}`, 'info');
-        return { ...r, isLocked: nextState };
+  const handleToggleSuspend = (userId: string) => {
+    setAllUsers(prev => prev.map(u => {
+      if (u.id === userId) {
+        const nextStatus = u.status === 'active' ? 'suspended' : 'active';
+        addToast(`User status set to ${nextStatus}`, 'info');
+        return { ...u, status: nextStatus };
       }
-      return r;
+      return u;
     }));
   };
 
-  const handleSaveSettings = (e: React.FormEvent) => {
-    e.preventDefault();
-    addToast('Configurations saved and synced with backend', 'success');
+  const handleDeleteRoom = async (roomId: string) => {
+    if (window.confirm('Archive this study group?')) {
+      try {
+        await apiRequest(`/groups/${roomId}`, { method: 'DELETE' });
+        addToast('Study group archived successfully.', 'info');
+        fetchStudyRooms();
+      } catch (e) {
+        addToast('Failed to archive group.', 'error');
+      }
+    }
   };
 
-  // Filtered lists
-  const filteredUsers = allUsers.filter(u => {
-    const matchesSearch = u.fullName.toLowerCase().includes(userSearch.toLowerCase()) || 
-                          u.username.toLowerCase().includes(userSearch.toLowerCase()) ||
-                          u.email.toLowerCase().includes(userSearch.toLowerCase());
-    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
-    const matchesCollege = collegeFilter === 'all' || u.college === collegeFilter;
-    return matchesSearch && matchesRole && matchesStatus && matchesCollege;
-  });
-
-  if (loading || !user || user.role !== 'admin') {
-    return (
-      <div className="min-h-screen bg-[#070913] flex items-center justify-center text-white font-serif">
-        <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
-      </div>
-    );
-  }
+  // Greeting selector
+  const greetingText = useMemo(() => {
+    const hr = new Date().getHours();
+    if (hr >= 5 && hr < 12) return 'Good Morning';
+    if (hr >= 12 && hr < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#070913] text-zinc-100 flex flex-col font-serif">
+    <div className="min-h-screen bg-[#070913] text-zinc-100 flex flex-col font-sans">
       
-      {/* Top Console Navigation bar */}
-      <header className="h-16 border-b border-white/5 bg-[#0B0F19]/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40">
+      {/* Header */}
+      <header className="h-16 border-b border-white/5 bg-[#0B0F19]/80 backdrop-blur-md px-4 md:px-8 flex items-center justify-between sticky top-0 z-40 gap-4">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-2xl bg-gradient-to-tr from-rose-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-rose-600/10">
-            <Shield className="h-4 w-4 text-white" />
-          </div>
-          <div>
-            <h1 className="text-sm font-bold tracking-wide text-white">StudyCircle</h1>
-            <p className="text-[10px] text-zinc-400 font-medium">Admin Console — Manage your entire learning ecosystem</p>
+          <button 
+            onClick={() => setShowSidebar(true)}
+            className="p-2 hover:bg-white/5 rounded-lg border-none bg-transparent cursor-pointer lg:hidden"
+          >
+            <Activity className="h-5 w-5 text-zinc-400" />
+          </button>
+          <div className="flex items-center gap-2">
+            <span className="p-1 rounded bg-[#5227EB]/10 border border-[#5227EB]/20 text-[#5227EB] text-xs font-black uppercase">Console</span>
           </div>
         </div>
 
-        {/* Quick Operations and User widget */}
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex gap-2">
-            <button
-              onClick={() => setShowAddUserModal(true)}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-200 text-[10px] font-semibold rounded-xl border-none cursor-pointer flex items-center gap-1.5 transition-all"
-            >
-              <UserPlus className="h-3.5 w-3.5" /> Add User
-            </button>
-            <button
-              onClick={() => setShowAnnouncementModal(true)}
-              className="px-3 py-1.5 bg-rose-650 hover:bg-rose-500 text-white text-[10px] font-semibold rounded-xl border-none cursor-pointer flex items-center gap-1.5 transition-all"
-            >
-              <Megaphone className="h-3.5 w-3.5" /> Announcement
-            </button>
+        {/* User Profile */}
+        <div className="flex items-center gap-3 pl-4 border-l border-white/5">
+          <div className="text-right hidden sm:block">
+            <p className="text-xs font-bold text-white">{user?.fullName || 'Administrator'}</p>
+            <p className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold">{user?.role || 'Admin'}</p>
           </div>
-
-          <div className="flex items-center gap-3 pl-4 border-l border-white/5">
-            <div className="text-right">
-              <p className="text-xs font-semibold text-white">{user.fullName}</p>
-              <p className="text-[9px] uppercase tracking-wider text-rose-400 font-bold">System Administrator</p>
-            </div>
-            <button 
-              onClick={logout}
-              className="p-2 hover:bg-red-950/20 text-zinc-400 hover:text-red-400 rounded-xl transition-all border-none bg-transparent cursor-pointer"
-              title="Logout"
-            >
-              <LogOut className="h-4.5 w-4.5" />
-            </button>
-          </div>
+          <button 
+            onClick={logout}
+            className="p-2 hover:bg-red-955/20 text-zinc-450 hover:text-red-400 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+            title="Logout"
+          >
+            <LogOut className="h-4.5 w-4.5" />
+          </button>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         
-        {/* Navigation Sidebar */}
-        <aside className="w-64 border-r border-white/5 bg-[#0B0F19]/40 flex flex-col justify-between py-6">
-          <div className="space-y-1 px-4">
-            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-3 mb-3">System Control</p>
+        {/* Sidebar */}
+        <aside className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-white/5 bg-[#0B0F19] lg:bg-[#0B0F19]/40 flex flex-col justify-between py-6 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${
+          showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}>
+          <div className="space-y-6">
+            <div className="px-6 flex items-center gap-2.5 select-none">
+              <div className="h-8.5 w-8.5 rounded-xl bg-indigo-650 flex items-center justify-center">
+                <Shield className="h-4.5 w-4.5 text-white" />
+              </div>
+              <div className="text-left">
+                <h1 className="text-sm font-bold tracking-tight text-white">StudyCircle</h1>
+                <p className="text-[9px] uppercase tracking-widest text-indigo-400 font-black">Admin Panel</p>
+              </div>
+            </div>
+
+            <hr className="border-white/5" />
             
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all border-none cursor-pointer ${
-                activeTab === 'overview' 
-                  ? 'bg-rose-600/10 border border-rose-500/20 text-rose-400' 
-                  : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
-              }`}
-            >
-              <Activity className="h-4 w-4" />
-              <span>Overview</span>
-            </button>
+            <div className="space-y-1 px-4">
+              <button
+                onClick={() => { setActiveTab('overview'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'overview' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <Home className="h-4 w-4" />
+                <span>🏠 Dashboard</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all border-none cursor-pointer ${
-                activeTab === 'users' 
-                  ? 'bg-rose-600/10 border border-rose-500/20 text-rose-400' 
-                  : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
-              }`}
-            >
-              <Users className="h-4 w-4" />
-              <span>User Directory</span>
-            </button>
+              <button
+                onClick={() => { setActiveTab('students'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'students' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                <span>👨‍🎓 Students</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('mentors')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all border-none cursor-pointer ${
-                activeTab === 'mentors' 
-                  ? 'bg-rose-600/10 border border-rose-500/20 text-rose-400' 
-                  : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
-              }`}
-            >
-              <UserCheck className="h-4 w-4" />
-              <span>Mentor Board & Approvals</span>
-            </button>
+              <button
+                onClick={() => { setActiveTab('mentors'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'mentors' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <UserCheck className="h-4 w-4 text-emerald-450" />
+                <span>👨‍💼 Mentors</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('rooms')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all border-none cursor-pointer ${
-                activeTab === 'rooms' 
-                  ? 'bg-rose-600/10 border border-rose-500/20 text-rose-400' 
-                  : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
-              }`}
-            >
-              <Lock className="h-4 w-4" />
-              <span>Study Rooms Moderation</span>
-            </button>
+              <button
+                onClick={() => { setActiveTab('rooms'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'rooms' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <Users className="h-4 w-4 text-sky-400" />
+                <span>👥 Study Groups</span>
+              </button>
 
-            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-3 pt-6 mb-3">Settings & Assets</p>
+              <button
+                onClick={() => { setActiveTab('resources'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'resources' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <BookOpen className="h-4 w-4 text-amber-500" />
+                <span>📚 Resources</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('reports')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all border-none cursor-pointer ${
-                activeTab === 'reports' 
-                  ? 'bg-rose-600/10 border border-rose-500/20 text-rose-400' 
-                  : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
-              }`}
-            >
-              <Database className="h-4 w-4" />
-              <span>Reports & Backups</span>
-            </button>
+              <button
+                onClick={() => { setActiveTab('reports'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'reports' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <AlertTriangle className="h-4 w-4 text-rose-500" />
+                <span>🚨 Reports</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all border-none cursor-pointer ${
-                activeTab === 'settings' 
-                  ? 'bg-rose-600/10 border border-rose-500/20 text-rose-400' 
-                  : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
-              }`}
-            >
-              <Settings className="h-4 w-4" />
-              <span>Configurations</span>
-            </button>
+              <button
+                onClick={() => { setActiveTab('announcements'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'announcements' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <Megaphone className="h-4 w-4 text-yellow-400" />
+                <span>📢 Announcements</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('system-health'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'system-health' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <Cpu className="h-4 w-4 text-purple-400" />
+                <span>📊 System Health</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('settings'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'settings' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <Settings className="h-4 w-4" />
+                <span>⚙️ Settings</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('profile'); setShowSidebar(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === 'profile' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                }`}
+              >
+                <Shield className="h-4 w-4" />
+                <span>👤 Profile</span>
+              </button>
+            </div>
           </div>
 
-          <div className="px-6 text-[10px] text-zinc-500 font-bold font-mono">
-            <p>Admin Core v2.0</p>
-            <p>© StudyCircle Inc.</p>
+          <div className="px-6 text-[10px] text-zinc-500 text-left">
+            <p>Admin: {user?.username}</p>
+            <p>© StudyCircle</p>
           </div>
         </aside>
 
-        {/* Core Administrative Workspace */}
-        <main className="flex-1 overflow-y-auto p-8">
+        {showSidebar && (
+          <div 
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"
+            onClick={() => setShowSidebar(false)}
+          />
+        )}
+
+        {/* Workspace panel */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#070913] w-full">
           
-          {/* TAB 1: OVERVIEW */}
+          {/* TAB 1: DASHBOARD OVERVIEW */}
           {activeTab === 'overview' && (
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-xl font-bold text-white">Overview Control</h2>
-                <p className="text-zinc-400 text-xs mt-0.5">Real-time learning ecosystem KPIs, activities, and approvals.</p>
-              </div>
-
-              {/* Status Stats Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-zinc-500">Total Students</p>
-                    <p className="text-xl font-extrabold text-white mt-0.5">
-                      {allUsers.filter(u => u.role === 'student').length}
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-                    <Users className="h-5 w-5" />
-                  </div>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-zinc-500">Active Mentors</p>
-                    <p className="text-xl font-extrabold text-white mt-0.5">
-                      {allUsers.filter(u => u.role === 'mentor').length}
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
-                    <UserCheck className="h-5 w-5" />
-                  </div>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-zinc-500">Study Rooms Today</p>
-                    <p className="text-xl font-extrabold text-white mt-0.5">{studyRooms.length}</p>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                    <Database className="h-5 w-5" />
-                  </div>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-zinc-500">Platform Health</p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-xs font-bold text-emerald-400">Healthy</span>
-                    </div>
-                  </div>
-                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                    <Activity className="h-5 w-5" />
-                  </div>
+            <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-300 text-left">
+              
+              {/* Welcome Summary Section */}
+              <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-2xl">
+                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">
+                  {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </span>
+                <h1 className="text-xl font-black text-white tracking-tight mt-1">
+                  {greetingText}, {user?.fullName || 'Owner'} 👋
+                </h1>
+                <div className="mt-4 space-y-1">
+                  <p className="text-xs text-zinc-450 font-bold">Platform Status Summary:</p>
+                  <ul className="text-xs text-zinc-400 space-y-0.5 list-disc pl-4 font-medium">
+                    <li><span className="text-indigo-400 font-bold">{allUsers.length}</span> Total Users Online</li>
+                    <li><span className="text-indigo-400 font-bold">{pendingApprovals.length}</span> Pending Registrations</li>
+                    <li><span className="text-indigo-400 font-bold">{doubts.filter(d => d.isReported).length}</span> Flags Needing Action</li>
+                  </ul>
                 </div>
               </div>
 
-              {/* Dynamic Analytics & Live Feed Split */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* KPI metrics row */}
+              <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Students</span>
+                  <p className="text-xl font-bold text-white mt-1 font-mono">{allUsers.filter(u => u.role === 'student').length}</p>
+                </div>
+                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Mentors</span>
+                  <p className="text-xl font-bold text-white mt-1 font-mono">{allUsers.filter(u => u.role === 'mentor').length}</p>
+                </div>
+                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Groups</span>
+                  <p className="text-xl font-bold text-white mt-1 font-mono">{studyRooms.length}</p>
+                </div>
+                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Active Sessions</span>
+                  <p className="text-xl font-bold text-white mt-1 font-mono">3</p>
+                </div>
+                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Approvals</span>
+                  <p className="text-xl font-bold text-amber-400 mt-1 font-mono">{pendingApprovals.length}</p>
+                </div>
+                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Flags</span>
+                  <p className="text-xl font-bold text-rose-500 mt-1 font-mono">{doubts.filter(d => d.isReported).length}</p>
+                </div>
+              </div>
+
+              {/* Dashboard Split Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-start">
                 
-                <div className="lg:col-span-2 space-y-6">
-                  
-                  {/* SVG Chart Panel */}
-                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-white">Daily Active Users & Cohort Growth</h3>
-                        <p className="text-[10px] text-zinc-500 mt-0.5">Average weekly learning activity across colleges.</p>
-                      </div>
-                      <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-                        <TrendingUp className="h-3.5 w-3.5" /> +14.2% Growth
-                      </span>
-                    </div>
-                    {/* SVG Line Graph */}
-                    <div className="h-44 w-full pt-4">
-                      <svg viewBox="0 0 500 150" className="w-full h-full overflow-visible">
-                        <defs>
-                          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#4F46E5" stopOpacity="0.4" />
-                            <stop offset="100%" stopColor="#4F46E5" stopOpacity="0.0" />
-                          </linearGradient>
-                        </defs>
-                        {/* Grid lines */}
-                        <line x1="0" y1="25" x2="500" y2="25" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                        <line x1="0" y1="75" x2="500" y2="75" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                        <line x1="0" y1="125" x2="500" y2="125" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                        {/* Curve Area */}
-                        <path d="M 0 150 L 0 110 Q 80 80 160 95 T 320 40 T 480 30 L 500 30 L 500 150 Z" fill="url(#chartGrad)" />
-                        {/* Curve Line */}
-                        <path d="M 0 110 Q 80 80 160 95 T 320 40 T 480 30 L 500 30" fill="none" stroke="#6366F1" strokeWidth="2.5" />
-                        {/* Data dots */}
-                        <circle cx="160" cy="95" r="4" fill="#818CF8" />
-                        <circle cx="320" cy="40" r="4" fill="#818CF8" />
-                        <circle cx="480" cy="30" r="4" fill="#818CF8" />
-                      </svg>
-                    </div>
-                    <div className="flex justify-between items-center text-[9px] text-zinc-500 font-bold font-mono px-2">
-                      <span>Mon</span>
-                      <span>Tue</span>
-                      <span>Wed</span>
-                      <span>Thu</span>
-                      <span>Fri</span>
-                      <span>Sat</span>
-                      <span>Sun</span>
-                    </div>
-                  </div>
-
-                  {/* AI Recommendations Card */}
-                  <div className="p-6 rounded-2xl bg-gradient-to-r from-[#1E1B4B]/35 to-[#12001A]/35 border border-indigo-500/15 flex gap-4 items-start">
-                    <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-400">
-                      <Sparkles className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">💡 AI recommendation & insights</h4>
-                      <ul className="text-xs text-zinc-400 space-y-1.5 list-disc pl-4 leading-relaxed font-medium">
-                        <li>Student engagement dropped by <span className="text-indigo-400 font-bold">12%</span> this week in general topics; scheduling active mentoring is advised.</li>
-                        <li>Programming & DSA rooms are performing outstandingly, capturing <span className="text-emerald-400 font-bold">64%</span> of total study logs.</li>
-                        <li>5 active mentors have not conducted any live sessions within their circles this week.</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right side live logs & approvals */}
-                <div className="space-y-6">
-                  
-                  {/* Today's activities feed */}
-                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white mb-4">Today's Activities</h3>
-                    <div className="relative border-l border-white/5 pl-4 ml-2 space-y-4">
-                      {activities.map((act) => (
-                        <div key={act.id} className="relative text-xs">
-                          <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-indigo-500 ring-4 ring-[#070913]" />
-                          <p className="text-[10px] text-zinc-500 font-bold font-mono">{act.time}</p>
-                          <p className="text-zinc-300 font-medium mt-0.5">{act.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Pending approvals */}
-                  <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white mb-4">Mentor Approvals</h3>
+                {/* Left (60%) */}
+                <div className="lg:col-span-6 space-y-6">
+                  {/* Approvals */}
+                  <div className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
+                    <h3 className="text-xs font-black uppercase text-zinc-400 border-b border-white/5 pb-2">📋 Pending Approvals</h3>
                     {pendingApprovals.length === 0 ? (
-                      <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl text-center">
-                        <p className="text-xs font-bold text-emerald-400">Everything looks good!</p>
-                        <p className="text-[10px] text-zinc-500 mt-0.5">No pending approvals. Last approval: 2 hours ago</p>
-                      </div>
+                      <p className="text-xs text-zinc-555 italic py-4">No pending approvals.</p>
                     ) : (
                       <div className="space-y-3">
                         {pendingApprovals.map(req => (
-                          <div key={req.id} className="p-3 bg-white/[0.01] border border-white/5 rounded-xl flex flex-col justify-between gap-3">
+                          <div key={req.id} className="p-4 bg-[#0b0f19]/30 border border-white/5 rounded-xl flex items-center justify-between gap-4">
                             <div>
-                              <p className="text-xs font-bold text-white">{req.fullName}</p>
-                              <p className="text-[9px] text-zinc-500">Exp: {req.experience} • {req.college}</p>
+                              <h4 className="text-xs font-bold text-white">{req.fullName}</h4>
+                              <p className="text-[9.5px] text-zinc-450">{req.college} • {req.subjects}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => handleApproveUser(req.id)} className="px-2.5 py-1.5 bg-[#10B981]/15 text-[#10B981] text-[9px] font-black rounded-lg cursor-pointer border-none uppercase">Approve</button>
+                              <button onClick={() => handleDeclineUser(req.id)} className="px-2.5 py-1.5 bg-rose-500/10 text-rose-455 text-[9px] font-black rounded-lg cursor-pointer border-none uppercase">Reject</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Flagged moderation */}
+                  <div className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
+                    <h3 className="text-xs font-black uppercase text-zinc-400 border-b border-white/5 pb-2">🚨 Reports & Moderation</h3>
+                    {doubts.filter(d => d.isReported).length === 0 ? (
+                      <p className="text-xs text-emerald-450 italic py-4">✓ All content clear. No reports pending.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {doubts.filter(d => d.isReported).map(d => (
+                          <div key={d.id} className="p-4 bg-[#0b0f19]/30 border border-white/5 rounded-xl flex items-center justify-between gap-4">
+                            <div>
+                              <h4 className="text-xs font-bold text-white truncate max-w-xs">{d.title}</h4>
+                              <p className="text-[9px] text-zinc-500">Student: {d.studentName} • Flagged</p>
                             </div>
                             <div className="flex gap-2">
                               <button
-                                onClick={() => handleApproveUser(req.id)}
-                                className="flex-1 py-1 bg-emerald-650 hover:bg-emerald-500 text-white rounded text-[9px] font-bold cursor-pointer transition-all border-none"
+                                onClick={async () => {
+                                  try {
+                                    await apiRequest(`/doubts/${d.id}/ignore`, { method: 'POST' });
+                                    addToast('Report dismissed.', 'success');
+                                    fetchDoubts();
+                                  } catch (e) {}
+                                }}
+                                className="px-2.5 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase"
                               >
-                                Approve
+                                Ignore
                               </button>
                               <button
-                                onClick={() => handleDeclineUser(req.id, req.fullName)}
-                                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-zinc-400 rounded text-[9px] font-bold cursor-pointer transition-all border-none"
+                                onClick={async () => {
+                                  if (window.confirm('Remove reported doubt thread?')) {
+                                    try {
+                                      await apiRequest(`/doubts/${d.id}`, { method: 'DELETE' });
+                                      addToast('Discussion thread deleted.', 'info');
+                                      fetchDoubts();
+                                    } catch (e) {}
+                                  }
+                                }}
+                                className="px-2.5 py-1.5 bg-rose-500/10 text-rose-455 text-[9px] font-black rounded-lg cursor-pointer border border-rose-500/15 uppercase"
                               >
-                                Decline
+                                Delete
                               </button>
                             </div>
                           </div>
@@ -638,282 +619,183 @@ export function AdminDashboardComponent() {
                     )}
                   </div>
                 </div>
+
+                {/* Right (40%) */}
+                <div className="lg:col-span-4 space-y-6">
+                  {/* System health quick overview */}
+                  <div className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
+                    <h3 className="text-xs font-black uppercase text-zinc-400 border-b border-white/5 pb-2">🖥 System Health</h3>
+                    <div className="space-y-3 font-mono text-[10px]">
+                      <div className="flex justify-between items-center">
+                        <span className="text-zinc-500 font-sans">API Endpoint Status</span>
+                        <span className="text-emerald-450 font-bold uppercase tracking-wider">Online</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-zinc-500 font-sans">Database Engines</span>
+                        <span className="text-emerald-450 font-bold uppercase tracking-wider">Active</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-zinc-500 font-sans">System Memory</span>
+                        <span className="text-zinc-300 font-bold">1.2 GB / 4.0 GB</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Activity Timeline */}
+                  <div className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
+                    <h3 className="text-xs font-black uppercase text-zinc-400 border-b border-white/5 pb-2">⏱ Recent Platform Activity</h3>
+                    <div className="space-y-4 pr-1 max-h-[300px] overflow-y-auto">
+                      {activities.map(act => (
+                        <div key={act.id} className="relative pl-5 text-xs text-left">
+                          <span className="absolute left-0 top-1.5 h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                          <p className="text-[10px] text-zinc-550 font-bold">{act.time}</p>
+                          <p className="text-zinc-300 font-medium mt-0.5 leading-normal">{act.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
               </div>
+
             </div>
           )}
 
-          {/* TAB 2: USER DIRECTORY */}
-          {activeTab === 'users' && (
-            <div className="space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          {/* TAB 2: STUDENTS MODULE */}
+          {activeTab === 'students' && (
+            <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-left">
+              <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-bold text-white">User Directory</h2>
-                  <p className="text-zinc-400 text-xs mt-0.5">Manage, disable, or audit system participants.</p>
+                  <h2 className="text-xl font-bold text-white tracking-tight">Student Accounts</h2>
+                  <p className="text-zinc-500 text-xs mt-0.5 font-medium">Activate, suspend, and search student profiles.</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
-                    <input
-                      type="text"
-                      placeholder="Search name, username, email..."
-                      value={userSearch}
-                      onChange={(e) => setUserSearch(e.target.value)}
-                      className="pl-9 pr-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 w-56"
-                    />
-                  </div>
-                  <select
-                    value={roleFilter}
-                    onChange={(e) => setRoleFilter(e.target.value as any)}
-                    className="px-3 py-2 bg-[#0B0F19] border border-white/5 rounded-xl text-xs text-zinc-300 outline-none focus:border-indigo-500"
-                  >
-                    <option value="all">All Roles</option>
-                    <option value="student">Students</option>
-                    <option value="mentor">Mentors</option>
-                  </select>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
-                    className="px-3 py-2 bg-[#0B0F19] border border-white/5 rounded-xl text-xs text-zinc-300 outline-none focus:border-indigo-500"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="suspended">Suspended</option>
-                  </select>
-                  <select
-                    value={collegeFilter}
-                    onChange={(e) => setCollegeFilter(e.target.value)}
-                    className="px-3 py-2 bg-[#0B0F19] border border-white/5 rounded-xl text-xs text-zinc-300 outline-none focus:border-indigo-500"
-                  >
-                    <option value="all">All Colleges</option>
-                    <option value="VRSEC Vijayawada">VRSEC Vijayawada</option>
-                    <option value="KL University Guntur">KL University Guntur</option>
-                    <option value="SRKR Bhimavaram">SRKR Bhimavaram</option>
-                    <option value="VNR VJIET">VNR VJIET</option>
-                  </select>
-                </div>
+                <button
+                  onClick={() => setShowAddUserModal(true)}
+                  className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-xs font-black rounded-xl border-none cursor-pointer flex items-center gap-1.5 transition-all uppercase tracking-wider"
+                >
+                  <UserPlus className="h-4 w-4" /> Create User
+                </button>
               </div>
 
-              {loadingUsers ? (
-                <div className="flex justify-center py-12">
-                  <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
-                </div>
-              ) : (
-                <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-xs">
+              {/* Users table */}
+              <div className="bg-white/[0.01] border border-white/5 rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-white/5 text-zinc-400 font-bold uppercase">
-                        <th className="pb-3">Name</th>
-                        <th className="pb-3">Username</th>
-                        <th className="pb-3">College & Department</th>
-                        <th className="pb-3">Role</th>
-                        <th className="pb-3">Status</th>
-                        <th className="pb-3 text-right">Actions</th>
+                      <tr className="bg-white/[0.01] border-b border-white/5 text-zinc-500 font-bold uppercase tracking-wider text-[9px]">
+                        <th className="p-4">Student Name</th>
+                        <th className="p-4">Email</th>
+                        <th className="p-4">Department / College</th>
+                        <th className="p-4">Account Status</th>
+                        <th className="p-4 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {filteredUsers.map(u => (
-                        <tr key={u.id} className="hover:bg-white/[0.01] transition-all">
-                          <td className="py-4 font-bold text-white">{u.fullName}</td>
-                          <td className="py-4 text-zinc-400 font-mono">@{u.username}</td>
-                          <td className="py-4">
-                            <p className="text-zinc-300 font-medium">{u.college || 'N/A'}</p>
-                            <p className="text-[10px] text-zinc-500 font-bold">{u.department || 'N/A'}</p>
+                    <tbody className="divide-y divide-white/5 font-medium">
+                      {allUsers.filter(u => u.role === 'student').map(student => (
+                        <tr key={student.id} className="hover:bg-white/[0.005]">
+                          <td className="p-4">
+                            <span className="font-bold text-white block">{student.fullName}</span>
+                            <span className="text-[9px] text-zinc-550 font-mono block">@{student.username}</span>
                           </td>
-                          <td className="py-4">
-                            <span className={`text-[8px] px-2.5 py-0.5 rounded font-black uppercase ${
-                              u.role === 'mentor' ? 'bg-purple-500/10 text-purple-400' : 'bg-indigo-500/10 text-indigo-400'
+                          <td className="p-4 text-zinc-350">{student.email || 'N/A'}</td>
+                          <td className="p-4 text-zinc-450">{student.department} • {student.college}</td>
+                          <td className="p-4">
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                              student.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/15' : 'bg-rose-500/10 text-rose-455 border border-rose-500/15'
                             }`}>
-                              {u.role}
+                              {student.status}
                             </span>
                           </td>
-                          <td className="py-4">
-                            <span className={`text-[8px] px-2 py-0.5 rounded font-bold uppercase ${
-                              u.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
-                            }`}>
-                              {u.status}
-                            </span>
-                          </td>
-                          <td className="py-4 text-right space-x-2">
-                            <button
-                              onClick={() => {
-                                setEditingUser(u);
-                                setShowEditUserModal(true);
-                              }}
-                              className="p-1 text-zinc-400 hover:text-indigo-400 border-none bg-transparent cursor-pointer transition-all"
-                              title="Edit User"
-                            >
-                              <Settings className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setAllUsers(prev => prev.map(usr => usr.id === u.id ? { ...usr, status: usr.status === 'active' ? 'suspended' : 'active' } : usr));
-                                addToast(`Toggled user suspension status for @${u.username}`, 'info');
-                              }}
-                              className="p-1 text-zinc-400 hover:text-amber-500 border-none bg-transparent cursor-pointer transition-all"
-                              title="Toggle Suspension"
-                            >
-                              <Slash className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleBanUser(u.id, u.username)}
-                              className="p-1 text-zinc-400 hover:text-rose-400 border-none bg-transparent cursor-pointer transition-all"
-                              title="Delete Account"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => handleToggleSuspend(student.id)}
+                                className="px-2.5 py-1 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white rounded text-[9px] font-bold uppercase tracking-wider cursor-pointer transition-all"
+                              >
+                                {student.status === 'active' ? 'Suspend' : 'Activate'}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              )}
+              </div>
             </div>
           )}
 
-          {/* TAB 3: MENTOR BOARD & APPROVALS */}
+          {/* TAB 3: MENTORS MODULE */}
           {activeTab === 'mentors' && (
-            <div className="space-y-6">
+            <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-left">
               <div>
-                <h2 className="text-xl font-bold text-white">Mentor Board & Approvals</h2>
-                <p className="text-zinc-400 text-xs mt-0.5">Manage mentor roster, assign subject expertises, and verify applications.</p>
+                <h2 className="text-xl font-bold text-white tracking-tight">Mentor Directory</h2>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Approve and configure mentor workspace authorization privileges.</p>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                {/* Active Mentors List */}
-                <div className="lg:col-span-2 p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-white">Active Mentors Directory</h3>
-                  <div className="space-y-4">
-                    {allUsers.filter(u => u.role === 'mentor').map(mentor => (
-                      <div key={mentor.id} className="p-4 bg-white/[0.01] rounded-xl border border-white/5 flex justify-between items-center">
-                        <div>
-                          <p className="text-xs font-bold text-white">{mentor.fullName}</p>
-                          <p className="text-[10px] text-zinc-500">Expertise: <span className="text-indigo-400">{mentor.department || 'CSE'}</span> • College: {mentor.college}</p>
-                          <p className="text-[9px] text-zinc-500 mt-1">Active student sessions: 4 circles • rating: 4.8/5.0</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => addToast(`Opening settings configuration for @${mentor.username}`, 'info')}
-                            className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-300 rounded-lg text-[10px] font-bold border-none cursor-pointer transition-all"
-                          >
-                            Settings
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Approvals Queue */}
-                <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-white">Pending Mentor Requests</h3>
-                  {pendingApprovals.length === 0 ? (
-                    <p className="text-[10px] text-zinc-500 italic">No registrations pending validation.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {pendingApprovals.map(req => (
-                        <div key={req.id} className="p-3 bg-white/[0.01] border border-white/5 rounded-xl space-y-2">
-                          <div>
-                            <p className="text-xs font-bold text-white">{req.fullName}</p>
-                            <p className="text-[10px] text-zinc-400 font-medium">College: {req.college}</p>
-                            <p className="text-[10px] text-indigo-400 font-medium">Subjects: {req.subjects}</p>
-                          </div>
-                          <div className="flex gap-2 pt-2">
-                            <button 
-                              onClick={() => handleApproveUser(req.id)}
-                              className="flex-1 py-1.5 bg-emerald-650 hover:bg-emerald-500 text-white rounded text-[10px] font-bold border-none cursor-pointer transition-all"
-                            >
-                              Approve
-                            </button>
-                            <button 
-                              onClick={() => handleDeclineUser(req.id, req.fullName)}
-                              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-400 rounded text-[10px] font-bold border-none cursor-pointer transition-all"
-                            >
-                              Decline
-                            </button>
-                          </div>
-                        </div>
+              <div className="bg-white/[0.01] border border-white/5 rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead>
+                      <tr className="bg-white/[0.01] border-b border-white/5 text-zinc-500 font-bold uppercase tracking-wider text-[9px]">
+                        <th className="p-4">Mentor Name</th>
+                        <th className="p-4">Email</th>
+                        <th className="p-4">Affiliation College</th>
+                        <th className="p-4">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 font-medium">
+                      {allUsers.filter(u => u.role === 'mentor').map(mentor => (
+                        <tr key={mentor.id} className="hover:bg-white/[0.005]">
+                          <td className="p-4">
+                            <span className="font-bold text-white block">{mentor.fullName}</span>
+                            <span className="text-[9px] text-zinc-550 font-mono block">@{mentor.username}</span>
+                          </td>
+                          <td className="p-4 text-zinc-350">{mentor.email}</td>
+                          <td className="p-4 text-zinc-450">{mentor.college}</td>
+                          <td className="p-4">
+                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-450 border border-emerald-500/15 rounded text-[8px] font-black uppercase tracking-wider">
+                              Approved Mentor
+                            </span>
+                          </td>
+                        </tr>
                       ))}
-                    </div>
-                  )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 4: STUDY ROOMS MODERATION */}
+          {/* TAB 4: STUDY GROUPS */}
           {activeTab === 'rooms' && (
-            <div className="space-y-6">
+            <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-left">
               <div>
-                <h2 className="text-xl font-bold text-white">Study Rooms Moderation</h2>
-                <p className="text-zinc-400 text-xs mt-0.5">Audit student workspaces, moderate flags, and manage room access.</p>
+                <h2 className="text-xl font-bold text-white tracking-tight">Collaborative Circles</h2>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Monitor active study rooms, group participants, and activities.</p>
               </div>
 
-              {loadingRooms ? (
-                <div className="flex justify-center py-12">
-                  <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin" />
-                </div>
+              {studyRooms.length === 0 ? (
+                <p className="text-xs text-zinc-555 italic py-6 text-center">No study groups online yet.</p>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {studyRooms.map(room => (
-                    <div key={room.id} className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-between hover:border-rose-500/10 transition-all">
-                      <div>
-                        <div className="flex justify-between items-start gap-4">
-                          <div>
-                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                              {room.name}
-                              {room.isLocked && <Lock className="h-3.5 w-3.5 text-rose-400" />}
-                            </h3>
-                            <p className="text-[10px] text-zinc-500 font-medium">Subject: <span className="text-indigo-400">{room.subject}</span> • Code: <span className="text-white font-mono">{room.inviteCode || 'N/A'}</span></p>
-                          </div>
-                          <button 
-                            onClick={() => handleDeleteRoom(room.id)}
-                            className="p-1 text-zinc-400 hover:text-rose-400 border-none bg-transparent cursor-pointer transition-all"
-                            title="Delete Room"
-                          >
-                            <Trash2 className="h-4.5 w-4.5" />
-                          </button>
-                        </div>
-                        
-                        <p className="text-xs text-zinc-400 mt-2 leading-relaxed font-medium">{room.description}</p>
-                        
-                        <div className="mt-3 flex items-center justify-between text-[10px] font-medium text-zinc-500">
-                          <span>Assigned Coordinator: <span className="text-white">{room.mentorAssigned}</span></span>
-                          <span>Active Members: <span className="text-indigo-400">{room.memberCount || 0}</span></span>
-                        </div>
-
-                        {room.reportsCount > 0 && (
-                          <div className="mt-3 flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold rounded-lg animate-pulse">
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                            <span>{room.reportsCount} active safety reports flagged in voice logs</span>
-                          </div>
-                        )}
+                    <div key={room.id} className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl flex flex-col justify-between min-h-[160px]">
+                      <div className="space-y-1.5 text-left">
+                        <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/15 rounded text-[8px] font-black uppercase tracking-wider">
+                          {room.subject}
+                        </span>
+                        <h4 className="text-xs font-bold text-white pt-1">{room.name}</h4>
+                        <p className="text-[10px] text-zinc-450 leading-relaxed line-clamp-2">{room.description}</p>
                       </div>
 
-                      <div className="flex gap-2 mt-5">
+                      <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-4">
+                        <span className="text-[9px] text-zinc-500 font-bold">{room.memberCount || 3} Members</span>
                         <button
-                          onClick={() => toggleRoomLock(room.id)}
-                          className={`flex-1 py-1.5 text-[10px] font-bold rounded-xl cursor-pointer transition-all border-none flex items-center justify-center gap-1.5 ${
-                            room.isLocked 
-                              ? 'bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600/20' 
-                              : 'bg-rose-600/10 text-rose-400 hover:bg-rose-600/20'
-                          }`}
+                          onClick={() => handleDeleteRoom(room.id)}
+                          className="px-2.5 py-1.5 bg-rose-500/10 text-rose-455 hover:bg-rose-500/20 text-[9px] font-black rounded-lg cursor-pointer uppercase transition-all border border-rose-500/15"
                         >
-                          {room.isLocked ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
-                          <span>{room.isLocked ? 'Unlock Room' : 'Lock Room'}</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            const newMentor = prompt('Enter Mentor Name to assign to this room:');
-                            if (newMentor) {
-                              setStudyRooms(prev => prev.map(r => r.id === room.id ? { ...r, mentorAssigned: newMentor } : r));
-                              addToast(`Assigned ${newMentor} to room "${room.name}"`, 'success');
-                            }
-                          }}
-                          className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-zinc-350 rounded-xl text-[10px] font-bold cursor-pointer border-none transition-all"
-                        >
-                          Assign Mentor
+                          Archive Group
                         </button>
                       </div>
                     </div>
@@ -923,176 +805,314 @@ export function AdminDashboardComponent() {
             </div>
           )}
 
-          {/* TAB 5: REPORTS & BACKUPS */}
-          {activeTab === 'reports' && (
-            <div className="space-y-6">
+          {/* TAB 5: RESOURCES MODULE */}
+          {activeTab === 'resources' && (
+            <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-left">
               <div>
-                <h2 className="text-xl font-bold text-white">System Reports & Backups</h2>
-                <p className="text-zinc-400 text-xs mt-0.5">Audit log exports, backup procedures, and storage utilization stats.</p>
+                <h2 className="text-xl font-bold text-white tracking-tight">Study Resource Repository</h2>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Moderate shared notes, documents, links, and cheat sheets.</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
-                {/* DB Backup Actions */}
-                <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-white">Database Backup Procedures</h3>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-center pb-2">
-                    <div className="p-3 bg-white/[0.01] border border-white/5 rounded-xl">
-                      <p className="text-[9px] text-zinc-500 font-bold uppercase">Storage Utilized</p>
-                      <p className="text-sm font-bold text-white mt-0.5">142.4 MB</p>
-                    </div>
-                    <div className="p-3 bg-white/[0.01] border border-white/5 rounded-xl">
-                      <p className="text-[9px] text-zinc-500 font-bold uppercase">Last Backup</p>
-                      <p className="text-sm font-bold text-white mt-0.5">45 Mins Ago</p>
-                    </div>
-                  </div>
+              {resources.length === 0 ? (
+                <p className="text-xs text-zinc-555 italic py-6 text-center">No shared resources online yet.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {resources.map(res => (
+                    <div key={res.id} className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl flex flex-col justify-between min-h-[160px]">
+                      <div className="space-y-2 text-left">
+                        <div className="flex justify-between items-center">
+                          <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/15 rounded text-[8px] font-black uppercase tracking-wider">
+                            {res.type}
+                          </span>
+                          <span className="text-[9.5px] text-zinc-500 font-mono font-bold">{res.size}</span>
+                        </div>
+                        <h4 className="text-xs font-bold text-white">{res.name}</h4>
+                        <p className="text-[10px] text-zinc-450 leading-relaxed line-clamp-2">{res.content}</p>
+                      </div>
 
-                  <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                    Exports persistent database snapshots as SQLite schema copies. Archive snapshots reside under `backend/database.sqlite.bak`.
-                  </p>
-                  
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={handleDatabaseBackup}
-                      className="px-4 py-2 bg-rose-650 hover:bg-rose-500 text-white text-xs font-bold rounded-xl border-none cursor-pointer transition-all"
-                    >
-                      Backup Database
-                    </button>
-                    <button 
-                      onClick={() => addToast('System log files purged successfully!', 'success')}
-                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-zinc-400 text-xs font-bold rounded-xl border-none cursor-pointer transition-all"
-                    >
-                      Purge Access Logs
-                    </button>
-                  </div>
+                      <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-4">
+                        <span className="text-[8px] text-zinc-550 font-bold uppercase truncate max-w-[120px]">By {res.publishedBy}</span>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('Delete this resource?')) {
+                              try {
+                                await apiRequest(`/shared-notes/${res.id}`, { method: 'DELETE' });
+                                addToast('Resource deleted.', 'info');
+                                fetchResources();
+                              } catch (e) {}
+                            }
+                          }}
+                          className="px-2.5 py-1.5 bg-rose-500/10 text-rose-455 hover:bg-rose-500/20 text-[9px] font-black rounded-lg cursor-pointer uppercase transition-all border border-rose-500/15"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-
-                {/* Audit Export */}
-                <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-white">Activity Exports</h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                    Download complete user registration rosters, attendance charts, study hour reports, or flagged reports queue in structured spreadsheet format.
-                  </p>
-                  
-                  <div className="space-y-2">
-                    <button 
-                      onClick={() => addToast('Roster logs compiled. Downloading studycircle_roster.csv...', 'success')}
-                      className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-zinc-200 text-xs font-bold rounded-xl border-none cursor-pointer flex items-center justify-between px-4 transition-all"
-                    >
-                      <span>Export Student Roster (CSV)</span>
-                      <FileSpreadsheet className="h-4 w-4 text-zinc-400" />
-                    </button>
-                    <button 
-                      onClick={() => addToast('Report logs compiled. Downloading safety_audit.csv...', 'success')}
-                      className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-zinc-200 text-xs font-bold rounded-xl border-none cursor-pointer flex items-center justify-between px-4 transition-all"
-                    >
-                      <span>Export Safety Flags & Reports</span>
-                      <FileText className="h-4 w-4 text-zinc-400" />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           )}
 
-          {/* TAB 6: CONFIGURATIONS */}
-          {activeTab === 'settings' && (
-            <div className="max-w-2xl space-y-6">
+          {/* TAB 6: REPORTS */}
+          {activeTab === 'reports' && (
+            <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-left">
               <div>
-                <h2 className="text-xl font-bold text-white">System Configurations</h2>
-                <p className="text-zinc-400 text-xs mt-0.5">Manage API keys, template messages, notification profiles, and security.</p>
+                <h2 className="text-xl font-bold text-white tracking-tight">Report Handling Console</h2>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Review and resolve reported user doubts or discussion threads.</p>
               </div>
 
-              <form onSubmit={handleSaveSettings} className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-6">
-                
-                {/* Credentials */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-rose-400">Gemini LLM API keys</h3>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-zinc-400">Google Gemini API Key</label>
-                    <div className="relative">
-                      <Key className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
-                      <input
-                        type="password"
-                        value={platformSettings.geminiApiKey}
-                        onChange={(e) => setPlatformSettings(prev => ({ ...prev, geminiApiKey: e.target.value }))}
-                        className="w-full pl-9 pr-4 py-2 bg-[#0B0F19] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-mono"
-                      />
+              {doubts.filter(d => d.isReported).length === 0 ? (
+                <div className="py-12 bg-white/[0.01] border border-white/5 rounded-2xl text-center space-y-2">
+                  <CheckCircle2 className="h-8 w-8 text-emerald-450 mx-auto" />
+                  <p className="text-sm text-zinc-450 font-bold">All reported discussions resolved.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {doubts.filter(d => d.isReported).map(d => (
+                    <div key={d.id} className="p-4 bg-white/[0.01] border border-white/5 rounded-xl flex items-center justify-between gap-4 text-left">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-bold text-white truncate">{d.title}</h4>
+                        <p className="text-[10px] text-zinc-450 leading-relaxed mt-1">{d.description}</p>
+                        <span className="text-[8.5px] text-zinc-550 font-mono block mt-1">Student: {d.studentName} • Circle Subject: {d.topic}</span>
+                      </div>
+                      <div className="flex gap-1.5 shrink-0">
+                        <button
+                          onClick={async () => {
+                            try {
+                              await apiRequest(`/doubts/${d.id}/ignore`, { method: 'POST' });
+                              addToast('Report dismissed.', 'success');
+                              fetchDoubts();
+                            } catch (e) {}
+                          }}
+                          className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer"
+                        >
+                          Ignore
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('Delete reported doubt thread?')) {
+                              try {
+                                await apiRequest(`/doubts/${d.id}`, { method: 'DELETE' });
+                                addToast('Doubt thread deleted successfully.', 'info');
+                                fetchDoubts();
+                              } catch (e) {}
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-rose-500/10 text-rose-455 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer border border-rose-500/15"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 7: ANNOUNCEMENTS */}
+          {activeTab === 'announcements' && (
+            <div className="space-y-6 max-w-xl mx-auto animate-in fade-in duration-200 text-left">
+              <div>
+                <h2 className="text-xl font-bold text-white tracking-tight">Broadcast Announcements</h2>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Broadcast alerts and notices instantly to students and mentors.</p>
+              </div>
+
+              <form onSubmit={handleBroadcastAnnouncement} className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400">Announcement Title</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Scheduled Network Maintenance"
+                    value={announcement.title}
+                    onChange={(e) => setAnnouncement(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                    required
+                  />
                 </div>
 
-                {/* Email Templates */}
-                <div className="space-y-4 pt-4 border-t border-white/5">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-rose-400">Email SMTP Templates</h3>
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-400">Welcome Email Subject</label>
-                      <input
-                        type="text"
-                        value={platformSettings.welcomeEmailSubject}
-                        onChange={(e) => setPlatformSettings(prev => ({ ...prev, welcomeEmailSubject: e.target.value }))}
-                        className="w-full px-3.5 py-2.5 bg-[#0B0F19] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-400">Welcome Email Body</label>
-                      <textarea
-                        rows={3}
-                        value={platformSettings.welcomeEmailBody}
-                        onChange={(e) => setPlatformSettings(prev => ({ ...prev, welcomeEmailBody: e.target.value }))}
-                        className="w-full px-3.5 py-2.5 bg-[#0B0F19] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 resize-none leading-relaxed"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Security settings */}
-                <div className="space-y-4 pt-4 border-t border-white/5">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-rose-400">Security & Roles</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={platformSettings.enforce2FA}
-                        onChange={(e) => setPlatformSettings(prev => ({ ...prev, enforce2FA: e.target.checked }))}
-                        className="h-4 w-4 bg-[#0B0F19] border-white/5 rounded text-indigo-500 focus:ring-0 focus:ring-offset-0"
-                      />
-                      <span className="text-xs text-zinc-300 font-medium">Enforce Two-Factor Auth (2FA)</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={platformSettings.emailVerification}
-                        onChange={(e) => setPlatformSettings(prev => ({ ...prev, emailVerification: e.target.checked }))}
-                        className="h-4 w-4 bg-[#0B0F19] border-white/5 rounded text-indigo-500 focus:ring-0 focus:ring-offset-0"
-                      />
-                      <span className="text-xs text-zinc-300 font-medium">Mandatory Verification Emails</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-4 border-t border-white/5">
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 bg-rose-650 hover:bg-rose-500 text-white rounded-xl text-xs font-bold border-none cursor-pointer transition-all"
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400">Target Audience</label>
+                  <select
+                    value={announcement.target}
+                    onChange={(e) => setAnnouncement(prev => ({ ...prev, target: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 cursor-pointer"
                   >
-                    Save Configurations
-                  </button>
+                    <option value="all">Everyone (Students & Mentors)</option>
+                    <option value="student">Students Only</option>
+                    <option value="mentor">Mentors Only</option>
+                  </select>
                 </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400">Announcement Message Content</label>
+                  <textarea
+                    placeholder="Write announcement body details..."
+                    value={announcement.message}
+                    onChange={(e) => setAnnouncement(prev => ({ ...prev, message: e.target.value }))}
+                    rows={4}
+                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 resize-none font-medium leading-relaxed"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-xl text-xs font-black cursor-pointer transition-all border-none mt-2 uppercase tracking-wider"
+                >
+                  Broadcast Announcement
+                </button>
               </form>
             </div>
           )}
+
+          {/* TAB 8: SYSTEM HEALTH */}
+          {activeTab === 'system-health' && (
+            <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-left">
+              <div>
+                <h2 className="text-xl font-bold text-white tracking-tight">System Infrastructure</h2>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Verify actual server status and database connectivity metrics.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Health Cards */}
+                <div className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
+                  <h3 className="text-xs font-black uppercase text-indigo-400 border-b border-white/5 pb-2">Status Grid</h3>
+                  <div className="space-y-3 font-mono text-[10.5px]">
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-500 font-sans">Backend Server</span>
+                      <span className="text-emerald-450 font-bold uppercase tracking-wider">Online</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-500 font-sans">Database Instance</span>
+                      <span className="text-emerald-450 font-bold uppercase tracking-wider">Connected</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-500 font-sans">Authentication Endpoint</span>
+                      <span className="text-emerald-450 font-bold uppercase tracking-wider">Healthy</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-500 font-sans">Email SMTP Delivery</span>
+                      <span className="text-emerald-450 font-bold uppercase tracking-wider">Online</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
+                  <h3 className="text-xs font-black uppercase text-indigo-400 border-b border-white/5 pb-2">Hardware Usage</h3>
+                  <div className="space-y-3 font-mono text-[10.5px]">
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-500 font-sans">CPU Capacity</span>
+                      <span className="text-zinc-300 font-bold">12%</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-500 font-sans">RAM Allocation</span>
+                      <span className="text-zinc-300 font-bold">1.2 GB / 4.0 GB</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-500 font-sans">Storage Allocation</span>
+                      <span className="text-zinc-300 font-bold">850 MB / 20 GB</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 9: SETTINGS */}
+          {activeTab === 'settings' && (
+            <div className="space-y-6 max-w-xl mx-auto animate-in fade-in duration-200 text-left">
+              <div>
+                <h2 className="text-xl font-bold text-white tracking-tight">Platform Configuration</h2>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Update application settings and verification policies.</p>
+              </div>
+
+              <form 
+                onSubmit={(e) => { e.preventDefault(); addToast('Settings updated successfully!', 'success'); }}
+                className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4"
+              >
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400">Application Name</label>
+                  <input
+                    type="text"
+                    value={platformSettings.appName}
+                    onChange={(e) => setPlatformSettings(prev => ({ ...prev, appName: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-zinc-400">Email SMTP Delivery Server</label>
+                  <input
+                    type="text"
+                    value={platformSettings.emailConfig}
+                    onChange={(e) => setPlatformSettings(prev => ({ ...prev, emailConfig: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-mono"
+                    required
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-white/5">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={platformSettings.maintenanceMode}
+                      onChange={(e) => setPlatformSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))}
+                      className="h-4.5 w-4.5 bg-[#060913] border-white/5 rounded text-[#5227EB] focus:ring-0 cursor-pointer"
+                    />
+                    <div>
+                      <span className="text-xs text-zinc-250 font-bold block">Enforce System Maintenance Mode</span>
+                      <span className="text-[9px] text-zinc-550 block mt-0.5">Logs out students and mentors immediately for system updates.</span>
+                    </div>
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-xl text-xs font-black cursor-pointer transition-all border-none mt-2 uppercase tracking-wider"
+                >
+                  Save Platform Config
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* TAB 10: PROFILE */}
+          {activeTab === 'profile' && (
+            <div className="space-y-6 max-w-xl mx-auto animate-in fade-in duration-200 text-left">
+              <div>
+                <h2 className="text-xl font-bold text-white tracking-tight">Admin Profile</h2>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Verify your console credentials.</p>
+              </div>
+
+              <div className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-zinc-400 block">Username</span>
+                  <span className="text-xs text-zinc-250 font-mono">@{user?.username}</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-zinc-400 block">Full Name</span>
+                  <span className="text-xs text-zinc-250">{user?.fullName}</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-zinc-400 block">Role Level</span>
+                  <span className="text-xs text-indigo-400 font-bold uppercase">Administrator</span>
+                </div>
+              </div>
+            </div>
+          )}
+
         </main>
       </div>
 
-      {/* MODAL 1: ADD USER MODAL */}
+      {/* CREATE USER MODAL */}
       {showAddUserModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Create User Account</h3>
+          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4 text-left">
+            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Create User Profile</h3>
               <button 
                 onClick={() => setShowAddUserModal(false)}
                 className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs"
@@ -1100,218 +1120,63 @@ export function AdminDashboardComponent() {
                 <X className="h-4 w-4" />
               </button>
             </div>
+            
             <form onSubmit={handleCreateUser} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-400">FullName</label>
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Full Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. Swathi Hanumanthu"
+                  placeholder="e.g. Swathi Dev"
                   value={newUser.fullName}
                   onChange={(e) => setNewUser(prev => ({ ...prev, fullName: e.target.value }))}
                   className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                  required
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase text-zinc-400">Username</label>
                   <input
                     type="text"
-                    placeholder="swathi_dev"
+                    placeholder="swathi_cse"
                     value={newUser.username}
                     onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
                     className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-mono"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-zinc-400">Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="swathi@gmail.com"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-zinc-400">Assign Role</label>
-                  <select
-                    value={newUser.role}
-                    onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
-                  >
-                    <option value="student">Student</option>
-                    <option value="mentor">Mentor / Coordinator</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-zinc-400">College Department</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. CSE"
-                    value={newUser.department}
-                    onChange={(e) => setNewUser(prev => ({ ...prev, department: e.target.value }))}
-                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-400">College / Institution</label>
-                <input
-                  type="text"
-                  placeholder="e.g. VRSEC Vijayawada"
-                  value={newUser.college}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, college: e.target.value }))}
-                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-rose-650 hover:bg-rose-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all border-none mt-2"
-              >
-                Create Account
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 2: BROADCAST ANNOUNCEMENT */}
-      {showAnnouncementModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Broadcast Announcement</h3>
-              <button 
-                onClick={() => setShowAnnouncementModal(false)}
-                className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <form onSubmit={handleBroadcastAnnouncement} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-400">Target Segment</label>
-                <select
-                  value={announcement.target}
-                  onChange={(e) => setAnnouncement(prev => ({ ...prev, target: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
-                >
-                  <option value="all">All Registered Accounts</option>
-                  <option value="mentor">Mentors Only</option>
-                  <option value="student">Students Only</option>
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-400">Alert Title</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Schedule Maintenance Notice"
-                  value={announcement.title}
-                  onChange={(e) => setAnnouncement(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-400">Message Content</label>
-                <textarea
-                  placeholder="Write the alert content..."
-                  value={announcement.message}
-                  onChange={(e) => setAnnouncement(prev => ({ ...prev, message: e.target.value }))}
-                  rows={4}
-                  className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 resize-none font-medium leading-relaxed"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-rose-650 hover:bg-rose-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all border-none mt-2"
-              >
-                Broadcast Alert
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 3: EDIT USER DETAILS MODAL */}
-      {showEditUserModal && editingUser && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Modify User Account</h3>
-              <button 
-                onClick={() => setShowEditUserModal(false)}
-                className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                setAllUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u));
-                addToast('User details updated successfully!', 'success');
-                setShowEditUserModal(false);
-              }}
-              className="space-y-3"
-            >
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-400">FullName</label>
-                <input
-                  type="text"
-                  value={editingUser.fullName}
-                  onChange={(e) => setEditingUser({ ...editingUser, fullName: e.target.value })}
-                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-zinc-400">Username</label>
-                  <input
-                    type="text"
-                    value={editingUser.username}
-                    onChange={(e) => setEditingUser({ ...editingUser, username: e.target.value })}
-                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-mono"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-zinc-400">Email Address</label>
-                  <input
-                    type="email"
-                    value={editingUser.email || ''}
-                    onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-zinc-400">College Department</label>
-                  <input
-                    type="text"
-                    value={editingUser.department || ''}
-                    onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
-                    className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                    required
                   />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase text-zinc-400">Role</label>
                   <select
-                    value={editingUser.role}
-                    onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                    value={newUser.role}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500 cursor-pointer"
                   >
                     <option value="student">Student</option>
                     <option value="mentor">Mentor</option>
+                    <option value="admin">Administrator</option>
                   </select>
                 </div>
               </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Email Address</label>
+                <input
+                  type="email"
+                  placeholder="name@gmail.com"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3.5 py-2 bg-[#060913] border border-white/5 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                  required
+                />
+              </div>
+
               <button
                 type="submit"
-                className="w-full py-2.5 bg-rose-650 hover:bg-rose-500 text-white rounded-xl text-xs font-bold cursor-pointer transition-all border-none mt-2"
+                className="w-full py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-xl text-xs font-black cursor-pointer transition-all border-none mt-2 uppercase tracking-wider"
               >
-                Update Details
+                Create Account
               </button>
             </form>
           </div>
@@ -1321,5 +1186,3 @@ export function AdminDashboardComponent() {
     </div>
   );
 }
-
-

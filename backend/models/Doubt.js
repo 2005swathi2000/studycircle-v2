@@ -51,6 +51,10 @@ const Doubt = sequelize.define('Doubt', {
   topic: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  isReported: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 });
 

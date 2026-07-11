@@ -485,4 +485,41 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// Toggle report status of doubt (reported content)
+router.post('/:id/report', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doubt = await Doubt.findByPk(id);
+    if (!doubt) {
+      return res.status(404).json({ error: 'Doubt not found.' });
+    }
+    doubt.isReported = true;
+    await doubt.save();
+    return res.json({ message: 'Doubt has been reported.', doubt });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error reporting doubt.' });
+  }
+});
+
+// Dismiss report of doubt (ignore/unreport)
+router.post('/:id/ignore', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required.' });
+    }
+    const doubt = await Doubt.findByPk(id);
+    if (!doubt) {
+      return res.status(404).json({ error: 'Doubt not found.' });
+    }
+    doubt.isReported = false;
+    await doubt.save();
+    return res.json({ message: 'Report dismissed.', doubt });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error dismissing report.' });
+  }
+});
+
 module.exports = router;

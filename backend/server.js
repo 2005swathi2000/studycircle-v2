@@ -275,6 +275,16 @@ const startServer = async () => {
         // Column already exists
       }
     }
+    // Migration for Doubts: isReported
+    try {
+      await sequelize.query('ALTER TABLE Doubts ADD COLUMN isReported BOOLEAN DEFAULT 0;');
+    } catch (e1) {
+      try {
+        await sequelize.query('ALTER TABLE "Doubts" ADD COLUMN "isReported" BOOLEAN DEFAULT 0;');
+      } catch (e2) {
+        // Column already exists
+      }
+    }
     if (isProduction || isSqlite) {
       await sequelize.sync();
     } else {
