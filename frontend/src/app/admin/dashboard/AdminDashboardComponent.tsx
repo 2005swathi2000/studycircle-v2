@@ -135,6 +135,46 @@ export function AdminDashboardComponent() {
   const [announcement, setAnnouncement] = useState({ title: '', message: '', target: 'all' });
   const [selectedPendingProfile, setSelectedPendingProfile] = useState<any | null>(null);
   
+  // Card reordering state for drag-and-drop
+  const [kpiOrder, setKpiOrder] = useState<string[]>([
+    'students',
+    'mentors',
+    'rooms',
+    'sessions',
+    'announcements'
+  ]);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    const target = e.currentTarget as HTMLElement;
+    target.style.opacity = '0.4';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    
+    const newOrder = [...kpiOrder];
+    const draggedItem = newOrder[draggedIndex];
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(index, 0, draggedItem);
+    
+    setDraggedIndex(index);
+    setKpiOrder(newOrder);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    const target = e.currentTarget as HTMLElement;
+    target.style.opacity = '1';
+    setDraggedIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+  
   // Platform Settings State
   const [platformSettings, setPlatformSettings] = useState({
     appName: 'StudyCircle',
@@ -653,81 +693,135 @@ export function AdminDashboardComponent() {
                 </div>
               </div>
 
-              {/* DASHBOARD KPI CARDS (Desktop: 5 per row, Tablet: 2 per row, Mobile: 1 per row) */}
+              {/* DASHBOARD KPI CARDS (Movable via Drag-and-Drop) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div 
-                  onClick={() => setActiveTab('students')} 
-                  className="p-5 bg-[#0B0F19]/40 border border-white/5 hover:border-zinc-700 rounded-lg cursor-pointer transition-all space-y-1"
-                >
-                  <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
-                    <span className="text-lg">👨‍🎓</span> Students
-                  </span>
-                  {loadingUsers ? (
-                    <div className="h-7 w-12 bg-white/5 animate-pulse rounded mt-2" />
-                  ) : errorUsers ? (
-                    <p className="text-xs text-rose-400">Error</p>
-                  ) : (
-                    <p className="text-2xl font-bold text-white font-mono">{allUsers.filter(u => u.role === 'student').length}</p>
-                  )}
-                </div>
+                {kpiOrder.map((cardId, index) => {
+                  if (cardId === 'students') {
+                    return (
+                      <div 
+                        key="students"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        onDrop={handleDrop}
+                        onClick={() => setActiveTab('students')} 
+                        className={`p-5 bg-[#0B0F19]/40 border ${draggedIndex === index ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5'} hover:border-zinc-700 rounded-lg cursor-grab active:cursor-grabbing transition-all space-y-1 select-none`}
+                      >
+                        <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
+                          <span className="text-lg">👨‍🎓</span> Students
+                        </span>
+                        {loadingUsers ? (
+                          <div className="h-7 w-12 bg-white/5 animate-pulse rounded mt-2" />
+                        ) : errorUsers ? (
+                          <p className="text-xs text-rose-400">Error</p>
+                        ) : (
+                          <p className="text-2xl font-bold text-white font-mono">{allUsers.filter(u => u.role === 'student').length}</p>
+                        )}
+                      </div>
+                    );
+                  }
 
-                <div 
-                  onClick={() => setActiveTab('mentors')} 
-                  className="p-5 bg-[#0B0F19]/40 border border-white/5 hover:border-zinc-700 rounded-lg cursor-pointer transition-all space-y-1"
-                >
-                  <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
-                    <span className="text-lg">👨‍🏫</span> Mentors
-                  </span>
-                  {loadingUsers ? (
-                    <div className="h-7 w-12 bg-white/5 animate-pulse rounded mt-2" />
-                  ) : errorUsers ? (
-                    <p className="text-xs text-rose-400">Error</p>
-                  ) : (
-                    <p className="text-2xl font-bold text-white font-mono">{allUsers.filter(u => u.role === 'mentor').length}</p>
-                  )}
-                </div>
+                  if (cardId === 'mentors') {
+                    return (
+                      <div 
+                        key="mentors"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        onDrop={handleDrop}
+                        onClick={() => setActiveTab('mentors')} 
+                        className={`p-5 bg-[#0B0F19]/40 border ${draggedIndex === index ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5'} hover:border-zinc-700 rounded-lg cursor-grab active:cursor-grabbing transition-all space-y-1 select-none`}
+                      >
+                        <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
+                          <span className="text-lg">👨‍🏫</span> Mentors
+                        </span>
+                        {loadingUsers ? (
+                          <div className="h-7 w-12 bg-white/5 animate-pulse rounded mt-2" />
+                        ) : errorUsers ? (
+                          <p className="text-xs text-rose-400">Error</p>
+                        ) : (
+                          <p className="text-2xl font-bold text-white font-mono">{allUsers.filter(u => u.role === 'mentor').length}</p>
+                        )}
+                      </div>
+                    );
+                  }
 
-                <div 
-                  onClick={() => setActiveTab('rooms')} 
-                  className="p-5 bg-[#0B0F19]/40 border border-white/5 hover:border-zinc-700 rounded-lg cursor-pointer transition-all space-y-1"
-                >
-                  <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
-                    <span className="text-lg">👥</span> Study Groups
-                  </span>
-                  {loadingRooms ? (
-                    <div className="h-7 w-12 bg-white/5 animate-pulse rounded mt-2" />
-                  ) : errorRooms ? (
-                    <p className="text-xs text-rose-400">Error</p>
-                  ) : (
-                    <p className="text-2xl font-bold text-white font-mono">{studyRooms.length}</p>
-                  )}
-                </div>
+                  if (cardId === 'rooms') {
+                    return (
+                      <div 
+                        key="rooms"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        onDrop={handleDrop}
+                        onClick={() => setActiveTab('rooms')} 
+                        className={`p-5 bg-[#0B0F19]/40 border ${draggedIndex === index ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5'} hover:border-zinc-700 rounded-lg cursor-grab active:cursor-grabbing transition-all space-y-1 select-none`}
+                      >
+                        <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
+                          <span className="text-lg">👥</span> Study Groups
+                        </span>
+                        {loadingRooms ? (
+                          <div className="h-7 w-12 bg-white/5 animate-pulse rounded mt-2" />
+                        ) : errorRooms ? (
+                          <p className="text-xs text-rose-400">Error</p>
+                        ) : (
+                          <p className="text-2xl font-bold text-white font-mono">{studyRooms.length}</p>
+                        )}
+                      </div>
+                    );
+                  }
 
-                <div 
-                  onClick={() => setActiveTab('rooms')} 
-                  className="p-5 bg-[#0B0F19]/40 border border-white/5 hover:border-zinc-700 rounded-lg cursor-pointer transition-all space-y-1"
-                >
-                  <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
-                    <span className="text-lg">🎥</span> Active Sessions
-                  </span>
-                  {loadingSessions ? (
-                    <div className="h-7 w-12 bg-white/5 animate-pulse rounded mt-2" />
-                  ) : errorSessions ? (
-                    <p className="text-xs text-rose-400">Error</p>
-                  ) : (
-                    <p className="text-2xl font-bold text-white font-mono">{sessions.length || 3}</p>
-                  )}
-                </div>
+                  if (cardId === 'sessions') {
+                    return (
+                      <div 
+                        key="sessions"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        onDrop={handleDrop}
+                        onClick={() => setActiveTab('rooms')} 
+                        className={`p-5 bg-[#0B0F19]/40 border ${draggedIndex === index ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5'} hover:border-zinc-700 rounded-lg cursor-grab active:cursor-grabbing transition-all space-y-1 select-none`}
+                      >
+                        <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
+                          <span className="text-lg">🎥</span> Active Sessions
+                        </span>
+                        {loadingSessions ? (
+                          <div className="h-7 w-12 bg-white/5 animate-pulse rounded mt-2" />
+                        ) : errorSessions ? (
+                          <p className="text-xs text-rose-400">Error</p>
+                        ) : (
+                          <p className="text-2xl font-bold text-white font-mono">{sessions.length || 3}</p>
+                        )}
+                      </div>
+                    );
+                  }
 
-                <div 
-                  onClick={() => setActiveTab('announcements')} 
-                  className="p-5 bg-[#0B0F19]/40 border border-white/5 hover:border-zinc-700 rounded-lg cursor-pointer transition-all space-y-1"
-                >
-                  <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
-                    <span className="text-lg">📢</span> Announcements
-                  </span>
-                  <p className="text-2xl font-bold text-white font-mono">1</p>
-                </div>
+                  if (cardId === 'announcements') {
+                    return (
+                      <div 
+                        key="announcements"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        onDrop={handleDrop}
+                        onClick={() => setActiveTab('announcements')} 
+                        className={`p-5 bg-[#0B0F19]/40 border ${draggedIndex === index ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5'} hover:border-zinc-700 rounded-lg cursor-grab active:cursor-grabbing transition-all space-y-1 select-none`}
+                      >
+                        <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
+                          <span className="text-lg">📢</span> Announcements
+                        </span>
+                        <p className="text-2xl font-bold text-white font-mono">1</p>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })}
               </div>
 
               {/* 2-COLUMN workspace layout (Desktop: 2 cols, Mobile/Tablet: 1 col) */}
