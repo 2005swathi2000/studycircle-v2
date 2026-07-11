@@ -102,6 +102,18 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     defaultValue: 'local'
   },
+  college: {
+    type: DataTypes.STRING,
+    defaultValue: ''
+  },
+  expertise: {
+    type: DataTypes.TEXT,
+    defaultValue: '[]'
+  },
+  availability: {
+    type: DataTypes.STRING,
+    defaultValue: 'Available'
+  },
   learningGoal: {
     type: DataTypes.STRING,
     defaultValue: ''

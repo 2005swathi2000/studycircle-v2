@@ -285,6 +285,30 @@ const startServer = async () => {
         // Column already exists
       }
     }
+    // Migration for Users: college
+    try {
+      await sequelize.query('ALTER TABLE Users ADD COLUMN college VARCHAR(255) DEFAULT "";');
+    } catch (e1) {
+      try {
+        await sequelize.query('ALTER TABLE "Users" ADD COLUMN "college" VARCHAR(255) DEFAULT \'\';');
+      } catch (e2) {}
+    }
+    // Migration for Users: expertise
+    try {
+      await sequelize.query('ALTER TABLE Users ADD COLUMN expertise TEXT;');
+    } catch (e1) {
+      try {
+        await sequelize.query('ALTER TABLE "Users" ADD COLUMN "expertise" TEXT;');
+      } catch (e2) {}
+    }
+    // Migration for Users: availability
+    try {
+      await sequelize.query('ALTER TABLE Users ADD COLUMN availability VARCHAR(255) DEFAULT "Available";');
+    } catch (e1) {
+      try {
+        await sequelize.query('ALTER TABLE "Users" ADD COLUMN "availability" VARCHAR(255) DEFAULT \'Available\';');
+      } catch (e2) {}
+    }
     if (isProduction || isSqlite) {
       await sequelize.sync();
     } else {

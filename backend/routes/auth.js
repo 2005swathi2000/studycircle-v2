@@ -704,7 +704,7 @@ router.get('/me', authMiddleware, async (req, res) => {
 // Update user profile (PUT /update-profile)
 router.put('/update-profile', authMiddleware, async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, avatarUrl, bio, learningGoal, learningLevel, dailyTarget, focusCoins, badges, xp, level } = req.body;
+    const { firstName, lastName, email, phone, avatarUrl, bio, learningGoal, learningLevel, dailyTarget, focusCoins, badges, xp, level, college, expertise, availability } = req.body;
     
     const user = await User.findByPk(req.user.id);
     if (!user) {
@@ -781,6 +781,18 @@ router.put('/update-profile', authMiddleware, async (req, res) => {
       user.dailyMissionDate = req.body.dailyMissionDate;
     }
 
+    if (college !== undefined) {
+      user.college = college ? college.trim() : '';
+    }
+
+    if (expertise !== undefined) {
+      user.expertise = typeof expertise === 'string' ? expertise : JSON.stringify(expertise);
+    }
+
+    if (availability !== undefined) {
+      user.availability = availability ? availability.trim() : 'Available';
+    }
+
     // Update old composite columns for backward compatibility
     const updatedFirstName = user.firstName || '';
     const updatedLastName = user.lastName || '';
@@ -817,7 +829,10 @@ router.put('/update-profile', authMiddleware, async (req, res) => {
       xp: user.xp,
       level: user.level,
       dailyMissions: user.dailyMissions,
-      dailyMissionDate: user.dailyMissionDate
+      dailyMissionDate: user.dailyMissionDate,
+      college: user.college,
+      expertise: user.expertise,
+      availability: user.availability
     };
 
     return res.json({
@@ -1384,6 +1399,34 @@ router.get('/mentors/:mentorId/ratings', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error retrieving mentor ratings.' });
+  }
+});
+
+// Authenticated Change Password
+router.post('/change-password', authMiddleware, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required.' });
+    }
+
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Incorrect current password.' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return res.json({ message: 'Password changed successfully.' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error during password update.' });
   }
 });
 
