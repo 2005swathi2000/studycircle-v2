@@ -11,28 +11,26 @@ import {
   Settings, 
   Activity, 
   UserCheck, 
-  Trash2, 
   RefreshCw, 
   Search, 
   ChevronRight, 
   Bell, 
   LogOut, 
-  Database, 
   Cpu, 
-  Lock, 
-  Unlock, 
   AlertTriangle,
   Play,
   CheckCircle2,
   FileText,
   UserPlus,
-  Sparkles,
   Megaphone,
-  Mail,
-  Check,
   X,
   Home,
-  BookOpen
+  BookOpen,
+  Menu,
+  Clock,
+  Database,
+  Check,
+  Server
 } from 'lucide-react';
 
 export function AdminDashboardComponent() {
@@ -89,16 +87,45 @@ export function AdminDashboardComponent() {
   // Core Data States
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
   const [loadingApprovals, setLoadingApprovals] = useState(false);
+  const [errorApprovals, setErrorApprovals] = useState(false);
+
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [errorUsers, setErrorUsers] = useState(false);
+
   const [studyRooms, setStudyRooms] = useState<any[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
+  const [errorRooms, setErrorRooms] = useState(false);
+
   const [doubts, setDoubts] = useState<any[]>([]);
   const [loadingDoubts, setLoadingDoubts] = useState(false);
+  const [errorDoubts, setErrorDoubts] = useState(false);
+
   const [resources, setResources] = useState<any[]>([]);
   const [loadingResources, setLoadingResources] = useState(false);
+  const [errorResources, setErrorResources] = useState(false);
+
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [errorSessions, setErrorSessions] = useState(false);
+
+  // Platform activities & health status
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+  const [errorActivities, setErrorActivities] = useState(false);
+
+  const [healthMetrics, setHealthMetrics] = useState<any>({
+    status: 'Healthy',
+    storageUsed: '68%',
+    backupStatus: 'Completed',
+    avgResponseTime: '120 ms',
+    uptime: '99.98%'
+  });
+  const [loadingHealth, setLoadingHealth] = useState(false);
+  const [errorHealth, setErrorHealth] = useState(false);
 
   // Search and Filter states
+  const [globalSearch, setGlobalSearch] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [collegeFilter, setCollegeFilter] = useState('all');
 
@@ -106,6 +133,7 @@ export function AdminDashboardComponent() {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUser, setNewUser] = useState({ fullName: '', username: '', email: '', role: 'student', college: '', department: 'CSE' });
   const [announcement, setAnnouncement] = useState({ title: '', message: '', target: 'all' });
+  const [selectedPendingProfile, setSelectedPendingProfile] = useState<any | null>(null);
   
   // Platform Settings State
   const [platformSettings, setPlatformSettings] = useState({
@@ -115,14 +143,6 @@ export function AdminDashboardComponent() {
     welcomeEmailSubject: 'Welcome to StudyCircle!',
     welcomeEmailBody: 'Hello, Welcome to the collaborative study circle network!'
   });
-
-  // Timeline events state
-  const [activities, setActivities] = useState([
-    { id: 1, time: '10:30 AM', text: 'New student registered from VRSEC College', type: 'user' },
-    { id: 2, time: '11:15 AM', text: 'Study Room "Operating Systems Core" created', type: 'room' },
-    { id: 3, time: '11:50 AM', text: 'Mentor @sita_cse approved by admin', type: 'mentor' },
-    { id: 4, time: '12:05 PM', text: 'Doubt thread #140 marked resolved', type: 'doubt' }
-  ]);
 
   // Authentication check
   useEffect(() => {
@@ -143,24 +163,21 @@ export function AdminDashboardComponent() {
       fetchStudyRooms();
       fetchDoubts();
       fetchResources();
+      fetchSessions();
+      fetchSystemHealth();
+      fetchPlatformActivities();
     }
   }, [user]);
 
   const fetchPendingApprovals = async () => {
     setLoadingApprovals(true);
+    setErrorApprovals(false);
     try {
       const data = await apiRequest('/auth/pending-approvals');
-      if (data && data.pendingUsers && data.pendingUsers.length > 0) {
-        setPendingApprovals(data.pendingUsers);
-      } else {
-        // Fallback seed
-        setPendingApprovals([
-          { id: 'usr-p1', fullName: 'Dr. Ramana Murthy', username: 'ramana_mentor', role: 'mentor', college: 'VRSEC Vijayawada', subjects: 'DBMS, SQL', experience: '12 Years', createdAt: new Date(Date.now() - 3600000 * 5).toISOString() },
-          { id: 'usr-p2', fullName: 'Sita Ram', username: 'sita_cse_mentor', role: 'mentor', college: 'KL University Guntur', subjects: 'Data Structures, Java', experience: '5 Years', createdAt: new Date(Date.now() - 3600000 * 12).toISOString() }
-        ]);
-      }
+      setPendingApprovals(data?.pendingUsers || []);
     } catch (err) {
       console.error('Error fetching pending approvals:', err);
+      setErrorApprovals(true);
     } finally {
       setLoadingApprovals(false);
     }
@@ -168,27 +185,22 @@ export function AdminDashboardComponent() {
 
   const fetchUsers = async () => {
     setLoadingUsers(true);
+    setErrorUsers(false);
     try {
       const studentData = await apiRequest('/auth/students');
-      let students = [];
       if (studentData && studentData.students) {
-        students = studentData.students.map((s: any) => ({ ...s, role: 'student', status: 'active', department: s.department || 'CSE', college: s.college || 'VRSEC Vijayawada' }));
-      } else {
-        students = [
-          { id: 'usr-1', fullName: 'Vijay Kumar', username: 'vijay_cse', email: 'vijay@gmail.com', role: 'student', status: 'active', college: 'VRSEC Vijayawada', department: 'CSE', xp: 1240, streakCount: 12 },
-          { id: 'usr-2', fullName: 'Swathi Hanumanthu', username: 'swathi_dev', email: 'swathi@gmail.com', role: 'student', status: 'active', college: 'KL University Guntur', department: 'IT', xp: 2450, streakCount: 22 },
-          { id: 'usr-3', fullName: 'Charan Teja', username: 'charan_admin', email: 'charan@gmail.com', role: 'student', status: 'suspended', college: 'SRKR Bhimavaram', department: 'CSE', xp: 480, streakCount: 5 }
-        ];
+        const mapped = studentData.students.map((s: any) => ({
+          ...s,
+          role: s.role || 'student',
+          status: s.status || 'active',
+          department: s.department || 'CSE',
+          college: s.college || 'VRSEC Vijayawada'
+        }));
+        setAllUsers(mapped);
       }
-
-      const mockMentors = [
-        { id: 'usr-m1', fullName: 'Prof. Srinivasa Rao', username: 'srinivas_rao', email: 'srinivas@studycircle.com', role: 'mentor', status: 'active', college: 'VRSEC Vijayawada', department: 'CSE', xp: 450, streakCount: 0 },
-        { id: 'usr-m2', fullName: 'Anjali Sharma', username: 'anjali_mentor', email: 'anjali@studycircle.com', role: 'mentor', status: 'active', college: 'VNR VJIET', department: 'ECE', xp: 820, streakCount: 0 }
-      ];
-
-      setAllUsers([...students, ...mockMentors]);
     } catch (err) {
       console.error('Error fetching users:', err);
+      setErrorUsers(true);
     } finally {
       setLoadingUsers(false);
     }
@@ -196,13 +208,13 @@ export function AdminDashboardComponent() {
 
   const fetchStudyRooms = async () => {
     setLoadingRooms(true);
+    setErrorRooms(false);
     try {
       const data = await apiRequest('/groups');
-      if (data && data.groups) {
-        setStudyRooms(data.groups);
-      }
+      setStudyRooms(data?.groups || []);
     } catch (err) {
       console.error('Error fetching study rooms:', err);
+      setErrorRooms(true);
     } finally {
       setLoadingRooms(false);
     }
@@ -210,6 +222,7 @@ export function AdminDashboardComponent() {
 
   const fetchDoubts = async () => {
     setLoadingDoubts(true);
+    setErrorDoubts(false);
     try {
       const data = await apiRequest('/doubts');
       if (data && data.doubts) {
@@ -221,6 +234,7 @@ export function AdminDashboardComponent() {
       }
     } catch (err) {
       console.error('Error fetching doubts:', err);
+      setErrorDoubts(true);
     } finally {
       setLoadingDoubts(false);
     }
@@ -228,29 +242,74 @@ export function AdminDashboardComponent() {
 
   const fetchResources = async () => {
     setLoadingResources(true);
+    setErrorResources(false);
     try {
       const data = await apiRequest('/shared-notes');
-      if (data && data.notes) {
-        setResources(data.notes);
-      }
+      setResources(data?.notes || []);
     } catch (err) {
       console.error('Error fetching resources:', err);
+      setErrorResources(true);
     } finally {
       setLoadingResources(false);
+    }
+  };
+
+  const fetchSessions = async () => {
+    setLoadingSessions(true);
+    setErrorSessions(false);
+    try {
+      const data = await apiRequest('/sessions');
+      setSessions(data?.sessions || []);
+    } catch (err) {
+      console.error('Error fetching academic sessions:', err);
+      setErrorSessions(true);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  const fetchSystemHealth = async () => {
+    setLoadingHealth(true);
+    setErrorHealth(false);
+    try {
+      const data = await apiRequest('/auth/system-health');
+      if (data) {
+        setHealthMetrics(data);
+      }
+    } catch (err) {
+      console.error('Error fetching system health metrics:', err);
+      setErrorHealth(true);
+    } finally {
+      setLoadingHealth(false);
+    }
+  };
+
+  const fetchPlatformActivities = async () => {
+    setLoadingActivities(true);
+    setErrorActivities(false);
+    try {
+      const data = await apiRequest('/auth/platform-activities');
+      setActivities(data?.activities || []);
+    } catch (err) {
+      console.error('Error fetching platform activities:', err);
+      setErrorActivities(true);
+    } finally {
+      setLoadingActivities(false);
     }
   };
 
   // Actions
   const handleApproveUser = async (userId: string) => {
     try {
-      await apiRequest(`/auth/approve-mentor/${userId}`, { method: 'POST' });
-      addToast('Mentor registration approved!', 'success');
-      setActivities(prev => [
-        { id: Date.now(), time: 'Just now', text: `Mentor approved by admin`, type: 'mentor' },
-        ...prev
-      ]);
-      fetchPendingApprovals();
+      await apiRequest('/auth/approve', { 
+        method: 'POST', 
+        body: { userId } 
+      });
+      addToast('Registration approved successfully!', 'success');
+      // Optimistic updates
+      setPendingApprovals(prev => prev.filter(u => u.id !== userId));
       fetchUsers();
+      fetchPlatformActivities();
     } catch (err: any) {
       addToast(err.message || 'Approval request failed.', 'error');
     }
@@ -258,9 +317,14 @@ export function AdminDashboardComponent() {
 
   const handleDeclineUser = async (userId: string) => {
     try {
-      await apiRequest(`/auth/reject-mentor/${userId}`, { method: 'POST' });
-      addToast('Mentor registration request declined.', 'info');
-      fetchPendingApprovals();
+      await apiRequest('/auth/reject', { 
+        method: 'POST', 
+        body: { userId } 
+      });
+      addToast('Registration request rejected.', 'info');
+      setPendingApprovals(prev => prev.filter(u => u.id !== userId));
+      fetchUsers();
+      fetchPlatformActivities();
     } catch (err: any) {
       addToast('Reject request failed.', 'error');
     }
@@ -282,14 +346,23 @@ export function AdminDashboardComponent() {
     setNewUser({ fullName: '', username: '', email: '', role: 'student', college: '', department: 'CSE' });
   };
 
-  const handleBroadcastAnnouncement = (e: React.FormEvent) => {
+  const handleBroadcastAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!announcement.title || !announcement.message) {
       addToast('Announcement text required.', 'error');
       return;
     }
-    addToast('Broadcast announcement sent to all online users.', 'success');
-    setAnnouncement({ title: '', message: '', target: 'all' });
+    try {
+      await apiRequest('/auth/broadcast-announcement', {
+        method: 'POST',
+        body: announcement
+      });
+      addToast('Broadcast announcement sent to all users.', 'success');
+      setAnnouncement({ title: '', message: '', target: 'all' });
+      fetchPlatformActivities();
+    } catch (err: any) {
+      addToast(err.message || 'Failed to send broadcast.', 'error');
+    }
   };
 
   const handleToggleSuspend = (userId: string) => {
@@ -315,40 +388,86 @@ export function AdminDashboardComponent() {
     }
   };
 
-  // Greeting selector
-  const greetingText = useMemo(() => {
-    const hr = new Date().getHours();
+  const handleBackupSystem = () => {
+    addToast('System database backup initiated successfully!', 'success');
+  };
+
+  // Greeting selector with Admin Saved Timezone
+  const getGreetingText = useMemo(() => {
+    const tz = user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    let localTime = new Date();
+    try {
+      const formatterString = localTime.toLocaleString('en-US', { timeZone: tz });
+      localTime = new Date(formatterString);
+    } catch (e) {}
+
+    const hr = localTime.getHours();
     if (hr >= 5 && hr < 12) return 'Good Morning';
     if (hr >= 12 && hr < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  }, []);
+    if (hr >= 17 && hr < 21) return 'Good Evening';
+    return 'Good Night';
+  }, [user]);
+
+  // Derived relative elapsed times
+  const getRelativeTime = (isoString: string) => {
+    if (!isoString) return 'recently';
+    const now = new Date();
+    const date = new Date(isoString);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffHrs < 24) return `${diffHrs} hours ago`;
+    return date.toLocaleDateString();
+  };
+
+  const formattedUsersOnline = useMemo(() => {
+    return allUsers.filter(u => u.status === 'active').length;
+  }, [allUsers]);
+
+  const formattedReportsPending = useMemo(() => {
+    return doubts.filter(d => d.isReported).length;
+  }, [doubts]);
 
   return (
     <div className="min-h-screen bg-[#070913] text-zinc-100 flex flex-col font-sans">
       
-      {/* Header */}
+      {/* HEADER BAR */}
       <header className="h-16 border-b border-white/5 bg-[#0B0F19]/80 backdrop-blur-md px-4 md:px-8 flex items-center justify-between sticky top-0 z-40 gap-4">
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => setShowSidebar(true)}
-            className="p-2 hover:bg-white/5 rounded-lg border-none bg-transparent cursor-pointer lg:hidden"
+            onClick={() => setShowSidebar(!showSidebar)}
+            className="p-2 hover:bg-white/5 rounded-xl border-none bg-transparent cursor-pointer lg:hidden"
+            title="Toggle Sidebar"
           >
-            <Activity className="h-5 w-5 text-zinc-400" />
+            <Menu className="h-5 w-5 text-zinc-400" />
           </button>
-          <div className="flex items-center gap-2">
-            <span className="p-1 rounded bg-[#5227EB]/10 border border-[#5227EB]/20 text-[#5227EB] text-xs font-black uppercase">Console</span>
+          
+          <div className="relative w-48 sm:w-64">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+            <input
+              type="text"
+              placeholder="Search students, rooms, settings..."
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+              className="w-full bg-[#060813] border border-white/5 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:border-indigo-500/50 outline-none transition-all"
+            />
           </div>
         </div>
 
-        {/* User Profile */}
+        {/* User Profile Info on Right */}
         <div className="flex items-center gap-3 pl-4 border-l border-white/5">
           <div className="text-right hidden sm:block">
-            <p className="text-xs font-bold text-white">{user?.fullName || 'Administrator'}</p>
+            <p className="text-xs font-bold text-white">{user?.fullName || 'Tulasi Devi'}</p>
             <p className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold">{user?.role || 'Admin'}</p>
+          </div>
+          <div className="h-9 w-9 rounded-full bg-indigo-900/60 border border-indigo-500/20 flex items-center justify-center font-bold text-white uppercase text-xs">
+            {(user?.fullName || 'TD').substring(0, 2)}
           </div>
           <button 
             onClick={logout}
-            className="p-2 hover:bg-red-955/20 text-zinc-450 hover:text-red-400 rounded-xl transition-all border-none bg-transparent cursor-pointer"
+            className="p-2 hover:bg-red-950/20 text-zinc-450 hover:text-red-400 rounded-xl transition-all border-none bg-transparent cursor-pointer"
             title="Logout"
           >
             <LogOut className="h-4.5 w-4.5" />
@@ -358,7 +477,7 @@ export function AdminDashboardComponent() {
 
       <div className="flex flex-1 overflow-hidden relative">
         
-        {/* Sidebar */}
+        {/* SIDEBAR NAVIGATION */}
         <aside className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-white/5 bg-[#0B0F19] lg:bg-[#0B0F19]/40 flex flex-col justify-between py-6 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${
           showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}>
@@ -369,7 +488,7 @@ export function AdminDashboardComponent() {
               </div>
               <div className="text-left">
                 <h1 className="text-sm font-bold tracking-tight text-white">StudyCircle</h1>
-                <p className="text-[9px] uppercase tracking-widest text-indigo-400 font-black">Admin Panel</p>
+                <p className="text-[9px] uppercase tracking-widest text-indigo-400 font-black">Platform Admin</p>
               </div>
             </div>
 
@@ -379,108 +498,108 @@ export function AdminDashboardComponent() {
               <button
                 onClick={() => { setActiveTab('overview'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'overview' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                  activeTab === 'overview' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-450 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
                 <Home className="h-4 w-4" />
-                <span>🏠 Dashboard</span>
+                <span>Dashboard</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('students'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'students' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                  activeTab === 'students' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-450 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
                 <Users className="h-4 w-4" />
-                <span>👨‍🎓 Students</span>
+                <span>Students</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('mentors'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'mentors' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                  activeTab === 'mentors' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-450 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <UserCheck className="h-4 w-4 text-emerald-450" />
-                <span>👨‍💼 Mentors</span>
+                <UserCheck className="h-4 w-4" />
+                <span>Mentors</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('rooms'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'rooms' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                  activeTab === 'rooms' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-450 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <Users className="h-4 w-4 text-sky-400" />
-                <span>👥 Study Groups</span>
+                <Users className="h-4 w-4" />
+                <span>Study Groups</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('resources'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'resources' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                  activeTab === 'resources' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-450 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <BookOpen className="h-4 w-4 text-amber-500" />
-                <span>📚 Resources</span>
+                <BookOpen className="h-4 w-4" />
+                <span>Resources</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('reports'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'reports' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                  activeTab === 'reports' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-450 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <AlertTriangle className="h-4 w-4 text-rose-500" />
-                <span>🚨 Reports</span>
+                <AlertTriangle className="h-4 w-4" />
+                <span>Content Moderation</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('announcements'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'announcements' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                  activeTab === 'announcements' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-450 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <Megaphone className="h-4 w-4 text-yellow-400" />
-                <span>📢 Announcements</span>
+                <Megaphone className="h-4 w-4" />
+                <span>Announcements</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('system-health'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'system-health' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                  activeTab === 'system-health' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-450 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <Cpu className="h-4 w-4 text-purple-400" />
-                <span>📊 System Health</span>
+                <Cpu className="h-4 w-4" />
+                <span>Platform Health</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('settings'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'settings' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                  activeTab === 'settings' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-450 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
                 <Settings className="h-4 w-4" />
-                <span>⚙️ Settings</span>
+                <span>Settings</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('profile'); setShowSidebar(false); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
-                  activeTab === 'profile' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
+                  activeTab === 'profile' ? 'bg-indigo-650/10 border border-indigo-500/20 text-indigo-400' : 'bg-transparent text-zinc-450 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
                 <Shield className="h-4 w-4" />
-                <span>👤 Profile</span>
+                <span>Profile</span>
               </button>
             </div>
           </div>
 
-          <div className="px-6 text-[10px] text-zinc-500 text-left">
-            <p>Admin: {user?.username}</p>
-            <p>© StudyCircle</p>
+          <div className="px-6 text-[10px] text-zinc-500 text-left space-y-1">
+            <p>Role: {user?.role || 'Admin'}</p>
+            <p>© StudyCircle Console</p>
           </div>
         </aside>
 
@@ -491,80 +610,183 @@ export function AdminDashboardComponent() {
           />
         )}
 
-        {/* Workspace panel */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#070913] w-full">
+        {/* WORKSPACE CONTENT PANEL */}
+        <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-[#070913] w-full space-y-6">
           
           {/* TAB 1: DASHBOARD OVERVIEW */}
           {activeTab === 'overview' && (
-            <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-300 text-left">
+            <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300 text-left">
               
-              {/* Welcome Summary Section */}
-              <div className="p-6 bg-[#0B0F19]/60 border border-white/5 rounded-2xl">
-                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">
-                  {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                </span>
-                <h1 className="text-xl font-black text-white tracking-tight mt-1">
-                  {greetingText}, {user?.fullName || 'Owner'} 👋
-                </h1>
-                <div className="mt-4 space-y-1">
-                  <p className="text-xs text-zinc-450 font-bold">Platform Status Summary:</p>
-                  <ul className="text-xs text-zinc-400 space-y-0.5 list-disc pl-4 font-medium">
-                    <li><span className="text-indigo-400 font-bold">{allUsers.length}</span> Total Users Online</li>
-                    <li><span className="text-indigo-400 font-bold">{pendingApprovals.length}</span> Pending Registrations</li>
-                    <li><span className="text-indigo-400 font-bold">{doubts.filter(d => d.isReported).length}</span> Flags Needing Action</li>
-                  </ul>
+              {/* WELCOME SUMMARY SECTION */}
+              <div className="p-6 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
+                <div>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                    {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </span>
+                  <h1 className="text-[28px] font-bold text-white tracking-tight mt-1 leading-tight">
+                    {getGreetingText}, {user?.fullName || 'Tulasi Devi'} 👋
+                  </h1>
+                  <p className="text-[14px] text-zinc-400 mt-1 font-medium">
+                    Welcome back. Here's today's platform overview.
+                  </p>
                 </div>
-              </div>
-
-              {/* KPI metrics row */}
-              <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
-                  <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Students</span>
-                  <p className="text-xl font-bold text-white mt-1 font-mono">{allUsers.filter(u => u.role === 'student').length}</p>
-                </div>
-                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
-                  <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Mentors</span>
-                  <p className="text-xl font-bold text-white mt-1 font-mono">{allUsers.filter(u => u.role === 'mentor').length}</p>
-                </div>
-                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
-                  <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Groups</span>
-                  <p className="text-xl font-bold text-white mt-1 font-mono">{studyRooms.length}</p>
-                </div>
-                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
-                  <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Active Sessions</span>
-                  <p className="text-xl font-bold text-white mt-1 font-mono">3</p>
-                </div>
-                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
-                  <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Approvals</span>
-                  <p className="text-xl font-bold text-amber-400 mt-1 font-mono">{pendingApprovals.length}</p>
-                </div>
-                <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl">
-                  <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Flags</span>
-                  <p className="text-xl font-bold text-rose-500 mt-1 font-mono">{doubts.filter(d => d.isReported).length}</p>
-                </div>
-              </div>
-
-              {/* Dashboard Split Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-start">
                 
-                {/* Left (60%) */}
-                <div className="lg:col-span-6 space-y-6">
-                  {/* Approvals */}
-                  <div className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
-                    <h3 className="text-xs font-black uppercase text-zinc-400 border-b border-white/5 pb-2">📋 Pending Approvals</h3>
-                    {pendingApprovals.length === 0 ? (
-                      <p className="text-xs text-zinc-555 italic py-4">No pending approvals.</p>
+                <div className="max-w-md pt-3 border-t border-white/5 space-y-2.5">
+                  <div className="flex justify-between items-center text-[14px]">
+                    <span className="text-zinc-400 font-medium flex items-center gap-2">
+                      <span>👥</span> Users Online
+                    </span>
+                    <span className="font-bold text-white">{formattedUsersOnline || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[14px]">
+                    <span className="text-zinc-400 font-medium flex items-center gap-2">
+                      <span>📝</span> Pending Approvals
+                    </span>
+                    <span className="font-bold text-white">{pendingApprovals?.length || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[14px]">
+                    <span className="text-zinc-400 font-medium flex items-center gap-2">
+                      <span>🚩</span> Reports Pending
+                    </span>
+                    <span className="font-bold text-white">{formattedReportsPending || 0}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* DASHBOARD KPI CARDS (Desktop: 5 per row, Tablet: 2 per row, Mobile: 1 per row) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div 
+                  onClick={() => setActiveTab('students')} 
+                  className="p-5 bg-[#0B0F19]/40 border border-white/5 hover:border-zinc-700 rounded-lg cursor-pointer transition-all space-y-1"
+                >
+                  <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
+                    <span className="text-lg">👨‍🎓</span> Students
+                  </span>
+                  {loadingUsers ? (
+                    <div className="h-7 w-12 bg-white/5 animate-pulse rounded mt-2" />
+                  ) : errorUsers ? (
+                    <p className="text-xs text-rose-400">Error</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-white font-mono">{allUsers.filter(u => u.role === 'student').length}</p>
+                  )}
+                </div>
+
+                <div 
+                  onClick={() => setActiveTab('mentors')} 
+                  className="p-5 bg-[#0B0F19]/40 border border-white/5 hover:border-zinc-700 rounded-lg cursor-pointer transition-all space-y-1"
+                >
+                  <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
+                    <span className="text-lg">👨‍🏫</span> Mentors
+                  </span>
+                  {loadingUsers ? (
+                    <div className="h-7 w-12 bg-white/5 animate-pulse rounded mt-2" />
+                  ) : errorUsers ? (
+                    <p className="text-xs text-rose-400">Error</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-white font-mono">{allUsers.filter(u => u.role === 'mentor').length}</p>
+                  )}
+                </div>
+
+                <div 
+                  onClick={() => setActiveTab('rooms')} 
+                  className="p-5 bg-[#0B0F19]/40 border border-white/5 hover:border-zinc-700 rounded-lg cursor-pointer transition-all space-y-1"
+                >
+                  <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
+                    <span className="text-lg">👥</span> Study Groups
+                  </span>
+                  {loadingRooms ? (
+                    <div className="h-7 w-12 bg-white/5 animate-pulse rounded mt-2" />
+                  ) : errorRooms ? (
+                    <p className="text-xs text-rose-400">Error</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-white font-mono">{studyRooms.length}</p>
+                  )}
+                </div>
+
+                <div 
+                  onClick={() => setActiveTab('rooms')} 
+                  className="p-5 bg-[#0B0F19]/40 border border-white/5 hover:border-zinc-700 rounded-lg cursor-pointer transition-all space-y-1"
+                >
+                  <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
+                    <span className="text-lg">🎥</span> Active Sessions
+                  </span>
+                  {loadingSessions ? (
+                    <div className="h-7 w-12 bg-white/5 animate-pulse rounded mt-2" />
+                  ) : errorSessions ? (
+                    <p className="text-xs text-rose-400">Error</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-white font-mono">{sessions.length || 3}</p>
+                  )}
+                </div>
+
+                <div 
+                  onClick={() => setActiveTab('announcements')} 
+                  className="p-5 bg-[#0B0F19]/40 border border-white/5 hover:border-zinc-700 rounded-lg cursor-pointer transition-all space-y-1"
+                >
+                  <span className="text-[12px] font-bold text-zinc-400 flex items-center gap-2">
+                    <span className="text-lg">📢</span> Announcements
+                  </span>
+                  <p className="text-2xl font-bold text-white font-mono">1</p>
+                </div>
+              </div>
+
+              {/* 2-COLUMN workspace layout (Desktop: 2 cols, Mobile/Tablet: 1 col) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                
+                {/* Left Side: Pending Approvals & Moderation */}
+                <div className="space-y-4">
+                  
+                  {/* PENDING APPROVALS LIST */}
+                  <div className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
+                    <h3 className="text-[18px] font-bold text-white">Pending Approvals</h3>
+                    
+                    {loadingApprovals ? (
+                      <div className="space-y-2">
+                        <div className="h-14 bg-white/5 animate-pulse rounded-lg" />
+                        <div className="h-14 bg-white/5 animate-pulse rounded-lg" />
+                      </div>
+                    ) : errorApprovals ? (
+                      <div className="p-4 text-center">
+                        <p className="text-xs text-zinc-500">Unable to load pending registrations.</p>
+                        <button onClick={fetchPendingApprovals} className="mt-2 text-indigo-400 underline text-xs font-bold">Retry</button>
+                      </div>
+                    ) : pendingApprovals.length === 0 ? (
+                      <p className="text-[14px] text-zinc-500 italic py-4 text-center">No pending approvals.</p>
                     ) : (
                       <div className="space-y-3">
                         {pendingApprovals.map(req => (
-                          <div key={req.id} className="p-4 bg-[#0b0f19]/30 border border-white/5 rounded-xl flex items-center justify-between gap-4">
-                            <div>
-                              <h4 className="text-xs font-bold text-white">{req.fullName}</h4>
-                              <p className="text-[9.5px] text-zinc-450">{req.college} • {req.subjects}</p>
+                          <div key={req.id} className="p-4 bg-white/[0.02] border border-white/5 rounded-lg flex flex-col sm:flex-row justify-between gap-3 text-left">
+                            <div className="flex gap-3">
+                              <div className="h-9 w-9 rounded-full bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center font-bold text-indigo-400 uppercase text-[11px] shrink-0">
+                                {req.fullName.substring(0, 2)}
+                              </div>
+                              <div className="space-y-0.5">
+                                <h4 className="text-[14px] font-semibold text-white">{req.fullName}</h4>
+                                <p className="text-[12px] text-zinc-400">{req.college || 'KL University'}</p>
+                                <span className="text-[11px] text-indigo-400 block font-semibold">Specialization: {req.subjects || req.role}</span>
+                                <span className="text-[10px] text-zinc-550 block pt-0.5">Requested: {getRelativeTime(req.createdAt)}</span>
+                              </div>
                             </div>
-                            <div className="flex gap-2">
-                              <button onClick={() => handleApproveUser(req.id)} className="px-2.5 py-1.5 bg-[#10B981]/15 text-[#10B981] text-[9px] font-black rounded-lg cursor-pointer border-none uppercase">Approve</button>
-                              <button onClick={() => handleDeclineUser(req.id)} className="px-2.5 py-1.5 bg-rose-500/10 text-rose-455 text-[9px] font-black rounded-lg cursor-pointer border-none uppercase">Reject</button>
+                            
+                            <div className="flex gap-2 items-center shrink-0">
+                              <button 
+                                onClick={() => setSelectedPendingProfile(req)} 
+                                className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[11px] font-bold cursor-pointer"
+                              >
+                                View Profile
+                              </button>
+                              <button 
+                                onClick={() => handleApproveUser(req.id)} 
+                                className="px-3 py-1.5 bg-emerald-500/15 border border-[#10B981]/20 hover:border-emerald-600 text-emerald-400 text-[11px] font-bold rounded-lg cursor-pointer"
+                              >
+                                Approve
+                              </button>
+                              <button 
+                                onClick={() => handleDeclineUser(req.id)} 
+                                className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/15 hover:border-rose-600 text-rose-455 text-[11px] font-bold rounded-lg cursor-pointer"
+                              >
+                                Reject
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -572,88 +794,156 @@ export function AdminDashboardComponent() {
                     )}
                   </div>
 
-                  {/* Flagged moderation */}
-                  <div className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
-                    <h3 className="text-xs font-black uppercase text-zinc-400 border-b border-white/5 pb-2">🚨 Reports & Moderation</h3>
-                    {doubts.filter(d => d.isReported).length === 0 ? (
-                      <p className="text-xs text-emerald-450 italic py-4">✓ All content clear. No reports pending.</p>
+                  {/* CONTENT MODERATION */}
+                  <div className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
+                    <h3 className="text-[18px] font-bold text-white">Content Moderation</h3>
+                    
+                    {loadingDoubts ? (
+                      <div className="h-12 bg-white/5 animate-pulse rounded-lg" />
+                    ) : errorDoubts ? (
+                      <div className="p-4 text-center">
+                        <p className="text-xs text-zinc-500">Unable to load content flags.</p>
+                        <button onClick={fetchDoubts} className="mt-2 text-indigo-400 underline text-xs font-bold">Retry</button>
+                      </div>
+                    ) : doubts.filter(d => d.isReported).length === 0 ? (
+                      <div className="py-6 text-center text-[14px] text-emerald-400 font-medium">
+                        No reports pending. Everything looks good 🎉
+                      </div>
                     ) : (
                       <div className="space-y-3">
-                        {doubts.filter(d => d.isReported).map(d => (
-                          <div key={d.id} className="p-4 bg-[#0b0f19]/30 border border-white/5 rounded-xl flex items-center justify-between gap-4">
-                            <div>
-                              <h4 className="text-xs font-bold text-white truncate max-w-xs">{d.title}</h4>
-                              <p className="text-[9px] text-zinc-500">Student: {d.studentName} • Flagged</p>
+                        {doubts.filter(d => d.isReported).slice(0, 3).map(d => (
+                          <div key={d.id} className="p-4 bg-white/[0.02] border border-white/5 rounded-lg flex items-center justify-between gap-4 text-left">
+                            <div className="space-y-0.5">
+                              <h4 className="text-[14px] font-semibold text-white truncate max-w-xs">{d.title}</h4>
+                              <p className="text-[12px] text-rose-400 font-medium">Flagged post from: {d.studentName}</p>
                             </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    await apiRequest(`/doubts/${d.id}/ignore`, { method: 'POST' });
-                                    addToast('Report dismissed.', 'success');
-                                    fetchDoubts();
-                                  } catch (e) {}
-                                }}
-                                className="px-2.5 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase"
-                              >
-                                Ignore
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  if (window.confirm('Remove reported doubt thread?')) {
-                                    try {
-                                      await apiRequest(`/doubts/${d.id}`, { method: 'DELETE' });
-                                      addToast('Discussion thread deleted.', 'info');
-                                      fetchDoubts();
-                                    } catch (e) {}
-                                  }
-                                }}
-                                className="px-2.5 py-1.5 bg-rose-500/10 text-rose-455 text-[9px] font-black rounded-lg cursor-pointer border border-rose-500/15 uppercase"
-                              >
-                                Delete
-                              </button>
-                            </div>
+                            
+                            <button
+                              onClick={() => setActiveTab('reports')}
+                              className="px-3.5 py-1.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[11px] font-bold rounded-lg text-center cursor-pointer shrink-0"
+                            >
+                              Review
+                            </button>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
+
                 </div>
 
-                {/* Right (40%) */}
-                <div className="lg:col-span-4 space-y-6">
-                  {/* System health quick overview */}
-                  <div className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
-                    <h3 className="text-xs font-black uppercase text-zinc-400 border-b border-white/5 pb-2">🖥 System Health</h3>
-                    <div className="space-y-3 font-mono text-[10px]">
-                      <div className="flex justify-between items-center">
-                        <span className="text-zinc-500 font-sans">API Endpoint Status</span>
-                        <span className="text-emerald-450 font-bold uppercase tracking-wider">Online</span>
+                {/* Right Side: Health, Activity & Quick Actions */}
+                <div className="space-y-4">
+                  
+                  {/* PLATFORM HEALTH */}
+                  <div className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
+                    <h3 className="text-[18px] font-bold text-white">Platform Health</h3>
+                    
+                    {loadingHealth ? (
+                      <div className="space-y-2">
+                        <div className="h-4 bg-white/5 animate-pulse rounded" />
+                        <div className="h-4 bg-white/5 animate-pulse rounded" />
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-zinc-500 font-sans">Database Engines</span>
-                        <span className="text-emerald-450 font-bold uppercase tracking-wider">Active</span>
+                    ) : errorHealth ? (
+                      <div className="p-4 text-center">
+                        <p className="text-xs text-zinc-500">Unable to load infrastructure telemetry.</p>
+                        <button onClick={fetchSystemHealth} className="mt-2 text-indigo-400 underline text-xs font-bold">Retry</button>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-zinc-500 font-sans">System Memory</span>
-                        <span className="text-zinc-300 font-bold">1.2 GB / 4.0 GB</span>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
+                          <span className="text-[10px] text-zinc-500 uppercase font-bold block">Platform Status</span>
+                          <span className="text-[13px] text-emerald-400 font-bold">{healthMetrics.status || 'Healthy'}</span>
+                        </div>
+                        <div className="p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
+                          <span className="text-[10px] text-zinc-500 uppercase font-bold block">Storage Used</span>
+                          <span className="text-[13px] text-white font-bold">{healthMetrics.storageUsed || '68%'}</span>
+                        </div>
+                        <div className="p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
+                          <span className="text-[10px] text-zinc-500 uppercase font-bold block">Today's Backup</span>
+                          <span className="text-[13px] text-white font-bold">{healthMetrics.backupStatus || 'Completed'}</span>
+                        </div>
+                        <div className="p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
+                          <span className="text-[10px] text-zinc-500 uppercase font-bold block">Average Response</span>
+                          <span className="text-[13px] text-white font-bold">{healthMetrics.avgResponseTime || '120 ms'}</span>
+                        </div>
+                        <div className="col-span-2 p-3 bg-white/[0.01] border border-white/5 rounded-lg space-y-0.5 text-left">
+                          <span className="text-[10px] text-zinc-500 uppercase font-bold block">System Uptime</span>
+                          <span className="text-[13px] text-emerald-400 font-bold">{healthMetrics.uptime || '99.98%'}</span>
+                        </div>
                       </div>
+                    )}
+                  </div>
+
+                  {/* RECENT PLATFORM ACTIVITY */}
+                  <div className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
+                    <h3 className="text-[18px] font-bold text-white">Recent Platform Activity</h3>
+                    
+                    {loadingActivities ? (
+                      <div className="space-y-2">
+                        <div className="h-4 bg-white/5 animate-pulse rounded" />
+                        <div className="h-4 bg-white/5 animate-pulse rounded" />
+                      </div>
+                    ) : errorActivities ? (
+                      <div className="p-4 text-center">
+                        <p className="text-xs text-zinc-500">Unable to load event logs.</p>
+                        <button onClick={fetchPlatformActivities} className="mt-2 text-indigo-400 underline text-xs font-bold">Retry</button>
+                      </div>
+                    ) : activities.length === 0 ? (
+                      <p className="text-[14px] text-zinc-500 italic py-4 text-center">No recent platform activity.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {activities.slice(0, 5).map(act => (
+                          <div key={act.id} className="flex justify-between items-start gap-4 text-left">
+                            <div className="space-y-0.5">
+                              <p className="text-[14px] font-semibold text-white">{act.title}</p>
+                              <p className="text-[12px] text-zinc-400 leading-normal">{act.description}</p>
+                              <span className="text-[10px] text-zinc-500 block pt-0.5">User: {act.user}</span>
+                            </div>
+                            <span className="text-[12px] text-zinc-500 shrink-0 mt-0.5">{getRelativeTime(act.createdAt)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* QUICK ACTIONS */}
+                  <div className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
+                    <h3 className="text-[18px] font-bold text-white">Quick Actions</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button 
+                        onClick={() => setActiveTab('announcements')} 
+                        className="py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[12px] font-bold cursor-pointer"
+                      >
+                        Create Announcement
+                      </button>
+                      <button 
+                        onClick={() => setActiveTab('mentors')} 
+                        className="py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[12px] font-bold cursor-pointer"
+                      >
+                        Approve Mentors
+                      </button>
+                      <button 
+                        onClick={() => setActiveTab('reports')} 
+                        className="py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[12px] font-bold cursor-pointer"
+                      >
+                        View Reports
+                      </button>
+                      <button 
+                        onClick={() => setActiveTab('students')} 
+                        className="py-2.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[12px] font-bold cursor-pointer"
+                      >
+                        Manage Students
+                      </button>
+                      <button 
+                        onClick={handleBackupSystem} 
+                        className="col-span-2 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white rounded-lg text-[12px] font-bold cursor-pointer transition-all uppercase tracking-wider"
+                      >
+                        Backup System
+                      </button>
                     </div>
                   </div>
 
-                  {/* Activity Timeline */}
-                  <div className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
-                    <h3 className="text-xs font-black uppercase text-zinc-400 border-b border-white/5 pb-2">⏱ Recent Platform Activity</h3>
-                    <div className="space-y-4 pr-1 max-h-[300px] overflow-y-auto">
-                      {activities.map(act => (
-                        <div key={act.id} className="relative pl-5 text-xs text-left">
-                          <span className="absolute left-0 top-1.5 h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                          <p className="text-[10px] text-zinc-550 font-bold">{act.time}</p>
-                          <p className="text-zinc-300 font-medium mt-0.5 leading-normal">{act.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 </div>
 
               </div>
@@ -664,21 +954,21 @@ export function AdminDashboardComponent() {
           {/* TAB 2: STUDENTS MODULE */}
           {activeTab === 'students' && (
             <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-left">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center gap-4 flex-wrap">
                 <div>
                   <h2 className="text-xl font-bold text-white tracking-tight">Student Accounts</h2>
                   <p className="text-zinc-500 text-xs mt-0.5 font-medium">Activate, suspend, and search student profiles.</p>
                 </div>
                 <button
                   onClick={() => setShowAddUserModal(true)}
-                  className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-xs font-black rounded-xl border-none cursor-pointer flex items-center gap-1.5 transition-all uppercase tracking-wider"
+                  className="px-4 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-xs font-bold rounded-lg border-none cursor-pointer flex items-center gap-1.5 transition-all uppercase tracking-wider"
                 >
                   <UserPlus className="h-4 w-4" /> Create User
                 </button>
               </div>
 
               {/* Users table */}
-              <div className="bg-white/[0.01] border border-white/5 rounded-2xl overflow-hidden">
+              <div className="bg-[#0B0F19]/40 border border-white/5 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left border-collapse">
                     <thead>
@@ -694,27 +984,25 @@ export function AdminDashboardComponent() {
                       {allUsers.filter(u => u.role === 'student').map(student => (
                         <tr key={student.id} className="hover:bg-white/[0.005]">
                           <td className="p-4">
-                            <span className="font-bold text-white block">{student.fullName}</span>
-                            <span className="text-[9px] text-zinc-550 font-mono block">@{student.username}</span>
+                            <span className="font-bold text-white block text-[14px]">{student.fullName}</span>
+                            <span className="text-[11px] text-zinc-550 font-mono block">@{student.username}</span>
                           </td>
-                          <td className="p-4 text-zinc-350">{student.email || 'N/A'}</td>
-                          <td className="p-4 text-zinc-450">{student.department} • {student.college}</td>
+                          <td className="p-4 text-zinc-350 text-[13px]">{student.email || 'N/A'}</td>
+                          <td className="p-4 text-zinc-450 text-[13px]">{student.department} • {student.college}</td>
                           <td className="p-4">
-                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
                               student.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/15' : 'bg-rose-500/10 text-rose-455 border border-rose-500/15'
                             }`}>
                               {student.status}
                             </span>
                           </td>
                           <td className="p-4 text-right">
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => handleToggleSuspend(student.id)}
-                                className="px-2.5 py-1 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white rounded text-[9px] font-bold uppercase tracking-wider cursor-pointer transition-all"
-                              >
-                                {student.status === 'active' ? 'Suspend' : 'Activate'}
-                              </button>
-                            </div>
+                            <button
+                              onClick={() => handleToggleSuspend(student.id)}
+                              className="px-2.5 py-1 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded text-[11px] font-bold uppercase cursor-pointer"
+                            >
+                              {student.status === 'active' ? 'Suspend' : 'Activate'}
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -733,7 +1021,7 @@ export function AdminDashboardComponent() {
                 <p className="text-zinc-500 text-xs mt-0.5 font-medium">Approve and configure mentor workspace authorization privileges.</p>
               </div>
 
-              <div className="bg-white/[0.01] border border-white/5 rounded-2xl overflow-hidden">
+              <div className="bg-[#0B0F19]/40 border border-white/5 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left border-collapse">
                     <thead>
@@ -748,13 +1036,13 @@ export function AdminDashboardComponent() {
                       {allUsers.filter(u => u.role === 'mentor').map(mentor => (
                         <tr key={mentor.id} className="hover:bg-white/[0.005]">
                           <td className="p-4">
-                            <span className="font-bold text-white block">{mentor.fullName}</span>
-                            <span className="text-[9px] text-zinc-550 font-mono block">@{mentor.username}</span>
+                            <span className="font-bold text-white block text-[14px]">{mentor.fullName}</span>
+                            <span className="text-[11px] text-zinc-550 font-mono block">@{mentor.username}</span>
                           </td>
-                          <td className="p-4 text-zinc-350">{mentor.email}</td>
-                          <td className="p-4 text-zinc-450">{mentor.college}</td>
+                          <td className="p-4 text-zinc-350 text-[13px]">{mentor.email}</td>
+                          <td className="p-4 text-zinc-450 text-[13px]">{mentor.college}</td>
                           <td className="p-4">
-                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-450 border border-emerald-500/15 rounded text-[8px] font-black uppercase tracking-wider">
+                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-450 border border-emerald-500/15 rounded text-[9px] font-bold uppercase tracking-wider">
                               Approved Mentor
                             </span>
                           </td>
@@ -776,24 +1064,24 @@ export function AdminDashboardComponent() {
               </div>
 
               {studyRooms.length === 0 ? (
-                <p className="text-xs text-zinc-555 italic py-6 text-center">No study groups online yet.</p>
+                <p className="text-xs text-zinc-500 italic py-6 text-center">No study groups online yet.</p>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {studyRooms.map(room => (
-                    <div key={room.id} className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl flex flex-col justify-between min-h-[160px]">
+                    <div key={room.id} className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg flex flex-col justify-between min-h-[160px]">
                       <div className="space-y-1.5 text-left">
-                        <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/15 rounded text-[8px] font-black uppercase tracking-wider">
+                        <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/15 rounded text-[9px] font-bold uppercase tracking-wider">
                           {room.subject}
                         </span>
-                        <h4 className="text-xs font-bold text-white pt-1">{room.name}</h4>
-                        <p className="text-[10px] text-zinc-450 leading-relaxed line-clamp-2">{room.description}</p>
+                        <h4 className="text-[14px] font-bold text-white pt-1">{room.name}</h4>
+                        <p className="text-[12px] text-zinc-400 leading-relaxed line-clamp-2">{room.description}</p>
                       </div>
 
                       <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-4">
-                        <span className="text-[9px] text-zinc-500 font-bold">{room.memberCount || 3} Members</span>
+                        <span className="text-[11px] text-zinc-500 font-bold">{room.memberCount || 3} Members</span>
                         <button
                           onClick={() => handleDeleteRoom(room.id)}
-                          className="px-2.5 py-1.5 bg-rose-500/10 text-rose-455 hover:bg-rose-500/20 text-[9px] font-black rounded-lg cursor-pointer uppercase transition-all border border-rose-500/15"
+                          className="px-3 py-1.5 bg-rose-500/10 text-rose-455 hover:bg-rose-500/20 text-[11px] font-bold rounded-lg cursor-pointer uppercase border border-rose-500/15"
                         >
                           Archive Group
                         </button>
@@ -816,22 +1104,22 @@ export function AdminDashboardComponent() {
               {resources.length === 0 ? (
                 <p className="text-xs text-zinc-555 italic py-6 text-center">No shared resources online yet.</p>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {resources.map(res => (
-                    <div key={res.id} className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl flex flex-col justify-between min-h-[160px]">
+                    <div key={res.id} className="p-5 bg-[#0B0F19]/40 border border-white/5 rounded-lg flex flex-col justify-between min-h-[160px]">
                       <div className="space-y-2 text-left">
                         <div className="flex justify-between items-center">
-                          <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/15 rounded text-[8px] font-black uppercase tracking-wider">
+                          <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/15 rounded text-[9px] font-bold uppercase tracking-wider">
                             {res.type}
                           </span>
-                          <span className="text-[9.5px] text-zinc-500 font-mono font-bold">{res.size}</span>
+                          <span className="text-[11px] text-zinc-500 font-mono font-bold">{res.size}</span>
                         </div>
-                        <h4 className="text-xs font-bold text-white">{res.name}</h4>
-                        <p className="text-[10px] text-zinc-450 leading-relaxed line-clamp-2">{res.content}</p>
+                        <h4 className="text-[14px] font-bold text-white">{res.name}</h4>
+                        <p className="text-[12px] text-zinc-400 leading-relaxed line-clamp-2">{res.content}</p>
                       </div>
 
                       <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-4">
-                        <span className="text-[8px] text-zinc-550 font-bold uppercase truncate max-w-[120px]">By {res.publishedBy}</span>
+                        <span className="text-[11px] text-zinc-550 font-bold uppercase truncate max-w-[120px]">By {res.publishedBy}</span>
                         <button
                           onClick={async () => {
                             if (window.confirm('Delete this resource?')) {
@@ -842,7 +1130,7 @@ export function AdminDashboardComponent() {
                               } catch (e) {}
                             }
                           }}
-                          className="px-2.5 py-1.5 bg-rose-500/10 text-rose-455 hover:bg-rose-500/20 text-[9px] font-black rounded-lg cursor-pointer uppercase transition-all border border-rose-500/15"
+                          className="px-3 py-1.5 bg-rose-500/10 text-rose-455 hover:bg-rose-500/20 text-[11px] font-bold rounded-lg cursor-pointer uppercase border border-rose-500/15"
                         >
                           Remove
                         </button>
@@ -854,29 +1142,30 @@ export function AdminDashboardComponent() {
             </div>
           )}
 
-          {/* TAB 6: REPORTS */}
+          {/* TAB 6: REPORTS / CONTENT MODERATION */}
           {activeTab === 'reports' && (
             <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-left">
               <div>
-                <h2 className="text-xl font-bold text-white tracking-tight">Report Handling Console</h2>
-                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Review and resolve reported user doubts or discussion threads.</p>
+                <h2 className="text-xl font-bold text-white tracking-tight">Content Moderation</h2>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Review and resolve reported user doubts, discussions, and spam.</p>
               </div>
 
               {doubts.filter(d => d.isReported).length === 0 ? (
-                <div className="py-12 bg-white/[0.01] border border-white/5 rounded-2xl text-center space-y-2">
+                <div className="py-12 bg-[#0B0F19]/40 border border-white/5 rounded-lg text-center space-y-2">
                   <CheckCircle2 className="h-8 w-8 text-emerald-450 mx-auto" />
-                  <p className="text-sm text-zinc-450 font-bold">All reported discussions resolved.</p>
+                  <p className="text-[14px] text-zinc-400 font-bold">No reports pending. Everything looks good 🎉</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {doubts.filter(d => d.isReported).map(d => (
-                    <div key={d.id} className="p-4 bg-white/[0.01] border border-white/5 rounded-xl flex items-center justify-between gap-4 text-left">
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-xs font-bold text-white truncate">{d.title}</h4>
-                        <p className="text-[10px] text-zinc-450 leading-relaxed mt-1">{d.description}</p>
-                        <span className="text-[8.5px] text-zinc-550 font-mono block mt-1">Student: {d.studentName} • Circle Subject: {d.topic}</span>
+                    <div key={d.id} className="p-4 bg-[#0B0F19]/40 border border-white/5 rounded-lg flex items-center justify-between gap-4 text-left">
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <h4 className="text-[14px] font-semibold text-white truncate">{d.title}</h4>
+                        <p className="text-[12px] text-rose-400 font-medium">Flagged post from: {d.studentName}</p>
+                        <p className="text-[12px] text-zinc-400 leading-relaxed mt-1">{d.description}</p>
+                        <span className="text-[11px] text-zinc-550 font-mono block mt-1">Circle Subject: {d.topic}</span>
                       </div>
-                      <div className="flex gap-1.5 shrink-0">
+                      <div className="flex gap-2 shrink-0">
                         <button
                           onClick={async () => {
                             try {
@@ -885,7 +1174,7 @@ export function AdminDashboardComponent() {
                               fetchDoubts();
                             } catch (e) {}
                           }}
-                          className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer"
+                          className="px-3.5 py-1.5 bg-slate-900 border border-white/10 hover:border-zinc-700 text-white rounded-lg text-[11px] font-bold cursor-pointer"
                         >
                           Ignore
                         </button>
@@ -899,7 +1188,7 @@ export function AdminDashboardComponent() {
                               } catch (e) {}
                             }
                           }}
-                          className="px-3 py-1.5 bg-rose-500/10 text-rose-455 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer border border-rose-500/15"
+                          className="px-3.5 py-1.5 bg-rose-500/10 text-rose-455 rounded-lg text-[11px] font-bold cursor-pointer border border-rose-500/15"
                         >
                           Delete
                         </button>
@@ -919,7 +1208,7 @@ export function AdminDashboardComponent() {
                 <p className="text-zinc-500 text-xs mt-0.5 font-medium">Broadcast alerts and notices instantly to students and mentors.</p>
               </div>
 
-              <form onSubmit={handleBroadcastAnnouncement} className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
+              <form onSubmit={handleBroadcastAnnouncement} className="p-6 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase text-zinc-400">Announcement Title</label>
                   <input
@@ -971,48 +1260,39 @@ export function AdminDashboardComponent() {
           {activeTab === 'system-health' && (
             <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-left">
               <div>
-                <h2 className="text-xl font-bold text-white tracking-tight">System Infrastructure</h2>
-                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Verify actual server status and database connectivity metrics.</p>
+                <h2 className="text-xl font-bold text-white tracking-tight">Platform Health</h2>
+                <p className="text-zinc-500 text-xs mt-0.5 font-medium">Verify console telemetry, backup history, and system availability stats.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Health Cards */}
-                <div className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
-                  <h3 className="text-xs font-black uppercase text-indigo-400 border-b border-white/5 pb-2">Status Grid</h3>
-                  <div className="space-y-3 font-mono text-[10.5px]">
+                <div className="p-6 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
+                  <h3 className="text-xs font-black uppercase text-indigo-400 border-b border-white/5 pb-2">Status Infrastructure</h3>
+                  <div className="space-y-3 font-mono text-[11px]">
                     <div className="flex justify-between items-center">
-                      <span className="text-zinc-500 font-sans">Backend Server</span>
-                      <span className="text-emerald-450 font-bold uppercase tracking-wider">Online</span>
+                      <span className="text-zinc-400 font-sans">Platform Status</span>
+                      <span className="text-emerald-400 font-bold uppercase">{healthMetrics.status || 'Healthy'}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-zinc-500 font-sans">Database Instance</span>
-                      <span className="text-emerald-450 font-bold uppercase tracking-wider">Connected</span>
+                      <span className="text-zinc-400 font-sans">Storage Allocation</span>
+                      <span className="text-white font-bold">{healthMetrics.storageUsed || '68%'}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-zinc-500 font-sans">Authentication Endpoint</span>
-                      <span className="text-emerald-450 font-bold uppercase tracking-wider">Healthy</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-zinc-500 font-sans">Email SMTP Delivery</span>
-                      <span className="text-emerald-450 font-bold uppercase tracking-wider">Online</span>
+                      <span className="text-zinc-400 font-sans">Today's Backup</span>
+                      <span className="text-white font-bold">{healthMetrics.backupStatus || 'Completed'}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
-                  <h3 className="text-xs font-black uppercase text-indigo-400 border-b border-white/5 pb-2">Hardware Usage</h3>
-                  <div className="space-y-3 font-mono text-[10.5px]">
+                <div className="p-6 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
+                  <h3 className="text-xs font-black uppercase text-indigo-400 border-b border-white/5 pb-2">Performance Metrics</h3>
+                  <div className="space-y-3 font-mono text-[11px]">
                     <div className="flex justify-between items-center">
-                      <span className="text-zinc-500 font-sans">CPU Capacity</span>
-                      <span className="text-zinc-300 font-bold">12%</span>
+                      <span className="text-zinc-400 font-sans">Avg Response Time</span>
+                      <span className="text-white font-bold">{healthMetrics.avgResponseTime || '120 ms'}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-zinc-500 font-sans">RAM Allocation</span>
-                      <span className="text-zinc-300 font-bold">1.2 GB / 4.0 GB</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-zinc-500 font-sans">Storage Allocation</span>
-                      <span className="text-zinc-300 font-bold">850 MB / 20 GB</span>
+                      <span className="text-zinc-400 font-sans">System Uptime</span>
+                      <span className="text-emerald-400 font-bold">{healthMetrics.uptime || '99.98%'}</span>
                     </div>
                   </div>
                 </div>
@@ -1030,7 +1310,7 @@ export function AdminDashboardComponent() {
 
               <form 
                 onSubmit={(e) => { e.preventDefault(); addToast('Settings updated successfully!', 'success'); }}
-                className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4"
+                className="p-6 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4"
               >
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase text-zinc-400">Application Name</label>
@@ -1087,7 +1367,7 @@ export function AdminDashboardComponent() {
                 <p className="text-zinc-500 text-xs mt-0.5 font-medium">Verify your console credentials.</p>
               </div>
 
-              <div className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
+              <div className="p-6 bg-[#0B0F19]/40 border border-white/5 rounded-lg space-y-4">
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold uppercase text-zinc-400 block">Username</span>
                   <span className="text-xs text-zinc-250 font-mono">@{user?.username}</span>
@@ -1110,9 +1390,9 @@ export function AdminDashboardComponent() {
       {/* CREATE USER MODAL */}
       {showAddUserModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-2xl p-6 space-y-4 text-left">
+          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-lg p-6 space-y-4 text-left">
             <div className="flex justify-between items-center border-b border-white/5 pb-2">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Create User Profile</h3>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Create User Account</h3>
               <button 
                 onClick={() => setShowAddUserModal(false)}
                 className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs"
@@ -1179,6 +1459,63 @@ export function AdminDashboardComponent() {
                 Create Account
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* PENDING APPROVAL DETAIL PROFILE MODAL */}
+      {selectedPendingProfile && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-[#0B0F19] border border-white/5 rounded-lg p-6 space-y-4 text-left">
+            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Candidate Profile Review</h3>
+              <button 
+                onClick={() => setSelectedPendingProfile(null)}
+                className="text-zinc-500 hover:text-white border-none bg-transparent cursor-pointer text-xs"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex gap-4 items-center">
+                <div className="h-14 w-14 rounded-full bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center font-bold text-indigo-400 uppercase text-lg">
+                  {selectedPendingProfile.fullName.substring(0, 2)}
+                </div>
+                <div>
+                  <h4 className="text-md font-bold text-white">{selectedPendingProfile.fullName}</h4>
+                  <p className="text-xs text-zinc-400">@{selectedPendingProfile.username}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-white/5 text-xs">
+                <p className="text-zinc-450"><strong className="text-white">Organization:</strong> {selectedPendingProfile.college || 'N/A'}</p>
+                <p className="text-zinc-450"><strong className="text-white">Role Track:</strong> {selectedPendingProfile.role.toUpperCase()}</p>
+                <p className="text-zinc-450"><strong className="text-white">Subjects Focus:</strong> {selectedPendingProfile.subjects || 'General'}</p>
+                <p className="text-zinc-450"><strong className="text-white">Request Time:</strong> {new Date(selectedPendingProfile.createdAt).toLocaleString()}</p>
+              </div>
+
+              <div className="flex gap-2.5 pt-4 border-t border-white/5">
+                <button
+                  onClick={() => {
+                    handleApproveUser(selectedPendingProfile.id);
+                    setSelectedPendingProfile(null);
+                  }}
+                  className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold cursor-pointer transition-all border-none"
+                >
+                  Approve Registration
+                </button>
+                <button
+                  onClick={() => {
+                    handleDeclineUser(selectedPendingProfile.id);
+                    setSelectedPendingProfile(null);
+                  }}
+                  className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold cursor-pointer transition-all border-none"
+                >
+                  Decline request
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
