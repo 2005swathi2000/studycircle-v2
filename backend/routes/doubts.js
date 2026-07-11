@@ -4,14 +4,14 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Get all doubts (Mentor/Admin only)
+// Get all doubts (Open to all roles)
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    if (req.user.role !== 'mentor' && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Access denied. Mentors or Administrators privileges required.' });
-    }
     const doubts = await Doubt.findAll({
-      order: [['createdAt', 'DESC']],
+      order: [
+        ['isPinned', 'DESC'],
+        ['createdAt', 'DESC']
+      ],
       include: [
         {
           model: User,
@@ -21,6 +21,10 @@ router.get('/', authMiddleware, async (req, res) => {
         {
           model: Group,
           attributes: ['name']
+        },
+        {
+          model: Answer,
+          attributes: ['id', 'isAccepted']
         }
       ]
     });
@@ -69,26 +73,30 @@ router.get('/group/:groupId', authMiddleware, async (req, res) => {
 // Create academic doubt
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { groupId, title, description, tags } = req.body;
-    if (!groupId || !title || !description) {
-      return res.status(400).json({ error: 'Group ID, Title, and Description are required.' });
+    const { groupId, title, description, tags, subject, topic } = req.body;
+    if (!description || !description.trim()) {
+      return res.status(400).json({ error: 'Question description is required.' });
     }
 
-    const isMember = await GroupMember.findOne({
-      where: { userId: req.user.id, groupId }
-    });
-    if (!isMember) {
-      return res.status(403).json({ error: 'Access denied. You must be a member of this study circle.' });
+    if (groupId) {
+      const isMember = await GroupMember.findOne({
+        where: { userId: req.user.id, groupId }
+      });
+      if (!isMember) {
+        return res.status(403).json({ error: 'Access denied. You must be a member of this study circle.' });
+      }
     }
 
     const doubt = await Doubt.create({
-      groupId,
-      title,
-      description,
+      groupId: groupId || null,
+      title: title || subject || 'General Academic Doubt',
+      description: description.trim(),
       tags: tags || '',
       userId: req.user.id,
       upvotes: 0,
-      isSolved: false
+      isSolved: false,
+      subject: subject ? subject.trim() : null,
+      topic: topic ? topic.trim() : null
     });
 
     // Fetch author details for the client
@@ -101,8 +109,9 @@ router.post('/', authMiddleware, async (req, res) => {
     });
 
     try {
-      const group = await Group.findByPk(groupId);
-      const groupName = group ? group.name : 'Study Circle';
+      if (groupId) {
+        const group = await Group.findByPk(groupId);
+        const groupName = group ? group.name : 'Study Circle';
       
       const members = await GroupMember.findAll({ where: { groupId } });
       const notificationsToCreate = members
@@ -125,7 +134,8 @@ router.post('/', authMiddleware, async (req, res) => {
           });
         }
       }
-    } catch (notifErr) {
+    }
+  } catch (notifErr) {
       console.error('[Notifier] Error sending doubt notifications:', notifErr);
     }
 
@@ -400,6 +410,78 @@ router.put('/:id/close', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error updating close status.' });
+  }
+});
+
+// Edit own doubt
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject, topic, description, title } = req.body;
+
+    const doubt = await Doubt.findByPk(id);
+    if (!doubt) {
+      return res.status(404).json({ error: 'Doubt not found.' });
+    }
+
+    // Security check: only the author can edit their own doubt
+    if (doubt.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Permission denied. You can only edit your own doubt.' });
+    }
+
+    if (subject !== undefined) doubt.subject = subject ? subject.trim() : null;
+    if (topic !== undefined) doubt.topic = topic ? topic.trim() : null;
+    if (title !== undefined) doubt.title = title ? title.trim() : (subject || doubt.title);
+    if (description !== undefined) {
+      if (!description.trim()) {
+        return res.status(400).json({ error: 'Question description cannot be empty.' });
+      }
+      doubt.description = description.trim();
+    }
+
+    await doubt.save();
+
+    // Fetch author details for the client response
+    const fullDoubt = await Doubt.findByPk(doubt.id, {
+      include: [
+        {
+          model: User,
+          as: 'Author',
+          attributes: ['fullName', 'username', 'role']
+        },
+        {
+          model: Answer,
+          attributes: ['id', 'isAccepted']
+        }
+      ]
+    });
+
+    return res.json({ message: 'Doubt updated successfully!', doubt: fullDoubt });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error updating doubt.' });
+  }
+});
+
+// Delete own doubt
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doubt = await Doubt.findByPk(id);
+    if (!doubt) {
+      return res.status(404).json({ error: 'Doubt not found.' });
+    }
+
+    // Security check: only the author or admin can delete a doubt
+    if (doubt.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'mentor') {
+      return res.status(403).json({ error: 'Permission denied. You can only delete your own doubt.' });
+    }
+
+    await doubt.destroy();
+    return res.json({ message: 'Doubt deleted successfully!' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error deleting doubt.' });
   }
 });
 

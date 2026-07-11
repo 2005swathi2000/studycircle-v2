@@ -15,6 +15,7 @@ const Challenge = require('./Challenge');
 const MentorRating = require('./MentorRating');
 const Assignment = require('./Assignment');
 const PersonalNote = require('./PersonalNote');
+const StudentSchedule = require('./StudentSchedule');
 
 // M-M relations
 User.belongsToMany(Group, { through: GroupMember, foreignKey: 'userId' });
@@ -85,6 +86,10 @@ MentorRating.belongsTo(User, { as: 'Student', foreignKey: 'studentId' });
 User.hasMany(PersonalNote, { foreignKey: 'userId', onDelete: 'CASCADE' });
 PersonalNote.belongsTo(User, { foreignKey: 'userId' });
 
+// Student Study Schedule
+User.hasMany(StudentSchedule, { foreignKey: 'userId', onDelete: 'CASCADE' });
+StudentSchedule.belongsTo(User, { foreignKey: 'userId' });
+
 module.exports = {
   sequelize,
   User,
@@ -102,7 +107,8 @@ module.exports = {
   Challenge,
   MentorRating,
   Assignment,
-  PersonalNote
+  PersonalNote,
+  StudentSchedule
 };
 
 

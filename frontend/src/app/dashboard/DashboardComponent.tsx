@@ -9,6 +9,8 @@ import { useToast } from '../components/ToastProvider';
 import { practiceQuestionsPool } from './practiceData';
 import { SimpleDashboard } from './SimpleDashboard';
 import { PersonalNotesView } from './PersonalNotesView';
+import { DiscussionBoardView } from './DiscussionBoardView';
+import { StudyScheduleView } from './StudyScheduleView';
 import { 
   Users, 
   LogOut, 
@@ -729,6 +731,8 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
       if (currentTab === 'community') return 'community';
       if (currentTab === 'profile') return 'profile';
       if (currentTab === 'notes') return 'notes';
+      if (currentTab === 'discussions') return 'discussions';
+      if (currentTab === 'sessions') return 'sessions';
       return 'dashboard';
     } else if (currentRole === 'mentor') {
       const tabMapRev: Record<string, string> = {
@@ -880,6 +884,7 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
   const [isPinnedOnly, setIsPinnedOnly] = useState<boolean>(false);
   const [selectedDoubtForThread, setSelectedDoubtForThread] = useState<any | null>(null);
   const [newDoubtModalOpen, setNewDoubtModalOpen] = useState<boolean>(false);
+  const [autoOpenDoubtModal, setAutoOpenDoubtModal] = useState<boolean>(false);
   const [activeAiTool, setActiveAiTool] = useState<'flashcard' | 'quiz' | null>(null);
   const [aiQuizAnswers, setAiQuizAnswers] = useState<Record<string, string>>({});
   const [aiQuizSubmitted, setAiQuizSubmitted] = useState<boolean>(false);
@@ -2276,6 +2281,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
       if (info.role === 'student' && (tab === 'dashboard' || tab === 'sessions')) {
         promises.push(apiRequest('/sessions').catch(err => { console.error('Failed to fetch sessions list:', err); return null; }));
         fetchKeys.push('sessions');
+        promises.push(apiRequest('/student-schedules').catch(err => { console.error('Failed to fetch student schedules:', err); return null; }));
+        fetchKeys.push('studentSchedules');
       }
 
       if (promises.length === 0) {
@@ -2321,13 +2328,33 @@ Based on your desking logs and consistency, the AI tutor recommends:
           setStudentsList(data.students || []);
         } else if (key === 'sessions') {
           if (data && data.sessions) {
-            setMockSessions(data.sessions.map((s: any) => ({
+            const mappedSessions = data.sessions.map((s: any) => ({
               id: s.id.toString(),
               title: s.title,
               time: new Date(s.scheduledAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }),
               status: s.status === 'upcoming' ? 'Upcoming' : s.status === 'completed' ? 'Completed' : 'Live Now',
-              subject: s.description || 'General Session'
-            })));
+              subject: s.description || 'General Session',
+              isGroupSession: true
+            }));
+            setMockSessions((prev: any[]) => {
+              const personal = prev.filter(x => !x.isGroupSession);
+              return [...mappedSessions, ...personal];
+            });
+          }
+        } else if (key === 'studentSchedules') {
+          if (data && data.schedules) {
+            const mappedSchedules = data.schedules.map((s: any) => ({
+              id: s.id.toString(),
+              title: s.title,
+              time: `${s.date} @ ${s.startTime} - ${s.endTime}`,
+              status: 'Upcoming',
+              subject: s.subject || 'Personal Study',
+              isGroupSession: false
+            }));
+            setMockSessions((prev: any[]) => {
+              const group = prev.filter(x => x.isGroupSession);
+              return [...group, ...mappedSchedules];
+            });
           }
         }
       });
@@ -3618,8 +3645,11 @@ Based on your desking logs and consistency, the AI tutor recommends:
         sessions={mockSessions}
         onCreateGroup={() => setShowCreateModal(true)}
         onCreateNote={() => setActiveTab('notes')}
-        onAskDoubt={() => setShowAskDoubtModal(true)}
-        onScheduleSession={() => setShowScheduleSessionModal(true)}
+        onAskDoubt={() => {
+          setAutoOpenDoubtModal(true);
+          setActiveTab('discussions');
+        }}
+        onScheduleSession={() => setActiveTab('sessions')}
       />
     );
   };
@@ -4293,7 +4323,9 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
                 { id: 'study', label: 'Study Circles', icon: GraduationCap },
                 { id: 'practice', label: 'Practice', icon: Sparkles },
-                { id: 'notes', label: 'Notes', icon: FileText }
+                { id: 'notes', label: 'Notes', icon: FileText },
+                { id: 'discussions', label: 'Discussion Board', icon: MessageSquare },
+                { id: 'sessions', label: 'Schedule', icon: Calendar }
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -5559,7 +5591,10 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
           {/* Tab 5: Sessions */}
           {activeTab === 'sessions' && (
-            <div className="space-y-6 text-left">
+            user?.role === 'student' ? (
+              <StudyScheduleView equippedTheme={equippedTheme} setActiveTab={setActiveTab} />
+            ) : (
+              <div className="space-y-6 text-left">
               <div className="flex justify-between items-center">
                 <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
                   <Calendar className="h-4.5 w-4.5 text-[#5227EB]" /> Study Session Schedule
@@ -5637,7 +5672,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 </div>
               </div>
             </div>
-          )}
+          )
+        )}
 
           {/* Tab 6: Progress Tracking or Class Analytics */}
           {activeTab === 'progress' && (
@@ -5969,7 +6005,15 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
           {/* Tab 8: Discussions Info */}
           {(activeTab === 'discussions' || (activeTab === 'community' && communitySubView === 'forum')) && (
-            <div className="space-y-6 text-left animate-in fade-in duration-350">
+            user?.role === 'student' ? (
+              <DiscussionBoardView 
+                user={user} 
+                equippedTheme={equippedTheme} 
+                setActiveTab={setActiveTab} 
+                openAskDoubtOnMount={autoOpenDoubtModal}
+              />
+            ) : (
+              <div className="space-y-6 text-left animate-in fade-in duration-350">
               {activeTab === 'community' && (
                 <div className="flex items-center gap-2 mb-2">
                   <button 
@@ -6003,7 +6047,8 @@ Based on your desking logs and consistency, the AI tutor recommends:
                 </button>
               </div>
             </div>
-          )}
+          )
+        )}
 
           {/* Tab 9: Leaderboard info */}
           {(activeTab === 'leaderboard' || (activeTab === 'community' && communitySubView === 'leaderboard')) && (

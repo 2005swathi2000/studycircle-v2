@@ -28,6 +28,7 @@ const sharedNoteRoutes = require('./routes/sharedNotes');
 const notificationRoutes = require('./routes/notifications');
 const assignmentRoutes = require('./routes/assignments');
 const personalNoteRoutes = require('./routes/personalNotes');
+const studentScheduleRoutes = require('./routes/studentSchedules');
 
 const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
@@ -80,6 +81,7 @@ app.use('/api/shared-notes', sharedNoteRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/personal-notes', personalNoteRoutes);
+app.use('/api/student-schedules', studentScheduleRoutes);
 
 // AI Tutor API Route calling Gemini API
 app.post('/api/ai-tutor', async (req, res) => {
@@ -251,6 +253,26 @@ const startServer = async () => {
         await sequelize.query('ALTER TABLE "SharedNotes" ADD COLUMN "content" TEXT;');
       } catch (e2) {
         // Column already exists or table does not exist yet
+      }
+    }
+    // Migration for Doubts: subject
+    try {
+      await sequelize.query('ALTER TABLE Doubts ADD COLUMN subject VARCHAR(255);');
+    } catch (e1) {
+      try {
+        await sequelize.query('ALTER TABLE "Doubts" ADD COLUMN "subject" VARCHAR(255);');
+      } catch (e2) {
+        // Column already exists
+      }
+    }
+    // Migration for Doubts: topic
+    try {
+      await sequelize.query('ALTER TABLE Doubts ADD COLUMN topic VARCHAR(255);');
+    } catch (e1) {
+      try {
+        await sequelize.query('ALTER TABLE "Doubts" ADD COLUMN "topic" VARCHAR(255);');
+      } catch (e2) {
+        // Column already exists
       }
     }
     if (isProduction || isSqlite) {

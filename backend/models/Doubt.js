@@ -38,11 +38,19 @@ const Doubt = sequelize.define('Doubt', {
   },
   groupId: {
     type: DataTypes.UUID,
-    allowNull: false
+    allowNull: true
   },
   userId: {
     type: DataTypes.UUID,
     allowNull: false
+  },
+  subject: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  topic: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 });
 
