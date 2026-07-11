@@ -476,53 +476,51 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               {myGroups.length === 0 ? (
                 <div className="py-6 text-center space-y-3">
                   <p className="text-xs text-zinc-555 italic">No study groups joined.</p>
-                  <div className="flex justify-center gap-2">
+                  <div className="flex justify-center">
                     <button 
-                      onClick={() => { setActiveTab('study'); setStudySubView('workspaces'); }}
-                      className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider"
+                      onClick={() => { setActiveTab('groups'); }}
+                      className="px-5 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black rounded-xl cursor-pointer uppercase tracking-wider border-none"
                     >
                       Join Group
-                    </button>
-                    <button 
-                      onClick={onCreateGroup}
-                      className="px-3 py-1.5 bg-[#10B981]/15 hover:bg-[#10B981]/25 text-[#10B981] border border-[#10B981]/20 text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider"
-                    >
-                      Create Group
                     </button>
                   </div>
                 </div>
               ) : (
                 <>
                   <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                    {myGroups.map((group) => (
-                      <div key={group.id} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-center justify-between gap-3 text-left">
-                        <div>
-                          <h4 className="text-xs font-bold text-white">{group.name}</h4>
-                          <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-wider block mt-0.5">Subject: {group.subject}</span>
-                          <span className="text-[8px] text-zinc-450 block mt-0.5">3 members | Active</span>
+                    {myGroups.map((group) => {
+                      const session = sessions.find(s => s.groupId === group.id || s.subject === group.subject);
+                      return (
+                        <div key={group.id} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-center justify-between gap-3 text-left">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-xs font-bold text-white truncate">{group.name}</h4>
+                            <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block mt-0.5">Subject: {group.subject}</span>
+                            <span className="text-[8px] text-zinc-450 block mt-0.5">👥 3 active members</span>
+                            {session ? (
+                              <span className="text-[8px] text-emerald-400 font-bold block mt-1 truncate">
+                                📅 Session: {session.title} ({session.time})
+                              </span>
+                            ) : (
+                              <span className="text-[8px] text-zinc-550 block mt-1">No upcoming sessions</span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => { setActiveTab('groups'); }}
+                            className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-all shrink-0"
+                          >
+                            Open Group
+                          </button>
                         </div>
-                        <button
-                          onClick={() => { setActiveTab('study'); setStudySubView('workspaces'); }}
-                          className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-all"
-                        >
-                          Open Group
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
-                  <div className="flex gap-2 pt-2 border-t border-white/5">
+                  <div className="pt-2 border-t border-white/5">
                     <button 
-                      onClick={() => { setActiveTab('study'); setStudySubView('workspaces'); }}
-                      className="w-full py-2 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider text-center"
+                      onClick={() => { setActiveTab('groups'); }}
+                      className="w-full py-2 bg-slate-900 border border-white/10 hover:border-[#5227EB]/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider text-center"
                     >
                       Join Group
-                    </button>
-                    <button 
-                      onClick={onCreateGroup}
-                      className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/15 text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider text-center"
-                    >
-                      + Create Group
                     </button>
                   </div>
                 </>

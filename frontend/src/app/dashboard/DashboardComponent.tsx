@@ -3643,7 +3643,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
         setCompletedGoals={setCompletedGoals}
         equippedTheme={equippedTheme}
         sessions={mockSessions}
-        onCreateGroup={() => setShowCreateModal(true)}
+        onCreateGroup={() => { setActiveTab('study'); setStudySubView('rooms'); }}
         onCreateNote={() => setActiveTab('notes')}
         onAskDoubt={() => {
           setAutoOpenDoubtModal(true);
@@ -4160,10 +4160,10 @@ Based on your desking logs and consistency, the AI tutor recommends:
             <p className="text-[9px] text-slate-450 mt-1 leading-snug">StudyCircle makes studying structured and effective.</p>
           </div>
           <button 
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => setActiveTab('groups')}
             className={`w-full py-2 ${themeConfig.bgPrimary} ${themeConfig.bgPrimaryHover} text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer`}
           >
-            Create Group
+            Explore Study Circles
           </button>
         </div>
       </aside>
