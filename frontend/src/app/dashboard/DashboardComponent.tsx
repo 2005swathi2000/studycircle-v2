@@ -4159,12 +4159,6 @@ Based on your desking logs and consistency, the AI tutor recommends:
             <h4 className="text-[11px] font-extrabold text-slate-200">Achieve More.</h4>
             <p className="text-[9px] text-slate-450 mt-1 leading-snug">StudyCircle makes studying structured and effective.</p>
           </div>
-          <button 
-            onClick={() => setActiveTab('groups')}
-            className={`w-full py-2 ${themeConfig.bgPrimary} ${themeConfig.bgPrimaryHover} text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer`}
-          >
-            Explore Study Circles
-          </button>
         </div>
       </aside>
 

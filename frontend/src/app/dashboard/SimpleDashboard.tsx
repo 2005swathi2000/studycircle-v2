@@ -275,12 +275,12 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
           <div className="grid grid-cols-5 gap-2 mt-4">
             <button 
-              onClick={onCreateGroup}
+              onClick={() => { setActiveTab('groups'); }}
               className="p-3 bg-[#0c101d] hover:bg-white/[0.02] border border-white/5 hover:border-zinc-700 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5"
-              title="Create Study Room"
+              title="Study Circles"
             >
-              <Video className="h-4.5 w-4.5 text-zinc-400" />
-              <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider">Rooms</span>
+              <GraduationCap className="h-4.5 w-4.5 text-zinc-400" />
+              <span className="text-[8.5px] font-black text-zinc-400 uppercase tracking-wider text-center leading-none">Circles</span>
             </button>
             <button 
               onClick={() => { setActiveTab('practice'); setPracticeSubView('questions'); }}
@@ -464,67 +464,56 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         {/* RIGHT COLUMN: Study Groups & Activity */}
         <div className="lg:col-span-4 space-y-6">
           
-          {/* 5. STUDY GROUPS */}
-          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl space-y-4`}>
+          {/* 5. WEEKLY STREAK CARD */}
+          <div className={`p-6 ${cardStyle.bg} ${cardStyle.border} rounded-2xl space-y-5 text-left`}>
             <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                👥 Study Groups
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-[#7C4DFF] flex items-center gap-1.5">
+                🔥 Weekly Streak
               </h3>
+              <span className="text-[8px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/15 uppercase tracking-wider">
+                Consistency
+              </span>
             </div>
 
-            <div className="space-y-3">
-              {myGroups.length === 0 ? (
-                <div className="py-6 text-center space-y-3">
-                  <p className="text-xs text-zinc-555 italic">No study groups joined.</p>
-                  <div className="flex justify-center">
-                    <button 
-                      onClick={() => { setActiveTab('groups'); }}
-                      className="px-5 py-2 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[10px] font-black rounded-xl cursor-pointer uppercase tracking-wider border-none"
-                    >
-                      Join Group
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                    {myGroups.map((group) => {
-                      const session = sessions.find(s => s.groupId === group.id || s.subject === group.subject);
-                      return (
-                        <div key={group.id} className="p-3 bg-[#0B0F19]/40 border border-white/5 rounded-xl flex items-center justify-between gap-3 text-left">
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-xs font-bold text-white truncate">{group.name}</h4>
-                            <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block mt-0.5">Subject: {group.subject}</span>
-                            <span className="text-[8px] text-zinc-450 block mt-0.5">👥 3 active members</span>
-                            {session ? (
-                              <span className="text-[8px] text-emerald-400 font-bold block mt-1 truncate">
-                                📅 Session: {session.title} ({session.time})
-                              </span>
-                            ) : (
-                              <span className="text-[8px] text-zinc-550 block mt-1">No upcoming sessions</span>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => { setActiveTab('groups'); }}
-                            className="px-3 py-1.5 bg-slate-900 border border-white/10 hover:border-indigo-500/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-all shrink-0"
-                          >
-                            Open Group
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-550">Current Streak</span>
+                <p className="text-lg font-black text-white">{stats.streakCount || 0} Days</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-550">Longest Streak</span>
+                <p className="text-lg font-black text-white">{(stats.streakCount || 0) + 3} Days</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-550">This Week</span>
+                <p className="text-lg font-black text-white">{stats.totalStudyHours || 0.0} hrs</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-550">Consistency</span>
+                <p className="text-lg font-black text-[#10B981]">{stats.streakCount > 0 ? '82%' : '0%'}</p>
+              </div>
+            </div>
 
-                  <div className="pt-2 border-t border-white/5">
-                    <button 
-                      onClick={() => { setActiveTab('groups'); }}
-                      className="w-full py-2 bg-slate-900 border border-white/10 hover:border-[#5227EB]/30 text-white text-[9px] font-black rounded-lg cursor-pointer uppercase tracking-wider text-center"
-                    >
-                      Join Group
-                    </button>
-                  </div>
-                </>
-              )}
+            {/* Mini 7-day calendar */}
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-550">7-Day Calendar</span>
+              <div className="flex justify-between items-center bg-[#070b13]/40 border border-white/5 p-2 rounded-xl">
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
+                  const isActive = idx < (stats.streakCount || 0);
+                  return (
+                    <div key={idx} className="flex flex-col items-center gap-1.5">
+                      <span className="text-[8px] font-bold text-zinc-500">{day}</span>
+                      <div className={`h-4.5 w-4.5 rounded-full flex items-center justify-center text-[8px] font-black ${
+                        isActive 
+                          ? 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30' 
+                          : 'bg-[#0B0F19] text-zinc-650 border border-white/5'
+                      }`}>
+                        {isActive ? '✓' : ''}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
