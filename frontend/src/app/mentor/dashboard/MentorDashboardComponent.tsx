@@ -306,8 +306,8 @@ export function MentorDashboardComponent() {
   };
 
   const handleSaveProfile = async () => {
-    if (!profileName.trim()) {
-      addToast('Full Name is required.', 'error');
+    if (!profileName.trim() || profileName.trim().length < 3) {
+      addToast('Full Name must be at least 3 characters.', 'error');
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -315,7 +315,7 @@ export function MentorDashboardComponent() {
       addToast('Please enter a valid email address.', 'error');
       return;
     }
-    if (profilePhone && !/^[0-9]{10}$/.test(profilePhone.trim())) {
+    if (!profilePhone.trim() || !/^[0-9]{10}$/.test(profilePhone.trim())) {
       addToast('Phone number must contain exactly 10 digits.', 'error');
       return;
     }
@@ -326,33 +326,33 @@ export function MentorDashboardComponent() {
 
     setSavingProfile(true);
     try {
-      const nameParts = profileName.trim().split(/\s+/);
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '.';
-
-      const response = await apiRequest('/api/auth/update-profile', {
+      const response = await apiRequest('/auth/update-profile', {
         method: 'PUT',
-        body: {
-          firstName,
-          lastName,
+        body: JSON.stringify({
+          fullName: profileName.trim(),
           email: profileEmail.trim(),
-          phone: profilePhone.trim() || null,
+          phone: profilePhone.trim(),
           college: profileCollege.trim(),
           bio: profileBio.trim(),
-          avatarUrl: profileAvatar,
+          expertise: profileExpertise,
           availability: profileAvailability,
-          expertise: JSON.stringify(profileExpertise)
-        }
+          profileImage: profileAvatar
+        })
       });
 
       if (response && response.user) {
         setUser(response.user);
-        addToast('Profile updated successfully.', 'success');
+        addToast('✅ Profile updated successfully.', 'success');
+        // Refresh local dashboard data
+        fetchStudyRooms();
+        fetchSessions();
+        fetchDoubts();
+        fetchNotifications();
       } else {
-        addToast(response?.error || 'Failed to update profile.', 'error');
+        addToast(response?.error || 'Unable to update profile.', 'error');
       }
     } catch (err: any) {
-      addToast(err?.message || 'Error occurred while saving profile settings.', 'error');
+      addToast(err?.message || 'Unable to update profile.', 'error');
     } finally {
       setSavingProfile(false);
     }
@@ -367,20 +367,20 @@ export function MentorDashboardComponent() {
       addToast('New passwords do not match.', 'error');
       return;
     }
-    if (newPassword.length < 6) {
-      addToast('Password must be at least 6 characters long.', 'error');
+    if (newPassword.length < 8) {
+      addToast('Password must be at least 8 characters long.', 'error');
       return;
     }
 
     setChangingPassword(true);
     try {
-      const response = await apiRequest('/api/auth/change-password', {
+      const response = await apiRequest('/auth/change-password', {
         method: 'POST',
-        body: { currentPassword, newPassword }
+        body: JSON.stringify({ currentPassword, newPassword })
       });
 
       if (response && !response.error) {
-        addToast('Password updated successfully.', 'success');
+        addToast('✅ Password changed successfully.', 'success');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
@@ -1078,9 +1078,17 @@ export function MentorDashboardComponent() {
               <p className="text-xs font-bold text-white">{user.fullName}</p>
               <p className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold">{user.role}</p>
             </div>
-            <div className="h-9 w-9 rounded-full bg-indigo-900/60 border border-indigo-500/20 flex items-center justify-center font-bold text-white uppercase text-xs">
-              {user.fullName.substring(0, 2)}
-            </div>
+            {user.avatarUrl ? (
+              <img 
+                src={user.avatarUrl} 
+                className="h-9 w-9 rounded-full object-cover border border-indigo-500/20" 
+                alt="Avatar" 
+              />
+            ) : (
+              <div className="h-9 w-9 rounded-full bg-indigo-900/60 border border-indigo-500/20 flex items-center justify-center font-bold text-white uppercase text-xs">
+                {user.fullName.substring(0, 2)}
+              </div>
+            )}
           </div>
           <button 
             onClick={logout}
@@ -1235,9 +1243,28 @@ export function MentorDashboardComponent() {
             </div>
           </div>
 
-          <div className="px-6 text-[10px] text-zinc-500 space-y-1">
-            <p>Logged in as: {user.username}</p>
-            <p>© StudyCircle</p>
+          <div className="px-6 space-y-3">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+              {user.avatarUrl ? (
+                <img 
+                  src={user.avatarUrl} 
+                  className="h-8 w-8 rounded-full object-cover border border-white/10" 
+                  alt="Avatar" 
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center text-indigo-400 font-bold text-xs uppercase">
+                  {user.fullName.charAt(0)}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-white truncate">{user.fullName}</p>
+                <p className="text-[9px] text-zinc-400 truncate">{user.role}</p>
+              </div>
+            </div>
+            <div className="text-[10px] text-zinc-500 space-y-1">
+              <p>Logged in as: {user.username}</p>
+              <p>© StudyCircle</p>
+            </div>
           </div>
         </aside>
 
@@ -2254,6 +2281,7 @@ export function MentorDashboardComponent() {
                     onClick={handleSaveProfile}
                     className="px-6 py-2.5 bg-[#5227EB] hover:bg-[#431cd3] text-white text-[11px] font-black rounded-lg cursor-pointer uppercase tracking-widest disabled:opacity-50 transition-all flex items-center gap-2"
                   >
+                    {savingProfile && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
                     {savingProfile ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>

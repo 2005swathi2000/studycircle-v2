@@ -704,44 +704,75 @@ router.get('/me', authMiddleware, async (req, res) => {
 // Update user profile (PUT /update-profile)
 router.put('/update-profile', authMiddleware, async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, avatarUrl, bio, learningGoal, learningLevel, dailyTarget, focusCoins, badges, xp, level, college, expertise, availability } = req.body;
+    const { firstName, lastName, fullName, email, phone, avatarUrl, profileImage, bio, learningGoal, learningLevel, dailyTarget, focusCoins, badges, xp, level, college, expertise, availability } = req.body;
     
     const user = await User.findByPk(req.user.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
     }
 
-    if (firstName !== undefined) {
-      if (!firstName || firstName.trim() === '') {
-        return res.status(400).json({ error: 'First name cannot be empty.' });
+    if (fullName !== undefined) {
+      if (!fullName || fullName.trim().length < 3) {
+        return res.status(400).json({ error: 'Full Name must be at least 3 characters.' });
       }
-      user.firstName = firstName.trim();
-    }
+      user.fullName = fullName.trim();
+      const parts = user.fullName.split(/\s+/);
+      user.firstName = parts[0] || '';
+      user.lastName = parts.slice(1).join(' ') || '.';
+    } else {
+      if (firstName !== undefined) {
+        if (!firstName || firstName.trim() === '') {
+          return res.status(400).json({ error: 'First name cannot be empty.' });
+        }
+        user.firstName = firstName.trim();
+      }
 
-    if (lastName !== undefined) {
-      if (!lastName || lastName.trim() === '') {
-        return res.status(400).json({ error: 'Last name cannot be empty.' });
+      if (lastName !== undefined) {
+        if (!lastName || lastName.trim() === '') {
+          return res.status(400).json({ error: 'Last name cannot be empty.' });
+        }
+        user.lastName = lastName.trim();
       }
-      user.lastName = lastName.trim();
+      
+      const updatedFirstName = user.firstName || '';
+      const updatedLastName = user.lastName || '';
+      if (updatedFirstName || updatedLastName) {
+        user.fullName = `${updatedFirstName} ${updatedLastName}`.trim();
+      }
     }
 
     if (email !== undefined) {
-      user.email = email ? email.trim().toLowerCase() : null;
+      const trimmedEmail = email ? email.trim().toLowerCase() : '';
+      if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        return res.status(400).json({ error: 'Please enter a valid email address.' });
+      }
+      if (trimmedEmail !== user.email) {
+        const existingEmail = await User.findOne({ where: { email: trimmedEmail } });
+        if (existingEmail) {
+          return res.status(400).json({ error: 'Email already exists.' });
+        }
+      }
+      user.email = trimmedEmail;
     }
 
     if (phone !== undefined) {
       const trimmedPhone = phone ? phone.trim() : '';
-      if (trimmedPhone && !/^[0-9]{10}$/.test(trimmedPhone)) {
+      if (!trimmedPhone || !/^[0-9]{10}$/.test(trimmedPhone)) {
         return res.status(400).json({ error: 'Phone number must contain exactly 10 digits.' });
       }
-      user.phone = trimmedPhone || null;
+      user.phone = trimmedPhone;
     }
 
-    if (avatarUrl !== undefined) {
+    if (profileImage !== undefined) {
+      user.avatarUrl = profileImage;
+    } else if (avatarUrl !== undefined) {
       user.avatarUrl = avatarUrl;
     }
 
     if (bio !== undefined) {
+      if (bio && bio.length > 150) {
+        return res.status(400).json({ error: 'Bio cannot exceed 150 characters.' });
+      }
       user.bio = bio ? bio.trim() : null;
     }
 
@@ -793,12 +824,6 @@ router.put('/update-profile', authMiddleware, async (req, res) => {
       user.availability = availability ? availability.trim() : 'Available';
     }
 
-    // Update old composite columns for backward compatibility
-    const updatedFirstName = user.firstName || '';
-    const updatedLastName = user.lastName || '';
-    if (updatedFirstName || updatedLastName) {
-      user.fullName = `${updatedFirstName} ${updatedLastName}`.trim();
-    }
     user.phoneOrEmail = user.email || user.phone || null;
 
     await user.save();
