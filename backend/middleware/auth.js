@@ -71,6 +71,7 @@ const authMiddleware = async (req, res, next) => {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'none' : 'lax',
+        path: '/',
         maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000
       });
 
