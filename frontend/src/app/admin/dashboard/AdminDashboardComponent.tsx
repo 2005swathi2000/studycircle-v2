@@ -37,6 +37,14 @@ export function AdminDashboardComponent() {
   const { user, loading, logout } = useApp();
   const router = useRouter();
   const { showToast: addToast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
   const pathname = usePathname();
 
   // Derive activeTab directly from the pathname
@@ -855,7 +863,7 @@ export function AdminDashboardComponent() {
             {(user?.fullName || 'TD').substring(0, 2)}
           </div>
           <button 
-            onClick={logout}
+            onClick={handleLogout}
             className="p-2 hover:bg-red-950/20 text-zinc-450 hover:text-red-400 rounded-xl transition-all border-none bg-transparent cursor-pointer"
             title="Logout"
           >

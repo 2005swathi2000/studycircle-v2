@@ -71,6 +71,17 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('studycircle_user');
+        localStorage.removeItem('studycircle_token');
+        localStorage.removeItem('studycircle_register_payload');
+        localStorage.removeItem('saved_login_user');
+        localStorage.removeItem('saved_login_pass');
+        localStorage.setItem('auth_session_active', 'false');
+        window.dispatchEvent(new Event('auth_session_expired'));
+      }
+    }
     const errorMsg = data?.error || data?.message || `API request failed with status ${response.status}`;
     const err = new Error(errorMsg);
     (err as any).status = response.status;

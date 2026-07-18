@@ -46,7 +46,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!globalLoading && !user) {
       showToast('Please sign in to access your profile.', 'error');
-      router.push('/');
+      router.replace('/');
     }
   }, [user, globalLoading]);
 

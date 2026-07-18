@@ -26,6 +26,8 @@ export const getSocket = (): Socket => {
 
 export const disconnectSocket = (): void => {
   if (socket) {
+    socket.removeAllListeners();
+    socket.off();
     socket.disconnect();
     socket = null;
   }

@@ -1617,7 +1617,7 @@ export default function WorkspacePage() {
     if (!globalLoading) {
       if (!currentUser) {
         showToast('Please log in or sign up first.', 'warning');
-        router.push('/?login=true');
+        router.replace('/?login=true');
         return;
       }
       

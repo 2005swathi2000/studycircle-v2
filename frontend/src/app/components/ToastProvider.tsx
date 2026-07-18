@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useRef, useEffect } from 'react';
 import { AlertCircle, CheckCircle2, Info, AlertTriangle, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -30,6 +31,7 @@ export const useToast = () => {
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const activeMessagesRef = useRef<Set<string>>(new Set());
+  const router = useRouter();
 
   const showToast = useCallback((message: string, type: ToastType = 'info', actionLabel?: string, actionCallback?: () => void) => {
     // Intercept and prevent noisy/navigation/view toasts
@@ -91,6 +93,29 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
       activeMessagesRef.current.delete(message);
     }, 5000); // Increased duration to 5 seconds to let users read and click "View"
   }, []);
+
+  // Listen to global events for toast creation and session expiry
+  useEffect(() => {
+    const handleShowToast = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        showToast(customEvent.detail.message, customEvent.detail.type);
+      }
+    };
+
+    const handleSessionExpired = () => {
+      showToast('⚠️ Your session has expired. Please login again.', 'warning');
+      router.replace('/?login=true');
+    };
+
+    window.addEventListener('show_toast', handleShowToast);
+    window.addEventListener('auth_session_expired', handleSessionExpired);
+
+    return () => {
+      window.removeEventListener('show_toast', handleShowToast);
+      window.removeEventListener('auth_session_expired', handleSessionExpired);
+    };
+  }, [showToast, router]);
 
   const removeToast = (id: string) => {
     setToasts((prev) => {

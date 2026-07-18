@@ -254,12 +254,12 @@ export function DashboardComponent({ bypassRedirect = false }: { bypassRedirect?
       if (!user) {
         if (typeof window !== 'undefined' && sessionStorage.getItem('explicit_logout') === 'true') {
           sessionStorage.removeItem('explicit_logout');
-          router.push('/');
+          router.replace('/');
         } else {
-          router.push('/?login=true');
+          router.replace('/?login=true');
         }
       } else {
-        router.push(`/${user.role}/dashboard`);
+        router.replace(`/${user.role}/dashboard`);
       }
     }
   }, [user, globalLoading, bypassRedirect, router]);
@@ -2760,12 +2760,11 @@ Based on your desking logs and consistency, the AI tutor recommends:
   };
 
   const handleLogout = async () => {
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('explicit_logout', 'true');
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Logout failed:', err);
     }
-    await logout();
-    showToast('Logged out successfully!', 'success');
-    router.push('/');
   };
 
   // Time formatter helpers

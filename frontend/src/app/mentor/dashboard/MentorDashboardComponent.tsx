@@ -51,6 +51,14 @@ export function MentorDashboardComponent() {
   const router = useRouter();
   const { showToast: addToast } = useToast();
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
+
   const pathname = usePathname();
 
   // Derive activeTab directly from the pathname
@@ -1112,7 +1120,7 @@ export function MentorDashboardComponent() {
             )}
           </div>
           <button 
-            onClick={logout}
+            onClick={handleLogout}
             className="p-2 hover:bg-red-950/20 text-zinc-450 hover:text-red-400 rounded-xl transition-all border-none bg-transparent cursor-pointer"
             title="Logout"
           >
@@ -2363,9 +2371,7 @@ export function MentorDashboardComponent() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          logout().then(() => router.push('/'));
-                        }}
+                        onClick={handleLogout}
                         className="px-4 py-2 bg-slate-900 border border-white/10 hover:border-red-500/30 text-red-400 text-[10px] font-black rounded-lg cursor-pointer uppercase tracking-wider transition-colors"
                       >
                         Logout

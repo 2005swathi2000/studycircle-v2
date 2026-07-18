@@ -609,7 +609,7 @@ export default function GroupPage() {
     if (!globalLoading) {
       if (!currentUser) {
         showToast('Session expired. Please sign in.', 'error');
-        router.push('/');
+        router.replace('/');
         return;
       }
       loadGroupData(currentUser);

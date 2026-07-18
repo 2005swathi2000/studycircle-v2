@@ -15,12 +15,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (!user) {
         if (typeof window !== 'undefined' && sessionStorage.getItem('explicit_logout') === 'true') {
           sessionStorage.removeItem('explicit_logout');
-          router.push('/');
+          router.replace('/');
         } else {
-          router.push('/?login=true');
+          router.replace('/?login=true');
         }
       } else if (user.role !== 'admin') {
-        router.push(`/${user.role}/dashboard`);
+        router.replace(`/${user.role}/dashboard`);
       }
     }
   }, [user, loading, router]);

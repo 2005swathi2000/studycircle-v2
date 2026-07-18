@@ -6,6 +6,7 @@ import { getSocket, disconnectSocket } from '../utils/socket';
 import { apiRequest } from '../utils/api';
 import { googleLogout } from '@react-oauth/google';
 import { useRouter } from 'next/navigation';
+import { RefreshCw } from 'lucide-react';
 
 export interface User {
   id: string;
@@ -120,6 +121,7 @@ export interface AppContextType {
 
   socket: Socket | null;
   loading: boolean;
+  isLoggingOut: boolean;
   refreshUser: () => Promise<User | null>;
   logout: () => Promise<void>;
   fetchNotifications: () => Promise<void>;
@@ -136,6 +138,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [myGroups, setMyGroups] = useState<any[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Stats, lists, loaded status
   const [stats, setStats] = useState({ 
@@ -287,7 +290,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    setIsLoggingOut(true);
     try {
+      // 1. Call backend logout API
+      await apiRequest('/auth/logout', { method: 'POST' });
+
+      // 2. Clear all authentication storage state on success
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('explicit_logout', 'true');
         localStorage.removeItem('studycircle_user');
@@ -296,21 +304,39 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem('saved_login_user');
         localStorage.removeItem('saved_login_pass');
         localStorage.setItem('auth_session_active', 'false');
+        sessionStorage.removeItem('auth_session_active');
       }
-      googleLogout();
-    } catch (googleErr) {
-      console.error('Google logout error:', googleErr);
-    }
-    try {
-      await apiRequest('/auth/logout', { method: 'POST' });
-    } catch (err) {
-      console.error('Logout API request error:', err);
-    } finally {
+
+      try {
+        googleLogout();
+      } catch (googleErr) {
+        console.error('Google logout error:', googleErr);
+      }
+
+      // 3. Clear memory and context variables
       setUser(null);
       setNotifications([]);
       setMyGroups([]);
       disconnectSocket();
       setSocket(null);
+
+      // Show success toast via window event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('show_toast', {
+          detail: { message: '✅ Logged out successfully.', type: 'success' }
+        }));
+      }
+    } catch (err: any) {
+      console.error('Logout API request error:', err);
+      // Show error toast via window event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('show_toast', {
+          detail: { message: '❌ Unable to logout. Please try again.', type: 'error' }
+        }));
+      }
+      throw err;
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -425,6 +451,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           setMyGroups([]);
           disconnectSocket();
           setSocket(null);
+          // Redirect immediately to clear all memory
+          window.location.replace('/?login=true');
         } else if (e.newValue === 'true') {
           // Logged in in another tab
           refreshUser();
@@ -433,6 +461,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // 4. Listen for API 401 session expiration events
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUserState(null);
+      setNotifications([]);
+      setMyGroups([]);
+      disconnectSocket();
+      setSocket(null);
+    };
+    window.addEventListener('auth_session_expired', handleSessionExpired);
+    return () => window.removeEventListener('auth_session_expired', handleSessionExpired);
   }, []);
 
   const unreadCount = notifications.filter(n => n.unread).length;
@@ -491,6 +532,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setAdminDataLoaded,
         socket,
         loading,
+        isLoggingOut,
         refreshUser,
         logout,
         fetchNotifications,
@@ -499,6 +541,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }}
     >
       {children}
+      {isLoggingOut && (
+        <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-black/85 backdrop-blur-md pointer-events-auto">
+          <div className="flex flex-col items-center gap-4 p-6 rounded-2xl bg-[#0F111A]/90 border border-white/5 shadow-2xl">
+            <RefreshCw className="h-10 w-10 text-indigo-500 animate-spin" />
+            <p className="text-sm font-bold text-white tracking-wider">Logging out...</p>
+          </div>
+        </div>
+      )}
     </AppContext.Provider>
   );
 };

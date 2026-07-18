@@ -15,12 +15,12 @@ export default function MentorLayout({ children }: { children: React.ReactNode }
       if (!user) {
         if (typeof window !== 'undefined' && sessionStorage.getItem('explicit_logout') === 'true') {
           sessionStorage.removeItem('explicit_logout');
-          router.push('/');
+          router.replace('/');
         } else {
-          router.push('/?login=true');
+          router.replace('/?login=true');
         }
       } else if (user.role !== 'mentor') {
-        router.push(`/${user.role}/dashboard`);
+        router.replace(`/${user.role}/dashboard`);
       }
     }
   }, [user, loading, router]);
