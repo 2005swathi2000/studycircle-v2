@@ -2243,7 +2243,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
 
       // 0. Fetch latest user details (required for dashboard or profile)
       if (tab === 'dashboard' || tab === 'profile') {
-        promises.push(apiRequest('/auth/me').catch(err => { console.error('Failed to fetch user profile:', err); return null; }));
+        promises.push(apiRequest('/auth/me?_ts=' + Date.now()).catch(err => { console.error('Failed to fetch user profile:', err); return null; }));
         fetchKeys.push('me');
       }
       
@@ -2374,7 +2374,7 @@ Based on your desking logs and consistency, the AI tutor recommends:
     setRefreshing(true);
     try {
       try {
-        const meData = await apiRequest('/auth/me');
+        const meData = await apiRequest('/auth/me?_ts=' + Date.now());
         if (meData.user) {
           setUser(meData.user, meData.token || (typeof window !== 'undefined' ? localStorage.getItem('studycircle_token') : null));
           setEditFullName(meData.user.fullName || '');

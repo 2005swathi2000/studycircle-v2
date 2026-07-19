@@ -248,7 +248,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshUser = async (): Promise<User | null> => {
     try {
-      const data = await apiRequest('/auth/me');
+      const data = await apiRequest('/auth/me?_ts=' + Date.now());
       if (data && data.user) {
         const activeToken = data.token || (typeof window !== 'undefined' ? localStorage.getItem('studycircle_token') : null);
         setUser(data.user, activeToken);
