@@ -613,16 +613,16 @@ router.post('/login', loginLimiter, async (req, res) => {
 
 // Logout Route
 router.post('/logout', (req, res) => {
-  const clearOptions = [
-    { httpOnly: true, secure: true, sameSite: 'none', path: '/' },
-    { httpOnly: true, secure: false, sameSite: 'lax', path: '/' },
-    { path: '/' }
-  ];
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieOpt = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/'
+  };
 
-  clearOptions.forEach(opt => {
-    res.clearCookie('token', opt);
-    res.clearCookie('refreshToken', opt);
-  });
+  res.clearCookie('token', cookieOpt);
+  res.clearCookie('refreshToken', cookieOpt);
 
   return res.json({
     success: true,
